@@ -94,6 +94,6 @@ Sebelum klik "Create Pull Request", pastikan:
 
 ---
 
-**Kontak Project Leader:** Jika ada kendala teknis atau kebingungan mengenai scope tulisan, silakan hubungi **[Nama Kamu]** di Discord/Grup Koordinasi.
+**Kontak Project Leader:** Jika ada kendala teknis atau kebingungan mengenai scope tulisan, silakan hubungi **Bagaskoro Saputro** di Discord/Grup Koordinasi.
 
 ---
