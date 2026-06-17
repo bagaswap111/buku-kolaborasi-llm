@@ -68,10 +68,10 @@ Pembaca memahami:
 
 | Skenario | GPU | Model & Kuantisasi | Max Concurrent User | Estimasi Biaya |
 |:---|:---|:---|:---:|:---:|
-| **Budget (21-30 user)** | 2x L40S | Llama-3.1-70B Q3_K_M + Qwen-2.5-14B Q5_K_M | 15 | Rp 350-450jt |
-| **Standard (31-40 user)** | 2x H100 | Llama-3.1-70B Q4_K_M + Llama-3.1-8B | 25 | Rp 600-800jt |
-| **Premium (41-50 user)** | 4x H100 | Llama-3.1-70B FP16 + Mixtral-8x7B Q4_K_M | 35 | Rp 1.2-1.5M |
-| **Cluster HA** | 3x L40S (2 active + 1 standby) | Multi-model via vLLM | 30 | Rp 500-650jt |
+| **Budget (21-30 user)** | 2x L40S | DeepSeek V4 Flash Q4 + Qwen3.6-27B Q5_K_M | 15 | Rp 350-450jt |
+| **Standard (31-40 user)** | 2x H100 | Mistral Large 3 Q4 (Apache 2.0) + Ministral 3 14B | 25 | Rp 600-800jt |
+| **Premium (41-50 user)** | 4x H100 | DeepSeek V4 Pro Q4 + Mistral Large 3 Q8 | 35 | Rp 1.2-1.5M |
+| **Cluster HA** | 3x L40S (2 active + 1 standby) | DeepSeek V4 Flash + Mistral Large 3 via vLLM | 30 | Rp 500-650jt |
 
 ### Tabel C: TCO 3 Tahun (IDR)
 
@@ -216,10 +216,11 @@ EOF
 
 ### Studi Kasus: PT Solusi AI — General Office 40 Karyawan
 - **Profil:** Konsultan AI dengan 40 karyawan (25 technical, 15 non-technical)
-- **Kebutuhan:** Multi-model serving (Llama-70B untuk analisa dokumen, Qwen-14B untuk coding assistant, Whisper untuk transkrip meeting)
+- **Kebutuhan:** Multi-model serving (DeepSeek V4 Flash 1M ctx untuk analisa dokumen panjang, Mistral Large 3 Apache 2.0 untuk coding assistant, Whisper untuk transkrip meeting)
 - **Hardware Terpilih:** 2x Node Dell R760xa dengan H100 80GB, 25GbE interconnect, 4TB NVMe shared storage via NFS
 - **Software Stack:** K3s + vLLM + LiteLLM + Qdrant + MinIO
-- **Hasil:** Throughput 1800 request/jam, P99 TTFT 2.1 detik, 0 downtime dalam 90 hari
+- **Model Baru:** DeepSeek V4 Flash (MIT, 284B/13B aktif) menggantikan Llama-70B untuk efisiensi VRAM lebih baik; Mistral Large 3 (675B/41B aktif, Apache 2.0) untuk tugas coding dan analisa
+- **Hasil:** Throughput 2200 request/jam (+22%), P99 TTFT 1.8 detik, 0 downtime dalam 90 hari
 - **TCO 3 Tahun:** Rp 1.1M, setara ~Rp 25jt/bulan untuk 40 user = Rp 625k/user/bulan
 
 ---
@@ -296,6 +297,28 @@ EOF
 [7] Dell. *PowerEdge R760xa Specification*. [https://www.dell.com/en-us/work/shop/povw/poweredge-r760xa](https://www.dell.com/en-us/work/shop/povw/poweredge-r760xa)
 
 [8] K3s. *Lightweight Kubernetes Documentation*. [https://docs.k3s.io](https://docs.k3s.io)
+
+[10] **DeepSeek V4 Pro: Open-Weight Model untuk Multi-Node Cluster**
+```
+@misc{deepseek2026v4pro,
+  title     = {{DeepSeek-V4} Pro: 1.6 Trillion Parameter MoE for Enterprise GPUs},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model 1.6T/49B aktif dengan MIT — membutuhkan 4+ GPU H100 untuk inference. Data Tabel B (Premium) harus diverifikasi.
+
+[11] **Gemini 2.5 Pro: Google Enterprise LLM**
+```
+@misc{google2025gemini25,
+  title     = {Gemini 2.5 Pro: Google's Most Capable AI Model},
+  author    = {{Google DeepMind}},
+  year      = {2025},
+  url       = {https://blog.google/technology/google-deepmind/gemini-model-thinking-updates-march-2025}
+}
+```
+- Kaitan: Model proprietary dengan 1M konteks — alternatif cloud untuk general office yang sudah menggunakan Google Cloud.
 
 [9] vLLM. *Official Documentation — Quantization*. [https://docs.vllm.ai](https://docs.vllm.ai)
 

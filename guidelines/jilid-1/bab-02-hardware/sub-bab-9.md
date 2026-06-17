@@ -49,6 +49,7 @@ Pembaca memahami:
 - Microsoft Copilot+: syarat minimal NPU 40 TOPS — mendorong adopsi massal
 - 2026: NPU 100+ TOPS (Intel Panther Lake, AMD下一代)
 - NPU belum bisa menggantikan GPU untuk LLM lokal; perannya sebagai co-processor untuk offload tugas ringan
+- Model frontier 2026 (DeepSeek V4 Pro 1.6T, Mistral Large 3 675B, GPT-5.5, Claude Fable 5) sama sekali tidak feasible di NPU — membutuhkan GPU HBM atau Apple Silicon unified memory dengan bandwidth >500 GB/s
 - Prediksi: NPU + iGPU hybrid akan cukup untuk SLM (3B-8B) dalam 2-3 tahun
 
 ---
@@ -267,17 +268,30 @@ python tools/bench_e2e.py \
 ```
 - Kaitan: NPU first-token latency 1.09s, throughput 18.55 t/s di Llama-2-7B — standarisasi benchmark NPU pertama. Data Tabel A tentang NPU TOPS dan performa merujuk publikasi ini.
 
+[6] **DeepSeek-V4: Hardware Requirements for Frontier MoE**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 1.6T parameter — contoh frontier yang sama sekali tidak bisa dijalankan di NPU, mempertegas batas kemampuan NPU vs GPU.
+
 ### Referensi Pendukung
 
-[6] Microsoft. *Copilot+ PC Requirements*. [https://www.microsoft.com/en-us/windows/copilot-plus-pcs](https://www.microsoft.com/en-us/windows/copilot-plus-pcs)
+[7] Microsoft. *Copilot+ PC Requirements*. [https://www.microsoft.com/en-us/windows/copilot-plus-pcs](https://www.microsoft.com/en-us/windows/copilot-plus-pcs)
 
-[7] Intel. *OpenVINO NPU Guide*. [https://docs.openvino.ai](https://docs.openvino.ai)
+[8] Intel. *OpenVINO NPU Guide*. [https://docs.openvino.ai](https://docs.openvino.ai)
 
-[8] Qualcomm. *Snapdragon Neural Processing Engine SDK*. [https://developer.qualcomm.com/software/qualcomm-neural-processing-sdk](https://developer.qualcomm.com/software/qualcomm-neural-processing-sdk)
+[9] Qualcomm. *Snapdragon Neural Processing Engine SDK*. [https://developer.qualcomm.com/software/qualcomm-neural-processing-sdk](https://developer.qualcomm.com/software/qualcomm-neural-processing-sdk)
 
-[9] AMD. *Ryzen AI Software*. [https://ryzenai.docs.amd.com](https://ryzenai.docs.amd.com)
+[10] AMD. *Ryzen AI Software*. [https://ryzenai.docs.amd.com](https://ryzenai.docs.amd.com)
 
-[10] Apple. *Core ML Neural Engine*. [https://developer.apple.com/machine-learning/core-ml](https://developer.apple.com/machine-learning/core-ml)
+[11] Apple. *Core ML Neural Engine*. [https://developer.apple.com/machine-learning/core-ml](https://developer.apple.com/machine-learning/core-ml)
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv valid.

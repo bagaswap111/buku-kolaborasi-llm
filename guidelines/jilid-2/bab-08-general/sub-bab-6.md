@@ -45,6 +45,7 @@ Pembaca memahami:
 - Differential privacy untuk aggregate query analytics
 - Pseudonymization: user_id diganti hash saat log untuk analisis non-forensik
 - Opt-out: user bisa minta log-nya dihapus (right to erasure)
+- Claude Fable 5 Audit: model dengan safety classifiers built-in secara otomatis menandai log yang mencurigakan untuk review compliance — mengurangi beban audit manual
 
 ---
 
@@ -323,6 +324,17 @@ def verify_log_file(filepath: str):
 [7] Wazuh. *SIEM Documentation*. [https://documentation.wazuh.com](https://documentation.wazuh.com)
 
 [8] ISO 27001:2022. *Information Security Management Systems*. [https://www.iso.org/standard/27001](https://www.iso.org/standard/27001)
+
+[10] **Claude Fable 5: Audit-Ready Enterprise Model**
+```
+@misc{anthropic2026fable5,
+  title     = {Claude Fable 5: Built-in Safety Classifiers for Compliance Auditing},
+  author    = {{Anthropic}},
+  year      = {2026},
+  url       = {https://anthropic.com}
+}
+```
+- Kaitan: Model dengan safety classifiers yang menghasilkan audit log terstruktur untuk setiap interaksi — memudahkan compliance audit ISO 27001 dan UU PDP.
 
 [9] UU PDP Indonesia. *Undang-Undang Pelindungan Data Pribadi*. [https://peraturan.go.id/id/uu-no-27-tahun-2022](https://peraturan.go.id/id/uu-no-27-tahun-2022)
 

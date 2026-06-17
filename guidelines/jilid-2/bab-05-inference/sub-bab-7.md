@@ -52,6 +52,10 @@ Pembaca memahami:
 | Llama-3.1-70B | 140 GB | 0.26 GB | 142.6 GB | 153 GB | 166 GB |
 | Qwen-2.5-32B | 64 GB | 0.12 GB | 65.2 GB | 70 GB | 76 GB |
 | Mistral-7B | 14 GB | 0.028 GB | 14.28 GB | 15.4 GB | 16.8 GB |
+| Mistral Large 3 (675B MoE) | 168 GB (FP8) | 0.42 GB | 172.2 GB | 189 GB | 210 GB |
+| Ministral 3 8B | 16 GB | 0.030 GB | 16.3 GB | 17.5 GB | 19 GB |
+
+> Mistral Large 3 dengan granular MoE memungkinkan LoRA adapters yang lebih kecil karena sparse activation — hanya 41B parameter aktif yang perlu diadaptasi per forward pass.
 
 ### Tabel B: Performance Impact — Multi-LoRA Serving (vLLM, 8B, A100)
 

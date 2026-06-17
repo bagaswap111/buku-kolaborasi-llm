@@ -69,6 +69,8 @@ Pembaca memahami:
 | Power-of-two choices | 182 | 190 | 490 | 73% |
 | **Splitwise** (Prefill + Decode) | **210** | **165** | **380** | **85%** |
 
+> Untuk model MoE seperti Mistral Large 3 dan DeepSeek V4 Pro, strategi consistent hashing lebih direkomendasikan karena session affinity meningkatkan cache hit ratio pada expert weights yang sama.
+
 ### Tabel C: Splitwise — Cluster Configuration Comparison
 
 | Konfigurasi | Prompt Machine | Token Machine | Throughput | Cost | Power |

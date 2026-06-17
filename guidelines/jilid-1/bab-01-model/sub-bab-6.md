@@ -65,8 +65,12 @@ Setelah membaca, pembaca harus bisa:
 | Qwen 2.5 | Qwen Tokenizer | 152K | Sedang (multiling) | 4 token |
 | Gemma 2 | SentencePiece | 256K | Sedang-tinggi | 5 token |
 | DeepSeek V2 | DeepSeek Tokenizer | 128K | Sedang | 5 token |
+| DeepSeek V4 | DeepSeek Tokenizer v2 | 256K | Sedang-tinggi | 4 token |
+| Mistral Large 3 | SentencePiece BPE | 131K | Sedang | 5 token |
+| Ministral 3 | SentencePiece BPE | 131K | Sedang | 5 token |
 | Phi-4 | TikToken BPE | 100K | Rendah | 6 token |
 | GPT-4o | TikToken (cl100k) | 100K | Rendah-sedang | 6 token |
+| GPT-5.5 | TikToken (cl200k) | 200K | Sedang | 5 token |
 | Nusantara-7B | BPE + ID vocab | 64K | Tinggi (spesifik ID) | 2 token |
 
 ### Tabel B: Efisiensi Token untuk Bahasa Indonesia
@@ -314,6 +318,19 @@ for model_name in ['meta-llama/Meta-Llama-3-8B', 'Qwen/Qwen2.5-7B-Instruct']:
 [9] NLP Resources for Bahasa Indonesian. [https://github.com/louisowen6/NLP_bahasa_resources](https://github.com/louisowen6/NLP_bahasa_resources)
 
 [10] Nusantara Model Collection. [https://huggingface.co/indonesian-nlp](https://huggingface.co/indonesian-nlp)
+
+[11] **Ministral 3: Cascade Distillation for Efficient Multilingual Models**
+```bibtex
+@article{mistral2025ministral3,
+  title     = {Ministral 3: Efficient Multilingual Models via Cascade Distillation},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.11401},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.11401},
+  url       = {https://arxiv.org/abs/2512.11401}
+}
+```
+- Kaitan: Tokenizer multibahasa 131K vocabulary — alternatif untuk Bahasa Indonesia dengan efisiensi token lebih baik.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

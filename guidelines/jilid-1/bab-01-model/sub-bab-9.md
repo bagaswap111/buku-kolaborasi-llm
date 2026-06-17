@@ -52,6 +52,7 @@ Setelah membaca, pembaca harus bisa:
 - **EXL2 jika:** RTX 3090/4090, kecepatan maksimal, bit-width fleksibel
 - **AWQ jika:** vLLM untuk serving, produksi, multi-user
 - **Safetensors jika:** Fine-tuning, ingin full precision, HuggingFace ecosystem
+- Model MoE besar (DeepSeek V4 Flash 284B, Mistral Large 3 675B) kini tersedia dalam format GGUF dan AWQ di Hugging Face — dukungan komunitas untuk kuantisasi model frontier dengan 150-280 GB VRAM
 
 ---
 
@@ -324,6 +325,28 @@ for name, path in models.items():
 [9] AutoAWQ — AWQ Quantization. [https://github.com/casper-hansen/AutoAWQ](https://github.com/casper-hansen/AutoAWQ)
 
 [10] Ollama — Model Library. [https://ollama.com/library](https://ollama.com/library)
+
+[11] **DeepSeek-V4 on Hugging Face — Open-Weight Release**
+```bibtex
+@misc{deepseek2026v4hf,
+  title     = {DeepSeek-V4 and DeepSeek-V4 Flash: Open-Weight Models on Hugging Face},
+  author    = {DeepSeek-AI},
+  year      = {2026},
+  url       = {https://huggingface.co/deepseek-ai}
+}
+```
+- Kaitan: Model open-weight pertama dengan 1.6T parameter di Hugging Face — format Safetensors dan GGUF tersedia.
+
+[12] **Mistral Large 3 on Hugging Face — Apache 2.0**
+```bibtex
+@misc{mistral2025large3hf,
+  title     = {Mistral Large 3: Apache 2.0 Open-Weight Release on Hugging Face},
+  author    = {Mistral AI},
+  year      = {2025},
+  url       = {https://huggingface.co/mistralai}
+}
+```
+- Kaitan: Model 675B parameter dengan lisensi Apache 2.0 — format Safetensors, AWQ, dan GGUF tersedia.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

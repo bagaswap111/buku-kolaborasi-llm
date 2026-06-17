@@ -48,6 +48,7 @@ Pembaca memahami:
 - 2x RTX 3090 = ~700W peak — butuh PSU 1000W+ (atau 2x PSU dengan relay)
 - Thermal: GPU berdekatan = intake terbatas → thermal throttle — modifikasi bracket atau watercooling
 - Power limit: undervolt RTX 3090 ke 220W — hanya turun 5% performa tapi hemat 30% daya
+- Model MoE besar baru (DeepSeek V4 Flash 284B, Mistral Large 3 675B) membutuhkan 6-8 GPU untuk menjalankan dalam bentuk terkuantisasi — hanya workstation kelas atas atau Mac Studio 192GB yang mampu
 
 ---
 
@@ -61,9 +62,12 @@ Pembaca memahami:
 | **2x RTX 3090 + NVLink** | 2 × 24 GB | NVLink 112 GB/s | 48 GB | ~25 jt | ~22 t/s |
 | **2x RTX 4090** | 2 × 24 GB | PCIe Gen 5 x8/x8 | 48 GB | ~60 jt | ~28 t/s |
 | **4x RTX 3090** | 4 × 24 GB | PCIe + NVLink pairs | 96 GB | ~50 jt | ~24 t/s |
+| **6x RTX 3090 (DeepSeek V4 Flash)** | 6 × 24 GB | PCIe Gen 4 x8/x8 | 144 GB | ~72 jt | ~8 t/s |
 | **1x RTX 4090 + eGPU 3090** | 24 + 24 GB | Internal + TB4 | 48 GB | ~42 jt | ~14 t/s |
 | **Mac Studio M2 Ultra** | 76 GPU cores | Unified | 192 GB | ~75 jt | ~15 t/s |
+| **Mac Studio M2 Ultra (DeepSeek V4 Flash Q4)** | 76 GPU cores | Unified | 192 GB | ~75 jt | ~6 t/s |
 | **2x RTX A6000** | 2 × 48 GB | NVLink 112 GB/s | 96 GB | ~120 jt | ~30 t/s |
+| **8x RTX 3090 (Mistral Large 3 Q4)** | 8 × 24 GB | PCIe Gen 4 x8/x8 | 192 GB | ~96 jt | ~6 t/s |
 
 ### Tabel B: Benchmark Interkoneksi eGPU
 
@@ -283,6 +287,19 @@ print(result.stdout)
 [8] NVIDIA. *NVLink for RTX 3090*. [https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090](https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3090)
 
 [9] eGPU.io. *Community Builds*. [https://egpu.io](https://egpu.io)
+
+[10] **DeepSeek-V4 Flash: Multi-GPU Inference Setup**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B — kebutuhan 6x RTX 3090 untuk inferensi Q4, studi kasus multi-GPU ekstrem.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv valid.

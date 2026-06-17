@@ -29,6 +29,7 @@ Pembaca memahami:
 - **Named Entity Recognition (NER):** Deteksi nama, alamat, nomor telepon via model NER
 - **Classifier Model:** Fine-tuned BERT untuk klasifikasi sensitivitas dokumen
 - **Vector Similarity:** Cek apakah prompt mirip dengan dokumen rahasia di vector DB
+- **Safety Classifiers (Claude Fable 5):** Model terbaru seperti Claude Fable 5 (Jun 2026) memiliki safety classifiers built-in yang dapat mendeteksi prompt berbahaya, data sensitif, dan policy violation secara real-time — mengurangi kebutuhan DLP pihak ketiga untuk konten yang diproses melalui Anthropic API
 
 ### D. Policy Enforcement (1-2 paragraf)
 - Kebijakan DLP 3 level: BLOCK (tolak prompt), WARN (izinkan dengan peringatan), LOG (catat saja)
@@ -69,6 +70,7 @@ Pembaca memahami:
 | **NeMo Guardrails** | Ya | Ya | Ya | LangChain/NVIDIA | Gratis (OSS) |
 | **QueryShield** | Ya (rephrase) | Tidak | Ya | REST API | Research |
 | **Guardrails AI** | Ya | Ya | Ya | SDK | OSS + Enterprise |
+| **Claude Fable 5 Classifiers** | Ya (built-in) | Ya (built-in) | Tidak (cloud) | API | Pay-per-use |
 
 ### Tabel C: DLP Policy Rules Contoh
 
@@ -312,6 +314,17 @@ systemctl restart wazuh-agent
 [7] NVIDIA NeMo Guardrails. *Documentation*. [https://docs.nvidia.com/nemo/guardrails/](https://docs.nvidia.com/nemo/guardrails/)
 
 [8] Guardrails AI. *Documentation*. [https://www.guardrailsai.com](https://www.guardrailsai.com)
+
+[10] **Claude Fable 5: Safety Classifiers untuk Enterprise DLP**
+```
+@misc{anthropic2026fable5,
+  title     = {Claude Fable 5: Safety-Classifier Enhanced Language Model},
+  author    = {{Anthropic}},
+  year      = {2026},
+  url       = {https://anthropic.com}
+}
+```
+- Kaitan: Model dengan safety classifiers built-in untuk deteksi prompt berbahaya dan data sensitif — mengurangi kebutuhan DLP tambahan untuk traffic via Anthropic API.
 
 [9] Wazuh. *SIEM Open Source Documentation*. [https://documentation.wazuh.com](https://documentation.wazuh.com)
 

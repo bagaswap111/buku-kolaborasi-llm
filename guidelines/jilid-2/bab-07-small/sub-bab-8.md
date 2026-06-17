@@ -94,10 +94,11 @@ Pembaca mampu:
 
 | Budget VRAM | GPU | Model Maksimal | Concurrency | Kualitas |
 |:---|:---|:---|:---:|:---:|
-| **24 GB** | 1x RTX 4090 | Llama-3.1-8B Q8 / Qwen-3-32B Q4 | ~5 user | Baik |
-| **48 GB** | 2x RTX 3090+NVLink | Llama-3.1-70B Q4 / Qwen-3-32B Q8 | ~10 user | Sangat Baik |
-| **48 GB** | 2x RTX 4090 PCIe | Llama-3.1-70B Q4 / DeepSeek-Coder-67B Q4 | ~8 user | Sangat Baik |
-| **64 GB** | 2x RTX 5090 | Llama-3.1-70B Q8 / DeepSeek-R1-70B Q4 | ~15 user | Excellent |
+| **24 GB** | 1x RTX 4090 | Llama-3.1-8B Q8 / Qwen-3-32B Q4 / Ministral 3 14B Q8 | ~5 user | Baik |
+| **48 GB** | 2x RTX 3090+NVLink | Llama-3.1-70B Q4 / Qwen-3-32B Q8 / Qwen3.6-27B Q8 | ~10 user | Sangat Baik |
+| **48 GB** | 2x RTX 4090 PCIe | Llama-3.1-70B Q4 / DeepSeek-Coder-67B Q4 / Mistral Large 3 Q3 | ~8 user | Sangat Baik |
+| **64 GB** | 2x RTX 5090 | Llama-3.1-70B Q8 / DeepSeek V4 Flash Q4 / DeepSeek V4 Pro Q4 | ~15 user | Excellent |
+| **80 GB** | 1x A100/H100 | DeepSeek V4 Flash Q8 / Mistral Large 3 Q4 / Qwen3.7-Max (API) | ~12 user | Excellent |
 
 ---
 
@@ -241,10 +242,10 @@ echo "User aktif: $USERS"
 ## 6. STUDI KASUS (WAJIB)
 
 ### Studi Kasus: Perbandingan TCO 3 Perusahaan
-- **Perusahaan A (Budget):** 10 developer. Pilih 2x RTX 3090 used. Capex Rp 55jt. Opex Rp 4.6jt/bulan. Break-even 4.5 bulan dibanding cloud.
-- **Perusahaan B (Medium):** 15 developer. Pilih 2x RTX 4090. Capex Rp 95jt. Opex Rp 6.8jt/bulan. Break-even 8.5 bulan.
-- **Perusahaan C (Optimal):** 20 developer. Pilih 2x RTX 5090. Capex Rp 150jt. Opex Rp 9.6jt/bulan. Break-even 13 bulan.
-- **Catatan:** Perusahaan C break-even lebih lama karena capex besar. Tapi punya keunggulan: bisa running model 70B di Q8 dengan 15+ concurrent user — kualitas dan concurrency tidak bisa ditandingi cloud API dengan harga sama.
+- **Perusahaan A (Budget):** 10 developer. Pilih 2x RTX 3090 used + Ministral 3 14B (Apache 2.0). Capex Rp 55jt. Opex Rp 4.6jt/bulan. Break-even 4.5 bulan dibanding cloud.
+- **Perusahaan B (Medium):** 15 developer. Pilih 2x RTX 4090 + DeepSeek V4 Flash (MIT, 1M context). Capex Rp 95jt. Opex Rp 6.8jt/bulan. Break-even 8.5 bulan.
+- **Perusahaan C (Optimal):** 20 developer. Pilih 2x RTX 5090 + Mistral Large 3 (Apache 2.0, 675B MoE). Capex Rp 150jt. Opex Rp 9.6jt/bulan. Break-even 13 bulan.
+- **Catatan:** Perusahaan C break-even lebih lama karena capex besar. Tapi punya keunggulan: bisa running model MoE 675B di Q3 dengan 15+ concurrent user — kualitas dan concurrency tidak bisa ditandingi cloud API dengan harga sama.
 - **Rekomendasi:** Untuk tim <12 orang, Budget tier paling cost-effective. Untuk tim >16 orang, investasi Medium/Optimal terbayar dalam <1 tahun.
 
 ### Studi Kasus: Startup yang Memilih Cloud vs Self-Hosted
@@ -325,6 +326,28 @@ echo "User aktif: $USERS"
 [8] GitHub Copilot Pricing. [https://github.com/features/copilot/plans](https://github.com/features/copilot/plans)
 
 [9] Menlo Ventures. *State of Generative AI in the Enterprise 2025*. [https://menlovc.com](https://menlovc.com)
+
+[11] **DeepSeek V4 Flash: Open-Source LLM Biaya Efektif**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: 284B MoE Model with MIT License for Cost-Effective Deployment},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model 284B/13B aktif dengan MIT — biaya inference lebih rendah dari model dense 70B karena hanya 13B parameter aktif per forward pass.
+
+[12] **Mistral Large 3: Apache 2.0 untuk Enterprise**
+```
+@misc{mistral2025large3,
+  title     = {{Mistral Large} 3: Apache 2.0 Licensed 675B MoE},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/mistral-large-3}
+}
+```
+- Kaitan: Lisensi Apache 2.0 tanpa restriksi enterprise — cocok untuk perusahaan yang membutuhkan model berkualitas tinggi tanpa biaya lisensi.
 
 [10] Puget Systems. *Workstation Pricing Guide*. [https://www.pugetsystems.com](https://www.pugetsystems.com)
 

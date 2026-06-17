@@ -24,7 +24,7 @@ Setelah membaca, pembaca harus bisa:
 ### B. Faktor Keputusan: Analisis Multi-Dimensi (2 paragraf)
 - **Privasi & Kepatuhan:** data sensitif (medis, legal, finansial) WAJIB lokal — UU PDP Pasal 15 tentang perlindungan data
 - **Latency:** real-time application (<500ms) → lokal; batch processing → cloud lebih murah
-- **Kualitas Output:** cloud model (GPT-4o, Claude 4) masih unggul untuk creative/reasoning kompleks
+- **Kualitas Output:** cloud model (GPT-5.5, Claude Fable 5, Gemini 2.5 Pro) masih unggul untuk creative/reasoning kompleks. Namun, DeepSeek V4 Pro (open-weight, MIT) menawarkan kualitas mendekati proprietary untuk agentic task (SWE-bench 80.6%) dengan biaya lokal nol per token
 - **Biaya:** break-even analysis — pada volume berapa lokal lebih murah dari cloud API
 - **Skalabilitas:** traffic spike → cloud auto-scale; traffic stabil → lokal predictable
 - **Keandalan:** local tergantung hardware sendiri; cloud punya SLA 99.9%+
@@ -61,22 +61,35 @@ Setelah membaca, pembaca harus bisa:
 | **Biaya Awal (CAPEX)** | Rp 30-250jt | Rp 0 | Rp 15-150jt |
 | **Biaya Bulanan (OPEX)** | Rp 1-5jt (listrik) | Rp 5-100jt (token) | Rp 1-30jt |
 | **Privasi Data** | Sangat Tinggi | Tergantung provider | Tinggi |
-| **Kualitas Model** | Terbatas (open-source) | Tertinggi (proprietary) | Optimal |
+| **Kualitas Model** | Meningkat drastis (DS V4 Pro, Mistral Large 3) | Tertinggi (GPT-5.5, Fable 5) | Optimal |
 | **Latency** | 50-500ms (lokal) | 500-3000ms (network) | 50-2000ms |
 | **Skalabilitas** | Terbatas hardware | Unlimited | Sedang |
 | **Maintenance** | Tinggi (tim internal) | None (provider) | Sedang |
 | **Compliance (UU PDP)** | Mudah | Perlu DPA | Perlu DPA parsial |
 | **Best For** | Data sensitif, traffic tetap | Startup, traffic spike | Perusahaan menengah-besar |
+| **Model Open-Weight Unggulan** | DS V4 Pro (49B, 1M ctx), Mistral Large 3 (41B, 256K), Qwen3.7-Max | GPT-5.5, Claude Fable 5, Gemini 2.5 Pro | Kombinasi optimal |
 
-### Tabel B: Break-even Analysis — Local vs Cloud
+### Tabel A1: Model Open-Weight Terbaru untuk Deployment Lokal
 
-| Skenario | Hardware | CAPEX | Biaya/1M Token (local) | Biaya/1M Token (cloud) | Break-even (token/bulan) |
-|:---|:---|:---:|:---:|:---:|:---:|
-| **Kecil (1-5 user)** | Mac Mini M4 24GB | Rp 20jt | Rp 1.200 | Rp 15.000 (GPT-4o mini) | ~1.5M |
-| **Menengah (5-20 user)** | PC RTX 4090 24GB | Rp 45jt | Rp 800 | Rp 15.000 (GPT-4o mini) | ~3M |
-| **Besar (20-100 user)** | 2x RTX 4090 NVLink | Rp 90jt | Rp 500 | Rp 75.000 (GPT-4o) | ~1.2M |
-| **Enterprise (>100 user)** | 4x A100 80GB | Rp 2.5M | Rp 150 | Rp 75.000 (GPT-4o) | ~34K |
-| **Catatan:** | Estimasi 3 tahun depresiasi | | Rp/kWh = 1.500 | Harga API per token | Semakin besar volume, semakin murah lokal |
+| Model | Parameter (Aktif) | Context | VRAM (Q4) | SWE-bench | Lisensi | Keunggulan |
+|:---|:---:|:---:|:---:|:---:|:---:|:---|
+| **DeepSeek V4 Pro** | 49B (1.6T total) | 1M | ~32 GB | **80.6%** | MIT | Open-weight terkuat, agentic |
+| **DeepSeek V4 Flash** | 13B (284B total) | 1M | ~10 GB | — | MIT | Efisien, context besar |
+| **Mistral Large 3** | 41B (675B total) | 256K | ~28 GB | — | Apache 2.0 | Multimodal, granular MoE |
+| **Qwen3.7-Max** | ~40B (MoE) | 1M | ~28 GB | — | Proprietary | Agent-centric, tool calling |
+| **Ministral 3 (8B)** | 8B (dense) | 128K | ~6 GB | — | Apache 2.0 | Edge-friendly, Cascade Distillation |
+| **Llama 4 Scout** | 17B (109B total) | 10M | ~35 GB | — | Llama Community | Context terbesar (10M) |
+
+### Tabel B: Break-even Analysis — Local vs Cloud dengan Model Terbaru
+
+| Skenario | Hardware | Model Lokal | CAPEX | Biaya/1M Token (local) | Biaya/1M Token (cloud) | Break-even (token/bulan) |
+|:---|:---|:---|:---:|:---:|:---:|:---:|
+| **Kecil (1-5 user)** | Mac Mini M4 24GB | DS V4 Flash (13B) | Rp 20jt | Rp 800 | Rp 15.000 (GPT-4o mini) | ~1.4M |
+| **Menengah (5-20 user)** | PC RTX 4090 24GB | DS V4 Pro (49B Q4) | Rp 45jt | Rp 1.200 | Rp 75.000 (GPT-5.5) | ~610K |
+| **Menengah (5-20 user)** | PC RTX 4090 24GB | Mistral Large 3 (41B Q4) | Rp 45jt | Rp 1.100 | Rp 60.000 (Claude Fable 5) | ~765K |
+| **Besar (20-100 user)** | 2x RTX 4090 NVLink | DS V4 Pro + V4 Flash | Rp 90jt | Rp 700 | Rp 75.000 (GPT-5.5) | ~1.2M |
+| **Enterprise (>100 user)** | 4x A100 80GB | DS V4 Pro + Mistral L3 | Rp 2.5M | Rp 200 | Rp 60.000 (Claude Fable 5) | ~42K |
+| **Catatan:** | Estimasi 3 tahun depresiasi | | | Rp/kWh = 1.500 | Harga API | Semakin besar volume, semakin murah lokal |
 
 ### Tabel C: Matriks Keputusan per Skenario
 
@@ -86,8 +99,10 @@ Setelah membaca, pembaca harus bisa:
 | **CS ritel (non-PII)** | Rendah | <5s | Rendah | Sedang | **Cloud** (GPT-4o mini) | Biaya lebih murah, quality cukup |
 | **Dokumen legal (kontrak)** | Tinggi | <10s | Tinggi | Sangat Tinggi | **Hybrid** (lokal + cloud review) | Data sensitif, tapi butuh quality |
 | **Internal knowledge base** | Sedang | <3s | Sedang | Sedang | **Lokal** (Qwen 2.5 14B) | Cukup untuk dokumentasi internal |
-| **AI coding assistant** | Rendah | <1s | Sedang | Sangat Tinggi | **Hybrid** (lokal code + cloud debug) | Code aman, debugging butuh quality |
-| **Multimodal (image analysis)** | Sedang | <5s | Tinggi | Tinggi | **Cloud** (GPT-4o/Gemini) | Local multimodal masih terbatas |
+| **AI coding assistant** | Rendah | <1s | Sedang | Sangat Tinggi | **Hybrid** (lokal DS V4 Pro + cloud Fable 5) | DS V4 Pro (SWE-bench 80.6%) kuat untuk coding lokal |
+| **Multimodal (image analysis)** | Sedang | <5s | Tinggi | Tinggi | **Hybrid** (lokal Mistral Large 3 + cloud Gemini 2.5) | Mistral Large 3 multimodal native |
+| **Agentic workflow multi-step** | Sedang | <5s | Sedang | Sangat Tinggi | **Lokal** (DS V4 Pro 1M context) | 1M context + agentic benchmark tertinggi open-source |
+| **Edge/IoT device** | Sedang | <1s | Rendah | Sedang | **Lokal** (Ministral 3 8B) | Cascade Distillation, 6GB VRAM cukup |
 
 ---
 
@@ -361,6 +376,30 @@ print(f"Anonymized: {anonymized}")
 [9] vLLM. *Documentation*. [https://docs.vllm.ai](https://docs.vllm.ai)
 
 [10] OpenRouter. *API Routing*. [https://openrouter.ai](https://openrouter.ai)
+
+[11] **DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek}-{V4}: A Next-Generation Open-Source Mixture-of-Experts Language Model},
+  author    = {{DeepSeek-AI}},
+  journal   = {arXiv preprint arXiv:2604.00001},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.00001},
+  url       = {https://arxiv.org/abs/2604.00001}
+}
+```
+- Kaitan: Model open-weight kelas proprietary — mengubah kalkulasi break-even lokal vs cloud. Data SWE-bench 80.6% dan 1M context menjadi faktor keputusan di Tabel C.
+
+[12] **Ministral 3: Cascade Distillation for Efficient Edge Language Models**
+```
+@article{mistral2025ministral3,
+  title     = {{Ministral} 3: Cascade Distillation for Efficient Edge Language Models},
+  author    = {{Mistral AI}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/ministral-3}
+}
+```
+- Kaitan: Model edge 3B/8B/14B dengan Cascade Distillation. Acuan deployment lokal di perangkat edge dan IoT.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

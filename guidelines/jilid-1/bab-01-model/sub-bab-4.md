@@ -43,6 +43,7 @@ Setelah membaca, pembaca harus bisa:
 - 8GB VRAM -> q5_k_m (7B) atau q4_k_m (13B)
 - 24GB VRAM -> q8_0 (13B) atau q4_k_m (70B)
 - Apple Silicon 16GB -> q4_k_m (7B) dengan GPU offload 100%
+- Model MoE besar seperti DeepSeek V4 Flash (284B) dan Mistral Large 3 (675B) membutuhkan kuantisasi Q2_K (~90 GB dan ~210 GB) — hanya feasible di workstation multi-GPU atau Mac Studio 192GB
 
 ---
 
@@ -239,6 +240,32 @@ huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
 [7] TheBloke. *GGUF Model Repository* — Hugging Face. [https://huggingface.co/TheBloke](https://huggingface.co/TheBloke)
 
 [8] LMSYS. *Chatbot Arena Leaderboard*. [https://lmarena.ai](https://lmarena.ai)
+
+[9] **DeepSeek-V4: Open-Weight MoE — Quantization Feasibility**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 1.6T parameter — kasus ekstrem untuk kuantisasi dan panduan level Q2_K hingga Q4_K_M.
+
+[10] **Mistral Large 3 — Apache 2.0 Granular MoE**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Model 675B parameter dengan Apache 2.0 — relevan untuk panduan kuantisasi model MoE besar.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

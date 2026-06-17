@@ -80,7 +80,7 @@ Pembaca mampu:
 | `OPENAI_API_BASE_URL` | Backend vLLM | `http://10.0.0.100:8000/v1` |
 | `RAG_EMBEDDING_ENGINE` | Model embedding | `ollama` |
 | `ENABLE_SIGNUP` | Izinkan registrasi | `True` (dengan approval) |
-| `DEFAULT_MODELS` | Model default per user | `qwen3:32b` |
+| `DEFAULT_MODELS` | Model default per user | `qwen3.6:27b` |
 
 ---
 
@@ -210,7 +210,7 @@ curl -X POST "$WEBUI_URL/api/workspaces" \
   -d '{
     "name": "Frontend Team",
     "description": "Frontend developers workspace",
-    "models": ["qwen3:14b", "deepseek-coder:6.7b"]
+    "models": ["ministral3:14b", "qwen3.6:27b", "deepseek-coder:6.7b"]
   }'
 
 curl -X POST "$WEBUI_URL/api/workspaces" \
@@ -219,7 +219,7 @@ curl -X POST "$WEBUI_URL/api/workspaces" \
   -d '{
     "name": "Backend Team",
     "description": "Backend developers workspace",
-    "models": ["qwen3:32b", "deepseek-coder:33b"]
+    "models": ["deepseek-v4-flash", "qwen3:32b", "deepseek-coder:33b"]
   }'
 
 # Buat channel umum
@@ -271,7 +271,7 @@ if __name__ == '__main__':
 ### Studi Kasus: PT CodeCraft — Deploy Open WebUI untuk 15 Developer
 - **Skenario:** Software house dengan 15 developer, 3 tim (Frontend 5, Backend 6, DevOps 4). Butuh platform AI terpusat.
 - **Deployment:** Open WebUI + PostgreSQL di VPS kantor (Intel Xeon E-2388G, 64GB RAM). Backend vLLM di workstation dual RTX 4090.
-- **Workspace Setup:** Frontend Team (Qwen-2.5-Coder-14B), Backend Team (Qwen-3-32B), DevOps Team (Mixtral-8x7B)
+- **Workspace Setup:** Frontend Team (Ministral 3 14B + Qwen-2.5-Coder-14B), Backend Team (Qwen3.6-27B + DeepSeek V4 Flash), DevOps Team (Mixtral-8x7B)
 - **Registrasi:** User daftar via form, admin approve. Integrasi Google Workspace OAuth.
 - **RAG Pipeline:** Masing-masing tim punya knowledge base sendiri (dokumentasi API, SOP deployment, code style guide)
 - **Hasil:** Developer tidak perlu setup AI sendiri. Semua history chat tersimpan dan bisa dirujuk tim lain. Onboarding developer baru lebih cepat.
@@ -350,6 +350,28 @@ if __name__ == '__main__':
 ### Referensi Pendukung (Non-Paper/Dokumentasi)
 
 [6] Open WebUI Documentation. *Authentication & SSO*. [https://docs.openwebui.com](https://docs.openwebui.com)
+
+[11] **DeepSeek V4 Flash: Open Model 1M Context untuk Multi-User**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: Efficient Open Mixture-of-Experts Language Model with 284B Parameters},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model 1M konteks dengan lisensi MIT — ideal untuk collaborative workspace dengan konteks percakapan panjang antar tim.
+
+[12] **Ministral 3: Cascade Distillation Dense Models**
+```
+@misc{mistral2025ministral3,
+  title     = {Ministral 3: Open Dense Language Models via Cascade Distillation},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/ministral-3}
+}
+```
+- Kaitan: Model 14B dense dengan Apache 2.0 — cocok untuk workspace frontend yang butuh latency rendah.
 
 [7] Docker Compose Documentation. [https://docs.docker.com/compose](https://docs.docker.com/compose)
 

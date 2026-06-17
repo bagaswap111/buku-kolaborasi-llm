@@ -81,6 +81,18 @@ Pembaca mampu:
 > Asumsi: model 14B Q4_K_M (~8GB weights) + 0.5GB overhead + KV cache per user.
 > Di 2x RTX 4090 (48GB total), max aman: 10 user pada 8K context.
 
+### Tabel D: Estimasi VRAM per User — Model Baru (MoE & Granular)
+
+| Model | Parameter | 1 User | 5 Users | 10 Users | 20 Users |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **DeepSeek V4 Flash Q4** | 284B/13B aktif | ~10 GB | ~16 GB | ~24 GB | ~38 GB |
+| **Mistral Large 3 Q3** | 675B/41B aktif | ~18 GB | ~28 GB | ~42 GB | OOM |
+| **Qwen3.6-27B Q4** | 27B | ~16 GB | ~24 GB | ~36 GB | OOM |
+| **Ministral 3 14B Q4** | 14B | ~8 GB | ~12 GB | ~17 GB | ~26 GB |
+
+> Asumsi Tabel C: model dense 14B Q4_K_M (~8GB weights) + 0.5GB overhead + KV cache per user. Di 2x RTX 4090 (48GB total), max aman: 10 user pada 8K context.
+> Asumsi Tabel D: model MoE menggunakan memori sesuai parameter aktif. DeepSeek V4 Flash (13B aktif) ~10 GB weights di Q4. Mistral Large 3 (41B aktif) ~24 GB weights di Q3.
+
 ---
 
 ## 4. DIAGRAM/GAMBAR WAJIB
@@ -340,6 +352,28 @@ await scheduler.submit(Request("admin", Priority.HIGH, "Status", "qwen3:32b"))
 [8] NVIDIA MIG (Multi-Instance GPU) Documentation. [https://docs.nvidia.com/datacenter/tesla/mig-user-guide](https://docs.nvidia.com/datacenter/tesla/mig-user-guide)
 
 [9] Nginx Rate Limiting Module. [https://nginx.org/en/docs/http/ngx_http_limit_req_module.html](https://nginx.org/en/docs/http/ngx_http_limit_req_module.html)
+
+[11] **DeepSeek V4 Flash: 1M Context untuk Multi-User Inference**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: Efficient Open Mixture-of-Experts Language Model with 284B Parameters},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model 1M konteks dengan MoE — VRAM usage 10-16 GB untuk 5 user di Q4. Data Tabel D harus diverifikasi dengan pengukuran actual menggunakan vLLM.
+
+[12] **Mistral Large 3: Granular MoE Inference**
+```
+@misc{mistral2025large3,
+  title     = {{Mistral Large} 3: A 675 Billion Parameter Granular Mixture-of-Experts Model},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/mistral-large-3}
+}
+```
+- Kaitan: Apache 2.0 dengan granular MoE 41B aktif — VRAM lebih tinggi tapi kualitas sebanding GPT-4. Data Tabel D (Mistral Large 3 VRAM) harus diverifikasi.
 
 [10] Prometheus + Grafana Monitoring for vLLM. [https://docs.vllm.ai/en/latest/serving/metrics.html](https://docs.vllm.ai/en/latest/serving/metrics.html)
 

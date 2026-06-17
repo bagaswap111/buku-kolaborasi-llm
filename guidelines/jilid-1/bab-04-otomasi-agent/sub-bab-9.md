@@ -66,7 +66,7 @@ Pembaca mampu:
 
 | Parameter | Writer Agent | Editor Agent |
 |:---|:---|:---|
-| **Model** | Llama-3.1-8B (atau lebih besar) | Qwen-2.5-7B (lebih kecil) |
+| **Model** | DeepSeek V4 Pro / Llama-3.1-8B | Claude Fable 5 / Qwen-2.5-7B |
 | **Temperature** | 0.7 — kreatif | 0.1 — presisi |
 | **System Prompt** | "Kamu penulis kreatif..." | "Kamu editor kritis..." |
 | **Tools** | Search web, read files | Calculator, fact-check |
@@ -106,10 +106,10 @@ Pembaca mampu:
 from autogen import AssistantAgent, UserProxyAgent
 import autogen
 
-# 1. Konfigurasi LLM
+# 1. Konfigurasi LLM — Writer pakai DeepSeek V4 Pro, Editor pakai model lebih kecil
 llm_config = {
     "config_list": [{
-        "model": "llama3.1:8b",
+        "model": "deepseek-v4-pro",
         "base_url": "http://localhost:11434",
         "api_type": "ollama"
     }]
@@ -117,7 +117,7 @@ llm_config = {
 
 editor_llm_config = {
     "config_list": [{
-        "model": "qwen2.5:7b",
+        "model": "deepseek-v4-flash",
         "base_url": "http://localhost:11434",
         "api_type": "ollama"
     }]
@@ -191,7 +191,7 @@ writer = Agent(
     backstory="Penulis senior dengan 10 tahun experience di bidang AI",
     verbose=True,
     allow_delegation=False,
-    llm_config={"model": "ollama/llama3.1:8b"},
+    llm_config={"model": "ollama/deepseek-v4-pro"},
 )
 
 editor = Agent(
@@ -200,7 +200,7 @@ editor = Agent(
     backstory="Editor teknis yang teliti, spesialis fact-checking",
     verbose=True,
     allow_delegation=False,
-    llm_config={"model": "ollama/qwen2.5:7b"},
+    llm_config={"model": "ollama/deepseek-v4-flash"},
 )
 
 # 2. Definisikan tasks

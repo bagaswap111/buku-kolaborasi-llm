@@ -38,6 +38,8 @@ Pembaca mampu:
 - Gunakan model tiny untuk VAD + small untuk transkrip final (two-pass)
 - Batch audio 30 detik untuk Whisper (optimal untuk GPU)
 - GPU diperlukan: CPU-only ~6-12 detik, GPU ~0.5-1.5 detik
+- **Ministral 3 3B** sebagai LLM untuk voice command: hanya butuh ~2 GB RAM, bisa jalan CPU-only dengan latensi < 2 detik — ideal untuk voice pipeline tanpa GPU
+- DeepSeek V4 Flash dengan 1M konteks bisa digunakan untuk transkrip obrolan keluarga seharian penuh tanpa kehilangan konteks
 - WebSocket lebih cepat dari HTTP polling untuk streaming
 
 ### E. Multi-Room Audio (1 paragraf)

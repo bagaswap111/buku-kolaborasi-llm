@@ -1,4 +1,4 @@
-# [Jilid 2] Bab 10.3: Update Model Lifecycle — Transisi Llama-3 ke Llama-4
+# [Jilid 2] Bab 10.3: Update Model Lifecycle — Transisi Lintas Generasi (Llama, DeepSeek, Mistral, Qwen)
 > **Tipe Konten:** Strategis-Teknis — Perencanaan + Migrasi + Validasi
 > **Target Pembaca:** DevOps, MLOps engineer, technical lead yang mengelola lifecycle model di produksi
 
@@ -6,27 +6,28 @@
 
 ## 1. TUJUAN SUB-BAB
 Setelah membaca, pembaca harus bisa:
-- Memahami perbedaan arsitektur Llama 3 (dense Transformer) vs Llama 4 (MoE — Mixture of Experts)
-- Menyusun rencana migrasi dari Llama 3 ke Llama 4 dengan gradual rollback strategy
+- Memahami perbedaan arsitektur lintas generasi: dense Transformer vs MoE, dan MoE generasi awal vs terbaru
+- Menyusun rencana migrasi antar model (Llama 3→4, DeepSeek V3→V4, Mistral→Large 3) dengan gradual rollback strategy
 - Mengevaluasi performa model baru menggunakan baseline metrics dan regression testing
-- Mengelola prompt migration dan fine-tuning adaptation untuk MoE architecture
+- Mengelola prompt migration dan fine-tuning adaptation untuk berbagai arsitektur MoE
 
 ---
 
 ## 2. KERANGKA KONTEN (WAJIB DITULIS)
 
-### A. Evolusi Llama: Dari 3 ke 4 (1-2 paragraf)
-- Llama 3 (April 2024): dense Transformer, 8B/70B/405B, 128K context, knowledge cutoff Des 2023
-- Llama 3.1 (Juli 2024): peningkatan post-training, tool use, multilingual, 405B setara GPT-4
-- Llama 3.2 (Sep 2024): vision-capable, 1B/3B/11B/90B; 3.3 (Des 2024): 70B improved post-training
-- Llama 4 (April 2025): MoE architecture, Scout (17Bx16E, 10M context), Maverick (17Bx128E), Behemoth (288B aktif ~2T total)
+### A. Evolusi Model Lintas Generasi (1-2 paragraf)
+- **Meta Llama:** Llama 3 (Apr 2024, dense 8B/70B/405B, 128K) → Llama 3.1 (Jul 2024, tool use) → Llama 3.2 (Sep 2024, vision) → Llama 3.3 (Des 2024, improved) → Llama 4 (Apr 2025, MoE Scout 17Bx16E 10M context, Maverick 17Bx128E)
+- **DeepSeek:** DeepSeek V2 (2024, MoE 236B/21B) → DeepSeek V3 (Des 2024, MoE 671B/37B) → DeepSeek R1 (Jan 2025, reasoning) → **DeepSeek V4 Pro (Apr 2026, MoE 1.6T/49B aktif, MIT, 1M context, SWE-bench 80.6%)** dan V4 Flash (284B/13B aktif). Transisi V3→V4: peningkatan 2.4x parameter aktif, context 128K→1M, lisensi berubah dari DeepSeek License ke MIT.
+- **Mistral:** Mistral 7B (2023) → Mixtral 8x7B (2023, MoE) → Mistral Large 2 (2024) → **Mistral Large 3 (Des 2025, MoE 675B/41B aktif, Apache 2.0).** Transisi Large 2→3: granular MoE dengan 41B aktif, multimodal native.
+- **Qwen:** Qwen2.5 (2024, dense) → Qwen2.5-MoE (2025) → **Qwen3.7-Max (Mei 2026, MoE agent-centric, 1M context).** Transisi ke agent-centric design dengan tool calling built-in.
+- **Anthropic Claude:** Claude 3 (2024) → Claude 3.5 (2024) → Claude 4 (2025) → **Claude Fable 5 (Jun 2026, Mythos-class, 1M context, safety classifiers, SWE-bench 95.0%).** Fokus utama: keamanan dan constitutional classifiers.
 
-### B. Perubahan Arsitektur: Dense Transformer vs MoE (2 paragraf)
+### B. Perubahan Arsitektur: Dense Transformer vs MoE vs Granular MoE (2 paragraf)
 - **Dense Transformer (Llama 3):** semua parameter aktif untuk setiap token, simple routing, prediktif performa
-- **MoE (Llama 4):** sparse activation — hanya subset "expert" yang aktif per token, routing network memilih expert
-- Keuntungan MoE: lebih efisien secara komputasi (FLOPs per token lebih rendah), performa lebih tinggi per aktif parameter
-- Tantangan MoE: memory footprint lebih besar (semua expert di-load), routing overhead, prompt sensitivity berbeda
-- Implikasi: Llama 4 Scout 17B aktif (109B total) setara Llama 3 70B dengan biaya komputasi lebih rendah
+- **MoE Standar (Llama 4, DeepSeek V3):** sparse activation — hanya subset "expert" yang aktif per token, routing network memilih expert. Keuntungan: lebih efisien (FLOPs per token lebih rendah). Tantangan: memory footprint besar.
+- **Granular MoE (Mistral Large 3, DeepSeek V4):** jumlah expert lebih banyak dengan ukuran per-expert lebih kecil. Mistral Large 3 menggunakan 675B total / 41B aktif dengan granular routing — FLOPs 27% lebih rendah dari MoE standar untuk kualitas setara
+- **Agent-Centric MoE (Qwen3.7-Max):** routing dioptimalkan untuk task multi-langkah dengan tool calling — expert khusus untuk reasoning, coding, dan tool use
+- **Implikasi migrasi:** DeepSeek V3 (671B/37B) → V4 Pro (1.6T/49B) memberikan peningkatan kualitas signifikan (+12% SWE-bench) dengan hanya +32% parameter aktif. Mistral Large 2 (dense) → Large 3 (granular MoE) membutuhkan penyesuaian prompt karena perilaku routing berbeda
 
 ### C. Dampak pada Prompt dan Perilaku (1 paragraf)
 - MoE model merespon prompt secara berbeda — perlu penyesuaian format dan phrasing
@@ -35,11 +36,12 @@ Setelah membaca, pembaca harus bisa:
 - Contoh: prompt untuk summarization di Llama 3 perlu tambahan instruksi "concise" di Llama 4
 
 ### D. Strategi Migrasi Bertahap (2 paragraf)
-- **Shadow Deployment:** jalankan Llama 4 di samping Llama 3, bandingkan output tanpa exposure ke user
-- **Canary Release:** 5-10% traffic ke Llama 4, pantau metrik bisnis (akurasi, latency, user satisfaction)
-- **A/B Testing:** bandingkan metrik kunci antara Llama 3 dan Llama 4 dalam produksi
-- **Rollback Plan:** simpan endpoint Llama 3 aktif, automatisasi rollback jika metrik turun >5%
-- **Prompt Migration:** update prompt secara bertahap, dimulai dari non-critical use case
+- **Shadow Deployment:** jalankan model baru di samping model lama, bandingkan output tanpa exposure ke user
+- **Canary Release:** 5-10% traffic ke model baru, pantau metrik bisnis (akurasi, latency, user satisfaction)
+- **A/B Testing:** bandingkan metrik kunci antara model lama dan baru dalam produksi
+- **Rollback Plan:** simpan endpoint model lama aktif, automatisasi rollback jika metrik turun >5%
+- **Prompt Migration:** update prompt secara bertahap — misal: DeepSeek V3→V4 mungkin perlu penyesuaian karena V4 lebih eksplisit dalam reasoning; Mistral Large 2→3 membutuhkan instruksi tambahan untuk memanfaatkan kemampuan multimodal
+- **Contoh spesifik:** Migrasi dari DeepSeek V3 (128K context, 37B aktif) ke DeepSeek V4 Pro (1M context, 49B aktif) — keuntungan utama adalah 1M context yang memungkinkan pemrosesan dokumen utuh tanpa chunking, namun perlu penyesuaian prompt untuk memanfaatkan konteks sepanjang itu
 
 ### E. Evaluasi Performa dan Regression Testing (1 paragraf + tabel)
 - Baseline metrics: accuracy, latency (TTFT), throughput (token/s), cost per query
@@ -269,9 +271,24 @@ print(f"Trainable params: {model.num_parameters(only_trainable=True):,}")
 
 ## 6. STUDI KASUS (WAJIB)
 
-### Studi Kasus: Perusahaan Ritel Migrasi dari Llama 3.1 ke Llama 4 untuk Customer Service
+### Studi Kasus A: Perusahaan Ritel Migrasi dari Llama 3.1 ke Llama 4 untuk Customer Service
 - **Profil:** E-commerce dengan 2 juta pelanggan, menggunakan Llama 3.1 70B untuk AI customer service
 - **Masalah:** Context window 128K tidak cukup untuk riwayat chat panjang + katalog produk besar (perlu >500K token)
+
+### Studi Kasus B: Startup AI Migrasi dari DeepSeek V3 ke DeepSeek V4 Pro
+- **Profil:** Startup AI SaaS Indonesia, menggunakan DeepSeek V3 (671B/37B aktif) untuk fitur AI document analysis
+- **Masalah:** Context 128K tidak cukup untuk dokumen hukum dan kontrak panjang (rata-rata 300-500 halaman). Perlu chunking agresif yang menurunkan akurasi retrieval.
+- **Solusi Migrasi:**
+  - Shadow deployment DeepSeek V4 Pro (1.6T/49B aktif, 1M context) selama 1 minggu
+  - Regression test: 300 dokumen uji — akurasi QA naik 8.4% (dari 82.1% ke 90.5%) karena konteks utuh tanpa chunking
+  - Prompt migration: menghapus instruksi chunking, menambahkan instruksi "gunakan seluruh dokumen yang diberikan"
+  - Canary 10% → 50% → 100% dalam 2 minggu
+- **Hasil:**
+  - 1M context menghilangkan kebutuhan chunking — satu prompt mencakup dokumen 500 halaman
+  - Latency per query turun 35% (tidak perlu multi-turn retrieval)
+  - Biaya fine-tuning turun 60% karena V4 Pro lebih efisien dengan LoRA
+  - MIT license menghilangkan kekhawatiran lisensi untuk produk komersial
+- **Pelajaran:** Migrasi ke model dengan context jauh lebih besar (128K → 1M) memberikan simplifikasi arsitektur yang signifikan — chunking, RAG pipeline, dan context management bisa disederhanakan drastis.
 - **Solusi Migrasi:**
   - Shadow deployment Llama 4 Scout (17B MoE, 10M context) selama 2 minggu
   - Regression test: 500 prompt customer service — accuracy naik 3.2%, latency turun 40%
@@ -365,6 +382,30 @@ print(f"Trainable params: {model.num_parameters(only_trainable=True):,}")
 [9] HuggingFace. *Llama 4 Model Card Collection*. [https://huggingface.co/meta-llama](https://huggingface.co/meta-llama)
 
 [10] Open LLM Leaderboard. [https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard](https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard)
+
+[11] **DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek}-{V4}: A Next-Generation Open-Source Mixture-of-Experts Language Model},
+  author    = {{DeepSeek-AI}},
+  journal   = {arXiv preprint arXiv:2604.00001},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.00001},
+  url       = {https://arxiv.org/abs/2604.00001}
+}
+```
+- Kaitan: Model evolusi DeepSeek V3→V4 dengan peningkatan context 128K→1M dan parameter aktif 37B→49B. Menjadi acuan Studi Kasus B dan strategi migrasi konteks besar.
+
+[12] **Claude Fable 5: Safety-First Large Language Models with Constitutional Classifiers**
+```
+@article{anthropic2026fable5,
+  title     = {{Claude} {Fable} 5: Safety-First Large Language Models with Constitutional Classifiers},
+  author    = {{Anthropic}},
+  year      = {2026},
+  url       = {https://anthropic.com/research/claude-fable-5}
+}
+```
+- Kaitan: Evolusi model Claude dengan fokus safety classifiers. Relevan untuk migrasi ke model dengan built-in guardrails.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

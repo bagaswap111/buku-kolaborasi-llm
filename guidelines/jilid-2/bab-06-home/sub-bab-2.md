@@ -18,6 +18,10 @@ Pembaca mampu:
 - Rumus: VRAM = (param × bits/weight) / 8 + KV-cache overhead
 - Contoh: Llama-3.1-8B Q4_K_M = ~4.5 GB model + ~2 GB KV-cache = ~6.5 GB
 - Model 7-8B nyaman di 12-16 GB, model 13-14B butuh 24 GB, model 30-33B butuh 32-48 GB
+- **Ministral 3 3B (Apache 2.0):** hanya ~1.8 GB Q4 — ideal untuk Raspberry Pi / NUC, bisa jalan CPU-only
+- **Ministral 3 8B:** ~4.8 GB Q4 — nyaman di 8 GB VRAM, edge-optimized untuk home server
+- **DeepSeek V4 Flash (284B/13B aktif):** ~18 GB INT4 — butuh 2x RTX 3090/4090, tapi hanya 13B aktif per forward pass sehingga throughput sangat tinggi
+- **Penting:** DeepSeek V4 Pro memiliki KV-cache hanya 10% V3.2 — untuk konteks 32K, hanya butuh ~1.6 GB KV-cache vs ~16 GB pada model konvensional
 
 ### B. RTX 3090 vs RTX 4090 untuk Server Rumah (2 paragraf)
 - RTX 3090 used: 24 GB VRAM, ~250W, harga used ~Rp 10-14jt — value terbaik
@@ -75,6 +79,12 @@ Pembaca mampu:
 | Qwen-2.5-14B | ~8 GB | Cepat | Mampu | Cepat |
 | Llama-3.1-70B Q3 | ~27 GB | Mampu (CPU offload) | Tidak muat | Cepat |
 | DeepSeek-R1-32B | ~18 GB | Cepat | Tidak muat | Sangat Cepat |
+| **Ministral 3 3B** | ~1.8 GB | Sangat Cepat | Sangat Cepat | Sangat Cepat |
+| **Ministral 3 8B** | ~4.8 GB | Sangat Cepat | Cepat | Sangat Cepat |
+| **Ministral 3 14B** | ~8.5 GB | Cepat | Mampu | Cepat |
+| **DeepSeek V4 Flash (INT4)** | ~18 GB | Cepat (2x GPU) | Tidak muat | Cepat |
+
+> Ministral 3 series (Apache 2.0, Dec 2025) adalah model edge-optimized dari Mistral AI. Ministral 3 3B ideal untuk home server dengan konsumsi daya rendah — bisa jalan di Mac Mini M4 Pro dengan sangat cepat. DeepSeek V4 Flash (284B/13B aktif) membutuhkan 2x RTX 3090/4090 via INT4 quantization.
 
 ### Tabel C: Estimasi Biaya Build dalam IDR (Juni 2026)
 

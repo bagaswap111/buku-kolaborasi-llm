@@ -56,7 +56,7 @@ Setelah membaca, pembaca harus bisa:
 | **Target Hardware** | Semua (CPU/GPU/NVIDIA/AMD) | Apple Silicon M-series |
 | **Format Model** | GGUF | MLX/Safetensors |
 | **Quantization** | Q2–Q8, IQ1–IQ4 | FP16/FP32, MLX quant |
-| **Vision Model** | LLaVA, llava-llama | LLaVA via mlx-vlm |
+| **Vision Model** | LLaVA, llava-llama, DeepSeek V4 | LLaVA via mlx-vlm |
 | **Kecepatan (M3 Max)** | ~80 t/s (7B) | ~95 t/s (7B) |
 | **Multi-model** | Ya (GGUF + MLX campur) | Ya |
 
@@ -186,9 +186,9 @@ curl http://localhost:1234/v1/chat/completions \
 ### Studi Kasus: Eksperimen Model untuk Penulis Konten
 - **Profil:** Penulis konten dengan MacBook Pro M3 Pro 18GB
 - **Kebutuhan:** Mencoba berbagai model (7B-14B) untuk bantu riset artikel
-- **Solusi LM Studio:** Model browser untuk unduh 3 model (Mistral, Llama 3.2, Qwen 2.5)
+- **Solusi LM Studio:** Model browser untuk unduh 3 model (Mistral, Llama 3.2, Qwen 2.5, DeepSeek V4 Flash)
 - **Monitoring:** Benchmark tiap model dengan GPU offload 100% → catat token/s dan VRAM
-- **Hasil:** Qwen 2.5 7B Q4_K_M memberikan keseimbangan terbaik (75 t/s, 5.2GB VRAM)
+- **Hasil:** Qwen 2.5 7B Q4_K_M memberikan keseimbangan terbaik (75 t/s, 5.2GB VRAM); DeepSeek V4 Flash (13B aktif) unggul di tugas reasoning kompleks berkat arsitektur MoE
 - **Kesimpulan:** LM Studio memungkinkan eksperimen cepat tanpa setup infrastruktur rumit
 
 ---

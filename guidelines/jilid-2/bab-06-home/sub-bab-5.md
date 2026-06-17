@@ -22,8 +22,10 @@ Pembaca mampu:
 ### B. Arsitektur Pipeline RAG Lokal (1-2 paragraf)
 - Ingestion: OCR (dokumen scan) → chunking → embedding → ChromaDB
 - Query: pertanyaan user → embedding → similarity search → LLM + context
-- Tools: ChromaDB (vector store), Nomic Embed Text (embedding), Ollama (LLM)
+- Tools: ChromaDB (vector store), Nomic Embed Text / BGE-M3 (embedding), Ollama (LLM)
 - Ukuran dataset keluarga: ~100-500 GB (foto + dokumen + resep)
+- **Model embedding terbaru:** BGE-M3 (BAAI) mendukung multi-lingual termasuk Indonesia, memberikan retrieval quality lebih baik untuk dokumen Bahasa Indonesia dibanding Nomic Embed Text
+- **Ministral 3 8B** sebagai LLM untuk RAG — edge-optimized dengan 128K konteks, mampu memproses chunk yang lebih besar dalam satu prompt
 
 ### C. Multi-User RAG dengan Isolasi Data (1-2 paragraf)
 - Setiap anggota punya folder `/rag/{user}/` dengan collection terpisah di ChromaDB
@@ -45,6 +47,8 @@ Pembaca mampu:
 - Foto: ekstrak metadata EXIF (tanggal, lokasi) + caption otomatis via LLM vision
 - Simpan embedding teks dari caption EXIF (bukan embedding gambar langsung)
 - Query: "Cari foto liburan di Bali tahun 2024" → retrieve via timestamp + caption
+- **DeepSeek V4 Flash** sebagai LLM RAG untuk home high-end: 1M konteks memungkinkan retrieval ribuan dokumen dalam satu prompt tanpa kehilangan konteks
+- **Ministral 3 14B** sebagai alternatif RAG dengan 128K konteks — cukup untuk sebagian besar kebutuhan keluarga
 
 ---
 
@@ -367,6 +371,29 @@ ExecStop=/bin/bash -c 'umount /mnt/rag_secret && cryptsetup luksClose rag_secret
 
 [8] Nomic AI. *Nomic Embed Text*. [https://www.nomic.ai](https://www.nomic.ai)
 
-[9] LangChain. *RAG Documentation*. [https://python.langchain.com/docs/use_cases/question_answering](https://python.langchain.com/docs/use_cases/question_answering)
+[9] **BGE-M3 — Multilingual Embedding**
+```
+@article{chen2024bge,
+  title   = {{BGE} {M}3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embedding},
+  author  = {Chen, Jianlv and Xiao, Shitao and Zhang, Peitian and others},
+  journal = {arXiv preprint arXiv:2402.03216},
+  year    = {2024},
+  doi     = {10.48550/arXiv.2402.03216}
+}
+```
+- Kaitan: Model embedding yang mendukung Bahasa Indonesia. Rekomendasi untuk RAG pipeline keluarga dengan dokumen berbahasa Indonesia.
 
-[10] LUKS. *Linux Unified Key Setup*. [https://gitlab.com/cryptsetup/cryptsetup](https://gitlab.com/cryptsetup/cryptsetup)
+[10] LangChain. *RAG Documentation*. [https://python.langchain.com/docs/use_cases/question_answering](https://python.langchain.com/docs/use_cases/question_answering)
+
+[11] **Ministral 3 — RAG Edge**
+```
+@misc{mistral2025ministral3,
+  title   = {Ministral 3: Long-Context {RAG} for Edge Devices},
+  author  = {{Mistral AI}},
+  year    = {2025},
+  url     = {https://mistral.ai/news/ministral-3/}
+}
+```
+- Kaitan: 128K konteks pada model edge-optimized 3B/8B/14B — memungkinkan RAG dengan chunk lebih besar tanpa kehilangan informasi.
+
+[12] LUKS. *Linux Unified Key Setup*. [https://gitlab.com/cryptsetup/cryptsetup](https://gitlab.com/cryptsetup/cryptsetup)

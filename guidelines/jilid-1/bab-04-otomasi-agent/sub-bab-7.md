@@ -198,7 +198,7 @@ class VoiceAgent:
 
     def think(self, text):
         resp = requests.post(self.llm_url, json={
-            "model": "llama3.1:8b",
+            "model": "deepseek-v4-flash",
             "prompt": f"Jawab singkat: {text}",
             "stream": False
         })
@@ -230,8 +230,8 @@ agent.run()
 
 ### Studi Kasus: Voice Journal Harian
 - **Skenario:** Setiap malam, user ngobrol 5 menit ke voice agent tentang aktivitas hari ini
-- **Pipeline:** Mic → Whisper STT → Llama 3.1 → Ringkasan harian → Simpan ke file .md
-- **Hasil:** 1 bulan → 30 file jurnal terstruktur, bisa di-search dan dianalisa
+- **Pipeline:** Mic → Whisper STT → DeepSeek V4 Flash / Llama 3.1 → Ringkasan harian → Simpan ke file .md
+- **Hasil:** 1 bulan → 30 file jurnal terstruktur, bisa di-search dan dianalisa; DeepSeek V4 Flash memberikan ringkasan lebih detail berkat context window 1M
 - **Privasi:** Tidak ada audio/data yang meninggalkan Mac — aman untuk jurnal pribadi
 
 ---

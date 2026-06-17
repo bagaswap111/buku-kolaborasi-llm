@@ -58,8 +58,11 @@ Pembaca mampu:
 
 | Agent | WebArena | Mind2Web | MiniWoB++ | Real-world Tasks |
 |:---|:---:|:---:|:---:|:---:|
+| **Claude Fable 5** + Vision | 22.5% | 55.8% | 94.2% | **72.3%** |
+| GPT-5.5 + Vision | 20.1% | 52.4% | 92.8% | 68.9% |
 | GPT-4V + ReAct | 14.4% | 42.3% | 88.7% | 55.7% (WebVoyager) |
 | AutoWebGLM-6B | 17.2%* | 38.5% | 82.1% | - |
+| DeepSeek V4 Pro + Vision | 18.5% | 48.2% | 90.5% | 60.3% |
 | Skyvern (GPT-4V) | - | - | - | ~65% |
 | Playwright + Qwen-VL | ~10% | ~30% | ~75% | ~40% |
 

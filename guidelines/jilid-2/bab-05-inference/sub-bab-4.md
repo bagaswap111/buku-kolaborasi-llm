@@ -58,6 +58,8 @@ Pembaca memahami:
 | Max Batch Size | 8 | 64 | 8x |
 | VRAM Waste | ~50% | ~4% | 12.5x lebih baik |
 
+> DeepSeek V4 Pro dengan hybrid CSA/HCA attention menawarkan efisiensi KV-cache yang lebih tinggi (hanya 10% V3.2) — sehingga continuous batching dapat memuat lebih banyak request dalam batch yang sama dibandingkan model konvensional.
+
 ### Tabel B: Pengaruh Concurrent Users (vLLM, Llama-3.1-8B)
 
 | Concurrent Users | Mean TTFT (ms) | Mean Latency (ms) | Throughput (tok/s) | Queue Time (ms) |
@@ -75,8 +77,10 @@ Pembaca memahami:
 | vLLM | Continuous Batching | 2023 | +PagedAttention, prefix caching |
 | TGI | Dynamic Batching | 2023 | +Safety checker, watermark |
 | TensorRT-LLM | In-flight Batching | 2023 | +FP8, kernel fusions maksimal |
-| Aphrodite | Continuous Batching | 2024 | +Samplers kreatif, multi-quant |
+| Aphrodite | Continuous Batching | 2024 | +Samplers kreatif, multi-quant, NVFP4 |
 | SGLang | RadixAttention + Batching | 2024 | +Prefix caching radix tree |
+
+> Engine terbaru seperti vLLM >= 0.8.0 dan TGI >= 2.4.0 menambahkan dukungan untuk DeepSeek V4 Pro dan Mistral Large 3 — model dengan arsitektur MoE granular yang membutuhkan scheduling adaptif karena sparse activation pattern.
 
 ---
 

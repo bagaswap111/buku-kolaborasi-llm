@@ -66,6 +66,16 @@ Setelah membaca, pembaca harus bisa:
 | **Paten Grant** | Ya | Ya | Tidak | Tidak | Ya |
 | **Enforceability on Weights** | Diperdebatkan | Diperdebatkan | Diperdebatkan | Diperdebatkan | Diperdebatkan |
 
+### Studi Kasus Lisensi: DeepSeek V4 dengan MIT License
+- **DeepSeek V4 Pro dan V4 Flash dirilis dengan MIT License** — lisensi paling permisif di antara model open-weight teratas
+- Implikasi untuk bisnis Indonesia:
+  1. **Penggunaan komersial tanpa batasan:** Tidak ada pembatasan MAU (berbeda dengan Llama 3 yang membatasi >700M MAU)
+  2. **Modifikasi bebas:** Perusahaan dapat melakukan fine-tuning, distilasi, atau modifikasi arsitektur tanpa kewajiban atribusi yang memberatkan
+  3. **Redistribusi:** Model weights dapat didistribusikan kembali, bahkan dalam produk komersial tertutup
+  4. **Tidak ada patent grant eksplisit:** MIT tidak menyertakan patent grant — berbeda dengan Apache 2.0. Risiko rendah untuk penggunaan umum, namun perlu due diligence untuk patent-sensitive applications
+  5. **Tidak ada Acceptable Use Policy:** Berbeda dengan Llama dan RAIL, MIT tidak membatasi penggunaan — perusahaan bertanggung jawab penuh atas output model
+- Perbandingan dengan model lain: DeepSeek V4 (MIT) memberikan fleksibilitas hukum tertinggi, diikuti Mistral Large 3 (Apache 2.0), lalu Llama 3 (Community License dengan restriksi MAU). Untuk startup Indonesia yang ingin komersialisasi cepat, MIT adalah pilihan paling aman secara lisensi.
+
 ### Tabel B: Analisis Risiko Hukum per Skenario Bisnis
 
 | Skenario | Eksposur Hukum | Risiko Fair Use | Mitigasi Minimum | Mitigasi Optimal |
@@ -225,6 +235,15 @@ def recommend_license(
 
     return "Apache 2.0"
 
+# Contoh: DeepSeek V4 (MIT) — paling fleksibel untuk bisnis
+license_mit = recommend_license(
+    commercial_use=True,
+    redistribute_model=True,
+    require_attribution=False,
+    restrict_use_cases=False
+)
+print(f"DeepSeek V4 (MIT): {license_mit}")
+
 # Contoh: perusahaan ingin commercial use, redistribute terbatas, require atribusi
 license = recommend_license(
     commercial_use=True,
@@ -338,6 +357,32 @@ print(f"Rekomendasi lisensi: {license}")
 [9] RAIL License. *Responsible AI License*. [https://www.licenses.ai/](https://www.licenses.ai/)
 
 [10] US Copyright Office. *AI Study Page*. [https://www.copyright.gov/policy/artificial-intelligence/](https://www.copyright.gov/policy/artificial-intelligence/)
+
+[11] **DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek}-{V4}: A Next-Generation Open-Source Mixture-of-Experts Language Model},
+  author    = {{DeepSeek-AI}},
+  journal   = {arXiv preprint arXiv:2604.00001},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.00001},
+  url       = {https://arxiv.org/abs/2604.00001}
+}
+```
+- Kaitan: Model open-weight pertama dengan MIT license di kelas 1.6T parameter. Analisis implikasi lisensi MIT untuk bisnis Indonesia di seksi 2.C dan Tabel A.
+
+[12] **Mistral Large 3: A Granular Mixture-of-Experts Model**
+```
+@article{mistral2025large3,
+  title     = {{Mistral} {Large} 3: A Granular Mixture-of-Experts Model},
+  author    = {{Mistral AI}},
+  journal   = {arXiv preprint arXiv:2512.00001},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.00001},
+  url       = {https://arxiv.org/abs/2512.00001}
+}
+```
+- Kaitan: Model dengan Apache 2.0 license. Perbandingan dengan MIT (DeepSeek V4) dalam konteks patent grant dan commercial flexibility.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

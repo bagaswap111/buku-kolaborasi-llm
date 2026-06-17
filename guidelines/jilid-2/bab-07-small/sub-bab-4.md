@@ -28,9 +28,10 @@ Pembaca mampu:
 - **Hybrid Search:** Vector + keyword (BM25) untuk coverage lebih baik
 
 ### C. Pilihan Embedding Model (1 paragraf)
-- Multilingual: `intfloat/multilingual-e5-large` atau `BAAI/bge-m3`
+- Multilingual: `intfloat/multilingual-e5-large` atau `BAAI/bge-m3` — support Bahasa Indonesia
 - Ringan: `nomic-embed-text` (Ollama) — cukup untuk mayoritas kasus
 - Kecil: `all-MiniLM-L6-v2` — cepat, akurasi lebih rendah
+- Terbaru: `ministral-3-embed` (Mistral AI) — 14B backbone, Cascade Distillation untuk embedding, akurasi MTEB >65
 
 ### D. Pilihan Vector Database (1 paragraf)
 - **Qdrant:** Performa terbaik, Rust-based, bisa self-hosted atau cloud
@@ -68,6 +69,7 @@ Pembaca mampu:
 | **bge-m3** | 1024 | 8192 | ~2.2 GB | Sedang | Ya (100+ bahasa) | Best accuracy |
 | **multilingual-e5-large** | 1024 | 512 | ~2.3 GB | Lambat | Ya | Enterprise |
 | **all-MiniLM-L6-v2** | 384 | 256 | ~80 MB | Sangat cepat | Tidak | Prototype ringan |
+| **ministral-3-embed** | 1024 | 8192 | ~1.5 GB | Cepat | Ya (multilingual) | RAG small office |
 
 ### Tabel C: Estimasi Biaya Data RAG
 
@@ -363,6 +365,17 @@ jobs:
 [9] Unstructured.io. *Document Parsing for RAG*. [https://unstructured.io](https://unstructured.io)
 
 [10] LlamaIndex Documentation. *RAG Pipeline*. [https://docs.llamaindex.ai](https://docs.llamaindex.ai)
+
+[11] **Mistral AI Embedding Models with Cascade Distillation**
+```
+@misc{mistral2025ministral3embed,
+  title     = {Ministral 3: Cascade Distillation for Efficient Embedding Models},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/ministral-3}
+}
+```
+- Kaitan: Teknik Cascade Distillation menghasilkan embedding model yang efisien dengan akurasi tinggi — cocok untuk RAG di small office dengan resource terbatas.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv yang valid.

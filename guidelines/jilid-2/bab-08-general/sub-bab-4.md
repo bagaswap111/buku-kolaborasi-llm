@@ -21,7 +21,7 @@ Pembaca memahami:
 
 ### B. Arsitektur LiteLLM Proxy (diagram + narasi)
 - Deployment sebagai service di K3s dengan 2-3 replica
-- Backend terhubung ke vLLM (on-premise), OpenAI (cloud), atau Anthropic (cadangan)
+- Backend terhubung ke vLLM (on-premise: DeepSeek V4 Flash, Mistral Large 3), OpenAI (cloud: GPT-5.5, Gemini 2.5 Pro), atau Anthropic (cadangan: Claude Fable 5)
 - Database: PostgreSQL untuk metadata key, user, team, spend logs
 
 ### C. Manajemen Virtual Keys & RBAC (1-2 paragraf)
@@ -104,9 +104,11 @@ graph TB
         DB[(PostgreSQL\nKeys, Teams, Spend)]
     end
     subgraph "Backend LLMs"
-        VLLM70[vLLM 70B\nOn-premise]
-        VLLM8[vLLM 8B\nOn-premise]
-        OPENAI[OpenAI API\nCloud Fallback]
+    VLLM_DS[vLLM DeepSeek V4 Flash\nOn-premise]
+    VLLM_MISTRAL[vLLM Mistral Large 3\nOn-premise]
+    VLLM_MINI[vLLM Ministral 3 14B\nOn-premise]
+    OPENAI[GPT-5.5 / Gemini 2.5 Pro\nCloud Fallback]
+    CLAUDE[Claude Fable 5\nSafety Backup]
     end
     subgraph "Monitoring"
         PROM[Prometheus]
@@ -115,8 +117,8 @@ graph TB
     end
     USER1 & USER2 & USER3 & USER4 --> LITELM1 & LITELM2
     LITELM1 & LITELM2 --> DB
-    LITELM1 & LITELM2 --> VLLM70 & VLLM8
-    LITELM1 & LITELM2 -.-> OPENAI
+    LITELM1 & LITELM2 --> VLLM_DS & VLLM_MISTRAL & VLLM_MINI
+    LITELM1 & LITELM2 -.-> OPENAI & CLAUDE
     LITELM1 & LITELM2 --> PROM --> GRAF & ALERT
 ```
 
@@ -167,15 +169,21 @@ volumes:
 ```yaml
 # config.yaml
 model_list:
-  - model_name: llama-70b
+  - model_name: deepseek-v4-flash
     litellm_params:
-      model: openai/llama-70b
-      api_base: http://vllm-70b:8000
+      model: openai/deepseek-v4-flash
+      api_base: http://vllm-dsv4:8000
       rpm: 50
-  - model_name: llama-8b
+      max_tokens: 64000  # 1M context capability
+  - model_name: mistral-large-3
     litellm_params:
-      model: openai/llama-8b
-      api_base: http://vllm-8b:8000
+      model: openai/mistral-large-3
+      api_base: http://vllm-mistral:8000
+      rpm: 30
+  - model_name: ministral-3-14b
+    litellm_params:
+      model: openai/ministral-3-14b
+      api_base: http://vllm-mini:8000
       rpm: 200
 
 general_settings:
@@ -309,6 +317,28 @@ if __name__ == "__main__":
 [6] LiteLLM. *Enterprise Documentation*. [https://docs.litellm.ai/docs/enterprise](https://docs.litellm.ai/docs/enterprise)
 
 [7] LiteLLM. *Multi-Tenant Architecture Guide*. [https://docs.litellm.ai/docs/proxy/multi_tenant_architecture](https://docs.litellm.ai/docs/proxy/multi_tenant_architecture)
+
+[9] **GPT-5.5: OpenAI Enterprise Model**
+```
+@misc{openai2026gpt55,
+  title     = {GPT-5.5: Advanced Reasoning with Effort Control},
+  author    = {{OpenAI}},
+  year      = {2026},
+  url       = {https://openai.com}
+}
+```
+- Kaitan: Model proprietary dengan 1M konteks dan reasoning efforts — opsi cloud fallback untuk general office yang membutuhkan kemampuan reasoning tinggi.
+
+[10] **Claude Fable 5: Enterprise Safety Model**
+```
+@misc{anthropic2026fable5,
+  title     = {Claude Fable 5: Safety-First Enterprise Language Model},
+  author    = {{Anthropic}},
+  year      = {2026},
+  url       = {https://anthropic.com}
+}
+```
+- Kaitan: Model dengan safety classifiers built-in — cocok sebagai backup model untuk konten sensitif di general office.
 
 [8] LiteLLM. *Spend Tracking Endpoints*. [https://docs.litellm.ai/docs/proxy/cost_tracking](https://docs.litellm.ai/docs/proxy/cost_tracking)
 

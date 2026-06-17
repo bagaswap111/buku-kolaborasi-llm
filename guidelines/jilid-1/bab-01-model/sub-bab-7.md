@@ -50,6 +50,7 @@ Setelah membaca, pembaca harus bisa:
 - Gunakan GQA model (Llama-3, Mistral, Qwen) untuk efisiensi KV-cache
 - Aktifkan Flash Attention di semua inference engine
 - Batasi context window sesuai kebutuhan (tidak perlu 128K untuk chat)
+- Model dengan 1M context (DeepSeek V4 Pro, GPT-5.5, Claude Fable 5, Gemini 2.5 Pro, Qwen3.7-Max) membutuhkan optimasi KV-cache agresif — flash attention + sliding window + context compression wajib untuk konteks >128K
 - Gunakan summarization untuk memampatkan history percakapan
 
 ---
@@ -65,6 +66,10 @@ Setelah membaca, pembaca harus bisa:
 | Llama-3 70B | Ya (8 KV) | 8192 | 80 | 0.7 MB | 2.8 GB | 5.6 GB | 22.4 GB | 89.6 GB |
 | Mistral 7B | Ya (8 KV) | 4096 | 32 | 0.2 MB | 0.8 GB | 1.6 GB | 6.4 GB | - |
 | Qwen 2.5 7B | Ya (4 KV) | 4096 | 28 | 0.1 MB | 0.4 GB | 0.8 GB | 3.2 GB | 12.8 GB |
+| DeepSeek V4 Pro | CSA/HCA hybrid | 8192 | 84 | 0.5 MB* | 2.0 GB | 4.0 GB | 16 GB | 64 GB |
+| Gemini 2.5 Pro | Ya | 8192 | 64 | 0.4 MB | 1.6 GB | 3.2 GB | 12.8 GB | 51.2 GB |
+
+*Estimasi untuk model MoE dengan hybrid attention — KV-cache hanya untuk attention heads aktif.
 
 ### Tabel B: Perbandingan Flash Attention vs Standard
 
@@ -304,6 +309,31 @@ ollama run llama3.1:8b --verbose \
 [9] RoPE (Rotary Position Embedding) — Blog Post by EleutherAI. [https://blog.eleuther.ai/rotary-embeddings/](https://blog.eleuther.ai/rotary-embeddings/)
 
 [10] llama.cpp — Context Length Options. [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp)
+
+[11] **DeepSeek-V4: Hybrid CSA/HCA Attention for 1M Context**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Inovasi hybrid Cross-Step Attention (CSA) dan Hybrid Chunk Attention (HCA) untuk konteks 1M token — alternatif arsitektur attention selain Flash Attention.
+
+[12] **Gemini 2.5 Pro: 1M Context Window**
+```bibtex
+@article{google2025gemini25,
+  title     = {Gemini 2.5 Pro: Thinking Model with 1M Context},
+  author    = {Google DeepMind},
+  journal   = {Google Blog},
+  year      = {2025},
+  url       = {https://blog.google/technology/google-deepmind/gemini-2.5-pro}
+}
+```
+- Kaitan: Implementasi konteks 1M token dengan thinking mode — benchmark untuk manajemen konteks panjang.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

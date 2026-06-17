@@ -87,6 +87,8 @@ Pembaca memahami:
 | Qwen-2.5-14B | 28 GB | 8.0 GB | 32 GB/s | 160 GB/s | 800 GB/s |
 | Llama-3.1-70B | 140 GB | 40 GB | 160 GB/s | 800 GB/s | - |
 | Llama-3.1-405B | 810 GB | 230 GB | 920 GB/s | - | - |
+| DeepSeek V4 Flash (284B) | 560 GB | 160 GB | 640 GB/s | - | - |
+| Mistral Large 3 (675B) | 1.35 TB | 380 GB | 1.5 TB/s | - | - |
 
 ---
 
@@ -249,6 +251,32 @@ for name, bw in gpus.items():
 [8] AMD. *ROCm Documentation — Memory Optimization*. [https://rocm.docs.amd.com](https://rocm.docs.amd.com)
 
 [9] Micron. *AI Storage & Memory Solutions*. [https://www.micron.com/products/ai-solutions](https://www.micron.com/products/ai-solutions)
+
+[10] **DeepSeek-V4: Bandwidth Requirements for 1M Context**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B dan 1.6T — kebutuhan bandwidth untuk model MoE dengan konteks 1M token.
+
+[11] **Mistral Large 3: Memory-Bound Inference**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Model 675B — kasus ekstrem memory-bound inference yang membutuhkan bandwidth >1.5 TB/s.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir dengan DOI/arXiv valid.

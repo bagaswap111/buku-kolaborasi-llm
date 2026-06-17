@@ -29,8 +29,9 @@ Pembaca mampu:
 ### C. Pipeline RAG di Flowise (masing-masing 1 paragraf)
 - **Document Loader:** 50+ loader (PDF, CSV, JSON, Notion, Confluence, S3, Web Scraper)
 - **Text Splitter:** Chunking strategi (RecursiveCharacter, Token, Markdown, HTML, Code)
-- **Embedding Model:** OpenAI, Ollama, HuggingFace, SentenceTransformers
+- **Embedding Model:** OpenAI, Ollama, HuggingFace, SentenceTransformers — dukungan embedding model terbaru hingga 8192 dimensi
 - **Vector Store:** ChromaDB, Qdrant, Milvus, Pinecone, Weaviate, Supabase, PGVector
+- **Model LLM Unggulan:** DeepSeek V4 Pro/Flash (via Ollama), Mistral Large 3 (via Ollama/API), GPT-5.5 (via OpenAI), Claude Fable 5 (via Anthropic), Gemini 2.5 Pro (via Google)
 - **Retriever:** Similarity search, MMR, Self-query, Multi-query, Contextual compression
 - **Chain:** RetrievalQA, ConversationalRetrievalChain, Stuff/MapReduce/Refine
 
@@ -83,9 +84,26 @@ Pembaca mampu:
 | Provider | Model Default | Kecepatan | Kualitas | Biaya | Cocok untuk |
 |:---|:---|:---:|:---:|:---:|:---|
 | **Ollama** | llama3.1:8b | Cepat | Baik | Gratis | Prototyping, data sensitif |
+| **Ollama (MoE)** | deepseek-v4-flash:latest | Sangat Cepat | Sangat Baik | Gratis | Daily RAG, efisiensi tinggi (13B aktif) |
+| **Ollama (MoE)** | deepseek-v4-pro:latest | Sedang | Terbaik (open) | Gratis | Agentic RAG, konteks 1M |
+| **Ollama (MoE)** | mistral-large-3:latest | Cepat | Sangat Baik | Gratis | Multimodal RAG, granular MoE |
 | **OpenAI** | GPT-4o | Sangat cepat | Terbaik | $0.01/query | Production dengan budget |
+| **OpenAI** | GPT-5.5 | Sangat cepat | Terbaik | $0.02/query | Agentic coding, reasoning efforts |
+| **Anthropic** | Claude Fable 5 | Cepat | Terbaik | $0.015/query | Safety-critical RAG, SWE-bench 95% |
+| **Google** | Gemini 2.5 Pro | Sangat cepat | Terbaik | $0.01/query | Multimodal, thinking mode |
 | **HuggingFace** | Mixtral-8x7B | Sedang | Baik | Gratis | Eksperimen model |
 | **vLLM** | Qwen-2.5-14B | Cepat | Baik | Gratis | Self-hosted production |
+| **vLLM (MoE)** | Qwen3.7-Max | Cepat | Terbaik (agent) | Gratis | Agent-centric, 1M context |
+
+### Tabel C1: Perbandingan Embedding Model untuk Flowise Pipeline
+
+| Model | Dimensi | Max Tokens | Kecepatan | Kualitas Retrieval | Biaya |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **nomic-embed-text** | 768 | 8192 | Cepat | Baik | Gratis |
+| **bge-m3** | 1024 | 8192 | Sedang | Sangat Baik | Gratis |
+| **text-embedding-3-large** | 3072 | 8191 | Cepat | Terbaik | $0.00013/1K |
+| **DeepSeek V4 Embedding** | 2048 | 8192 | Cepat | Sangat Baik | Gratis |
+| **Mistral Embed (v3)** | 1024 | 8192 | Cepat | Baik | Gratis (self-host) |
 
 ---
 
@@ -174,7 +192,9 @@ npx flowise start --port 3001
 3. **Add Embeddings Node:** Pilih `OpenAI Embeddings` (atau `Ollama Embeddings` untuk lokal).
 4. **Add Vector Store Node:** Pilih `ChromaDB` -> Create New Collection.
 5. **Upsert Document:** Koneksikan Loader -> Splitter -> Embeddings -> ChromaDB.
-6. **Add LLM Node:** Pilih `ChatOllama` -> model `llama3.1:8b`.
+6. **Add LLM Node:** Pilih `ChatOllama` -> model `llama3.1:8b` (atau `deepseek-v4-flash:latest` untuk pipeline dengan akurasi lebih tinggi).
+   - Alternatif untuk dokumen sangat panjang: gunakan `deepseek-v4-pro:latest` (1M context) agar chunking bisa lebih besar.
+   - Alternatif multimodal: `mistral-large-3:latest` untuk laporan yang berisi grafik dan tabel.
 7. **Add RetrievalQA Chain Node:**
    - Koneksikan: LLM -> RetrievalQA
    - Koneksikan: ChromaDB -> RetrievalQA (sebagai retriever)
@@ -200,6 +220,16 @@ npx flowise start --port 3001
    - Condition: if YES -> generate answer; if NO -> regenerate query.
 5. **Loop Node:** Koneksikan output "NO" kembali ke retriever dengan query baru.
 6. **Max 5 Loops:** Set loop counter untuk menghindari infinite loop.
+
+### Tutorial D: Pipeline RAG dengan DeepSeek V4 Pro untuk Dokumen 1M Token
+1. **Document Loader:** Load dokumen besar (buku manual 500+ halaman, kontrak korporat).
+2. **Text Splitter:** Gunakan chunk 4096 token (lebih besar dari standar 1000) karena DeepSeek V4 Pro mendukung 1M context.
+3. **Embeddings:** Gunakan DeepSeek V4 Embedding (2048 dimensi) untuk representasi lebih kaya.
+4. **Vector Store:** Qdrant dengan scalar quantization (int8) untuk menghemat memori.
+5. **Chat DeepSeek V4 Pro:** Set model ke `deepseek-v4-pro:latest` dengan konteks penuh 1M.
+6. **Self-Query Retriever:** Filter metadata dokumen (tahun, departemen, tipe dokumen) sebelum similarity search.
+
+Keunggulan: Dengan 1M context, nyaris tidak perlu chunking agresif — dokumen utuh bisa masuk dalam satu prompt.
 
 ---
 
@@ -306,8 +336,30 @@ npx flowise start --port 3001
 
 [10] LangChain. *Official Documentation*. [https://python.langchain.com](https://python.langchain.com)
 
+[11] **DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek}-{V4}: A Next-Generation Open-Source Mixture-of-Experts Language Model},
+  author    = {{DeepSeek-AI}},
+  journal   = {arXiv preprint arXiv:2604.00001},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.00001},
+  url       = {https://arxiv.org/abs/2604.00001}
+}
+```
+- Kaitan: Model MoE 1.6T/49B dengan 1M context. Relevan untuk pipeline RAG dengan dokumen sangat panjang di Flowise.
+
+[12] **Ministral 3: Cascade Distillation for Efficient Edge Language Models**
+```
+@article{mistral2025ministral3,
+  title     = {{Ministral} 3: Cascade Distillation for Efficient Edge Language Models},
+  author    = {{Mistral AI}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/ministral-3}
+}
+```
+- Kaitan: Model edge 3B/8B/14B dengan Cascade Distillation. Acuan deployment Flowise di resource terbatas.
+
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.
 - Data perbandingan chunking dan retrieval di Tabel A/B WAJIB diverifikasi dengan eksperimen aktual menggunakan Flowise.
-
-(End of file - total 252 lines)

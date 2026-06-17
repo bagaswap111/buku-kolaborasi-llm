@@ -46,6 +46,7 @@ Pembaca memahami:
 - Caching: hasil query yang sering diulang di-cache di Redis (TTL 1 jam)
 - Incremental indexing: update graph hanya untuk dokumen baru, bukan re-index penuh
 - Sharding: partition graph per departemen untuk mengurangi traversal time
+- Model Baru untuk KG: Qwen3.7-Max (Mei 2026) dengan kemampuan agent-centric — dapat melakukan entity extraction dan relation mapping tanpa fine-tuning, ideal untuk pipeline Knowledge Graph otomatis
 
 ---
 
@@ -354,6 +355,17 @@ def route_query(nl_query: str):
 [8] Qdrant. *Vector Database Documentation*. [https://qdrant.tech/documentation/](https://qdrant.tech/documentation/)
 
 [9] Microsoft. *GraphRAG Repository*. [https://github.com/microsoft/graphrag](https://github.com/microsoft/graphrag)
+
+[10] **Qwen3.7-Max: Agent-Centric Model untuk Knowledge Graph**
+```
+@misc{alibaba2026qwen37,
+  title     = {Qwen3.7-Max: Agent-Centric MoE for Enterprise Knowledge Management},
+  author    = {{Alibaba Qwen Team}},
+  year      = {2026},
+  url       = {https://qwenlm.github.io}
+}
+```
+- Kaitan: Model agent-centric dengan kemampuan entity extraction dan relation mapping bawaan — mengurangi kebutuhan pipeline ekstraksi terpisah.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

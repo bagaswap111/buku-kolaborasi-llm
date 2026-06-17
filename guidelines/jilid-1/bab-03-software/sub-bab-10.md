@@ -76,6 +76,8 @@ Setelah membaca, pembaca harus bisa:
 | **Chat di terminal** | `llama-cli -m model.gguf -cnv` |
 | **Benchmark** | `llama-bench -m model.gguf -p 512 -n 128` |
 | **Extract email** | `llama-cli -m model.gguf --temp 0 -p "Extract name,email from:\n" < contacts.txt` |
+| **DeepSeek V4 Flash** | `ollama run deepseek-v4-flash "Buat fungsi sorting"` |
+| **Ministral 3 (CPU-edge)** | `llama-cli -m ministral-3b.gguf -p "Ringkas teks" -t 4` |
 
 ### Tabel C: Perbandingan Performa Mode CLI
 

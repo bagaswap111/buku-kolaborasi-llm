@@ -185,6 +185,7 @@ export OMP_NUM_THREADS=$(nproc)
 - **Biaya:** Server refurbished ~Rp 15jt (vs PC dengan RTX 4090 ~Rp 35jt)
 - **Keterbatasan:** Tidak bisa running 70B+ model dengan kecepatan acceptable (<5 t/s)
 - **Rekomendasi:** CPU inference viable untuk model <=14B; untuk model lebih besar, GPU tetap diperlukan
+- Catatan: Model MoE besar baru (DeepSeek V4 Flash 284B, Mistral Large 3 675B) sama sekali tidak feasible di CPU karena kebutuhan bandwidth >500 GB/s — hanya GPU dengan HBM atau Apple Silicon unified memory yang bisa menjalankannya
 
 ---
 

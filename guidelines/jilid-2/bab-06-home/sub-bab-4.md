@@ -56,7 +56,11 @@ Pembaca mampu:
 | **Qwen-2.5-7B** | ~4.5 GB | Sangat Baik | 1.5 detik | 6 detik | Terbaik untuk HA |
 | **Llama-3.1-8B** | ~5.0 GB | Baik | 1.8 detik | 7 detik | Alternatif umum |
 | **Phi-4-mini (3.8B)** | ~2.5 GB | Sedang | 0.8 detik | 3 detik | Hemat daya |
+| **Ministral 3 3B** | ~1.8 GB | Baik | 0.5 detik | 2 detik | **Terbaik edge** |
+| **Ministral 3 8B** | ~4.8 GB | Sangat Baik | 1.2 detik | 5 detik | **Sweet spot home** |
 | **Qwen-2.5-14B** | ~8.5 GB | Sangat Baik | 3.0 detik | 15 detik | Akurasi maksimal |
+
+> Ministral 3 series (Apache 2.0, Dec 2025) adalah pilihan terbaik untuk Home Assistant karena edge-optimized dengan function calling yang baik. Ministral 3 3B bisa jalan di CPU dengan latensi hanya 2 detik — ideal untuk device tanpa GPU. Untuk keluarga dengan GPU, Ministral 3 8B memberikan keseimbangan terbaik antara akurasi dan kecepatan.
 
 ### Tabel B: Komponen Voice Pipeline Wyoming
 
@@ -64,8 +68,10 @@ Pembaca mampu:
 |:---|:---|:---|:---:|:---:|
 | **openWakeWord** | Wake word detection | Neural network kecil | ~100 MB | 0.3 detik |
 | **Whisper (faster-whisper)** | Speech-to-text | Whisper small/turbo | ~1-2 GB | 0.5-1 detik |
-| **Ollama (LLM agent)** | Intent parsing + action | Qwen-2.5-7B | ~5 GB | 1.5 detik |
+| **Ollama (LLM agent)** | Intent parsing + action | Ministral 3 3B / Qwen-2.5-7B | ~2-5 GB | 0.5-1.2 detik |
 | **Piper TTS** | Text-to-speech | Piper medium ID | ~500 MB | 0.5 detik |
+
+> Dengan Ministral 3 3B sebagai LLM agent, total pipeline voice bisa mencapai < 2 detik end-to-end (wake → action → TTS) — sangat responsif untuk smart home.
 
 ### Tabel C: Contoh Automasi dengan vs Tanpa LLM
 
@@ -345,3 +351,15 @@ if __name__ == "__main__":
 [9] faster-whisper. *GitHub Repository*. [https://github.com/SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)
 
 [10] openWakeWord. *GitHub Repository*. [https://github.com/dscripka/openWakeWord](https://github.com/dscripka/openWakeWord)
+
+[11] **Ministral 3 — Home Assistant Integration**
+```
+@misc{mistral2025ministral3,
+  title   = {Ministral 3: Edge-Optimized for Home Automation},
+  author  = {{Mistral AI}},
+  year    = {2025},
+  url     = {https://mistral.ai/news/ministral-3/},
+  note    = {Apache 2.0, 3B/8B/14B variants}
+}
+```
+- Kaitan: Model edge-optimized dengan function calling yang baik. Latensi CPU-only hanya 2 detik untuk 3B — ideal untuk Home Assistant tanpa GPU.

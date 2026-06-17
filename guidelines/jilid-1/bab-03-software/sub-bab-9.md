@@ -80,6 +80,8 @@ Setelah membaca, pembaca harus bisa:
 | **MobileLLM-LS-350M** | 350M | INT8 | 350 MB | 65.3% | API calling, intent detection |
 | **Phi-3-mini** | 3.8B | Q4 | 2.1 GB | 71.3% | General purpose |
 | **Qwen 2.5 1.5B** | 1.5B | Q4 | 0.9 GB | 66.7% | Multilingual chat |
+| **Ministral 3B** | 3B | Q4 | 1.8 GB | 68.5% | Edge inference, Cascade Distillation |
+| **Ministral 8B** | 8B | Q4 | 4.6 GB | 74.1% | General purpose mobile |
 
 ---
 
@@ -216,11 +218,11 @@ std::string result = model->generate("Jelaskan AI");
 ### Studi Kasus: AI Assistant Offline untuk Dokter di Daerah Terpencil
 - **Profil:** Dokter di klinik desa (sinyal internet tidak stabil)
 - **Device:** Xiaomi 14 (Snapdragon 8 Gen 3, 12GB RAM)
-- **Solusi:** MLC-LLM Android + Qwen 2.5 1.5B Q4
+- **Solusi:** MLC-LLM Android + Ministral 8B Q4 (Cascade Distillation) atau Qwen 2.5 1.5B Q4
 - **Fitur:** Rangkum rekam medis, saran diagnosis awal, cek interaksi obat
 - **NPU Offload:** llm.npu untuk prefill cepat (<1s untuk 512 token)
 - **GPU untuk decode:** OpenCL backend — 8-10 t/s
-- **Hasil:** Diagnosis assistant berjalan 100% offline, baterai tahan 4 jam pemakaian kontinu
+- **Hasil:** Diagnosis assistant berjalan 100% offline, baterai tahan 4 jam pemakaian kontinu; Ministral 8B memberikan akurasi lebih tinggi dengan footprint sama
 - **Kendala:** Thermal throttling setelah 15 menit → perlu pendinginan pasif
 
 ---

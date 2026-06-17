@@ -134,6 +134,7 @@ docker run -d -p 3000:8080 \
   ghcr.io/open-webui/open-webui:ollama
 
 # 2. Pull model inference dan embedding
+docker exec -it open-webui ollama pull deepseek-v4-flash
 docker exec -it open-webui ollama pull llama3.1:8b
 docker exec -it open-webui ollama pull nomic-embed-text
 
@@ -224,11 +225,11 @@ docker run -d -p 3000:8080 \
 ### Studi Kasus: Perpustakaan Digital SMK dengan Open WebUI
 - **Profil:** SMK dengan 500 siswa, punya server lokal (Xeon E5, 64GB RAM, RTX 3060 12GB)
 - **Kebutuhan:** Siswa bisa bertanya tentang materi pelajaran dari buku digital
-- **Solusi:** Open WebUI + Ollama (Qwen2.5-14B Q4_K_M) + ChromaDB
+- **Solusi:** Open WebUI + Ollama (DeepSeek V4 Flash + Qwen2.5-14B Q4_K_M) + ChromaDB
 - **RAG Knowledge Base:** 200+ buku pelajaran (PDF) di-chunk dan di-embed
 - **Tools:** Kalkulator, code runner (Python untuk pelajaran coding)
 - **Multi-User:** 10 guru sebagai admin, 500 siswa sebagai user terbatas
-- **Hasil:** Siswa bisa tanya rumus fisika, guru bisa buat soal dengan AI
+- **Hasil:** DeepSeek V4 Flash memberikan respons lebih cepat untuk tugas ringan; Qwen 2.5-14B untuk tugas berat
 - **Biaya:** Rp 0 (software), hardware existing
 
 ---

@@ -73,6 +73,10 @@ Pembaca memahami:
 | Arc A770 16GB | OpenVINO + IPEX | ~40 t/s | ~6.0 GB | 225W | ~5 jt |
 | M4 Pro 24GB (GPU) | MLX | ~70 t/s | ~6.0 GB | ~45W | ~25 jt |
 | RTX 4060 Ti 16GB | CUDA + llama.cpp | ~65 t/s | ~5.2 GB | 165W | ~8 jt |
+| 2x RTX 3090 (DeepSeek V4 Flash)** | CUDA + vLLM TP2 | ~20 t/s | ~110 GB Q4 | 600W | ~25 jt |
+| 4x RTX 3090 (Mistral Large 3)** | CUDA + vLLM TP4 | ~10 t/s | ~280 GB Q4 | 1.2 kW | ~50 jt |
+
+**Model MoE besar: DeepSeek V4 Flash (284B) butuh ~150 GB FP16 / ~90 GB Q4; Mistral Large 3 (675B) butuh ~380 GB Q4 — hanya feasible dengan multi-GPU.
 
 ### Tabel C: Kompatibilitas Framework per Platform
 
@@ -253,6 +257,32 @@ print(tokenizer.decode(outputs[0]))
 [9] llama.cpp. *GPU Benchmarks*. [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp)
 
 [10] MLCommons. *MLPerf Inference v4.1 Results*. [https://mlcommons.org/benchmarks/inference-datacenter](https://mlcommons.org/benchmarks/inference-datacenter)
+
+[11] **DeepSeek-V4: Multi-GPU Inference Requirements**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B dan 1.6T — studi kasus ekstrem untuk multi-GPU inference dan kompatibilitas framework.
+
+[12] **Mistral Large 3: Apache 2.0 — Deployment Guide**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Model 675B — kebutuhan hardware untuk inference MoE granular di ekosistem CUDA/ROCm.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

@@ -29,6 +29,8 @@ Pembaca memahami:
 - Model 7B Q4_K_M (~4.5 GB): Gen 3 ~0.35s, Gen 4 ~0.18s, Gen 5 ~0.09s
 - Model 70B Q4_K_M (~40 GB): Gen 3 ~3.0s, Gen 4 ~1.5s, Gen 5 ~0.8s
 - Model 405B Q3_K_M (~230 GB): Gen 3 ~17s, Gen 4 ~8.5s, Gen 5 ~4.5s
+- DeepSeek V4 Flash Q4_K_M (~160 GB): Gen 3 ~12s, Gen 4 ~6s, Gen 5 ~3s
+- Mistral Large 3 Q3_K_M (~280 GB): Gen 3 ~21s, Gen 4 ~10.5s, Gen 5 ~5.5s
 - Perbedaan ini krusial untuk TTFT (Time to First Token) pada cold start
 
 ### D. I/O Characterization Offloading (1 paragraf)
@@ -71,6 +73,8 @@ Pembaca memahami:
 | 13B Q4_K_M load + inference | 0.85s | 0.52s | 0.35s |
 | 70B Q3_K_M load + inference | 3.5s | 2.0s | 1.2s |
 | 405B Q3_K_M offload (50% ke SSD) | 12s | 6.5s | 3.5s |
+| DeepSeek V4 Flash Q4 (160 GB) load | 12s | 6.0s | 3.0s |
+| Mistral Large 3 Q3 (280 GB) load | 21s | 10.5s | 5.5s |
 
 ### Tabel C: I/O Performance Offloading (Data dari CHEOPS '25)
 
@@ -275,6 +279,19 @@ time ./main -m model-q4_k_m.gguf -p "test" -n 1  # Warm start
 [8] AnandTech / TechPowerUp. *SSD Benchmarks*. [https://www.techpowerup.com/review/ssd](https://www.techpowerup.com/review/ssd)
 
 [9] Samsung. *990 PRO SSD Specifications*. [https://semiconductor.samsung.com/consumer-storage/nvme/990-pro](https://semiconductor.samsung.com/consumer-storage/nvme/990-pro)
+
+[10] **DeepSeek-V4: Model Size and Storage Requirements**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B dan 1.6T — ukuran file besar yang membutuhkan storage cepat untuk cold start <10 detik.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv valid.

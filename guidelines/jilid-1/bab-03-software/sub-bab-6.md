@@ -72,6 +72,7 @@ Setelah membaca, pembaca harus bisa:
 | **Noromaid-20B** | 20B | ***** | **** | 2-3 t/s (GPU 48GB) |
 | **Llama-3-8B-Instruct** | 8B | *** | **** | 8-12 t/s |
 | **Mistral-7B-RP** | 7B | **** | *** | 10-15 t/s |
+| **DeepSeek V4 Flash** | 284B/13B aktif | **** | **** | 15-25 t/s (MoE efisien) |
 
 ### Tabel C: Parameter Optimal untuk Roleplay
 

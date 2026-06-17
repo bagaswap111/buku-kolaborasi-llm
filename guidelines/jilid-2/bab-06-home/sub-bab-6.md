@@ -295,9 +295,9 @@ if __name__ == "__main__":
 ### Studi Kasus: Keluarga Hartono — 3 Anak Usia 7, 11, 15 Tahun
 - **Profil:** Anak 1 (SD kelas 2), Anak 2 (SMP kelas 1), Anak 3 (SMA kelas 2)
 - **Filtering:**
-  - Anak 1 (SD): hanya bisa chat dengan model Llama-3.2-3B (safety tinggi), filter ketat, 30 menit/hari
-  - Anak 2 (SMP): akses Llama-3.1-8B dengan NeMo Guardrails, 60 menit/hari
-  - Anak 3 (SMA): akses penuh Qwen-2.5-14B tapi tetap di-log, 90 menit/hari
+  - Anak 1 (SD): hanya bisa chat dengan model Ministral 3 3B (safety tinggi, edge-optimized), filter ketat, 30 menit/hari
+  - Anak 2 (SMP): akses Llama-3.1-8B atau Ministral 3 8B dengan NeMo Guardrails, 60 menit/hari
+  - Anak 3 (SMA): akses penuh Qwen-2.5-14B atau Mistral Large 3 (via API) tapi tetap di-log, 90 menit/hari
 - **Monitoring:** Dashboard Grafana menampilkan jumlah query per anak, topik terpopuler, attempted blocked prompts
 - **Insiden:** Anak 1 mencoba bertanya "hantu itu nyata?" — diblokir oleh filter mistis. Orang tua mendapat notifikasi dan mendiskusikan dengan anak secara langsung.
 - **Hasil:** Anak bisa memanfaatkan AI untuk PR dan kreativitas tanpa risiko. Orang tua tenang karena semua terpantau. Anak 3 (SMA) belajar prompt engineering dan membantu setting model.

@@ -60,16 +60,22 @@ Setelah membaca, pembaca harus bisa:
 | Qwen 2.5 7B | 28 | 4096 | 11008 | 28 | Ya | 7.61B | ~8% |
 | Llama-3 70B | 80 | 8192 | 28672 | 64 | Ya (8 KV) | 70.6B | ~2% |
 | DeepSeek V2 | 60 | 7168 | 2048 (MoE) | 56 | Ya | 236B | ~1% |
+| DeepSeek V4 Pro | 84* | 8192 | 4096 (MoE-256) | 64 | Ya (CSA/HCA) | 1.6T (49B aktif) | ~0.5% |
+| Mistral Large 3 | 56* | 7168 | 3072 (granular MoE) | 48 | Ya | 675B (41B aktif) | ~1% |
 | Gemma 2 9B | 42 | 3584 | 14336 | 16 | Ya | 9.2B | ~4% |
+
+*Konfigurasi internal — detail arsitektur penuh hanya dirilis oleh vendor.
 
 ### Tabel B: Kebutuhan Memori per Ukuran Model
 
-| Presisi | Bytes/Param | 1.5B | 7B | 8B | 13B | 70B | 405B |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| FP32 | 4 | 6 GB | 28 GB | 32 GB | 52 GB | 280 GB | 1.6 TB |
-| FP16 | 2 | 3 GB | 14 GB | 16 GB | 26 GB | 140 GB | 810 GB |
-| INT8 (Q8_0) | 1 | 1.5 GB | 7 GB | 8 GB | 13 GB | 70 GB | 405 GB |
-| INT4 (Q4_K_M) | ~0.5 | 0.8 GB | 3.8 GB | 4.2 GB | 6.5 GB | 38 GB | 220 GB |
+| Presisi | Bytes/Param | 1.5B | 7B | 8B | 13B | 49B* | 70B | 405B | 675B* |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| FP32 | 4 | 6 GB | 28 GB | 32 GB | 52 GB | 196 GB | 280 GB | 1.6 TB | 2.7 TB |
+| FP16 | 2 | 3 GB | 14 GB | 16 GB | 26 GB | 98 GB | 140 GB | 810 GB | 1.35 TB |
+| INT8 (Q8_0) | 1 | 1.5 GB | 7 GB | 8 GB | 13 GB | 49 GB | 70 GB | 405 GB | 675 GB |
+| INT4 (Q4_K_M) | ~0.5 | 0.8 GB | 3.8 GB | 4.2 GB | 6.5 GB | 25 GB | 38 GB | 220 GB | 340 GB |
+
+*Parameter aktif untuk model MoE (DeepSeek V4 Pro 49B aktif, Mistral Large 3 41B aktif). Semua expert harus di-load meskipun hanya sebagian aktif.
 
 ### Tabel C: Distribusi Parameter per Komponen (Llama-3 8B)
 
@@ -306,6 +312,32 @@ dd if=/dev/zero of=/tmp/test bs=1G count=1 oflag=dsync
 [9] llama.cpp. *GGUF Format Specification*. [https://github.com/ggerganov/llama.cpp](https://github.com/ggerganov/llama.cpp)
 
 [10] NVIDIA. *GPU Memory Calculator for LLMs*. [https://resources.nvidia.com](https://resources.nvidia.com)
+
+[11] **DeepSeek-V4 Technical Report**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Arsitektur MoE dengan 1.6T total / 49B aktif parameter, hybrid CSA/HCA attention. Data Tabel A untuk DeepSeek V4 Pro merujuk paper ini.
+
+[12] **Mistral Large 3 Technical Report**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Granular MoE 675B total / 41B aktif, Apache 2.0. Data Tabel A untuk Mistral Large 3 merujuk paper ini.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

@@ -63,7 +63,9 @@ Pembaca mampu:
 | **Case** | Budget ATX | Mid-tower mesh | High-airflow | Full tower |
 | **Cooling** | Stock CPU | Air cooler | AIO 360mm | Custom loop |
 | **VRAM Total** | 8 GB | 24 GB | 24 GB | 48 GB |
-| **Model Maks** | 7B Q4 | 13B Q4 / 70B Q3 | 70B Q3 (offload) | 70B Q4 / 405B Q3 |
+| **Model Maks** | 7B Q4 | 13B Q4 / 70B Q3 | 70B Q3 (offload) | 70B Q4 / 405B Q3 / DeepSeek V4 Flash Q4* |
+
+*DeepSeek V4 Flash Q4 (~160 GB) hanya muat di konfigurasi flagship 8x GPU; untuk Mistral Large 3 Q4 (~380 GB) butuh 16x RTX 3090 atau server-grade.
 | **TCO 3 Tahun** | ~Rp 15 jt | ~Rp 30 jt | ~Rp 65 jt | ~Rp 105 jt |
 
 ### Tabel B: PC Rakitan vs Mac Studio vs Laptop
@@ -90,8 +92,11 @@ Pembaca mampu:
 | **Mac Mini M4 Pro** | Rp 2.107 | Biaya HW dominan |
 | **Mac Studio M2 Ultra** | Rp 2.876 | Biaya HW dominan |
 | **OpenAI GPT-4o** | Rp 77.000 | via API, input + output rata-rata |
+| **OpenAI GPT-5.5** | Rp 150.000 | via API, 1M context, reasoning effort |
 | **Claude 3.5 Sonnet** | Rp 47.000 | via API |
+| **Claude Fable 5** | Rp 250.000 | via API, 1M context, safety classifiers |
 | **Gemini 1.5 Pro** | Rp 35.000 | via API |
+| **Gemini 2.5 Pro** | Rp 50.000 | via API, 1M context, thinking mode |
 | **DeepSeek API** | Rp 2.100 | Termurah untuk cloud |
 | **Groq API** | Rp 5.800 | LPU inference cloud |
 
@@ -244,6 +249,7 @@ echo "    - Cek jarak slot PCIe fisik"
   - Portabel, bisa dibawa ke kampus/kantor
 - **Keputusan:** Opsi A dipilih karena budget pas, performa terbaik, upgrade path ke 2x GPU untuk 70B. Sisa Rp 5jt untuk UPS + fan upgrade.
 - **Hasil:** Break-even dari langganan ChatGPT dalam 8 bulan (Rp 20/bln × 8 = Rp 160rb × 8 = Rp 1.28jt vs Rp 25jt — lebih karena biaya HW, tapi untuk heavy user 500K token/hari, break-even 4-6 bulan).
+- **Catatan 2026:** Model frontier baru seperti DeepSeek V4 Flash (284B) dan Mistral Large 3 (675B) membuka akses ke kualitas GPT-5 level secara lokal, tapi butuh 6-8 GPU atau Mac Studio 192GB — investasi Rp 70-100jt. Untuk pengguna dengan budget Rp 30jt, model 7B-14B Q4_K_M sudah mencapai performa GPT-4o-mini, cukup untuk 90% kebutuhan.
 
 ---
 
@@ -327,6 +333,32 @@ echo "    - Cek jarak slot PCIe fisik"
 [9] PLN. *Tarif Listrik 2026*. [https://www.pln.co.id](https://www.pln.co.id)
 
 [10] Puget Systems. *Hardware Recommendations for AI*. [https://www.pugetsystems.com](https://www.pugetsystems.com)
+
+[11] **DeepSeek-V4 Flash: Cost Analysis for Local Deployment**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B dengan MIT license — opsi frontier lokal dengan biaya hardware 6-8 GPU.
+
+[12] **Mistral Large 3: Apache 2.0 Budget Analysis**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Model 675B Apache 2.0 — analisis biaya vs performa untuk berbagai konfigurasi hardware.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv valid.

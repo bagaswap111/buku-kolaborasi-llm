@@ -24,7 +24,7 @@ Setelah membaca, pembaca harus bisa:
 - Tidak semua parameter aktif — hanya "expert" tertentu per token
 - Router/gate network memilih top-k expert (biasanya 2 dari 8)
 - Parameter total besar, tetapi compute per token lebih kecil
-- Contoh: Mixtral 8x7B (47B total, 13B aktif), DeepSeek V2 (236B total, 21B aktif)
+- Contoh: Mixtral 8x7B (47B total, 13B aktif), DeepSeek V2 (236B total, 21B aktif), DeepSeek V4 Pro (1.6T total, 49B aktif), Mistral Large 3 (675B total, 41B aktif)
 
 ### C. Komponen MoE: Router, Experts, Load Balancing (2 paragraf)
 - **Router:** jaringan linear kecil yang menghasilkan probabilitas per expert
@@ -61,8 +61,13 @@ Setelah membaca, pembaca harus bisa:
 | Llama-3 70B | Dense | 70.6B | 70.6B | 140 GB | 42 GB | 83.6% | 91.1% |
 | Mixtral 8x7B | MoE | 46.7B | 12.9B | 90 GB | 28 GB | 70.6% | 68.6% |
 | DeepSeek V2 | MoE | 236B | 21B | 470 GB | 140 GB | 78.5% | 85.5% |
+| DeepSeek V4 Pro | MoE | 1.6T | 49B | 3.2 TB FP16 | 950 GB Q4 | 87.5%* | 93.5%* |
+| DeepSeek V4 Flash | MoE | 284B | 13B | 560 GB FP16 | 160 GB Q4 | — | — |
+| Mistral Large 3 | MoE | 675B | 41B | 1.35 TB FP16 | 380 GB Q4 | 84.9% | 91.2% |
 | Qwen 1.5-32B | Dense | 32.8B | 32.8B | 66 GB | 20 GB | 74.6% | 72.3% |
 | DBRX | MoE | 132B | 36B | 260 GB | 78 GB | 73.7% | 72.8% |
+
+*MMLU-Pro untuk DeepSeek V4 Pro (MMLU standar tidak dipublikasikan).
 
 ### Tabel B: Trade-off — Dense vs MoE per Skenario
 
@@ -83,6 +88,8 @@ Setelah membaca, pembaca harus bisa:
 | Mixtral 8x7B | MoE | ~40 | ~180 | 28 GB | ~120 ms |
 | Qwen 2.5 32B | Dense | ~22 | ~95 | 20 GB | ~180 ms |
 | DeepSeek V2 (lite) | MoE | ~35 | ~150 | 45 GB | ~100 ms |
+| DeepSeek V4 Flash Q4 | MoE (13B aktif) | ~55 | ~200 | 160 GB | ~80 ms |
+| Mistral Large 3 Q4 | MoE (41B aktif) | ~20 | ~80 | 380 GB | ~250 ms |
 
 ---
 
@@ -304,6 +311,32 @@ print(f"Ideal: {batch_size * top_k / num_experts:.1f} per expert")
 [9] Epoch AI — MoE vs Dense Inference Analysis. [https://epoch.ai/gradient-updates/moe-vs-dense-models-inference](https://epoch.ai/gradient-updates/moe-vs-dense-models-inference)
 
 [10] vLLM — Expert Parallelism for MoE. [https://docs.vllm.ai](https://docs.vllm.ai)
+
+[11] **DeepSeek-V4: Hybrid MoE with CSA/HCA Attention**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: MoE ekstrem 1.6T dengan sparsity ratio 3.1% — perbandingan paling ekstrem antara total vs active parameter di Tabel A.
+
+[12] **Mistral Large 3: Apache 2.0 Granular MoE**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Granular MoE 675B dengan Apache 2.0 — MoE open-weight terbesar untuk fine-tuning dan deployment lokal.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

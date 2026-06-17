@@ -40,6 +40,7 @@ Pembaca memahami:
 - Latency: tidak ada network round-trip
 - Cost: tidak ada API per-token
 - Reliability: tidak bergantung koneksi internet
+- **Model terbaru** seperti DeepSeek V4 Pro (MIT, open-weight), DeepSeek V4 Flash, dan Mistral Large 3 (Apache 2.0) membuat agent lokal semakin mumpuni dengan performa mendekati frontier cloud — SWE-bench 95% dari Claude Fable 5 juga bisa diakses via API untuk task yang membutuhkan akurasi tertinggi
 
 ### F. Tantangan & Risiko (1 paragraf)
 - Keamanan: agent dengan akses shell bisa hapus data

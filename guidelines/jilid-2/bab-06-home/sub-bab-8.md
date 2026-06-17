@@ -20,9 +20,11 @@ Pembaca mampu:
 - Biaya tersembunyi: AC ruangan (jika GPU 450W), UPS, kabel, tools
 
 ### B. Tiga Tier Build (2 paragraf)
-- **Build Hemat (Rp 25-30jt):** RTX 3090 used + Ryzen 7 + 32 GB DDR4 — untuk 7-14B model
+- **Build Hemat (Rp 25-30jt):** RTX 3090 used + Ryzen 7 + 32 GB DDR4 — untuk 7-14B model (cocok untuk Ministral 3 8B/14B)
 - **Build Performa (Rp 40-45jt):** RTX 4090 + Ryzen 7 7800X3D + 64 GB DDR5 — untuk 14-33B model
 - **Build Premium (Rp 55-70jt):** Mac Studio M2 Ultra 192 GB — untuk 70B model tanpa kuantisasi
+- **Build Edge Hemat (Rp 8-12jt):** NUC/Mini PC + 16 GB RAM — untuk Ministral 3 3B/8B CPU-only, konsumsi daya < 30W
+- **Build Home High-End (Rp 60-80jt):** 2x RTX 4090 + Ryzen 9 + 128 GB RAM — untuk DeepSeek V4 Flash (284B/13B aktif) dengan INT4 quantization
 - Semua build sudah termasuk komponen pendukung (case, PSU, storage, networking)
 
 ### C. Biaya Listrik Tahunan (1-2 paragraf)
@@ -80,6 +82,8 @@ Pembaca mampu:
 | **RTX 4090 + Ryzen 7** | 85W | 520W | ~200W | 3.20 | ~Rp 144rb | ~Rp 1.73jt |
 | **Mac Mini M4 Pro** | 15W | 85W | ~35W | 0.56 | ~Rp 25rb | ~Rp 300rb |
 | **Mac Studio M2 Ultra** | 30W | 150W | ~60W | 0.96 | ~Rp 43rb | ~Rp 516rb |
+| **NUC Edge (Ministral 3)** | 8W | 35W | ~15W | 0.24 | ~Rp 11rb | ~Rp 130rb |
+| **2x RTX 4090 (DeepSeek V4 Flash)** | 100W | 800W | ~350W | 5.60 | ~Rp 252rb | ~Rp 3.02jt |
 
 > Asumsi: 16 jam operasi/hari, tarif Rp 1.500/kWh. GPU dimatikan 8 jam saat tidur.
 

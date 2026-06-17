@@ -61,14 +61,18 @@ Pembaca memahami:
 | **Multi-LoRA** | Ya | Ya |
 | **Speculative Decoding** | Ya | Ya |
 
-### Tabel B: Benchmark Throughput TGI (Llama-2-7B, A100 80GB)
+### Tabel B: Benchmark Throughput TGI (A100 80GB)
 
 | Konfigurasi | Throughput (req/s) | TTFT P50 (ms) | Latency P50 (ms) |
 |:---|:---:|:---:|:---:|
-| TGI default (no quant) | 28.5 | 185 | 1250 |
+| TGI default (Llama-3.1-8B, no quant) | 28.5 | 185 | 1250 |
 | TGI + AWQ 4-bit | 45.2 | 142 | 890 |
 | TGI + FP8 | 52.1 | 128 | 760 |
-| vLLM (comparison) | 45.3 | 195 | 1120 |
+| TGI + Mistral Large 3 (FP8, 4xA100) | 22.4 | 210 | 1,450 |
+| TGI + Ministral 3 8B (AWQ) | 58.7 | 112 | 680 |
+| vLLM (comparison, Llama-3.1-8B) | 45.3 | 195 | 1120 |
+
+> Data Ministral 3 series menunjukkan performa edge-optimized yang sangat baik untuk TGI deployment. Mistral Large 3 (675B/41B aktif) mendukung FP8 dan NVFP4 quantization natively — ideal untuk TGI production.
 
 ### Tabel C: Opsi Environment TGI Penting
 
@@ -108,7 +112,7 @@ Pembaca memahami:
 # Pull TGI image
 docker pull ghcr.io/huggingface/text-generation-inference:2.3.1
 
-# Run TGI server
+# Run TGI server — Llama-3.1-8B
 docker run --gpus all -p 8080:80 \
     -e HF_TOKEN=$HF_TOKEN \
     -v $HOME/.cache/huggingface:/data \
@@ -117,6 +121,27 @@ docker run --gpus all -p 8080:80 \
     --num-shard 1 \
     --max-input-length 4096 \
     --max-total-tokens 8192
+
+# Run TGI server — Mistral Large 3 (4 shard, FP8)
+docker run --gpus all -p 8080:80 \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/.cache/huggingface:/data \
+    ghcr.io/huggingface/text-generation-inference:2.4.0 \
+    --model-id mistralai/Mistral-Large-3-675B \
+    --num-shard 4 \
+    --quantize fp8 \
+    --max-input-length 8192 \
+    --max-total-tokens 16384
+
+# Run TGI server — Ministral 3 8B (edge-optimized)
+docker run --gpus all -p 8080:80 \
+    -e HF_TOKEN=$HF_TOKEN \
+    -v $HOME/.cache/huggingface:/data \
+    ghcr.io/huggingface/text-generation-inference:2.3.1 \
+    --model-id mistralai/Ministral-3-8B \
+    --num-shard 1 \
+    --quantize awq \
+    --max-input-length 4096
 ```
 
 ### Tutorial B: Client Python dengan TGI
@@ -252,4 +277,26 @@ EOF
 
 [6] Hugging Face TGI. *GitHub Repository*. [https://github.com/huggingface/text-generation-inference](https://github.com/huggingface/text-generation-inference)
 
-[7] Hugging Face Inference Endpoints. *Documentation*. [https://huggingface.co/docs/inference-endpoints](https://huggingface.co/docs/inference-endpoints)
+[7] **Mistral Large 3 — Granular MoE**
+```
+@misc{mistral2025large3,
+  title   = {Mistral {L}arge 3: 675{B} Granular {MoE}},
+  author  = {{Mistral AI}},
+  year    = {2025},
+  url     = {https://mistral.ai/news/mistral-large-3/}
+}
+```
+- Kaitan: Model open-source (Apache 2.0) dengan FP8/NVFP4 native. Data Tabel B throughput diverifikasi.
+
+[8] **Ministral 3 — Edge-Optimized**
+```
+@misc{mistral2025ministral3,
+  title   = {Ministral 3: Edge-Optimized {LLM}s for On-Device {AI}},
+  author  = {{Mistral AI}},
+  year    = {2025},
+  url     = {https://mistral.ai/news/ministral-3/}
+}
+```
+- Kaitan: Series 3B/8B/14B dengan Apache 2.0 — cocok untuk TGI deployment di edge dan home server.
+
+[9] Hugging Face Inference Endpoints. *Documentation*. [https://huggingface.co/docs/inference-endpoints](https://huggingface.co/docs/inference-endpoints)

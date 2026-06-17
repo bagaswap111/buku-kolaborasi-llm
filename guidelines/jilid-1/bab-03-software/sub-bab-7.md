@@ -152,15 +152,21 @@ curl http://localhost:8080/models/apply \
     "url": "github:go-skynet/model-gallery/llama-3.1-8b-instruct.yaml"
   }'
 
-# 3. Test chat completion (OpenAI-compatible)
+# 3. Download model DeepSeek V4 Flash
+curl http://localhost:8080/models/apply \
+  -d '{
+    "url": "github:go-skynet/model-gallery/deepseek-v4-flash.yaml"
+  }'
+
+# 4. Test chat completion (OpenAI-compatible)
 curl http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama-3.1-8b-instruct",
+    "model": "deepseek-v4-flash",
     "messages": [
       {"role": "user", "content": "Halo, siapa kamu?"}
     ],
-    "temperature": 0.7,
+    "temperature": 0.5,
     "stream": true
   }'
 ```
@@ -169,18 +175,18 @@ curl http://localhost:8080/v1/chat/completions \
 
 ```yaml
 # models/llama3.yaml
-name: llama-3.1-8b-instruct
+name: deepseek-v4-flash
 backend: llama.cpp
 parameters:
-  model: /models/llama-3.1-8b-instruct-q4_k_m.gguf
-  context_size: 8192
+  model: /models/deepseek-v4-flash-q4_k_m.gguf
+  context_size: 32768
   threads: 8
   f16: true
   mmap: true
   # GPU offload
-  n_gpu_layers: 40
-  # Temperature dan sampling default
-  temperature: 0.7
+  n_gpu_layers: 60
+  # MoE tuning — optimal untuk sparse inference
+  temperature: 0.5
   top_k: 40
   top_p: 0.9
 ```

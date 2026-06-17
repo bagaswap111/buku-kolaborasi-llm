@@ -119,16 +119,20 @@ graph TB
 ### Tutorial A: Membuat Modelfile Kustom
 
 ```dockerfile
-# Modelfile — Asisten Coding Bahasa Indonesia
-FROM llama3.1:8b
+# Modelfile — Asisten Coding Bahasa Indonesia (DeepSeek V4 Pro)
+FROM deepseek-v4-pro
 
 # Parameter inference
 PARAMETER temperature 0.3
 PARAMETER top_p 0.9
-PARAMETER num_ctx 8192
-PARAMETER stop "</s>"
+PARAMETER num_ctx 32768
+PARAMETER stop "<|end|>"
 PARAMETER mirostat 2
 PARAMETER mirostat_tau 5.0
+
+# CSA/HCA hybrid attention — optimal untuk konteks panjang
+PARAMETER numa 1
+PARAMETER flash_attn 1
 
 # System prompt
 SYSTEM """
@@ -151,8 +155,8 @@ TEMPLATE """
 
 ```bash
 # Build dan run
-ollama create my-coder -f Modelfile
-ollama run my-coder "Buatkan fungsi Python untuk sorting array"
+ollama create my-coder-deepseek -f Modelfile
+ollama run my-coder-deepseek "Buatkan fungsi Python untuk sorting array"
 ```
 
 ### Tutorial B: Mengelola Model Library dan API Server
@@ -186,6 +190,13 @@ curl http://localhost:11434/v1/chat/completions \
     "model": "llama3.1:8b",
     "messages": [{"role": "user", "content": "Halo!"}]
   }'
+
+# 6. Pull model DeepSeek V4 terbaru
+ollama pull deepseek-v4-pro     # 1.6T total, 49B aktif, MIT license
+ollama pull deepseek-v4-flash   # 284B total, 13B aktif — cepat untuk coding
+
+# 7. Jalankan DeepSeek V4 Flash untuk task ringan
+ollama run deepseek-v4-flash "Buatkan unit test untuk fungsi validasi email"
 ```
 
 ### Tutorial C: Concurrent Model Loading
@@ -215,11 +226,12 @@ with concurrent.futures.ThreadPoolExecutor() as ex:
 ### Studi Kasus: Setup Ollama untuk Team Coding Assistant
 - **Skenario:** Tim developer 5 orang ingin AI coding assistant lokal yang responsif
 - **Hardware:** Server dengan RTX 4090 24GB
-- **Solusi:** Ollama serve dengan model `deepseek-coder-v2:16b` (Q4_K_M)
+- **Solusi:** Ollama serve dengan model `deepseek-v4-flash` (284B total, 13B aktif — MoE efisien)
 - **Modelfile Kustom:** Ditambahkan konteks kodebase perusahaan, system prompt dengan standar koding tim
-- **Konfigurasi:** `num_ctx` 16384, `temperature` 0.2, `num_gpu` 99
+- **Konfigurasi:** `num_ctx` 32768, `temperature` 0.2, `num_gpu` 99, flash attention diaktifkan
 - **Hasil:** 5 developer bisa akses bersamaan via Open WebUI, latency < 3 detik per response
 - **Pengelolaan:** Blob storage otomatis menduplikasi model yang sama untuk semua user
+- **Catatan:** DeepSeek V4 Pro (1.6T params, 49B aktif) bisa jadi upgrade path untuk tugas lebih berat dengan MIT license dan open-weight di Hugging Face
 
 ---
 

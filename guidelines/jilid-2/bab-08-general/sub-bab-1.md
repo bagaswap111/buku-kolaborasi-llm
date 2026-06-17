@@ -220,13 +220,15 @@ prompts = [
 
 async def send(session, idx, prompt):
     start = time.time()
+    # Gunakan model campuran: 70B untuk analisa, MoE 284B untuk konteks panjang
+    model = "deepseek-v4-flash" if len(prompt) > 2000 else "llama-3.1-70b"
     async with session.post(ENDPOINT, json={
-        "model": "llama-3.1-70b",
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 512
     }) as resp:
         elapsed = time.time() - start
-        print(f"[User {idx}] {elapsed:.2f}s — status {resp.status}")
+        print(f"[User {idx} - {model}] {elapsed:.2f}s — status {resp.status}")
 
 async def main():
     async with aiohttp.ClientSession() as session:
@@ -247,13 +249,14 @@ asyncio.run(main())
 - **Profil:** Startup tech 35 karyawan (Engineering 15, Operations 10, Finance 5, Legal 5)
 - **Kebutuhan:** AI assistant untuk coding, analisa kontrak, review laporan keuangan, HR knowledge base
 - **Arsitektur Terpilih:**
-  - 2x GPU Node: RTX 6000 Ada 48GB + RTX 5000 Ada 32GB (active-passive)
+  - 2x GPU Node: H100 80GB + L40S 48GB (active-active)
   - K3s cluster 3 node (2 worker GPU + 1 control plane)
   - LiteLLM proxy untuk rate limiting dan cost tracking
+  - Model: DeepSeek V4 Flash (1M ctx, MIT) untuk analisa dokumen panjang + Mistral Large 3 (Apache 2.0) untuk coding
   - Qdrant vector DB + PostgreSQL untuk RAG
   - HAProxy dual-node dengan keepalived
 - **Hasil:** 99.997% uptime dalam 6 bulan pertama, 2x failover terjadi tanpa downtime terasa
-- **Biaya:** Rp 320jt (hardware Rp 250jt, setup Rp 50jt, lisensi Rp 20jt)
+- **Biaya:** Rp 350jt (hardware Rp 280jt, setup Rp 50jt, lisensi Rp 20jt)
 - **Penghematan:** Dibandingkan ChatGPT Enterprise ($60/user/bulan x 35 = $2100/bulan), balik modal 15 bulan
 
 ---
@@ -334,6 +337,28 @@ asyncio.run(main())
 [7] HAProxy. *Official Documentation*. [https://www.haproxy.org/documentation](https://www.haproxy.org/documentation)
 
 [8] LiteLLM. *AI Gateway Documentation*. [https://docs.litellm.ai](https://docs.litellm.ai)
+
+[11] **DeepSeek V4 Flash: 1M Context untuk General Office**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: Efficient Open MoE for Enterprise Deployment},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model 1M konteks dengan lisensi MIT — ideal untuk general office yang membutuhkan pemrosesan dokumen panjang (kontrak, laporan keuangan, audit trail).
+
+[12] **Claude Fable 5: Safety-First Enterprise Model**
+```
+@misc{anthropic2026fable5,
+  title     = {Claude Fable 5: Safety-Classifier Enhanced Language Model},
+  author    = {{Anthropic}},
+  year      = {2026},
+  url       = {https://anthropic.com}
+}
+```
+- Kaitan: Model dengan safety classifiers built-in untuk enterprise — konteks 1M, ideal untuk general office dengan kebutuhan compliance tinggi.
 
 [9] Prometheus. *Alerting Rules*. [https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/)
 

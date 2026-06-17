@@ -58,8 +58,8 @@ Pembaca mampu:
 | **STT (Indonesia)** | Whisper medium | ~5 GB | ~5 GB | ~8 menit | ~9% WER |
 | **STT (Indonesia)** | Whisper large-v3 | ~10 GB | ~10 GB | ~15 menit | ~7% WER |
 | **Speaker Diarization** | pyannote-audio | ~2 GB | ~2 GB | ~12 menit | ~85% |
-| **Summarization** | Llama-3.1-8B | ~4 GB | ~4 GB | ~2 menit | - |
-| **Action Items Extraction** | Qwen-2.5-7B | ~4 GB | ~4 GB | ~1 menit | - |
+| **Summarization** | DeepSeek V4 Flash / Llama-3.1-8B | ~4 GB | ~4 GB | ~2 menit | - |
+| **Action Items Extraction** | DeepSeek V4 Flash / Qwen-2.5-7B | ~4 GB | ~4 GB | ~1 menit | - |
 | **Total Pipeline** | - | ~16 GB | ~16 GB | ~25-35 menit | - |
 
 ### Tabel B: Format Structured Output
@@ -169,7 +169,7 @@ Format output:
 ## Kesimpulan
 """
         resp = requests.post(self.llm_url, json={
-            "model": "llama3.1:8b",
+            "model": "deepseek-v4-flash",
             "prompt": prompt,
             "stream": False,
             "options": {"temperature": 0.2}
@@ -187,7 +187,7 @@ Rangkuman:
 
 JSON:"""
         resp = requests.post(self.llm_url, json={
-            "model": "qwen2.5:7b",
+            "model": "deepseek-v4-flash",
             "prompt": prompt,
             "stream": False,
             "format": "json"

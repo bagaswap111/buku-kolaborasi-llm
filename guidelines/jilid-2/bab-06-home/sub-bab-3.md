@@ -40,6 +40,8 @@ Pembaca mampu:
 - LLM inference tidak boros bandwidth (request <10 KB, response <50 KB)
 - Prioritaskan traffic ke port 11434 (Ollama) via QoS rules
 - Pastikan latency voice (Whisper) < 200 ms di jaringan Wi-Fi 5 GHz
+- **Ministral 3 3B** dapat di-deploy sebagai edge node di perangkat berbeda — komunikasi antar node via LAN membutuhkan latency < 5 ms untuk speculative decoding terdistribusi
+- DeepSeek V4 Flash dengan arsitektur MoE sparse — setiap request hanya mengaktifkan 13B parameter, mengurangi traffic all-reduce dalam distributed serving
 
 ### F. Keamanan Dasar (1 paragraf)
 - Jangan expose port Ollama/vLLM ke WAN

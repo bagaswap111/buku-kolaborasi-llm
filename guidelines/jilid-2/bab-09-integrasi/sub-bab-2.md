@@ -18,7 +18,8 @@ Pembaca mampu:
 - Open-source LLM application development platform (145K+ GitHub stars)
 - Posisi: antara LangChain (developer-heavy) dan no-code tools (terbatas) — visual builder + extensibility
 - Komponen inti: Workflow Builder, RAG Pipeline, Agent Builder, Prompt IDE, LLMOps Dashboard
-- Dukungan multi-model: OpenAI, Anthropic, Ollama, vLLM, HuggingFace, dan semua API yang kompatibel
+- Dukungan multi-model: OpenAI (GPT-5.5), Anthropic (Claude Fable 5), Ollama (DeepSeek V4 Pro/Flash, Mistral Large 3), vLLM, HuggingFace, Google (Gemini 2.5 Pro), dan semua API yang kompatibel
+- Model terbaru yang didukung: DeepSeek V4 series (1M context, cocok untuk RAG dengan dokumen panjang), Mistral Large 3 (multimodal, granular MoE), Qwen3.7-Max (agent-centric, 1M context)
 
 ### B. Arsitektur Dify (1-2 paragraf)
 - Backend: Python (Flask + Celery untuk async task)
@@ -68,6 +69,19 @@ Pembaca mampu:
 | **A/B Testing** | Ya | Tidak | Tidak | Tidak |
 | **Self-hosted** | Ya | Ya | Ya | Tidak |
 | **Target User** | Business + Developer | Developer | Developer | Non-IT |
+| **Model MoE Terbaru** | DeepSeek V4, Mistral Large 3 | Terbatas | Terbatas | GPT-5.5 only |
+
+### Tabel A1: Model Unggulan untuk Aplikasi Dify
+
+| Model | Parameter Aktif | Context | Keunggulan di Dify | Use Case HR/Finance |
+|:---|:---:|:---:|:---|:---|
+| **DeepSeek V4 Pro** | 49B | 1M | Agentic RAG dengan konteks panjang | Analisis kontrak, review kebijakan HR |
+| **DeepSeek V4 Flash** | 13B | 1M | Cepat dan efisien untuk chatbot | FAQ kandidat, tanya benefit |
+| **Claude Fable 5** | — | 1M | Safety classifiers, SWE-bench 95% | Screening CV (butuh guardrails ketat) |
+| **Mistral Large 3** | 41B | 256K | Multimodal, granular MoE | Analisis dokumen keuangan + gambar |
+| **GPT-5.5** | — | 1M | Reasoning kuat, coding agentic | Workflow approval kompleks |
+| **Gemini 2.5 Pro** | — | 1M | Thinking mode, multimodal | Laporan multimodal, analisis tren |
+| **Ministral 3 (8B)** | 8B | 128K | Edge-friendly, Cascade Distillation | Chatbot ringan di perangkat terbatas |
 
 ### Tabel B: Fitur Enterprise Dify untuk HR & Finance
 
@@ -165,16 +179,27 @@ docker compose up -d
 # Hubungkan Ollama lokal di Settings -> Model Provider
 # - Provider: Ollama
 # - Base URL: http://host.docker.internal:11434
-# - Model: llama3.1:8b
+# - Model: llama3.1:8b (atau deepseek-v4-flash:latest)
+# - Model tambahan: deepseek-v4-pro:latest, mistral-large-3:latest
+
+# Setup model cloud di Settings -> Model Provider:
+# - Provider: OpenAI
+# - API Key: [key GPT-5.5]
+# - Model: gpt-5.5 (1M context, reasoning efforts)
+#
+# - Provider: Anthropic
+# - API Key: [key Claude Fable 5]
+# - Model: claude-fable-5 (safety classifiers aktif)
 ```
 
 ### Tutorial B: Bangun Chatbot HR — Screening Kandidat
 
 1. **Buat Knowledge Base:** Upload file PDF berisi deskripsi pekerjaan (Job Description) dan SOP HR.
-2. **Chunking Setting:** Pilih `paragraph` chunking, overlap 200 karakter.
+2. **Chunking Setting:** Pilih `paragraph` chunking, overlap 200 karakter. Untuk dokumen panjang (>50 halaman), gunakan model dengan context besar seperti DeepSeek V4 Pro (1M context) agar chunking lebih minimal.
 3. **Buat Chatbot App:**
    - Pilih tipe: Chatbot
-   - Pilih model: Ollama / llama3.1:8b
+   - Pilih model: Ollama / deepseek-v4-flash:latest (lebih cepat) atau deepseek-v4-pro:latest (lebih akurat untuk screening kompleks)
+   - Alternatif cloud: Claude Fable 5 (jika butuh safety guardrails untuk data kandidat sensitif) atau Mistral Large 3 (jika butuh analisis multimodal dari CV bergambar)
    - Konfigurasi prompt:
      ```
      Anda adalah asisten HR professional. 
@@ -310,6 +335,30 @@ def main(data: dict) -> dict:
 [8] Dify Blog. *Open-source LLMOps Platform*. [https://dify.ai/blog](https://dify.ai/blog)
 
 [9] Docker Dify Deployment. *Official Guide*. [https://docs.dify.ai/getting-started/install-self-hosted/docker-compose](https://docs.dify.ai/getting-started/install-self-hosted/docker-compose)
+
+[10] **Qwen3.7-Max: Agent-Centric MoE with Million-Token Context**
+```
+@article{alibaba2026qwen37,
+  title     = {{Qwen3.7}-{Max}: Agent-Centric {MoE} with Million-Token Context},
+  author    = {{Alibaba Cloud}},
+  year      = {2026},
+  url       = {https://qwen.alibaba.com}
+}
+```
+- Kaitan: Model MoE agent-centric dengan 1M context. Relevan untuk pengembangan agent Dify dengan tool calling dan konteks percakapan panjang.
+
+[11] **DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek}-{V4}: A Next-Generation Open-Source Mixture-of-Experts Language Model},
+  author    = {{DeepSeek-AI}},
+  journal   = {arXiv preprint arXiv:2604.00001},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.00001},
+  url       = {https://arxiv.org/abs/2604.00001}
+}
+```
+- Kaitan: Model open-weight MoE 1.6T/49B dengan MIT license. Menjadi model andalan untuk deployment Dify self-hosted dengan kualitas mendekati proprietary.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

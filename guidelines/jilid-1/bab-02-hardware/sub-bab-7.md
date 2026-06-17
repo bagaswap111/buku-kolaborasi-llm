@@ -71,6 +71,8 @@ Pembaca memahami:
 | **M4 Max 128GB** | 70 t/s | 45W | **1.56** | system | ~55 jt | ~49 rb |
 | **M2 Ultra 192GB** | 85 t/s | 90W | 0.94 | system | ~75 jt | ~97 rb |
 | **Xeon 4th Gen (CPU)** | 15 t/s | 150W | 0.10 | system | ~15 jt | ~162 rb |
+| **6x RTX 3090 (DeepSeek V4 Flash Q4)** | 8 t/s | 1.3 kW | 0.006 | 2.1 kW | ~72 jt | ~1.4 jt |
+| **8x RTX 3090 (Mistral Large 3 Q4)** | 6 t/s | 1.8 kW | 0.003 | 2.8 kW | ~96 jt | ~1.9 jt |
 
 *Asumsi: 8 jam/hari, 30 hari, tarif Rp 1.600/kWh.
 
@@ -95,7 +97,9 @@ Pembaca memahami:
 | M4 Max | Rp 14 | Rp 2.093 | **Rp 2.107** |
 | M2 Ultra | Rp 23 | Rp 2.853 | **Rp 2.876** |
 | OpenAI GPT-4o | - | - | **Rp 77.000** |
+| OpenAI GPT-5.5 | - | - | **Rp 150.000** |
 | Claude 3.5 Sonnet | - | - | **Rp 47.000** |
+| Claude Fable 5 | - | - | **Rp 250.000** |
 
 ---
 

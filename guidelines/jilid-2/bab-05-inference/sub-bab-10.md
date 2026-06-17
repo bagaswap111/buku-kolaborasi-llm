@@ -78,6 +78,10 @@ Pembaca memahami:
 | TinyLlama (1.1B) | Llama-13B (13B) | 8.5% | 2.1x | 2.2 GB |
 | Gemma-2B (2B) | Llama-70B (70B) | 2.9% | 3.2x | 4 GB |
 | SmolLM-360M (0.36B) | Llama-8B (8B) | 4.5% | 2.0x | 0.7 GB |
+| Ministral 3 3B (3B) | Mistral Large 3 (675B MoE) | 0.4% | 3.5x | 1.8 GB |
+| DeepSeek V4 Flash (13B aktif) | DeepSeek V4 Pro (49B aktif) | 26% | 2.8x | 24 GB |
+
+> Kombinasi Ministral 3 3B + Mistral Large 3 sangat efisien karena draft model (3B) hanya 0.4% ukuran target (675B). DeepSeek V4 Flash sebagai draft untuk V4 Pro memanfaatkan arsitektur MoE yang sama — acceptance rate lebih tinggi karena representasi internal yang kompatibel.
 
 ---
 
@@ -286,3 +290,25 @@ acceptance_rate = rate(
 [6] vLLM Speculative Decoding Docs. *Official Documentation*. [https://docs.vllm.ai](https://docs.vllm.ai)
 
 [7] TGI Speculative Decoding. *HuggingFace Blog*. [https://huggingface.co/docs/text-generation-inference](https://huggingface.co/docs/text-generation-inference)
+
+[8] **Ministral 3 — Small Model for Speculation**
+```
+@misc{mistral2025ministral3,
+  title   = {Ministral 3: Edge-Optimized for Speculative Decoding},
+  author  = {{Mistral AI}},
+  year    = {2025},
+  url     = {https://mistral.ai/news/ministral-3/}
+}
+```
+- Kaitan: Draft model 3B/8B yang cocok untuk speculative decoding bersama Mistral Large 3.
+
+[9] **DeepSeek V4 Flash as Draft Model**
+```
+@misc{deepseek2026v4flash,
+  title   = {DeepSeek-{V}4 {F}lash as Speculative Draft for {V}4 {P}ro},
+  author  = {{DeepSeek AI}},
+  year    = {2026},
+  url     = {https://api-docs.deepseek.com/}
+}
+```
+- Kaitan: DeepSeek V4 Flash (13B aktif) sebagai draft untuk V4 Pro (49B aktif) — arsitektur MoE yang kompatibel meningkatkan acceptance rate.

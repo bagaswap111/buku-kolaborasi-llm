@@ -65,8 +65,10 @@ Pembaca memahami:
 
 | Workload | CPU Request | RAM Request | GPU | Storage | Replicas |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **vLLM 70B Q4** | 8 core | 32 GB | 1x H100 80GB | 50 GB | 1-2 |
-| **vLLM 8B FP16** | 4 core | 16 GB | 1x L40S 48GB | 20 GB | 2-4 |
+| **vLLM DeepSeek V4 Flash Q4** | 8 core | 32 GB | 1x H100 80GB | 50 GB | 1-2 |
+| **vLLM Mistral Large 3 Q4** | 12 core | 48 GB | 2x H100 80GB | 80 GB | 1-2 |
+| **vLLM Llama 8B FP16** | 4 core | 16 GB | 1x L40S 48GB | 20 GB | 2-4 |
+| **vLLM Ministral 3 14B Q4** | 4 core | 16 GB | 1x L40S 48GB | 20 GB | 2-4 |
 | **LiteLLM Proxy** | 2 core | 4 GB | None | 10 GB | 2-3 |
 | **Qdrant Vector DB** | 4 core | 16 GB | None | 100 GB | 2-3 |
 | **PostgreSQL Patroni** | 4 core | 16 GB | None | 200 GB | 2-3 |
@@ -229,14 +231,16 @@ spec:
         image: vllm/vllm-openai:latest
         env:
         - name: MODEL_NAME
-          value: "meta-llama/Llama-3.1-8B-Instruct"
+          value: "deepseek-ai/DeepSeek-V4-Flash"
         - name: MODEL_PATH
-          value: "/models/llama-3.1-8b"
+          value: "/models/deepseek-v4-flash"
         args:
         - "--model"
         - "$(MODEL_PATH)"
         - "--max-num-seqs"
         - "256"
+        - "--max-model-len"
+        - "8192"  # 1M context but limited for multi-tenant
         resources:
           limits:
             nvidia.com/gpu: 1
@@ -259,11 +263,12 @@ spec:
 
 ### Studi Kasus: Deploy K3s General Office 35 User di PT Maju Teknologi
 - **Profil:** Perusahaan software 35 karyawan, butuh AI di on-premise karena data compliance
-- **Cluster:** 3 node K3s (1 CP + 2 GPU worker: L40S)
-- **Workload:** vLLM (Llama-70B Q4 + Llama-8B), LiteLLM, Qdrant, PostgreSQL, MinIO
-- **Auto-scaling:** HPA berbasis GPU utilization, scale dari 1 ke 3 pod vLLM 8B saat peak
+- **Cluster:** 3 node K3s (1 CP + 2 GPU worker: H100 + L40S)
+- **Workload:** vLLM (DeepSeek V4 Flash Q4 + Mistral Large 3 Q4 + Ministral 3 14B), LiteLLM, Qdrant, PostgreSQL, MinIO
+- **Model Baru:** DeepSeek V4 Flash (1M ctx) untuk RAG dokumen panjang, Mistral Large 3 (Apache 2.0) untuk analisa, Ministral 3 14B untuk chat cepat
+- **Auto-scaling:** HPA berbasis GPU utilization dan queue depth, scale dari 1 ke 3 pod saat peak
 - **Hasil:** 0% downtime orchestration, CPU overhead K3s < 5%, auto-scaling merespon < 2 menit
-- **Biaya Operasional:** Rp 4-5jt/bulan (listrik + storage + maintenance)
+- **Biaya Operasional:** Rp 5-7jt/bulan (listrik + storage + maintenance)
 
 ---
 
@@ -340,6 +345,28 @@ spec:
 [6] K3s. *Official Documentation*. [https://docs.k3s.io](https://docs.k3s.io)
 
 [7] NVIDIA GPU Operator. *Helm Chart Documentation*. [https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/)
+
+[10] **DeepSeek V4 Flash: Multi-Node Deployment Guide**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: Deployment Guide for Kubernetes Clusters},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Panduan deployment DeepSeek V4 Flash di K8s — model MoE dengan 1M context optimal untuk auto-scaling.
+
+[11] **Mistral Large 3: Open Model untuk K3s**
+```
+@misc{mistral2025large3,
+  title     = {{Mistral Large} 3: Apache 2.0 Licensed MoE for On-Premise Deployment},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/mistral-large-3}
+}
+```
+- Kaitan: Model 675B/41B aktif dengan lisensi Apache 2.0 — ideal untuk deployment di K3s tanpa kekhawatiran lisensi.
 
 [8] vLLM. *Kubernetes Deployment Guide*. [https://docs.vllm.ai/en/latest/deployment/kubernetes.html](https://docs.vllm.ai/en/latest/deployment/kubernetes.html)
 

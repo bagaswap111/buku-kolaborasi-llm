@@ -39,9 +39,10 @@ Setelah membaca, pembaca harus bisa:
 
 ### E. Model yang Didukung (1 paragraf)
 - Format: MLC format (optimized for WebGPU)
-- Model populer: Llama 3.2, Phi-3, Gemma 2, Qwen 2.5
+- Model populer: Llama 3.2, Phi-3, Gemma 2, Qwen 2.5, DeepSeek V4 Flash (via MLC)
 - Quantization: q4f16, q4f32, q0f16
 - Model download via CDN atau Hugging Face
+- **Ministral 3** (3B/8B): model dense kecil yang cocok untuk browser — Apache 2.0, Cascade Distillation untuk efisiensi
 
 ### F. Use Cases & Keterbatasan (1 paragraf)
 - Chatbot pribadi, summarization, translation, code assistant

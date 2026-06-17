@@ -35,6 +35,7 @@ Pembaca memahami:
 - Model 7B: RTX 4090 ~110 t/s vs M4 Max ~70 t/s dengan MLX — NVIDIA unggul 1.5x
 - Model 70B: M2 Ultra 192GB ~15 t/s vs RTX 4090 24GB (tidak muat) — Apple unggul karena kapasitas
 - Model 405B: Hanya Apple Silicon (192GB unified) atau multi-GPU yang bisa menjalankan
+- Model MoE besar: DeepSeek V4 Flash (284B, 13B aktif) dan Mistral Large 3 (675B, 41B aktif) — Apple Silicon 192GB bisa menjalankan dengan Q4_K_M (~150 GB dan ~280 GB), meski dengan kecepatan terbatas (~3-8 t/s) karena bandwidth unified memory lebih rendah dari multi-GPU
 
 ### E. Software Ecosystem (1 paragraf)
 - MLX, llama.cpp (Metal), Ollama, MLC-LLM — semua support Apple Silicon native
@@ -75,6 +76,8 @@ Pembaca memahami:
 | Llama-3.1-70B Q3_K_M | 2x RTX 3090 | vLLM TP2 | ~22 t/s | ~Rp 24jt |
 | Llama-3.1-405B Q3_K_M | M2 Ultra 192GB | MLX | ~3 t/s | ~Rp 75jt |
 | Llama-3.1-405B Q3_K_M | 4x RTX 3090 | vLLM TP4 | ~5 t/s | ~Rp 48jt |
+| DeepSeek V4 Flash Q4_K_M | M2 Ultra 192GB | MLX | ~6 t/s | ~Rp 75jt |
+| Mistral Large 3 Q3_K_M | M2 Ultra 192GB | MLX | ~4 t/s | ~Rp 75jt |
 
 ### Tabel C: Biaya per GB Unified/VRAM
 

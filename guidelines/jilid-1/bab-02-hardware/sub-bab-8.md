@@ -23,6 +23,7 @@ Pembaca memahami:
 - LLM inference adalah beban sustained — tidak seperti gaming yang memiliki variasi beban
 - Fase prefill: power spike 400-500W (RTX 4090) — meningkatkan suhu drastis dalam detik
 - Long-context: inferensi bisa berlangsung 30+ menit non-stop — GPU di 100% utilization terus-menerus
+- Model MoE frontier (DeepSeek V4 Flash 284B di 6 GPU, Mistral Large 3 675B di 8 GPU) dengan konteks 1M token membutuhkan inferensi berjam-jam — thermal management menjadi kritis karena distribusi panas tidak merata antar GPU
 - Siklus termal: suhu naik → throttle → clock turun → tokens/s turun → inferensi makin lama → suhu makin naik
 
 ### C. Solusi Pendinginan (2 paragraf)
@@ -266,15 +267,28 @@ done
 ```
 - Kaitan: Elastic sequence parallelism untuk mengurangi beban termal pada long-context. Relevan untuk seksi 2.B tentang alasan LLM rawan overheating.
 
+[6] **DeepSeek-V4: Multi-GPU Thermal Challenges for MoE Models**
+```
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B dan 1.6T — studi kasus termal ekstrem untuk multi-GPU sustained inference dengan konteks 1M token.
+
 ### Referensi Pendukung
 
-[6] NVIDIA. *GPU Thermal Management*. [https://developer.nvidia.com/gpu-thermal-management](https://developer.nvidia.com/gpu-thermal-management)
+[7] NVIDIA. *GPU Thermal Management*. [https://developer.nvidia.com/gpu-thermal-management](https://developer.nvidia.com/gpu-thermal-management)
 
-[7] IgorsLab. *RTX 3090 Thermal Pad Mod*. [https://www.igorslab.de](https://www.igorslab.de)
+[8] IgorsLab. *RTX 3090 Thermal Pad Mod*. [https://www.igorslab.de](https://www.igorslab.de)
 
-[8] PTM7950. *Phase Change Thermal Pad*. [https://www.honeywell.com](https://www.honeywell.com)
+[9] PTM7950. *Phase Change Thermal Pad*. [https://www.honeywell.com](https://www.honeywell.com)
 
-[9] GreenWithEnvy. *Linux Fan Control*. [https://gitlab.com/leinardi/gwe](https://gitlab.com/leinardi/gwe)
+[10] GreenWithEnvy. *Linux Fan Control*. [https://gitlab.com/leinardi/gwe](https://gitlab.com/leinardi/gwe)
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv valid.

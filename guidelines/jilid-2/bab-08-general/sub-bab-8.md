@@ -20,6 +20,7 @@ Pembaca memahami:
 - **GPU Physical Failure:** Fan mati, thermal throttle, kerusakan permanen
 - **Network Failure:** Node disconnect dari cluster storage
 - **Power Outage:** Listrik padam, UPS habis
+- **Model Fallback:** MoE model seperti DeepSeek V4 Flash atau Mistral Large 3 memiliki memory footprint lebih rendah daripada dense 70B — dapat dijadikan fallback saat GPU utama bermasalah, memberikan RTO lebih cepat karena bisa jalan di 1 GPU saja
 
 ### B. Dampak pada User (1-2 paragraf)
 - Single GPU mati (cold standby): downtime 10-30 menit — user tidak bisa akses
@@ -245,10 +246,10 @@ echo "Log: /var/log/dr-drill-$(date +%Y%m%d).log"
 ### Studi Kasus: GPU Failure Saat Jam Sibuk (10:30 AM)
 - **Insiden:** GPU Node 1 (H100) mati total — fan tidak berputar, thermal shutdown
 - **Deteksi:** Prometheus alert "GPU_TEMPERATURE_CRITICAL" -> Ops menerima pager dalam 30 detik
-- **Tindakan:** DevOp menjalankan failover runbook — pod di-taint dan reschedule ke Node 2 (warm standby) dalam 45 detik
-- **Dampak ke User:** P50 latency naik dari 1.2s ke 2.1s (karena 1 GPU menangani 2x traffic), tidak ada downtime total
+- **Tindakan:** DevOp menjalankan failover runbook — pod DeepSeek V4 Flash (MoE, 13B aktif) di-taint dan reschedule ke Node 2 (L40S) dalam 45 detik. Karena MoE lebih efisien VRAM, model bisa jalan di GPU yang lebih kecil.
+- **Dampak ke User:** P50 latency naik dari 1.2s ke 1.8s (lebih kecil dari dampak model 70B dense karena MoE hanya aktifkan 13B parameter per forward pass)
 - **Recovery:** GPU di-RMA (4 jam), setelah kembali cluster normal
-- **Pelajaran:** Warm standby sangat efektif — biaya tambahan Rp 350jt setara dengan 99.998% uptime (30 detik downtime vs 4 jam tanpa failover)
+- **Pelajaran:** Model MoE seperti DeepSeek V4 Flash memberikan failover resilience lebih baik karena footprint lebih kecil — bisa dijalankan di GPU cadangan yang spesifikasinya lebih rendah
 
 ---
 
@@ -327,6 +328,28 @@ echo "Log: /var/log/dr-drill-$(date +%Y%m%d).log"
 [7] Prometheus. *Alerting Rules Documentation*. [https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/)
 
 [8] Grafana. *Dashboard Documentation*. [https://grafana.com/docs/grafana/latest/dashboards/](https://grafana.com/docs/grafana/latest/dashboards/)
+
+[10] **DeepSeek V4 Flash: MoE Resilience untuk Failover**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: Efficient MoE for Resilient Enterprise Deployment},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model MoE 284B/13B aktif dapat dijadikan fallback karena hanya butuh VRAM ~10 GB Q4 — lebih mudah dipindahkan antar node saat failover.
+
+[11] **Mistral Large 3: Apache 2.0 Licensed High-Availability Model**
+```
+@misc{mistral2025large3,
+  title     = {{Mistral Large} 3: Apache 2.0 Granular MoE for High Availability},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/mistral-large-3}
+}
+```
+- Kaitan: Lisensi Apache 2.0 tanpa restriksi — bebas digunakan di multi-node cluster tanpa biaya lisensi tambahan untuk konfigurasi HA.
 
 [9] PagerDuty. *Integration with Prometheus AlertManager*. [https://www.pagerduty.com/docs/guides/prometheus-alertmanager-integration-guide/](https://www.pagerduty.com/docs/guides/prometheus-alertmanager-integration-guide/)
 

@@ -48,10 +48,11 @@ Pembaca memahami:
 
 | Fitur | Aphrodite Engine | vLLM | Ollama |
 |:---|:---:|:---:|:---:|
-| **Dukungan Quantization** | AQLM, AWQ, GGUF, GPTQ, FP2-FP12, Marlin, QuIP# | AWQ, GPTQ, FP8, GGUF | GGUF (internal) |
+| **Dukungan Quantization** | AQLM, AWQ, GGUF, GPTQ, FP2-FP12, Marlin, QuIP#, NVFP4 | AWQ, GPTQ, FP8, GGUF | GGUF (internal) |
 | **Samplers Kreatif** | Mirostat, TFS, Epsilon, DRY, RepPen | Standard (top-k, top-p, temp) | Standard |
 | **Multi-LoRA** | Ya (dynamic loading) | Ya | Tidak |
 | **Throughput RTX 4090 (7B)** | ~120 t/s | ~105 t/s | ~80 t/s |
+| **DeepSeek V4 Flash Support** | Ya (2x RTX 6000 INT4) | Ya | Terbatas |
 | **Roleplay Optimization** | Ya | Tidak | Minimal |
 | **OpenAI API** | Full | Full | Parsial |
 | **Licensing** | AGPL-3.0 | Apache 2.0 | MIT |
@@ -65,6 +66,9 @@ Pembaca memahami:
 | 4-bit (AWQ) | 4.5 GB | 105 | 32K | ~0.8 loss |
 | 3-bit (AQLM) | 3.2 GB | 130 | 48K | ~1.5 loss |
 | FP8 (E4M3) | 7 GB | 98 | 16K | ~0.1 loss |
+| NVFP4 (Mistral Large 3) | 3.8 GB | 118 | 24K | ~0.6 loss |
+
+> NVFP4 adalah format kuantisasi NVIDIA 4-bit floating point yang didukung natively oleh Mistral Large 3. Aphrodite menjadi engine pertama yang mendukung NVFP4 inference di kartu gaming consumer.
 
 ### Tabel C: Benchmark Multi-User Concurrent (RTX 4090, AWQ 4-bit)
 
@@ -143,7 +147,27 @@ response = client.chat.completions.create(
 )
 ```
 
-### Tutorial C: Load Model dengan Quantization Eksotis
+### Tutorial D: Menjalankan DeepSeek V4 Flash di 2x RTX 6000
+
+```bash
+# DeepSeek V4 Flash — 284B total / 13B aktif
+# Berjalan di 2x RTX 6000 (atau 1x A100 80GB) via INT4
+# 1M konteks penuh, MIT License
+
+# Setup dual GPU dengan tensor parallelism
+aphrodite run deepseek-ai/DeepSeek-V4-Flash \
+    --tensor-parallel-size 2 \
+    --quantization int4 \
+    --kv-cache-dtype fp8 \
+    --max-model-len 32768 \
+    --port 8000
+
+# Benchmark: ~85 t/s di 2x RTX 6000
+# Dibandingkan DeepSeek V3: hanya 27% training FLOPs untuk 1M konteks
+# CPU memory: minimal 64 GB untuk weight loading
+```
+
+### Tutorial E: Load Model dengan Quantization Eksotis
 
 ```bash
 # AQLM (Extreme 2-bit quantization)
@@ -237,4 +261,27 @@ aphrodite run meta-llama/Meta-Llama-3.1-8B-Instruct \
 
 [6] Aphrodite Engine. *GitHub Repository*. [https://github.com/aphrodite-engine/aphrodite-engine](https://github.com/aphrodite-engine/aphrodite-engine)
 
-[7] PygmalionAI. *Community & Documentation*. [https://pygmalion.chat](https://pygmalion.chat)
+[7] **DeepSeek V4 Flash — Efficient MoE**
+```
+@misc{deepseek2026v4flash,
+  title   = {DeepSeek-{V}4 {F}lash: 284{B} {MoE} with 13{B} Active Parameters},
+  author  = {{DeepSeek AI}},
+  year    = {2026},
+  url     = {https://api-docs.deepseek.com/},
+  note    = {MIT License, runs on 2xRTX 6000 via INT4}
+}
+```
+- Kaitan: Model MoE ringan yang bisa jalan di kartu gaming via INT4 quantization. Ideal untuk pengguna Aphrodite.
+
+[8] **NVFP4 — NVIDIA 4-bit Floating Point**
+```
+@misc{nvidia2025nvfp4,
+  title   = {{NVFP4}: 4-bit Floating Point for {LLM} Inference},
+  author  = {{NVIDIA}},
+  year    = {2025},
+  url     = {https://developer.nvidia.com/nvfp4}
+}
+```
+- Kaitan: Format kuantisasi 4-bit floating point yang didukung Mistral Large 3. Aphrodite mendukung format ini untuk kartu gaming.
+
+[9] PygmalionAI. *Community & Documentation*. [https://pygmalion.chat](https://pygmalion.chat)

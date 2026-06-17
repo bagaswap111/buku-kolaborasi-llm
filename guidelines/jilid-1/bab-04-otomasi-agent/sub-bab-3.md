@@ -33,7 +33,8 @@ Pembaca mampu:
 ### D. CoT untuk LLM Lokal (1 paragraf)
 - Model kecil (7B-14B) bisa CoT tapi akurasi lebih rendah
 - Teknik: prompt engineering + format terstruktur
-- Model terbaik: Llama-3.1-8B, Qwen-2.5-7B, DeepSeek-R1-Distill
+- Model terbaik: Llama-3.1-8B, Qwen-2.5-7B, DeepSeek-R1-Distill, DeepSeek V4 Pro (hybrid CSA/HCA attention untuk reasoning mendalam)
+- **GPT-5.5** (Apr 2026) memperkenalkan parameter `reasoning_effort` (low/medium/high/xhigh) yang mengontrol depth reasoning secara eksplisit — relevan untuk agent yang butuh menyesuaikan effort berdasarkan kompleksitas task
 
 ### E. Planning vs Reasoning (1 paragraf)
 - Reasoning: memecahkan masalah dengan langkah logis
@@ -65,9 +66,11 @@ Pembaca mampu:
 
 | Model | Standard | Few-shot CoT | Zero-shot CoT | Self-Consistency (5) |
 |:---|:---:|:---:|:---:|:---:|
+| **DeepSeek V4 Pro** | 42.1% | 78.3% | 62.5% | 85.2% |
 | Llama-3.1-8B | 18.2% | 52.3% | 38.7% | 64.1% |
 | Qwen-2.5-7B | 22.5% | 56.8% | 42.1% | 68.3% |
 | DeepSeek-R1-Distill-Qwen-7B | 25.1% | 61.2% | 45.6% | 72.4% |
+| Mistral Large 3 | 35.8% | 72.5% | 55.3% | 80.1% |
 | Mistral-7B | 16.8% | 48.5% | 35.2% | 60.8% |
 
 ### Tabel C: Resource Usage per Metode (7B Model)

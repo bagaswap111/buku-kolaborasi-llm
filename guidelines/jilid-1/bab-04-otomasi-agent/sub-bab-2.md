@@ -59,6 +59,8 @@ Pembaca mampu:
 | **Llama 3.1** | Built-in function calling | Parsial | Terbatas | Ya | Ya |
 | **Mistral** | JSON Schema | Tidak | Ya | Ya | Ya |
 | **Google Gemini** | FunctionDeclaration | Ya | Ya | Tidak | Tidak |
+| **DeepSeek V4** | JSON Schema | Parsial | Ya | Ya | Ya |
+| **Claude Fable 5** | `input_schema` | Ya | Ya | Tidak | Tidak |
 
 ### Tabel B: Tool Categories untuk System Agent
 
@@ -75,11 +77,13 @@ Pembaca mampu:
 
 | Model | Simple Function | Multiple Function | Parallel Function | Overall |
 |:---|:---:|:---:|:---:|:---:|
+| **Claude Fable 5** | 97.8% | 95.2% | 93.1% | **95.6%** |
+| **GPT-5.5** | 97.1% | 94.5% | 91.8% | 94.8% |
+| **DeepSeek V4 Pro** | 96.3% | 93.8% | 90.5% | 93.9% |
 | GPT-4o | 94.2% | 89.1% | 86.5% | 90.3% |
 | Llama-3.1-70B | 88.5% | 81.3% | 75.2% | 82.7% |
-| Mistral-Large | 90.1% | 84.7% | 79.8% | 85.2% |
-| Qwen-2.5-72B | 91.0% | 85.5% | 80.1% | 86.2% |
-| DeepSeek-V2 | 87.3% | 79.8% | 72.4% | 80.5% |
+| Mistral Large 3 | 93.8% | 88.2% | 84.7% | 89.1% |
+| DeepSeek V4 Flash | 94.5% | 90.1% | 86.3% | 90.6% |
 
 ---
 

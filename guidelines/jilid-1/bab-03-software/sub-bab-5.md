@@ -55,6 +55,7 @@ Setelah membaca, pembaca harus bisa:
 - "Truncate the prompt up to this length": context window
 - "Seed": reproducibility untuk debugging
 - "Character" tab: persona-based preset
+- **GPT-5.5 Reasoning Effort:** Model terbaru seperti GPT-5.5 (Apr 2026) mendukung parameter `reasoning_effort` (low/medium/high/xhigh) yang mengontrol seberapa lama model "berpikir" sebelum menjawab — setara dengan mengatur depth CoT secara dinamis. Parameter ini bisa diatur via API OpenAI-compatible dengan nilai `low` untuk tugas cepat dan `xhigh` untuk masalah kompleks.
 
 ---
 

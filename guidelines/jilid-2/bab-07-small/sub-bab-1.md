@@ -64,9 +64,10 @@ Pembaca memahami:
 
 | Skenario User | Rekomendasi GPU | VRAM Total | Model Ideal | Concurrency Support |
 |:---|:---|:---:|:---|:---:|
-| **9-12 user, coding ringan** | 1x RTX 4090 24GB | 24 GB | Qwen-2.5-Coder-14B Q4_K_M | ~5 concurrent |
-| **12-16 user, coding + RAG** | 2x RTX 3090 24GB (NVLink) | 48 GB | Llama-3.1-70B Q3_K_M | ~8 concurrent |
-| **16-20 user, full stack** | 2x RTX 4090 24GB (PCIe 5) | 48 GB | Qwen-3-32B Q4_K_M + Codestral | ~10 concurrent |
+| **9-12 user, coding ringan** | 1x RTX 4090 24GB | 24 GB | Qwen-2.5-Coder-14B Q4_K_M / Ministral 3 14B Q4 | ~5 concurrent |
+| **12-16 user, coding + RAG** | 2x RTX 3090 24GB (NVLink) | 48 GB | Llama-3.1-70B Q3_K_M / Qwen3.6-27B Q4 | ~8 concurrent |
+| **16-20 user, full stack** | 2x RTX 4090 24GB (PCIe 5) | 48 GB | Qwen-3-32B Q4_K_M + Codestral / DeepSeek V4 Flash Q4 | ~10 concurrent |
+| **20 user, server-class open** | 2x RTX 5090 32GB | 64 GB | DeepSeek V4 Flash (284B/13B active, 1M ctx) | ~15 concurrent |
 
 ### Tabel C: SLA Target Small Office
 
@@ -208,7 +209,7 @@ scrape_configs:
 ### Studi Kasus: PT KodeKreatif (18 Developer)
 - **Profil:** Startup software house dengan 18 developer, 2 PM, 1 DevOps. Butuh AI untuk code completion, code review, dokumentasi otomatis, dan Q&A knowledge base internal.
 - **Hardware:** Workstation dual RTX 4090 (48GB VRAM), AMD Threadripper 7960X, 128GB RAM, 4TB NVMe RAID
-- **Software:** Open WebUI + vLLM (Qwen-3-32B Q4_K_M), Tabby (DeepSeek-Coder-6.7B), Qdrant untuk RAG, Authentik + Google Workspace OAuth
+- **Software:** Open WebUI + vLLM (Qwen3.6-27B Q4_K_M), Tabby (DeepSeek V4 Flash 284B/13B), Qdrant untuk RAG, Authentik + Google Workspace OAuth
 - **Setup Jaringan:** VLAN Developer dedicated, WireGuard untuk 5 remote worker, Nginx reverse proxy dengan SSL self-signed
 - **RAG Pipeline:**
   - Folder `/rag/sop/` — SOP perusahaan (HR, keuangan, operasional)
@@ -298,6 +299,28 @@ scrape_configs:
 ### Referensi Pendukung (Non-Paper/Dokumentasi)
 
 [6] vLLM Project. *Official Documentation*. [https://docs.vllm.ai](https://docs.vllm.ai)
+
+[12] **DeepSeek V4 Flash: Open Mixture-of-Experts at 284B**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: Efficient Open Mixture-of-Experts Language Model with 284B Parameters},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model server-class open yang cocok untuk small office — 284B total/13B aktif, konteks 1M, lisensi MIT. Alternatif kuat untuk Llama-3.1-70B dengan throughput lebih tinggi.
+
+[13] **Ministral 3: Cascade Distillation Dense Models**
+```
+@misc{mistral2025ministral3,
+  title     = {Ministral 3: Open Dense Language Models via Cascade Distillation},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/ministral-3}
+}
+```
+- Kaitan: Model dense hingga 14B dengan Apache 2.0 — ideal untuk coding assistant di kantor dengan VRAM terbatas (8-9 GB Q4). Teknik Cascade Distillation menghasilkan performa kompetitif di ukuran kecil.
 
 [7] Open WebUI. *GitHub Repository*. [https://github.com/open-webui/open-webui](https://github.com/open-webui/open-webui)
 

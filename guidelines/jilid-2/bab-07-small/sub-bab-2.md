@@ -37,7 +37,9 @@ Pembaca mampu:
 - Thermal throttling adalah musuh terbesar — pastikan intake/exhaust balance
 
 ### E. Model yang Dapat Dijalankan (tabel + narasi)
-- 2x 24GB VRAM: Llama-3.1-70B Q4_K_M, Qwen-3-32B Q8_0, DeepSeek-Coder-67B Q4_K_M
+- 2x 24GB VRAM: Llama-3.1-70B Q4_K_M, Qwen-3-32B Q8_0, DeepSeek-Coder-67B Q4_K_M, Qwen3.6-27B Q8
+- 2x 32GB VRAM: DeepSeek V4 Flash (284B/13B aktif) Q4_K_M, Mistral Large 3 (675B/41B aktif) Q3_K_M
+- 1x 24GB VRAM: Ministral 3 14B Q4_K_M, Qwen-2.5-Coder-14B Q8, Gemini 2.5 Pro (via API fallback)
 - Dengan CPU offload: Mixtral-8x22B Q4_K_M, Command-R+ Q3_K_M
 
 ---
@@ -73,9 +75,13 @@ Pembaca mampu:
 |:---|:---|:---:|:---:|:---:|
 | **Llama-3.1-8B** | Q4_K_M | ~85 t/s | ~75 t/s | ~90 t/s |
 | **Qwen-2.5-14B** | Q4_K_M | ~45 t/s | ~55 t/s | ~60 t/s |
+| **Ministral 3 14B** | Q4_K_M | ~50 t/s | ~58 t/s | ~65 t/s |
+| **Qwen3.6-27B** | Q4_K_M | ~22 t/s | ~30 t/s | ~35 t/s |
 | **Llama-3.1-70B** | Q3_K_M | OOM | ~18 t/s | ~16 t/s |
 | **Llama-3.1-70B** | Q4_K_M | OOM | ~12 t/s | ~10 t/s |
 | **DeepSeek-Coder-67B** | Q4_K_M | OOM | ~14 t/s | ~12 t/s |
+| **DeepSeek V4 Flash** | Q4_K_M | OOM | ~20 t/s | ~18 t/s |
+| **Mistral Large 3** | Q3_K_M | OOM | ~15 t/s | ~13 t/s |
 
 > Data benchmark dari komunitas r/LocalLLaMA dan WillItRunAI (2026). Angka aktual bervariasi tergantung CPU, RAM, dan cooling.
 
@@ -288,6 +294,28 @@ while True:
 ### Referensi Pendukung (Non-Paper/Dokumentasi)
 
 [6] NVIDIA. *NVLink and NVSwitch Documentation*. [https://www.nvidia.com/nvlink](https://www.nvidia.com/nvlink)
+
+[11] **DeepSeek V4 Pro: Open-Weight Largest MoE**
+```
+@misc{deepseek2026v4pro,
+  title     = {{DeepSeek-V4} Pro: 1.6 Trillion Parameter Mixture-of-Experts with 49 Billion Active},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model open-weight terbesar yang pernah dirilis (MIT). 1.6T total / 49B aktif, konteks 1M. Untuk general office dengan 4+ GPU H100.
+
+[12] **Mistral Large 3: Granular MoE 675B**
+```
+@misc{mistral2025large3,
+  title     = {{Mistral Large} 3: A 675 Billion Parameter Granular Mixture-of-Experts Model},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/mistral-large-3}
+}
+```
+- Kaitan: Apache 2.0, granular MoE 675B/41B aktif, 256K konteks. Alternatif terbuka dengan lisensi permisif untuk enterprise.
 
 [7] vLLM. *Distributed Inference Documentation*. [https://docs.vllm.ai/en/latest/serving/distributed_serving.html](https://docs.vllm.ai/en/latest/serving/distributed_serving.html)
 

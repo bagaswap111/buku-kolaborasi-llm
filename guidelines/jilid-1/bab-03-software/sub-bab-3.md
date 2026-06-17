@@ -27,7 +27,8 @@ Setelah membaca, pembaca harus bisa:
 ### C. Koleksi Model Teroptimasi (1-2 paragraf)
 - Model leaderboard internal: peringkat berdasarkan performa CPU
 - Ukuran model: 500MB–4GB (Q4 quantized)
-- Rekomendasi: Mistral 7B Q4, Phi-3-mini Q4, Gemma 2 Q4
+- Rekomendasi: Mistral 7B Q4, Phi-3-mini Q4, Gemma 2 Q4, Ministral 3 (3B/8B)
+- **Ministral 3** (Des 2025): model dense 3B/8B/14B dengan Apache 2.0 dan Cascade Distillation — ideal untuk CPU-only karena footprint kecil dan efisiensi tinggi
 
 ### D. Fitur Desktop App (1 paragraf)
 - Chat interface dengan local RAG (LocalDocs)
@@ -53,8 +54,8 @@ Setelah membaca, pembaca harus bisa:
 
 | Ukuran Model | CPU (AVX2) | RAM Minimal | RAM Direkomendasikan | Kecepatan (t/s) |
 |:---|:---|:---:|:---:|:---:|
-| 1-3B (Phi-3-mini, TinyLlama) | Ya | 4 GB | 8 GB | 10-25 t/s |
-| 7B (Mistral, Llama 3.2) | Ya | 8 GB | 16 GB | 3-12 t/s |
+| 1-3B (Phi-3-mini, TinyLlama, Ministral 3B) | Ya | 4 GB | 8 GB | 10-25 t/s |
+| 7B (Mistral, Llama 3.2, Ministral 8B) | Ya | 8 GB | 16 GB | 3-12 t/s |
 | 7B (tanpa AVX2) | Tidak | 8 GB | 16 GB | 1-4 t/s |
 | 13B | Ya | 16 GB | 32 GB | 1-5 t/s |
 

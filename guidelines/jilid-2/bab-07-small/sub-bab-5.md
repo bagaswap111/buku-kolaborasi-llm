@@ -37,8 +37,9 @@ Pembaca mampu:
 - Bisa juga kombinasi: Continue + Tabby backend = yang terbaik dari keduanya
 
 ### E. Model Coding Assistant yang Direkomendasikan (1 paragraf)
-- Code Completion: DeepSeek-Coder-6.7B (latency rendah, akurasi tinggi), Qwen-2.5-Coder-7B (multilingual)
-- Chat/Review: DeepSeek-Coder-33B, Qwen-2.5-Coder-14B, Llama-3.1-8B (general purpose)
+- Code Completion: DeepSeek-Coder-6.7B, Ministral 3 8B (Apache 2.0, Cascade Distillation), Qwen-2.5-Coder-7B (multilingual)
+- Chat/Review: DeepSeek-Coder-33B, Qwen-2.5-Coder-14B, Ministral 3 14B (Apache 2.0), Llama-3.1-8B (general purpose)
+- Server-class open: DeepSeek V4 Flash (284B/13B aktif, MIT, 1M ctx) — untuk tim besar yang butuh konteks panjang
 - Fine-tuning roadmap: adaptasi ke codebase sendiri dengan QLoRA
 
 ---
@@ -65,20 +66,28 @@ Pembaca mampu:
 | Model | Ukuran | Completion Quality | Chat Quality | VRAM (Q4) | Latency (t/s) |
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **DeepSeek-Coder-1.3B** | 1.3B | ** | * | ~1 GB | ~120 t/s |
+| **Ministral 3 3B** | 3B | *** | ** | ~2 GB | ~110 t/s |
 | **Qwen-2.5-Coder-7B** | 7B | **** | *** | ~5 GB | ~65 t/s |
 | **DeepSeek-Coder-6.7B** | 6.7B | **** | *** | ~5 GB | ~60 t/s |
+| **Ministral 3 8B** | 8B | **** | *** | ~5 GB | ~70 t/s |
 | **CodeLlama-13B** | 13B | **** | *** | ~8 GB | ~40 t/s |
 | **Qwen-2.5-Coder-14B** | 14B | ***** | **** | ~9 GB | ~30 t/s |
+| **Ministral 3 14B** | 14B | ***** | **** | ~9 GB | ~32 t/s |
 | **DeepSeek-Coder-33B** | 33B | ***** | ***** | ~20 GB | ~15 t/s |
+| **DeepSeek V4 Flash** | 284B/13B aktif | ***** | ***** | ~12 GB (Q4) | ~25 t/s |
 
 ### Tabel C: Kebutuhan Resource Tabby Server
 
 | Model Completion | Jumlah User | VRAM | RAM | Storage (Index) |
 |:---|:---:|:---:|:---:|:---:|
 | DeepSeek-Coder-1.3B | 10 user | 4 GB | 8 GB | ~500 MB |
+| Ministral 3 8B | 15 user | 6 GB | 16 GB | ~1.5 GB |
 | Qwen-2.5-Coder-7B | 15 user | 8 GB | 16 GB | ~2 GB |
 | DeepSeek-Coder-6.7B | 20 user | 10 GB | 16 GB | ~2 GB |
+| Qwen-2.5-Coder-14B | 20 user | 12 GB | 24 GB | ~3 GB |
+| Ministral 3 14B | 20 user | 12 GB | 24 GB | ~3 GB |
 | DeepSeek-Coder-33B | 20 user | 24 GB | 32 GB | ~5 GB |
+| DeepSeek V4 Flash | 20 user | 16 GB | 32 GB | ~10 GB |
 
 ---
 
@@ -241,7 +250,7 @@ for snippet in CODE_SNIPPETS:
 
 ### Studi Kasus: Centralized Coding Assistant untuk 15 Developer
 - **Profil:** Software agency dengan 15 developer (5 frontend, 6 backend, 4 mobile). Codebase: React, Node.js, Python, Flutter, Go.
-- **Setup:** Tabby server di workstation dual RTX 4090. Model: DeepSeek-Coder-6.7B (completion) + Qwen-2.5-Coder-14B (chat/review).
+- **Setup:** Tabby server di workstation dual RTX 4090. Model: Ministral 3 8B (completion, Apache 2.0) + DeepSeek V4 Flash (chat/review, 1M context).
 - **Konfigurasi:** Setiap developer pakai Continue extension dengan Tabby backend. Repository indexing untuk 5 repo utama.
 - **Fitur Digunakan:**
   - Tab completion: real-time suggestion saat ngetik
@@ -334,6 +343,28 @@ for snippet in CODE_SNIPPETS:
 [9] BigCode Project. *StarCoder2 Models*. [https://huggingface.co/bigcode](https://huggingface.co/bigcode)
 
 [10] Hugging Face Open LLM Leaderboard for Code. [https://huggingface.co/spaces/bigcode/bigcode-models-leaderboard](https://huggingface.co/spaces/bigcode/bigcode-models-leaderboard)
+
+[11] **Ministral 3: Cascade Distillation untuk Coding Assistant**
+```
+@misc{mistral2025ministral3,
+  title     = {Ministral 3: Open Dense Language Models via Cascade Distillation},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/ministral-3}
+}
+```
+- Kaitan: Model dense 3B/8B/14B dengan Apache 2.0 — alternatif open untuk coding assistant dengan performa kompetitif berkat Cascade Distillation.
+
+[12] **DeepSeek V4: Next Generation Coding Model**
+```
+@misc{deepseek2026v4,
+  title     = {{DeepSeek-V4}: Advancing Open Language Models with Mixture-of-Experts},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: DeepSeek V4 Flash (MIT, 284B/13B aktif) membawa konteks 1M ke coding assistant — memungkinkan repository-level code understanding tanpa chunking.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dengan DOI/arXiv yang valid.

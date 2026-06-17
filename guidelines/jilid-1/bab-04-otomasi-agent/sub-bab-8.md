@@ -215,7 +215,7 @@ docker run --rm alpine echo 'Hello from inside sandbox!'
 - **Masalah:** Agent salah interpretasi — menjalankan `rm -rf /var/log/*` tanpa filter tanggal
 - **Dampak:** Hampir menghapus semua log, termasuk yang masih dibutuhkan audit
 - **Mengapa tidak terjadi:** Safety gate memblock `rm -rf` karena termasuk dangerous command
-- **Pelajaran:** Tanpa sandbox + approval gate, satu prompt salah bisa = bencana
+- **Pelajaran:** Tanpa sandbox + approval gate, satu prompt salah bisa = bencana; model dengan akurasi function calling tinggi seperti **Claude Fable 5** (95.6% BFCL) atau **DeepSeek V4 Pro** (93.9% BFCL) mengurangi risiko misinterpretasi command
 
 ---
 

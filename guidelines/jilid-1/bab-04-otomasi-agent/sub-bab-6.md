@@ -107,7 +107,7 @@ import requests
 from pathlib import Path
 
 class FileSorterAgent:
-    def __init__(self, model="llama3.1:8b"):
+    def __init__(self, model="deepseek-v4-flash"):
         self.model = model
         self.categories = [
             "dokumen", "kode", "gambar", "audio",
@@ -115,7 +115,7 @@ class FileSorterAgent:
         ]
 
     def classify_file(self, filepath):
-        """Gunakan LLM untuk klasifikasi file by content"""
+        """Gunakan LLM (DeepSeek V4 Flash atau llama3.1) untuk klasifikasi file by content"""
         ext = Path(filepath).suffix.lower()
         name = Path(filepath).name
 

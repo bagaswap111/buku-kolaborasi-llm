@@ -20,9 +20,9 @@ Pembaca memahami:
 - **Software:** Lisensi (jika ada), biaya venv/cloud GPU jika hybrid — bulanan/tahunan
 
 ### B. Skenario Anggaran (masing-masing 1 paragraf)
-- **Budget Entry (Rp 200-300jt):** 1-2 GPU L40S, cold standby, single node, K3s, RAG sederhana — untuk 21-30 user
-- **Budget Medium (Rp 300-500jt):** 2 GPU H100, warm standby, dual node, K3s + LiteLLM + Qdrant + KG — untuk 31-40 user
-- **Budget Premium (Rp 500-800jt+):** 3-4 GPU H100, active-active, multi-node cluster, full knowledge graph — untuk 41-50 user
+- **Budget Entry (Rp 200-300jt):** 1-2 GPU L40S, cold standby, single node, K3s, RAG sederhana — model: Ministral 3 14B + DeepSeek V4 Flash Q4 — untuk 21-30 user
+- **Budget Medium (Rp 300-500jt):** 2 GPU H100, warm standby, dual node, K3s + LiteLLM + Qdrant + KG — model: DeepSeek V4 Flash + Mistral Large 3 Q4 (Apache 2.0) — untuk 31-40 user
+- **Budget Premium (Rp 500-800jt+):** 3-4 GPU H100, active-active, multi-node cluster, full knowledge graph — model: DeepSeek V4 Pro Q4 + Mistral Large 3 Q8 — untuk 41-50 user
 
 ### C. Perbandingan On-premise vs Cloud vs Hybrid (tabel + narasi)
 - **On-premise:** CAPEX tinggi, OPEX rendah, data aman, latency rendah
@@ -54,6 +54,7 @@ Pembaca memahami:
 | Komponen | Entry (Rp) | Medium (Rp) | Premium (Rp) |
 |:---|:---:|:---:|:---:|
 | **GPU (1-4 unit)** | 200jt (L40S x1) | 400jt (H100 x2) | 800jt (H100 x4) |
+| **Model Rekomendasi** | DeepSeek V4 Flash Q4 | Mistral Large 3 Q4 | DeepSeek V4 Pro Q4 |
 | **Server + Rack** | 50jt | 80jt | 150jt |
 | **UPS & Cooling** | 20jt | 40jt | 70jt |
 | **Network (Switch 25GbE)** | 10jt | 20jt | 30jt |
@@ -312,6 +313,28 @@ print(f"Biaya listrik/3 tahun: Rp {result['three_year_cost']:,.0f}")
 [8] NVIDIA. *Data Center GPU Pricing*. [https://www.nvidia.com/en-us/data-center/](https://www.nvidia.com/en-us/data-center/)
 
 [9] AWS. *GPU Instance Pricing — ap-southeast-1*. [https://aws.amazon.com/ec2/pricing/on-demand/](https://aws.amazon.com/ec2/pricing/on-demand/)
+
+[11] **DeepSeek V4 Flash: Cost-Effective Enterprise MoE**
+```
+@misc{deepseek2026v4flash,
+  title     = {{DeepSeek-V4} Flash: MIT Licensed MoE for Cost-Sensitive Deployment},
+  author    = {{DeepSeek Team}},
+  year      = {2026},
+  url       = {https://api-docs.deepseek.com}
+}
+```
+- Kaitan: Model 284B/13B aktif dengan MIT — biaya inference lebih rendah dari model dense 70B karena hanya 13B parameter aktif. Data TCO di Tabel A harus mempertimbangkan efisiensi ini.
+
+[12] **Mistral Large 3: Apache 2.0 untuk Zero Licensing Cost**
+```
+@misc{mistral2025large3,
+  title     = {{Mistral Large} 3: Apache 2.0 Licensed Granular MoE},
+  author    = {{Mistral AI Team}},
+  year      = {2025},
+  url       = {https://mistral.ai/news/mistral-large-3}
+}
+```
+- Kaitan: Tidak ada biaya lisensi — menghemat Rp 20-60jt/tahun dibandingkan model proprietary. Data Tabel B harus mempertimbangkan penghematan lisensi ini.
 
 [10] PLN. *Tarif Listrik Industri 2025*. [https://www.pln.co.id](https://www.pln.co.id)
 

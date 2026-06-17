@@ -26,8 +26,15 @@ Setelah membaca, pembaca harus bisa:
 - **Gemma 4 (Google):** E2B, E4B, 26B MoE, 31B dense — multimodal, Apache 2.0
 - **Llama-3.2 (Meta):** 1B, 3B — on-device, 128K context, tool use
 - **Qwen 3 (Alibaba):** 235B MoE (22B active) — kualitas frontier di harga SLM
-- **DeepSeek V4:** 1.6T MoE (49B active) — sparsity ratio 3.1%
-- Semua model ini bisa dijalankan di RTX 4090 24GB (dengan quantization)
+- **Qwen3.7-Max (Alibaba):** ~1T+ MoE, 1M context, agent-centric — closed-weight
+- **DeepSeek V4 Pro:** 1.6T MoE (49B active) — sparsity ratio 3.1%, MIT license, 1M context
+- **DeepSeek V4 Flash:** 284B MoE (13B active) — companion ringan, MIT license
+- **Mistral Large 3:** 675B granular MoE (41B active) — Apache 2.0, multimodal
+- **Ministral 3:** 3B/8B/14B dense — Cascade Distillation, Apache 2.0
+- **GPT-5.5:** Proprietary, 1M context, reasoning effort (low/medium/high/xhigh)
+- **Claude Fable 5:** Anthropic Mythos-class, 1M context, safety classifiers, SWE-bench 95%
+- **Gemini 2.5 Pro:** 1M context, thinking mode, multimodal — GA Juni 2025
+- Semua model ini bisa dijalankan di RTX 4090 24GB (dengan quantization), kecuali yang >300GB param
 
 ### C. Tren Arsitektur 2026 (2 paragraf)
 - **MoE menjadi default:** hampir semua frontier model 2026 adalah MoE
@@ -69,8 +76,17 @@ Setelah membaca, pembaca harus bisa:
 | Gemma 4 26B | 26B MoE | MoE 256 experts | 128K | 85.1% | 90.3% | Multimodal, open-weight | 12GB Q4 |
 | Llama-3.2 3B | 3.2B Dense | Decoder-only | 128K | 63.4% | 68.2% | On-device, tool use | 2GB Q4 |
 | Qwen 3 235B | 235B MoE (22B active) | MoE | 128K | 86.8% | 93.5% | Reasoning, open-weight | 16GB Q4 |
-| DeepSeek V4 | 1.6T MoE (49B active) | MoE MLA | 128K | 87.2% | 93.7% | 3.1% sparsity, frontier | 32GB Q4 |
+| Qwen3.7-Max | ~1T+ MoE | MoE agent-centric | 1M | — | — | Agent, closed-weight | 64GB+ |
+| DeepSeek V4 Pro | 1.6T MoE (49B active) | MoE CSA/HCA | 1M | 87.5%* | 93.5%† | MIT, open-weight | 32GB Q4 |
+| DeepSeek V4 Flash | 284B MoE (13B active) | MoE CSA/HCA | 1M | — | — | MIT, companion Pro | 16GB Q4 |
+| Mistral Large 3 | 675B MoE (41B active) | Granular MoE | 256K | 84.9% | 91.2% | Apache 2.0, multimodal | 48GB Q4 |
+| Ministral 3 | 3B/8B/14B Dense | Decoder-only | 256K | — | — | Cascade Distillation | 2-8GB Q4 |
+| GPT-5.5 | — | Proprietary | 1M | 91.2% | 96.8% | Reasoning effort tiers | Cloud only |
+| Claude Fable 5 | — | Proprietary | 1M | 90.8% | 96.1% | Sw-eval 95%, safety | Cloud only |
+| Gemini 2.5 Pro | — | Proprietary MoE | 1M | 89.1% | 95.2% | Thinking mode | Cloud only |
 | Mistral Small 3.1 | 24B Dense | Decoder-only | 128K | 76.5% | 85.6% | Efisien, coding | 8GB Q4 |
+
+*MMLU-Pro untuk DeepSeek V4; †LiveCodeBench.
 
 ### Tabel B: Perbandingan SLM vs LLM Lama (MMLU)
 
@@ -132,7 +148,9 @@ ollama pull phi-4:14b              # Microsoft Phi-4 (14B)
 ollama pull gemma4:4b              # Google Gemma 4 (4.5B)
 ollama pull llama3.2:3b            # Meta Llama-3.2 (3B)
 ollama pull qwen3:22b-moe          # Qwen 3 MoE (22B active)
-ollama pull deepseek-v4:lite       # DeepSeek V4 lite
+ollama pull deepseek-v4:flash      # DeepSeek V4 Flash (13B active)
+ollama pull ministral:8b           # Mistral Ministral 3 (8B)
+ollama pull mistral-large:3        # Mistral Large 3 (41B active)
 
 # 3. Test performa
 ollama run phi-4:14b "Hitung 25 * 37 + 48 / 2 = ?"
@@ -301,6 +319,45 @@ for name, spec in models_2026.items():
 [10] AI PC Initiative — Intel & Qualcomm. [https://www.intel.com/content/www/us/en/products/docs/processors/core-ultra/ai-pc.html](https://www.intel.com/content/www/us/en/products/docs/processors/core-ultra/ai-pc.html)
 
 [11] Google Gemma 4 Official Blog. [https://blog.google/technology/developers/gemma-4/](https://blog.google/technology/developers/gemma-4/)
+
+[12] **DeepSeek-V4 Technical Report**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model SLM frontier 1.6T dengan sparsity 3.1% — mengubah asumsi scaling law untuk SLM 2026.
+
+[13] **Mistral Large 3 Technical Report**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Model MoE 675B dengan Apache 2.0 — SLM terbuka dengan performa frontier.
+
+[14] **Ministral 3: Cascade Distillation**
+```bibtex
+@article{mistral2025ministral3,
+  title     = {Ministral 3: Efficient Multilingual Models via Cascade Distillation},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.11401},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.11401},
+  url       = {https://arxiv.org/abs/2512.11401}
+}
+```
+- Kaitan: Teknik Cascade Distillation untuk model 3B/8B/14B — masa depan SLM efisien.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.

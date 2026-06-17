@@ -44,6 +44,7 @@ Setelah membaca, pembaca harus bisa:
 - Unsloth: optimasi LoRA 2x lebih cepat, memori 50% lebih hemat
 - Axolotl: konfigurasi YAML untuk fine-tuning reproduksibel
 - llama.cpp: fine-tuning GGUF via .train() eksperimental
+- Model MoE open-weight baru (Mistral Large 3 Apache 2.0, DeepSeek V4 Flash MIT) memungkinkan fine-tuning granular MoE — 675B dan 284B dapat di-fine-tune dengan LoRA pada expert tertentu, meskipun butuh VRAM besar (≥48 GB untuk QLoRA)
 
 ### F. Dataset dan Konfigurasi (1-2 paragraf)
 - Format: instruction-following (Alpaca), chat (ShareGPT), completion
@@ -64,6 +65,8 @@ Setelah membaca, pembaca harus bisa:
 | **QLoRA (r=16, 4-bit)** | ~0.1% | 6 GB | 10 GB | 48 GB | 2-3x lebih cepat | ~98% |
 | **Unsloth LoRA** | ~0.1% | 8 GB | 14 GB | 72 GB | 5-8x lebih cepat | ~99% |
 | **DoRA** | ~0.1% | 16 GB | 28 GB | 140 GB | 2-4x lebih cepat | ~99.5% |
+| **QLoRA DeepSeek V4 Flash** | <0.01% | - | - | 48 GB (Q4 MoE) | 1-2x lebih cepat | ~97% |
+| **QLoRA Mistral Large 3** | <0.01% | - | - | 96 GB (Q4 MoE) | 1-2x lebih cepat | ~97% |
 
 ### Tabel B: Rekomendasi Konfigurasi per Hardware
 
@@ -361,6 +364,32 @@ ollama run mymodel "Apa ibukota Indonesia?"
 [9] Axolotl — Fine-Tuning Framework. [https://github.com/OpenAccess-AI-Collective/axolotl](https://github.com/OpenAccess-AI-Collective/axolotl)
 
 [10] MLX — Apple Silicon Fine-Tuning. [https://github.com/ml-explore/mlx](https://github.com/ml-explore/mlx)
+
+[11] **Mistral Large 3: Apache 2.0 Granular MoE**
+```bibtex
+@article{mistral2025large3,
+  title     = {Mistral Large 3: Granular MoE with Multimodal Capabilities},
+  author    = {Mistral AI},
+  journal   = {arXiv preprint arXiv:2512.01820},
+  year      = {2025},
+  doi       = {10.48550/arXiv.2512.01820},
+  url       = {https://arxiv.org/abs/2512.01820}
+}
+```
+- Kaitan: Model MoE 675B dengan Apache 2.0 — kandidat fine-tuning MoE terbesar yang tersedia secara open-weight.
+
+[12] **DeepSeek-V4 Flash: Fine-Tuning Efficient MoE**
+```bibtex
+@article{deepseek2026v4,
+  title     = {{DeepSeek-V4}: A Hybrid {CSA/HCA} Mixture-of-Experts Language Model},
+  author    = {DeepSeek-AI},
+  journal   = {arXiv preprint arXiv:2604.09980},
+  year      = {2026},
+  doi       = {10.48550/arXiv.2604.09980},
+  url       = {https://arxiv.org/abs/2604.09980}
+}
+```
+- Kaitan: Model 284B dengan lisensi MIT — varian ringan DeepSeek V4 untuk fine-tuning dengan hardware lebih terjangkau.
 
 ### SOP Referensi
 - WAJIB menyertakan minimal **5 paper jurnal/konferensi** dari 5 tahun terakhir (2021-2026) dengan DOI/arXiv yang valid.
