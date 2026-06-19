@@ -114,7 +114,7 @@ April 2025 menjadi bulan penting dengan dirilisnya Llama 4 — model MoE pertama
 
 Bersamaan dengan Llama 4, Qwen3 dari Alibaba menawarkan inovasi *unified thinking mode*: dalam satu model, pengguna bisa memilih mode *thinking* (berpikir langkah demi langkah) atau *non-thinking* (jawaban langsung). Qwen3 mendukung 119 bahasa dan tersedia dalam varian dense (0,6B-235B) maupun MoE (30B-A3B yang hanya 3B aktif).
 
-Phi-4 dari Microsoft, dengan hanya 14B parameter tetapi mencapai MMLU 82,1%, membuktikan bahwa *synthetic data* — data buatan yang dihasilkan oleh model lain — bisa lebih efektif daripada data alami. Ini membuka paradigma baru: model kecil yang dilatih dengan data sintetis berkualitas tinggi bisa mengalahkan model besar yang dilatih dengan data mentah.
+Phi-4 dari Microsoft, dengan hanya 14B parameter tetapi mencapai MMLU 84,8%, membuktikan bahwa *synthetic data* — data buatan yang dihasilkan oleh model lain — bisa lebih efektif daripada data alami. Ini membuka paradigma baru: model kecil yang dilatih dengan data sintetis berkualitas tinggi bisa mengalahkan model besar yang dilatih dengan data mentah.
 
 ---
 
@@ -256,19 +256,19 @@ Berdasarkan tren yang terlihat pada 2025-2026, beberapa proyeksi dapat dibuat un
 | Mistral 7B | 62,5% | 45,2% | 30,5% | 2023 | Dense kecil |
 | Llama-3 8B | 66,7% | 79,6% | 62,2% | 2024 | Dense kecil |
 | Qwen2.5-7B | 70,5% | 80,1% | 75,1% | 2024 | Dense kecil |
-| Phi-4 14B | 82,1% | 91,8% | 82,6% | 2024 | Dense kecil |
-| DeepSeek-V3 (671B) | 88,5% | 92,3% | 89,5% | 2024 | MoE besar |
+| Phi-4 14B | 84,8% | 94,5% | 82,6% | 2024 | Dense kecil |
+| DeepSeek-V3 (671B) | 88,5% | 92,3% | 82,6% | 2024 | MoE besar |
 | DeepSeek-R1 (671B) | 90,8% | 96,3% | 92,4% | 2025 | MoE + RL reasoning |
 | Llama 4 Scout (109B) | 84,2% | 89,5% | 80,1% | 2025 | MoE multimodal |
 | Qwen3-30B-A3B | 85,1% | 92,0% | 85,5% | 2025 | MoE efisien |
 | Qwen3.6-27B | 85,9% | 93,1% | 90,2% | 2026 | Dense coding specialist |
 | Mistral Large 3 (675B) | ~87% | ~93% | ~85% | 2025 | MoE granular open-source |
-| DeepSeek V4 Pro (1,6T) | 87,5% (MMLU-Pro) | 95,2% (HMMT) | 93,5% (LiveCode) | 2026 | MoE CSA/HCA + MIT |
+| DeepSeek V4 Pro (1,6T) | 87,2%\* | 93,7%\* | 88,7%\* | 2026 | MoE CSA/HCA + MIT |
 | GPT-5.5 | ~91%\* | ~96%\* | ~93%\* | 2026 | Proprietary frontier |
 | Qwen3.7-Max | ~89%\* | ~95%\* | ~91%\* | 2026 | Proprietary MoE agent |
-| Claude Fable 5 | ~90%\* (GPQA) | ~95%\* | 95,0% (SWE-bench) | 2026 | Mythos-class proprietary |
+| Claude Fable 5 | - | - | 95,0% (SWE-bench) | 2026 | Mythos-class proprietary |
 
-*\* Perkiraan berdasarkan data benchmark tidak langsung. Model proprietary jarang mempublikasikan MMLU/GSM8K standar.*
+*\* Perkiraan berdasarkan data benchmark tidak langsung / third-party. Model proprietary dan model frontier terbaru sering mempublikasikan benchmark yang berbeda (MMLU-Pro, GPQA, HMMT, LiveCode, SWE-bench) — data dengan tanda kurung menandakan benchmark yang dimaksud berbeda dari header kolom. Lihat paper asli untuk detail.*
 
 ---
 
@@ -330,7 +330,7 @@ models = [
 ]
 params = [1.5, 175, 7, 7, 8, 14, 671, 30, 675, 27, 1600]
 params_active = [1.5, 175, 7, 7, 8, 14, 37, 3, 41, 27, 49]
-mmlu = [32.4, 70.7, 46.9, 62.5, 66.7, 82.1, 88.5, 85.1, 87.0, 85.9, 87.5]
+mmlu = [32.4, 70.7, 46.9, 62.5, 66.7, 84.8, 88.5, 85.1, 87.0, 85.9, 87.5]
 
 fig, ax1 = plt.subplots(figsize=(14, 6))
 bars = ax1.bar(models, params, alpha=0.5, label='Total Parameter (Miliar)')
@@ -348,7 +348,7 @@ plt.legend(loc='upper left')
 plt.savefig('evolusi-model-2019-2026.png', dpi=150, bbox_inches='tight')
 ```
 
-Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar secara eksponensial, tetapi (2) parameter aktif (untuk model MoE) jauh lebih kecil, dan (3) skor MMLU meningkat dari 32% (GPT-2) menjadi 87,5% (DeepSeek V4 Pro) — peningkatan hampir 3x dalam 7 tahun.
+Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar secara eksponensial, tetapi (2) parameter aktif (untuk model MoE) jauh lebih kecil, dan (3) skor MMLU meningkat dari 32% (GPT-2) menjadi 87,2% (DeepSeek V4 Pro) — peningkatan hampir 3x dalam 7 tahun.
 
 ---
 
@@ -362,7 +362,7 @@ Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar 
 
 **2024:** Upgrade ke Llama-3.1-8B. 128K context window memungkinkan memproses seluruh dokumen tanpa *chunking*. *Tool use* dan *function calling* native memungkinkan model berinteraksi dengan API dan database. Kualitas output setara GPT-3.5 — yang sebelumnya membutuhkan API berbayar. Ukuran hanya 5,2 GB (Q4_K_M) — muat di laptop dengan RTX 2060. Biaya: nol.
 
-**2025:** Tahun eksperimen intensif. Menggunakan DeepSeek-R1 via API untuk *reasoning* kompleks (analisis kode, matematika), Phi-4 14B lokal untuk *daily coding*, dan Mistral Large 3 via API untuk tugas multibahasa. Phi-4 14B mencapai MMLU 82% — lebih tinggi dari LLaMA-1 65B yang 63%. Mistral Large 3 (675B, Apache 2.0) membuktikan bahwa open-source non-Tiongkok bisa setara *frontier*. Biaya: masih nol untuk model lokal, ~$20/bulan untuk API.
+**2025:** Tahun eksperimen intensif. Menggunakan DeepSeek-R1 via API untuk *reasoning* kompleks (analisis kode, matematika), Phi-4 14B lokal untuk *daily coding*, dan Mistral Large 3 via API untuk tugas multibahasa. Phi-4 14B mencapai MMLU 84,8% — lebih tinggi dari LLaMA-1 65B yang 63%. Mistral Large 3 (675B, Apache 2.0) membuktikan bahwa open-source non-Tiongkok bisa setara *frontier*. Biaya: masih nol untuk model lokal, ~$20/bulan untuk API.
 
 **H1 2026:** Beralih ke Qwen3.6-27B sebagai *coding assistant* lokal — model 27B ini menyamai GPT-4o untuk generate Python dan Rust. Mulai bereksperimen dengan DeepSeek V4 Flash (284B, MIT) di workstation 2xRTX 6000 via INT4. Menguji GPT-5.5 dan Claude Fable 5 via API untuk tugas yang memerlukan *reasoning* terdalam — hasilnya mengesankan, tetapi biaya API membuatnya tidak praktis untuk penggunaan harian.
 

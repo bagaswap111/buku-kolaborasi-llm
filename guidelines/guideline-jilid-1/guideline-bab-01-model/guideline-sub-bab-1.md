@@ -17,9 +17,9 @@ Setelah membaca, pembaca harus bisa:
 
 ### A. Era Yayasan: Lahirnya Arsitektur Transformer (2017-2018) — 1 paragraf
 - Paper "Attention Is All You Need" (Vaswani et al., NeurIPS 2017) memperkenalkan arsitektur Transformer
-- revolusi: menghilangkan RNN/LSTM, murni berbasis self-attention mechanism
+- Revolusi: menghilangkan RNN/LSTM, murni berbasis self-attention mechanism
 - BERT (Devlin et al., 2019) — encoder-only, GPT-1 (Radford et al., 2018) — decoder-only
-- Kedua arsitektur menjadi fondasi semua LLM modern
+- Kedua arsitektur ini menjadi fondasi semua LLM modern
 
 ### B. GPT-2 dan GPT-3: Era Model Tertutup (2019-2022) — 2 paragraf
 - GPT-2 (2019): 1.5B parameter, kontroversi "too dangerous to release" karena kualitas teks
@@ -154,19 +154,19 @@ Setelah membaca, pembaca harus bisa:
 | Mistral 7B | 62.5% | 45.2% | 30.5% | 2023 | Dense kecil |
 | Llama-3 8B | 66.7% | 79.6% | 62.2% | 2024 | Dense kecil |
 | Qwen2.5-7B | 70.5% | 80.1% | 75.1% | 2024 | Dense kecil |
-| Phi-4 14B | 82.1% | 91.8% | 82.6% | 2024 | Dense kecil (synthetic data) |
-| DeepSeek-V3 (671B) | 88.5% | 92.3% | 89.5% | 2024 | MoE besar |
+| Phi-4 14B | 84.8% | 94.5% | 82.6% | 2024 | Dense kecil (synthetic data) |
+| DeepSeek-V3 (671B) | 88.5% | 92.3% | 82.6% | 2024 | MoE besar |
 | DeepSeek-R1 (671B) | 90.8% | 96.3% | 92.4% | 2025 | MoE + RL reasoning |
 | Llama 4 Scout (17Bx16E) | 84.2% | 89.5% | 80.1% | 2025 | MoE multimodal |
 | Qwen3-30B-A3B | 85.1% | 92.0% | 85.5% | 2025 | MoE efisien |
 | Qwen3.6-27B | 85.9% | 93.1% | 90.2% | 2026 | Dense coding specialist |
 | Mistral Large 3 (675B) | ~87% | ~93% | ~85% | 2025 | MoE granular open-source |
-| DeepSeek V4 Pro (1.6T) | 87.5% (MMLU-Pro) | 95.2% (HMMT) | 93.5% (LiveCode) | 2026 | MoE CSA/HCA + MIT |
+| DeepSeek V4 Pro (1.6T) | 87.2%* | 93.7%* | 88.7%* | 2026 | MoE CSA/HCA + MIT |
 | GPT-5.5 | ~91%* | ~96%* | ~93%* | 2026 | Proprietary frontier |
 | Qwen3.7-Max | ~89%* | ~95%* | ~91%* | 2026 | Proprietary MoE agent |
-| Claude Fable 5 | ~90%* (GPQA) | ~95%* | 95.0% (SWE-bench) | 2026 | Mythos-class proprietary |
+| Claude Fable 5 | - | - | 95.0% (SWE-bench) | 2026 | Mythos-class proprietary |
 
-\* Perkiraan berdasarkan data benchmark tidak langsung / third-party. Model proprietary jarang mempublikasikan MMLU/GSM8K dalam format yang sebanding.
+\* Perkiraan berdasarkan data benchmark tidak langsung / third-party. Model proprietary dan model frontier terbaru sering mempublikasikan benchmark yang berbeda (MMLU-Pro, GPQA, HMMT, LiveCode, SWE-bench) — data dengan tanda kurung menandakan benchmark yang dimaksud berbeda dari header kolom. Lihat paper asli untuk detail.
 
 ---
 

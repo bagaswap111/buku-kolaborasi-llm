@@ -10,14 +10,14 @@
 ### 12:00 WIB — Inisialisasi Guideline System
 - Membuat direktori `guidelines/` sebagai pusat panduan penulisan untuk peneliti dan agen AI
 - Membuat 2 file contoh guideline untuk review penulis:
-  - `guidelines/jilid-1/bab-01-model/sub-bab-4.md` — Deep Dive Kuantisasi
-  - `guidelines/jilid-2/bab-06-home/sub-bab-1.md` — Karakteristik Sistem Home Assistant
+  - `guidelines/guideline-jilid-1/guideline-bab-01-model/guideline-sub-bab-4.md` — Deep Dive Kuantisasi
+  - `guidelines/guideline-jilid-2/guideline-bab-06-home/guideline-sub-bab-1.md` — Karakteristik Sistem Home Assistant
 - Membuat `log_progress.md` untuk pelacakan perubahan realtime
 
 ### 20:55 WIB — Update Referensi ke Link Valid
 - Mengganti referensi teks di kedua file guideline dengan link DOI/arXiv/URL yang valid dan dapat diklik:
-  - `guidelines/jilid-1/bab-01-model/sub-bab-4.md` — menambahkan 2 referensi baru (Open LLM Leaderboard, QLoRA paper)
-  - `guidelines/jilid-2/bab-06-home/sub-bab-1.md` — menambahkan 4 referensi baru (Piper, Whisper, WireGuard, OpenWrt)
+  - `guidelines/guideline-jilid-1/guideline-bab-01-model/guideline-sub-bab-4.md` — menambahkan 2 referensi baru (Open LLM Leaderboard, QLoRA paper)
+  - `guidelines/guideline-jilid-2/guideline-bab-06-home/guideline-sub-bab-1.md` — menambahkan 4 referensi baru (Piper, Whisper, WireGuard, OpenWrt)
 
 ### 21:45 WIB — SOP Referensi Diperketat (5 Paper 5 Tahun Terakhir + DOI)
 - Semua referensi paper diganti dengan format BibTeX lengkap (author, title, year, DOI/arXiv, venue)
@@ -63,16 +63,16 @@ Setiap file guideline berisi 7 seksi wajib:
 
 | Bab | Path | File | Topik Cakupan |
 |:---|:---|---:|:---|
-| **1** | `guidelines/jilid-1/bab-01-model/` | 10 | Arsitektur & Seleksi Model |
-| **2** | `guidelines/jilid-1/bab-02-hardware/` | 10 | GPU, CPU, NPU, Budgeting |
-| **3** | `guidelines/jilid-1/bab-03-software/` | 10 | Ollama, LM Studio, Open WebUI, dll |
-| **4** | `guidelines/jilid-1/bab-04-otomasi-agent/` | 10 | Agent, Function Calling, Multi-Agent |
-| **5** | `guidelines/jilid-2/bab-05-inference/` | 10 | vLLM, TGI, Batching, Distributed |
-| **6** | `guidelines/jilid-2/bab-06-home/` | 8 | Home Assistant, RAG, Parental |
-| **7** | `guidelines/jilid-2/bab-07-small/` | 8 | Small Office, OAuth, GPU Sharing |
-| **8** | `guidelines/jilid-2/bab-08-general/` | 9 | K8s, DLP, Audit, Failover |
-| **9** | `guidelines/jilid-2/bab-09-integrasi/` | 5 | n8n, Dify, Flowise, Vector DB |
-| **10** | `guidelines/jilid-2/bab-10-etika/` | 5 | Halusinasi, Copyright, Green AI |
+| **1** | `guidelines/guideline-jilid-1/guideline-bab-01-model/` | 10 | Arsitektur & Seleksi Model |
+| **2** | `guidelines/guideline-jilid-1/guideline-bab-02-hardware/` | 10 | GPU, CPU, NPU, Budgeting |
+| **3** | `guidelines/guideline-jilid-1/guideline-bab-03-software/` | 10 | Ollama, LM Studio, Open WebUI, dll |
+| **4** | `guidelines/guideline-jilid-1/guideline-bab-04-otomasi-agent/` | 10 | Agent, Function Calling, Multi-Agent |
+| **5** | `guidelines/guideline-jilid-2/guideline-bab-05-inference/` | 10 | vLLM, TGI, Batching, Distributed |
+| **6** | `guidelines/guideline-jilid-2/guideline-bab-06-home/` | 8 | Home Assistant, RAG, Parental |
+| **7** | `guidelines/guideline-jilid-2/guideline-bab-07-small/` | 8 | Small Office, OAuth, GPU Sharing |
+| **8** | `guidelines/guideline-jilid-2/guideline-bab-08-general/` | 9 | K8s, DLP, Audit, Failover |
+| **9** | `guidelines/guideline-jilid-2/guideline-bab-09-integrasi/` | 5 | n8n, Dify, Flowise, Vector DB |
+| **10** | `guidelines/guideline-jilid-2/guideline-bab-10-etika/` | 5 | Halusinasi, Copyright, Green AI |
 
 ### Proses Pembuatan
 - Dibagi dalam 2 batch paralel (masing-masing 5 task agent)
@@ -80,7 +80,7 @@ Setiap file guideline berisi 7 seksi wajib:
 - Batch 2: bab-06 s.d bab-10 (36 file)
 - Setiap agen diberi blueprint topik, format template, dan SOP referensi
 - Semua paper diverifikasi via web search sebelum ditulis (0 referensi palsu)
-- File `log_progress.md`, `guidelines/jilid-1/bab-01-model/sub-bab-4.md`, dan `guidelines/jilid-2/bab-06-home/sub-bab-1.md` tidak diubah (file contoh awal)
+- File `log_progress.md`, `guidelines/guideline-jilid-1/guideline-bab-01-model/guideline-sub-bab-4.md`, dan `guidelines/guideline-jilid-2/guideline-bab-06-home/guideline-sub-bab-1.md` tidak diubah (file contoh awal)
 
 
 ### 23:00 WIB — Update Khusus Bab 1.1: Timeline Extended + Referensi 10 Tahun

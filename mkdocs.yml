@@ -1,0 +1,162 @@
+site_name: Buku Kolaborasi LLM
+site_description: The Local LLM Encyclopedia — Panduan Komprehensif Ekosistem LLM Lokal
+site_url: https://bagaswap111.github.io/buku-kolaborasi-llm/
+repo_url: https://github.com/bagaswap111/buku-kolaborasi-llm
+edit_uri: edit/main/konten/
+docs_dir: konten
+
+theme:
+  name: material
+  icon:
+    logo: fontawesome/solid/book
+    repo: fontawesome/brands/github
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/bagaswap111/buku-kolaborasi-llm
+  generator: false
+
+copyright: Copyright &copy; 2026 Buku Kolaborasi LLM
+
+nav:
+  - Beranda: index.md
+  - "Jilid 1 — Personal AI & Intelligent Agents":
+    - Overview: jilid-1/index.md
+    - "Bab 01: Arsitektur Model & Seleksi Strategis":
+      - "1.1 Evolusi Transformer ke Lokal": jilid-1/bab-01-model/sub-bab-1.md
+      - "1.2 Anatomi Model (Weights & Biases)": jilid-1/bab-01-model/sub-bab-2.md
+      - "1.3 Dense vs MoE": jilid-1/bab-01-model/sub-bab-3.md
+      - "1.4 Deep Dive Kuantisasi": jilid-1/bab-01-model/sub-bab-4.md
+      - "1.5 Evaluasi Benchmark": jilid-1/bab-01-model/sub-bab-5.md
+      - "1.6 Bahasa & Tokenizer": jilid-1/bab-01-model/sub-bab-6.md
+      - "1.7 Context Window": jilid-1/bab-01-model/sub-bab-7.md
+      - "1.8 Fine-Tuning Dasar": jilid-1/bab-01-model/sub-bab-8.md
+      - "1.9 Format File & Ekosistem": jilid-1/bab-01-model/sub-bab-9.md
+      - "1.10 Roadmap Model 2026": jilid-1/bab-01-model/sub-bab-10.md
+    - "Bab 02: Hardware War":
+      - "2.1 NVIDIA vs The World": jilid-1/bab-02-hardware/sub-bab-1.md
+      - "2.2 VRAM Bandwidth": jilid-1/bab-02-hardware/sub-bab-2.md
+      - "2.3 Apple Silicon Deep-Dive": jilid-1/bab-02-hardware/sub-bab-3.md
+      - "2.4 Storage Bottlenecks": jilid-1/bab-02-hardware/sub-bab-4.md
+      - "2.5 CPU-Only Inference": jilid-1/bab-02-hardware/sub-bab-5.md
+      - "2.6 eGPU & Multi-GPU Setup": jilid-1/bab-02-hardware/sub-bab-6.md
+      - "2.7 Power Consumption": jilid-1/bab-02-hardware/sub-bab-7.md
+      - "2.8 Thermal Throttle": jilid-1/bab-02-hardware/sub-bab-8.md
+      - "2.9 NPU": jilid-1/bab-02-hardware/sub-bab-9.md
+      - "2.10 Budgeting Personal": jilid-1/bab-02-hardware/sub-bab-10.md
+    - "Bab 03: Software Gateway & Interface":
+      - "3.1 Ollama": jilid-1/bab-03-software/sub-bab-1.md
+      - "3.2 LM Studio": jilid-1/bab-03-software/sub-bab-2.md
+      - "3.3 GPT4All": jilid-1/bab-03-software/sub-bab-3.md
+      - "3.4 Open WebUI": jilid-1/bab-03-software/sub-bab-4.md
+      - "3.5 Text-Generation-WebUI": jilid-1/bab-03-software/sub-bab-5.md
+      - "3.6 KoboldCPP": jilid-1/bab-03-software/sub-bab-6.md
+      - "3.7 LocalAI": jilid-1/bab-03-software/sub-bab-7.md
+      - "3.8 Browser-Based LLM": jilid-1/bab-03-software/sub-bab-8.md
+      - "3.9 Mobile Deployment": jilid-1/bab-03-software/sub-bab-9.md
+      - "3.10 CLI-Only Power": jilid-1/bab-03-software/sub-bab-10.md
+    - "Bab 04: Agentic AI & Otomasi Sistem":
+      - "4.1 Filosofi OpenClaw": jilid-1/bab-04-otomasi-agent/sub-bab-1.md
+      - "4.2 Tool Use": jilid-1/bab-04-otomasi-agent/sub-bab-2.md
+      - "4.3 Planning & Reasoning": jilid-1/bab-04-otomasi-agent/sub-bab-3.md
+      - "4.4 Coding Agents": jilid-1/bab-04-otomasi-agent/sub-bab-4.md
+      - "4.5 Browser Agents": jilid-1/bab-04-otomasi-agent/sub-bab-5.md
+      - "4.6 File System Mastery": jilid-1/bab-04-otomasi-agent/sub-bab-6.md
+      - "4.7 Integrasi Suara": jilid-1/bab-04-otomasi-agent/sub-bab-7.md
+      - "4.8 Keamanan & Sandbox": jilid-1/bab-04-otomasi-agent/sub-bab-8.md
+      - "4.9 Multi-Agent System": jilid-1/bab-04-otomasi-agent/sub-bab-9.md
+      - "4.10 Daily Workflow": jilid-1/bab-04-otomasi-agent/sub-bab-10.md
+  - "Jilid 2 — Enterprise & Multi-User Infrastructure":
+    - Overview: jilid-2/index.md
+    - "Bab 05: High-Performance Inference":
+      - "5.1 vLLM": jilid-2/bab-05-inference/sub-bab-1.md
+      - "5.2 TGI": jilid-2/bab-05-inference/sub-bab-2.md
+      - "5.3 Aphrodite Engine": jilid-2/bab-05-inference/sub-bab-3.md
+      - "5.4 Continuous Batching": jilid-2/bab-05-inference/sub-bab-4.md
+      - "5.5 Quantization for Servers": jilid-2/bab-05-inference/sub-bab-5.md
+      - "5.6 Distributed Inference": jilid-2/bab-05-inference/sub-bab-6.md
+      - "5.7 LoRA Adapters": jilid-2/bab-05-inference/sub-bab-7.md
+      - "5.8 API Load Balancing": jilid-2/bab-05-inference/sub-bab-8.md
+      - "5.9 Monitoring Latency": jilid-2/bab-05-inference/sub-bab-9.md
+      - "5.10 Speculative Decoding": jilid-2/bab-05-inference/sub-bab-10.md
+    - "Bab 06: Home Assistance":
+      - "6.1 Karakteristik Sistem": jilid-2/bab-06-home/sub-bab-1.md
+      - "6.2 Hardware": jilid-2/bab-06-home/sub-bab-2.md
+      - "6.3 Networking": jilid-2/bab-06-home/sub-bab-3.md
+      - "6.4 Smart Home": jilid-2/bab-06-home/sub-bab-4.md
+      - "6.5 Knowledge Base": jilid-2/bab-06-home/sub-bab-5.md
+      - "6.6 Parental Control": jilid-2/bab-06-home/sub-bab-6.md
+      - "6.7 Multimedia AI": jilid-2/bab-06-home/sub-bab-7.md
+      - "6.8 Budgeting Home": jilid-2/bab-06-home/sub-bab-8.md
+    - "Bab 07: Small Office":
+      - "7.1 Karakteristik Sistem": jilid-2/bab-07-small/sub-bab-1.md
+      - "7.2 Hardware": jilid-2/bab-07-small/sub-bab-2.md
+      - "7.3 Collaborative UI": jilid-2/bab-07-small/sub-bab-3.md
+      - "7.4 Internal RAG": jilid-2/bab-07-small/sub-bab-4.md
+      - "7.5 Coding Helper": jilid-2/bab-07-small/sub-bab-5.md
+      - "7.6 Identity Management": jilid-2/bab-07-small/sub-bab-6.md
+      - "7.7 Resource Allocation": jilid-2/bab-07-small/sub-bab-7.md
+      - "7.8 Budgeting": jilid-2/bab-07-small/sub-bab-8.md
+    - "Bab 08: General Office":
+      - "8.1 Karakteristik Sistem": jilid-2/bab-08-general/sub-bab-1.md
+      - "8.2 Hardware": jilid-2/bab-08-general/sub-bab-2.md
+      - "8.3 Kubernetes": jilid-2/bab-08-general/sub-bab-3.md
+      - "8.4 Enterprise Gateway": jilid-2/bab-08-general/sub-bab-4.md
+      - "8.5 Keamanan Tingkat Tinggi": jilid-2/bab-08-general/sub-bab-5.md
+      - "8.6 Audit & Logging": jilid-2/bab-08-general/sub-bab-6.md
+      - "8.7 Knowledge Graph": jilid-2/bab-08-general/sub-bab-7.md
+      - "8.8 Maintenance & Failover": jilid-2/bab-08-general/sub-bab-8.md
+      - "8.9 Budgeting": jilid-2/bab-08-general/sub-bab-9.md
+    - "Bab 09: Integrasi Ekosistem":
+      - "9.1 n8n Self-hosted": jilid-2/bab-09-integrasi/sub-bab-1.md
+      - "9.2 Dify.ai": jilid-2/bab-09-integrasi/sub-bab-2.md
+      - "9.3 Flowise": jilid-2/bab-09-integrasi/sub-bab-3.md
+      - "9.4 Vector Database": jilid-2/bab-09-integrasi/sub-bab-4.md
+      - "9.5 Report Generation": jilid-2/bab-09-integrasi/sub-bab-5.md
+    - "Bab 10: Etika, Keamanan & Masa Depan":
+      - "10.1 Mitigasi Halusinasi": jilid-2/bab-10-etika/sub-bab-1.md
+      - "10.2 Copyright & Fair Use": jilid-2/bab-10-etika/sub-bab-2.md
+      - "10.3 Update Lifecycle": jilid-2/bab-10-etika/sub-bab-3.md
+      - "10.4 Local vs Cloud": jilid-2/bab-10-etika/sub-bab-4.md
+      - "10.5 Green AI": jilid-2/bab-10-etika/sub-bab-5.md
