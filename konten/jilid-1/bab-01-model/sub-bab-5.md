@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Membaca dan menginterpretasi skor MMLU, GSM8K, dan HumanEval secara objektif — bukan sebagai "nilai rapor" tetapi sebagai potret kemampuan tertentu dalam kondisi tertentu
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Mengapa Benchmark Penting?
 
+
 Tanpa benchmark, seluruh ekosistem model bahasa akan tenggelam dalam perang klaim subjektif. "Model saya menjawab lebih baik!" — bagaimana Anda bisa membuktikannya? Benchmark hadir sebagai **bahasa umum**: serangkaian soal yang sama, prosedur penilaian yang sama, sehingga sebuah model 8B bisa dibandingkan secara jujur dengan model 675B dari keluarga yang berbeda. Inilah perbedaan antara *kesan* dan *bukti*.
 
 Ada tiga pilar yang paling sering ditemui: **MMLU** untuk pengetahuan umum (*knowledge*), **GSM8K** untuk penalaran matematika, dan **HumanEval** untuk kemampuan coding. Ketiganya membentuk segitiga penilaian yang cukup mewakili penggunaan sehari-hari — bicara, berhitung, dan berkode.
@@ -27,76 +29,6 @@ Namun sejak awal kita harus jujur: **benchmark tidak sempurna**. Ada dua musuh u
 Ada satu lagi alasan benchmark layak dipelajari secara serius: ia adalah **bahasa negosiasi**. Ketika Anda mengajukan *buy-in* dari atasan untuk membeli GPU atau langganan API, angka MMLU/GSM8K yang terverifikasi jauh lebih meyakinkan daripada kalimat "menurut saya model ini lebih bagus". Demikian pula saat membandingkan dua solusi *vendor* yang mengklaim "superior": tanpa skor yang bisa dibandingkan secara metodologi, semua klaim berakhir di meja yang sama — meja kesepakatan lunak yang tidak bisa dibuktikan. Benchmark mengembalikan kekuatan argumen dari perasaan ke angka, dan siapa pun yang bisa membaca angkanya akan selalu menang di ruang rapat [5].
 
 Namun jangan sekali-kali mengira bahwa *lebih banyak angka = lebih baik*. Memilih model hanya karena unggul 0,3 poin di MMLU, tanpa melihat konteks tugas Anda, sama saja dengan memilih karyawan hanya karena nilai IPK-nya — kita tahu betapa sering keputusan semacam itu meleset. Benchmark memberi *sinyal* yang kuat, tetapi kebutuhan nyata (bahasa, kecepatan, ukuran, lisensi) memberi *konteks* yang menentukan. Bab-bab lain dalam buku ini — kuantisasi (1.4), tokenizer (1.6), hardware (Bab 2) — akan melengkapi sinyal ini menjadi gambaran utuh. Evaluasi yang baik adalah triangulasi, bukan mengagumi satu angka.
-
----
-
-## 3. MMLU: Menimbang Pengetahuan di 57 Bidang
-
-**MMLU** — *Massive Multitask Language Understanding* — adalah ujian pengetahuan paling terkenal di dunia LLM. Bayangkan ujian pilihan ganda raksasa yang mencakup 57 subjek: dari matematika dasar, hukum, psikologi, hingga ekonomi dan sejarah dunia; total sekitar **14.000 soal** pilihan ganda [1]. Skor MMLU adalah akurasi model dalam memilih jawaban benar dari 4 opsi.
-
-Cara evaluasinya halus namun penting: model **tidak menulis kalimat** — ia diukur dengan *log-probability* dari empat opsi. Artinya, alih-alih membiarkan model "bercerita" lalu kita cocokkan, evaluator membaca probabilitas yang diberikan model untuk opsi A, B, C, dan D, lalu memilih yang paling mungkin. Ini menghilangkan variabel gaya bahasa: model yang verbose tidak mendapat keuntungan, model yang pelit kata tidak dirugikan.
-
-Metodologi *few-shot* juga menentukan angka: **5-shot** berarti model diberi lima contoh soal lengkap dengan jawaban sebelum dites; **0-shot** berarti ia harus menjawab tanpa contoh sama sekali. Perbedaan ini bisa menggeser skor beberapa poin — jadi ketika membandingkan dua model, pastikan keduanya diukur dengan *setting* yang sama. Sebagai patokan: Llama-3 8B mencapai 66,7% sementara GPT-4 di level 86,4% — selisih 20 poin adalah jarak dua generasi, tetapi dalam konteks yang sama persis.
-
-Kepekaan MMLU terhadap format bukanlah rahasia: model yang dilatih dengan *chat template* tertentu bisa gagal ketika prompt disusun dalam format "ujian" yang berbeda dari pola latihan mereka. Inilah mengapa *lm-evaluation-harness* secara sengaja menggunakan format yang dibakukan dan konsisten lintas model — harapan itu, selama setiap model diuji dengan format yang sama, perbandingannya tetap adil secara relatif. Namun ingat: dua vendor yang sama-sama mempublikasikan "MMLU 90%" bisa saja menggunakan format prompt yang sedikit berbeda, sehingga angka yang tampak identik menyembunyikan kondisi yang tidak identik [1][7]. Satu pertanyaan yang selalu layak diajukan saat melihat klaim skor: *bagaimana tepatnya angka itu dihasilkan?* Jika jawabannya samar, perlakukan klaimnya sebagai pemasaran — bukan sains.
-
----
-
-## 4. GSM8K: Matematika Sekolah Dasar yang Menjebak
-
-Dari pengetahuan umum, kita pindah ke penalaran: **GSM8K** — *Grade School Math 8K* — berisi sekitar **8.500 soal cerita matematika tingkat sekolah dasar** dengan *multistep reasoning* [2]. Soalnya tampak sederhana: "Budi membeli 3 pensil seharga 2.000 rupiah dan 2 buku seharga 15.000 rupiah. Berapa totalnya?" Tetapi untuk LLM, soal ini adalah ujian batu: model harus *menyusun langkah-langkah* — perkalian, penjumlahan, dan pengambilan kesimpulan — bukan sekadar menebak.
-
-Penting untuk menekankan satu hal: soal "sekolah dasar" di sini menyesatkan bagi LLM. Bagi manusia dewasa, 3×2.000 + 2×15.000 adalah hitungan satu detik; tetapi bagi model yang belum pernah dilatih untuk *berhitung langkah demi langkah*, soal ini menuntut koordinasi antara pemahaman bahasa (menangkap variabel dari kalimat), *reasoning* (memilih operasi), dan aritmetika (menghitung tanpa kalkulator eksternal). Ketiga keterampilan itu independen satu sama lain — sebuah model bisa fasih berbahasa tetapi gagal total di sini. Itulah mengapa GSM8K menjadi pembeda terbaik antara model yang sekadar "tahu banyak hal" dan model yang benar-benar bisa *menalar* — dan mengapa skor 45,2% (Mistral 7B) versus 94,5% (Phi-4 14B) bukanlah perbedaan kecil, melainkan jurang antara gagal dan andal dalam domain penalaran.
-
-Karena itu GSM8K biasanya diuji dengan **chain-of-thought (CoT)**: model diminta berpikir langkah demi langkah sebelum memberikan jawaban akhir. Skor dihitung dengan *pass@1* — apakah *jawaban akhir* benar, bukan apakah langkah-langkahnya masuk akal. Llama-3 8B mencapai 79,6% dengan CoT — dan ini adalah kabar baik sekaligus peringatan: model yang pandai "berpura-pura berpikir" bisa saja menuliskan langkah yang salah total tetapi memenuhi syarat dengan jawaban akhir yang kebetulan benar. GSM8K mengukur *hasilkan jawaban yang benar*, bukan *proses yang jujur*. Untuk keperluan tutor matematika (lihat Studi Kasus), skor GSM8K adalah proksi yang relevan, tetapi bukan bukti bahwa model "paham" aljabar.
-
-Ada detail menarik tentang GSM8K yang menjelaskan kesenjangan antar model: soal-soalnya dirancang agar *greedy decoding* — strategi menjawab langsung tanpa berpikir — sering gagal, tetapi *chain-of-thought* yang panjang memberi model ruang untuk melacak variabel dan menyusun persamaan langkah demi langkah [2]. Inilah sebabnya model *reasoning* yang dilatih untuk "berpikir dulu" (seperti keturunan DeepSeek-R1) sering mencatatkan skor GSM8K jauh di atas model generasi sebelumnya yang hanya dilatih menjawab langsung. Perhatikan juga bahwa angka 79,6% untuk Llama-3 8B diukur *dengan* CoT — jika Anda melihat angka yang jauh lebih rendah untuk model yang sama di tempat lain, kemungkinan besar perbedaannya adalah pengukuran *tanpa* CoT. Format prompt bukan detail; ia adalah bagian dari soal.
-
----
-
-## 5. HumanEval: Kode yang Harus Lulus Ujian, bukan Sekadar Terlihat Benar
-
-Pilar ketiga adalah **HumanEval**: 164 soal pemrograman Python di mana model diminta mengimplementasikan fungsi berdasarkan deskripsi dan *function signature* [3]. Yang membedakan HumanEval dari tes coding lainnya: kode dieksekusi dan diuji terhadap *test case* yang tersembunyi. Model tidak dinilai dari "kodenya terlihat betul" — kode harus *lulus ujian, benar-benar berjalan*, dalam arti fungsional murni.
-
-Metriknya adalah **pass@k**: probabilitas bahwa setidaknya satu dari *k* sampel yang dihasilkan model lolos semua test case. *pass@1* adalah yang paling ketat (satu percobaan saja), sementara pass@10 dan pass@100 mengukur kemampuan model menghasilkan solusi yang benar dalam sekumpulan sampel — lebih relevan untuk *workflow* di mana manusia memilih dari banyak kandidat. Patokan: Llama-3 8B mendapatkan 62,2% pass@1, sementara GPT-4 mencapai 87,1% pass@1. Kesenjangan ini menjelaskan mengapa *coding agent* tingkat lanjut sering mengandalkan model besar (atau model spesialis coding) sebagai otaknya.
-
-Satu hal yang sering luput dari pembahasan HumanEval: **eksekusi kode butuh *sandbox***. Menjalankan kode yang dihasilkan model adalah operasi berisiko — kode itu bisa mengakses file, jaringan, atau melakukan operasi destruktif. Karena itu, evaluasi HumanEval profesional selalu berjalan di lingkungan terisolasi (kontainer), dan ketika Anda menjalankannya sendiri (lihat Seksi 10), pastikan mesin Anda siap mengisolasi eksekusi. Ini juga menjelaskan mengapa HumanEval "jarang" diukur di laptop rumahan dibandingkan MMLU: bukan karena alatnya tidak ada, tetapi karena tanggung jawab keamanannya. Realita ini layak Anda ingat saat merencanakan *eval* sendiri — kecepatan pengukuran tidak sebanding dengan risiko membiarkan kode tak dikenal berlari liar di mesin utama Anda [3].
-
----
-
-## 6. Benchmark Lain yang Perlu Anda Kenali
-
-Di luar tiga pilar, ada sekumpulan benchmark yang akan Anda temui berulang kali di *report card* model:
-
-- **GPQA** — soal sains tingkat *PhD* di bidang biologi, fisika, dan kimia; dirancang agar sulit bahkan bagi ahli non-bidang. Ini adalah ujian paling "elit" untuk pengetahuan saintifik dan menjadi pembeda besar antara model yang bagus dan model yang sangat bagus.
-- **MT-Bench** — mengukur kualitas percakapan multi-*turn*; model diajak bicara bolak-balik seperti asisten sungguhan, dan jawabannya dinilai oleh GPT-4 dengan skor 1-10.
-
-MT-Bench pantas disorot lebih jauh, karena ia adalah benchmark yang paling dekat dengan *pengalaman nyata*: sebuah asisten tidak dinilai dari satu jawaban, tetapi dari bagaimana ia menjaga koherensi, mengingat konteks percakapan, dan menolak permintaan dengan sopan di *turn* ketiga belas. Kelemahannya juga penting diketahui: penilai GPT-4 punya bias tersendiri — model yang mirip dengan gaya penulisan GPT cenderung mendapat skor lebih tinggi. Inilah contoh nyata bahwa "satu skor tidak pernah sempurna": MT-Bench mengukur *rasa*, MMLU mengukur *pengetahuan*, dan tidak ada satupun yang bisa berdiri sendiri. Jika sebuah produk Anda adalah chatbot percakapan, MT-Bench layak diprioritaskan; jika produknya adalah *search engine* dokumen, MMLU dan GPQA lebih relevan.
-- **MATH** — soal matematika kompetisi, jauh lebih menantang daripada GSM8K; di sinilah model *reasoning* seperti yang distilasi dari DeepSeek-R1 menunjukkan taringnya.
-- **IFEval** — menguji *instruction following* presisi: model harus mengikuti petunjuk format yang sangat spesifik ("tulis dalam 200 kata", "sebutkan 3 contoh").
-- **Arena Elo** — bukan soal ujian tetapi *preferensi manusia*: sistem LMSYS Chatbot Arena mempertemukan dua model secara anonim dan manusia memilih jawaban terbaik, menghasilkan peringkat gaya *Elo chess* [8].
-
-Dua benchmark baru yang wajib Anda kenal untuk model 2026 adalah **LiveCodeBench** — pengujian coding dengan soal yang diperbarui berkala untuk menahan *contamination* — dan **SWE-bench Verified**, yang menuntut model menyelesaikan *issue* nyata di *repository* GitHub dengan membuat *pull request* yang benar-benar berfungsi. Inilah mengapa DeepSeek V4 Pro dan Claude Fable 5 mempublikasikan skor SWE-bench/LiveCodeBench sebagai andalan mereka [11][12]: soal-soal ini jauh lebih sulit di-hack oleh *memorization* daripada HumanEval yang statis. Ketika membaca *report card* model frontier, cek dulu apakah angkanya berasal dari benchmark dinamis seperti LiveCodeBench — jika ya, Anda sedang melihat bukti yang lebih meyakinkan daripada MMLU klasik.
-
-Dengan daftar benchmark yang makin panjang, muncullah pertanyaan praktis: *benchmark mana yang harus saya jalankan?* Jawaban singkatnya — jangan semuanya. Mulailah dari tiga pilar (MMLU, GSM8K, HumanEval), lalu tambahkan satu benchmark khusus sesuai domain Anda (GPQA untuk sains, MT-Bench untuk chatbot, IFEval untuk aplikasi yang menuntut format ketat, LiveCodeBench untuk tim engineering). Tiga pilar memberi *baseline* lintas keluarga model; benchmark keempat memberi keputusan spesifik untuk produk Anda. Berlebihan justru kontraproduktif: setiap benchmark tambahan memakan waktu komputasi dan memperluas permukaan ambiguitas. Strategi evaluasi yang baik adalah *set yang kecil, konsisten, dan dijalankan ulang pada setiap kandidat model* — bukan museum benchmark yang semakin sulit dirawat [5][7].
-
-Setiap benchmark ini memotret sisi yang berbeda. Satu model bisa jago MT-Bench tetapi payah di GPQA — dan sebaliknya. Karena itu, membeli model hanya dari satu skor adalah seperti membeli mobil hanya dari warna catnya.
-
----
-
-## 7. Membaca Skor dengan Bijak
-
-Ada satu ilusi yang paling sering menyesatkan: skor 68% di MMLU **bukan berarti** model pintar 68% seperti manusia. Skor manusia pada MMLU rata-rata sekitar 89%, sementara menebak acak memberi 25%. Skala-skala ini tidak linier dan tidak bisa dibandingkan lintas benchmark — skor GSM8K 94% dan skor MMLU 85% bukan berarti model lebih jago matematika daripada pengetahuan umum.
-
-Yang lebih penting: **model kecil dengan fine-tuning bisa mengalahkan model besar di domain spesifik**. Phi-4 14B (84,8% MMLU) mengalahkan Llama-3.1 70B (83,6%) — sebuah 14B mengalahkan 70B! Dan Qwen3.6-27B setara GPT-4o untuk tugas Python dan Rust di *benchmark* tertentu. Ukuran parameter bukan takdir; kurasi data dan fokus pelatihan ikut menentukan. Selalu perhatikan juga *setting* evaluasi: apakah angka itu diukur *5-shot* atau *0-shot*, dengan CoT atau tanpa, pada benchmark standar atau varian yang dimodifikasi. Dua angka "MMLU" yang berbeda metodologi adalah dua hal yang sama sekali berbeda — dan membandingkannya secara langsung adalah kesalahan klasik.
-
-Bagian terakhir dari kewaspadaan: **skor bisa basi**. Papan peringkat terbuka seperti Open LLM Leaderboard terus diperbarui seiring versi *harness* yang lebih baru dan deteksi kontaminasi yang lebih baik — angka yang Anda catat bulan lalu bisa berubah bulan ini tanpa modelnya berubah [9]. Ini bukan pertanda sistem rusak; justru sebaliknya, ini bukti ekosistem evaluasi sedang berusaha jujur. Maka biasakan mencatat *versi harness* dan tanggal pengukuran ketika menyimpan skor sebagai referensi proyek — nanti ketika skor "berubah ajaib", Anda bisa membedakan apakah yang berubah adalah modelnya atau pengukurnya. Ketelitian administratif ini terlihat sepele, tetapi di dunia di mana setiap vendor ingin memenangkan perlombaan angka, keterampilan membaca *metadata* evaluasi adalah pertahanan terbaik Anda [5].
-
-Dan satu hal terakhir: jangan ragu untuk **tidak setuju dengan skor**. Jika pengalaman langsung Anda dengan sebuah model bertentangan dengan angkanya — misalnya model dengan MMLU tinggi yang selalu gagal di pekerjaan nyata Anda — percayai pengukuran Anda sendiri. Jalankan Langkah 1-3 pada Seksi 10 dengan *eval set* Anda sendiri; angka yang lahir dari konteks Anda selalu lebih berharga daripada angka yang lahir dari konteks vendor. Benchmark adalah *titik awal* percakapan tentang kualitas — bukan kalimat terakhirnya.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: Benchmark Score Lintas Model (2024-2025)
 
@@ -129,6 +61,7 @@ Dua kolom paling pembeda — MMLU dan GSM8K — divisualisasikan untuk memperlih
 
 Analisis tabel ini mengajarkan tiga hal sekaligus. Pertama, **model kecil tidak harus kalah**: Phi-4 14B mengungguli Llama-3.1 70B di MMLU dan GSM8K, membuktikan bahwa kurasi data sintetis berkualitas bisa mengalahkan jumlah parameter mentah. Kedua, **tidak ada juara mutlak**: GPT-5.5 memimpin MMLU dan GPQA, tetapi Claude Fable 5 lebih unggul di coding (SWE-bench 95,0%), sementara DeepSeek V4 Pro — meski mencatatkan MMLU-Pro 87,5% — memilih mempublikasikan angka LiveCodeBench 93,5% sebagai pembuktiannya. Ketiga, perhatikan simbol-simbol kecil: beberapa angka tidak diukur dengan benchmark yang sama (†), dan membandingkan MMLU dengan MMLU-Pro secara langsung adalah perbandingan apel dengan jeruk. Selalu cek *catatan kaki* sebelum merayakan skor.
 
+
 ### Tabel 2: Interpretasi Benchmark
 
 Agar Anda bisa "menerjemahkan" skor, berikut peta interpretasi lima benchmark utama:
@@ -143,25 +76,6 @@ Agar Anda bisa "menerjemahkan" skor, berikut peta interpretasi lima benchmark ut
 
 Kolom "Skor Acak" dan "Skor Manusia" adalah dua titik acuan yang menghidupkan angka-angka ini. MMLU yang "kurang bagus" 62,5% (Mistral 7B) sebenarnya adalah 2,5 kali lebih baik dari tebakan acak — tetapi masih jauh di bawah tingkat manusia (89%). Sementara GSM8K 45,2% pada model yang sama berarti model itu nyaris gagal total dalam matematika multistep, sebab menebak acak memberi nyaris nol. Perhatikan juga: soal pilihan ganda punya batas bawah 25%, sehingga model yang "gagal" di GPQA tetap mendapat seperempat skor tanpa memahami apa pun. Benchmark adalah penggaris, tetapi setiap penggaris punya titik nolnya sendiri — dan membaca skor tanpa memahami titik nolnya berarti salah membaca.
 
-### Tabel 3: Perbandingan Tools Evaluasi
-
-Terakhir, pilihan senjata untuk mengevaluasi model Anda sendiri:
-
-| Fitur | LM Eval Harness | LM Studio Eval | SGLang | LangSmith |
-|:---|:---|:---|:---|:---|
-| **Open Source** | Ya | Ya | Ya | Tidak |
-| **Benchmark Built-in** | 100+ | 10+ | 20+ | Custom |
-| **Output Parsing** | Regex/Logprobs | Regex | Regex | LLM Judge |
-| **Batch Evaluation** | Ya | Tidak | Ya | Ya |
-| **Cocok untuk** | Penelitian | Pengguna rumahan | Production | Enterprise |
-
-*lm-evaluation-harness* dari EleutherAI adalah standar emas: open source, mendukung 100+ benchmark, dan menangani *parsing* output via regex maupun *log-probability* langsung — cocok untuk evaluasi model lokal di laptop hingga klaster riset [7]. LM Studio Eval lebih ramah pengguna rumahan (klik dan jalan) tetapi terbatas pada benchmark built-in. SGLang menonjol di *production* dengan kemampuan *batch evaluation* berkecepatan tinggi. LangSmith adalah pilihan enterprise — *closed source*, dengan *LLM judge* yang menilai output secara semantik alih-alih mencocokkan teks. Pilihan Anda tergantung posisi di spektrum ini: penelitian butuh kontrol penuh (harness), penggunaan harian butuh simpel (LM Studio), dan enterprise butuh manajemen (LangSmith).
-
-Satu praktik yang membedakan profesional dari amatir dalam evaluasi: **reproduksibilitas**. Catat setiap variabel — versi model, versi harness, jumlah *few-shot*, jenis *parsing*, bahkan suhu *sampling* (untuk tugas generatif, suhu 0 disarankan agar hasil deterministik). Tanpa catatan ini, angka yang Anda hasilkan hari ini tidak bisa dipercaya bulan depan. Banyak tim menambahkan satu langkah ekstra: menyimpan output mentah evaluasi ke file JSONL — bukan hanya skornya — sehingga ketika ada anomali (misalnya satu subjek MMLU jeblok), Anda bisa menelusuri kembali ke soal mana yang gagal dan memutuskan apakah itu kontaminasi data, format prompt, atau batas model [7][9].
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Radar Benchmark Perbandingan Model
 
@@ -184,6 +98,97 @@ quadrantChart
 Diagram ini memetakan empat dimensi: sumbu X mewakili pengetahuan (MMLU) dan sains ahli (GPQA) — rendah di kiri, tinggi di kanan — sementara sumbu Y mewakili matematika (GSM8K) di bawah dan coding (HumanEval) di atas. Perhatikan pola yang muncul: **Llama-3-8B** terkurung di kuadran rendah (0,68; 0,77) — mumpuni tetapi di bawah standar "menawan". **Llama-3-70B** bergerak ke kuadran tengah (0,84; 0,91) — kekuatan merata di semua dimensi. **GPT-4o** menempel di pojok kanan-atas (0,89; 0,95) — kuadran di mana pengetahuan, sains, dan coding bertemu. Pola ini menjelaskan satu strategi praktis: jika anggaran Anda tidak cukup untuk model kanan-atas, *campur*: gunakan model kecil untuk tugas ringan dan API frontier untuk tugas yang menuntut — kombinasi yang jauh lebih hemat daripada membeli satu model besar untuk semua hal.
 
 Perlu dicatat bahwa diagram *quadrantChart* ini adalah penyederhanaan: koordinat memakai skala relatif dari skor-skor di Tabel 1, bukan nilai absolut, dan hanya empat dimensi yang ditampilkan. Untuk analisis yang lebih rinci, Anda dapat memetakan model lain ke dalam diagram yang sama — cukup ganti koordinatnya dengan skor GSM8K, HumanEval, MMLU, dan GPQA dari model tersebut. Pola yang hampir selalu muncul: **model MoE efisien** (seperti Qwen3-30B-A3B) sering berada di kuadran kiri-atas — kuat di matematika tetapi belum merata di pengetahuan umum — sementara model frontier berada di kanan-atas. Membaca peta ini membantu Anda memilih model *berdasarkan bentuk profilnya*, bukan berdasarkan satu angka tunggal yang menyesatkan [4][9].
+
+
+---
+
+## 3. MMLU: Menimbang Pengetahuan di 57 Bidang
+
+
+**MMLU** — *Massive Multitask Language Understanding* — adalah ujian pengetahuan paling terkenal di dunia LLM. Bayangkan ujian pilihan ganda raksasa yang mencakup 57 subjek: dari matematika dasar, hukum, psikologi, hingga ekonomi dan sejarah dunia; total sekitar **14.000 soal** pilihan ganda [1]. Skor MMLU adalah akurasi model dalam memilih jawaban benar dari 4 opsi.
+
+Cara evaluasinya halus namun penting: model **tidak menulis kalimat** — ia diukur dengan *log-probability* dari empat opsi. Artinya, alih-alih membiarkan model "bercerita" lalu kita cocokkan, evaluator membaca probabilitas yang diberikan model untuk opsi A, B, C, dan D, lalu memilih yang paling mungkin. Ini menghilangkan variabel gaya bahasa: model yang verbose tidak mendapat keuntungan, model yang pelit kata tidak dirugikan.
+
+Metodologi *few-shot* juga menentukan angka: **5-shot** berarti model diberi lima contoh soal lengkap dengan jawaban sebelum dites; **0-shot** berarti ia harus menjawab tanpa contoh sama sekali. Perbedaan ini bisa menggeser skor beberapa poin — jadi ketika membandingkan dua model, pastikan keduanya diukur dengan *setting* yang sama. Sebagai patokan: Llama-3 8B mencapai 66,7% sementara GPT-4 di level 86,4% — selisih 20 poin adalah jarak dua generasi, tetapi dalam konteks yang sama persis.
+
+Kepekaan MMLU terhadap format bukanlah rahasia: model yang dilatih dengan *chat template* tertentu bisa gagal ketika prompt disusun dalam format "ujian" yang berbeda dari pola latihan mereka. Inilah mengapa *lm-evaluation-harness* secara sengaja menggunakan format yang dibakukan dan konsisten lintas model — harapan itu, selama setiap model diuji dengan format yang sama, perbandingannya tetap adil secara relatif. Namun ingat: dua vendor yang sama-sama mempublikasikan "MMLU 90%" bisa saja menggunakan format prompt yang sedikit berbeda, sehingga angka yang tampak identik menyembunyikan kondisi yang tidak identik [1][7]. Satu pertanyaan yang selalu layak diajukan saat melihat klaim skor: *bagaimana tepatnya angka itu dihasilkan?* Jika jawabannya samar, perlakukan klaimnya sebagai pemasaran — bukan sains.
+
+---
+
+## 4. GSM8K: Matematika Sekolah Dasar yang Menjebak
+
+
+Dari pengetahuan umum, kita pindah ke penalaran: **GSM8K** — *Grade School Math 8K* — berisi sekitar **8.500 soal cerita matematika tingkat sekolah dasar** dengan *multistep reasoning* [2]. Soalnya tampak sederhana: "Budi membeli 3 pensil seharga 2.000 rupiah dan 2 buku seharga 15.000 rupiah. Berapa totalnya?" Tetapi untuk LLM, soal ini adalah ujian batu: model harus *menyusun langkah-langkah* — perkalian, penjumlahan, dan pengambilan kesimpulan — bukan sekadar menebak.
+
+Penting untuk menekankan satu hal: soal "sekolah dasar" di sini menyesatkan bagi LLM. Bagi manusia dewasa, 3×2.000 + 2×15.000 adalah hitungan satu detik; tetapi bagi model yang belum pernah dilatih untuk *berhitung langkah demi langkah*, soal ini menuntut koordinasi antara pemahaman bahasa (menangkap variabel dari kalimat), *reasoning* (memilih operasi), dan aritmetika (menghitung tanpa kalkulator eksternal). Ketiga keterampilan itu independen satu sama lain — sebuah model bisa fasih berbahasa tetapi gagal total di sini. Itulah mengapa GSM8K menjadi pembeda terbaik antara model yang sekadar "tahu banyak hal" dan model yang benar-benar bisa *menalar* — dan mengapa skor 45,2% (Mistral 7B) versus 94,5% (Phi-4 14B) bukanlah perbedaan kecil, melainkan jurang antara gagal dan andal dalam domain penalaran.
+
+Karena itu GSM8K biasanya diuji dengan **chain-of-thought (CoT)**: model diminta berpikir langkah demi langkah sebelum memberikan jawaban akhir. Skor dihitung dengan *pass@1* — apakah *jawaban akhir* benar, bukan apakah langkah-langkahnya masuk akal. Llama-3 8B mencapai 79,6% dengan CoT — dan ini adalah kabar baik sekaligus peringatan: model yang pandai "berpura-pura berpikir" bisa saja menuliskan langkah yang salah total tetapi memenuhi syarat dengan jawaban akhir yang kebetulan benar. GSM8K mengukur *hasilkan jawaban yang benar*, bukan *proses yang jujur*. Untuk keperluan tutor matematika (lihat Studi Kasus), skor GSM8K adalah proksi yang relevan, tetapi bukan bukti bahwa model "paham" aljabar.
+
+Ada detail menarik tentang GSM8K yang menjelaskan kesenjangan antar model: soal-soalnya dirancang agar *greedy decoding* — strategi menjawab langsung tanpa berpikir — sering gagal, tetapi *chain-of-thought* yang panjang memberi model ruang untuk melacak variabel dan menyusun persamaan langkah demi langkah [2]. Inilah sebabnya model *reasoning* yang dilatih untuk "berpikir dulu" (seperti keturunan DeepSeek-R1) sering mencatatkan skor GSM8K jauh di atas model generasi sebelumnya yang hanya dilatih menjawab langsung. Perhatikan juga bahwa angka 79,6% untuk Llama-3 8B diukur *dengan* CoT — jika Anda melihat angka yang jauh lebih rendah untuk model yang sama di tempat lain, kemungkinan besar perbedaannya adalah pengukuran *tanpa* CoT. Format prompt bukan detail; ia adalah bagian dari soal.
+
+---
+
+## 5. HumanEval: Kode yang Harus Lulus Ujian, bukan Sekadar Terlihat Benar
+
+
+Pilar ketiga adalah **HumanEval**: 164 soal pemrograman Python di mana model diminta mengimplementasikan fungsi berdasarkan deskripsi dan *function signature* [3]. Yang membedakan HumanEval dari tes coding lainnya: kode dieksekusi dan diuji terhadap *test case* yang tersembunyi. Model tidak dinilai dari "kodenya terlihat betul" — kode harus *lulus ujian, benar-benar berjalan*, dalam arti fungsional murni.
+
+Metriknya adalah **pass@k**: probabilitas bahwa setidaknya satu dari *k* sampel yang dihasilkan model lolos semua test case. *pass@1* adalah yang paling ketat (satu percobaan saja), sementara pass@10 dan pass@100 mengukur kemampuan model menghasilkan solusi yang benar dalam sekumpulan sampel — lebih relevan untuk *workflow* di mana manusia memilih dari banyak kandidat. Patokan: Llama-3 8B mendapatkan 62,2% pass@1, sementara GPT-4 mencapai 87,1% pass@1. Kesenjangan ini menjelaskan mengapa *coding agent* tingkat lanjut sering mengandalkan model besar (atau model spesialis coding) sebagai otaknya.
+
+Satu hal yang sering luput dari pembahasan HumanEval: **eksekusi kode butuh *sandbox***. Menjalankan kode yang dihasilkan model adalah operasi berisiko — kode itu bisa mengakses file, jaringan, atau melakukan operasi destruktif. Karena itu, evaluasi HumanEval profesional selalu berjalan di lingkungan terisolasi (kontainer), dan ketika Anda menjalankannya sendiri (lihat Seksi 8), pastikan mesin Anda siap mengisolasi eksekusi. Ini juga menjelaskan mengapa HumanEval "jarang" diukur di laptop rumahan dibandingkan MMLU: bukan karena alatnya tidak ada, tetapi karena tanggung jawab keamanannya. Realita ini layak Anda ingat saat merencanakan *eval* sendiri — kecepatan pengukuran tidak sebanding dengan risiko membiarkan kode tak dikenal berlari liar di mesin utama Anda [3].
+
+---
+
+## 6. Benchmark Lain yang Perlu Anda Kenali
+
+
+Di luar tiga pilar, ada sekumpulan benchmark yang akan Anda temui berulang kali di *report card* model:
+
+- **GPQA** — soal sains tingkat *PhD* di bidang biologi, fisika, dan kimia; dirancang agar sulit bahkan bagi ahli non-bidang. Ini adalah ujian paling "elit" untuk pengetahuan saintifik dan menjadi pembeda besar antara model yang bagus dan model yang sangat bagus.
+- **MT-Bench** — mengukur kualitas percakapan multi-*turn*; model diajak bicara bolak-balik seperti asisten sungguhan, dan jawabannya dinilai oleh GPT-4 dengan skor 1-10.
+
+MT-Bench pantas disorot lebih jauh, karena ia adalah benchmark yang paling dekat dengan *pengalaman nyata*: sebuah asisten tidak dinilai dari satu jawaban, tetapi dari bagaimana ia menjaga koherensi, mengingat konteks percakapan, dan menolak permintaan dengan sopan di *turn* ketiga belas. Kelemahannya juga penting diketahui: penilai GPT-4 punya bias tersendiri — model yang mirip dengan gaya penulisan GPT cenderung mendapat skor lebih tinggi. Inilah contoh nyata bahwa "satu skor tidak pernah sempurna": MT-Bench mengukur *rasa*, MMLU mengukur *pengetahuan*, dan tidak ada satupun yang bisa berdiri sendiri. Jika sebuah produk Anda adalah chatbot percakapan, MT-Bench layak diprioritaskan; jika produknya adalah *search engine* dokumen, MMLU dan GPQA lebih relevan.
+- **MATH** — soal matematika kompetisi, jauh lebih menantang daripada GSM8K; di sinilah model *reasoning* seperti yang distilasi dari DeepSeek-R1 menunjukkan taringnya.
+- **IFEval** — menguji *instruction following* presisi: model harus mengikuti petunjuk format yang sangat spesifik ("tulis dalam 200 kata", "sebutkan 3 contoh").
+- **Arena Elo** — bukan soal ujian tetapi *preferensi manusia*: sistem LMSYS Chatbot Arena mempertemukan dua model secara anonim dan manusia memilih jawaban terbaik, menghasilkan peringkat gaya *Elo chess* [8].
+
+Dua benchmark baru yang wajib Anda kenal untuk model 2026 adalah **LiveCodeBench** — pengujian coding dengan soal yang diperbarui berkala untuk menahan *contamination* — dan **SWE-bench Verified**, yang menuntut model menyelesaikan *issue* nyata di *repository* GitHub dengan membuat *pull request* yang benar-benar berfungsi. Inilah mengapa DeepSeek V4 Pro dan Claude Fable 5 mempublikasikan skor SWE-bench/LiveCodeBench sebagai andalan mereka [11][12]: soal-soal ini jauh lebih sulit di-hack oleh *memorization* daripada HumanEval yang statis. Ketika membaca *report card* model frontier, cek dulu apakah angkanya berasal dari benchmark dinamis seperti LiveCodeBench — jika ya, Anda sedang melihat bukti yang lebih meyakinkan daripada MMLU klasik.
+
+Dengan daftar benchmark yang makin panjang, muncullah pertanyaan praktis: *benchmark mana yang harus saya jalankan?* Jawaban singkatnya — jangan semuanya. Mulailah dari tiga pilar (MMLU, GSM8K, HumanEval), lalu tambahkan satu benchmark khusus sesuai domain Anda (GPQA untuk sains, MT-Bench untuk chatbot, IFEval untuk aplikasi yang menuntut format ketat, LiveCodeBench untuk tim engineering). Tiga pilar memberi *baseline* lintas keluarga model; benchmark keempat memberi keputusan spesifik untuk produk Anda. Berlebihan justru kontraproduktif: setiap benchmark tambahan memakan waktu komputasi dan memperluas permukaan ambiguitas. Strategi evaluasi yang baik adalah *set yang kecil, konsisten, dan dijalankan ulang pada setiap kandidat model* — bukan museum benchmark yang semakin sulit dirawat [5][7].
+
+Setiap benchmark ini memotret sisi yang berbeda. Satu model bisa jago MT-Bench tetapi payah di GPQA — dan sebaliknya. Karena itu, membeli model hanya dari satu skor adalah seperti membeli mobil hanya dari warna catnya.
+
+---
+
+## 7. Membaca Skor dengan Bijak
+
+
+Ada satu ilusi yang paling sering menyesatkan: skor 68% di MMLU **bukan berarti** model pintar 68% seperti manusia. Skor manusia pada MMLU rata-rata sekitar 89%, sementara menebak acak memberi 25%. Skala-skala ini tidak linier dan tidak bisa dibandingkan lintas benchmark — skor GSM8K 94% dan skor MMLU 85% bukan berarti model lebih jago matematika daripada pengetahuan umum.
+
+Yang lebih penting: **model kecil dengan fine-tuning bisa mengalahkan model besar di domain spesifik**. Phi-4 14B (84,8% MMLU) mengalahkan Llama-3.1 70B (83,6%) — sebuah 14B mengalahkan 70B! Dan Qwen3.6-27B setara GPT-4o untuk tugas Python dan Rust di *benchmark* tertentu. Ukuran parameter bukan takdir; kurasi data dan fokus pelatihan ikut menentukan. Selalu perhatikan juga *setting* evaluasi: apakah angka itu diukur *5-shot* atau *0-shot*, dengan CoT atau tanpa, pada benchmark standar atau varian yang dimodifikasi. Dua angka "MMLU" yang berbeda metodologi adalah dua hal yang sama sekali berbeda — dan membandingkannya secara langsung adalah kesalahan klasik.
+
+Bagian terakhir dari kewaspadaan: **skor bisa basi**. Papan peringkat terbuka seperti Open LLM Leaderboard terus diperbarui seiring versi *harness* yang lebih baru dan deteksi kontaminasi yang lebih baik — angka yang Anda catat bulan lalu bisa berubah bulan ini tanpa modelnya berubah [9]. Ini bukan pertanda sistem rusak; justru sebaliknya, ini bukti ekosistem evaluasi sedang berusaha jujur. Maka biasakan mencatat *versi harness* dan tanggal pengukuran ketika menyimpan skor sebagai referensi proyek — nanti ketika skor "berubah ajaib", Anda bisa membedakan apakah yang berubah adalah modelnya atau pengukurnya. Ketelitian administratif ini terlihat sepele, tetapi di dunia di mana setiap vendor ingin memenangkan perlombaan angka, keterampilan membaca *metadata* evaluasi adalah pertahanan terbaik Anda [5].
+
+Dan satu hal terakhir: jangan ragu untuk **tidak setuju dengan skor**. Jika pengalaman langsung Anda dengan sebuah model bertentangan dengan angkanya — misalnya model dengan MMLU tinggi yang selalu gagal di pekerjaan nyata Anda — percayai pengukuran Anda sendiri. Jalankan Langkah 1-3 pada Seksi 8 dengan *eval set* Anda sendiri; angka yang lahir dari konteks Anda selalu lebih berharga daripada angka yang lahir dari konteks vendor. Benchmark adalah *titik awal* percakapan tentang kualitas — bukan kalimat terakhirnya.
+
+### Tabel 3: Perbandingan Tools Evaluasi
+
+Terakhir, pilihan senjata untuk mengevaluasi model Anda sendiri:
+
+| Fitur | LM Eval Harness | LM Studio Eval | SGLang | LangSmith |
+|:---|:---|:---|:---|:---|
+| **Open Source** | Ya | Ya | Ya | Tidak |
+| **Benchmark Built-in** | 100+ | 10+ | 20+ | Custom |
+| **Output Parsing** | Regex/Logprobs | Regex | Regex | LLM Judge |
+| **Batch Evaluation** | Ya | Tidak | Ya | Ya |
+| **Cocok untuk** | Penelitian | Pengguna rumahan | Production | Enterprise |
+
+*lm-evaluation-harness* dari EleutherAI adalah standar emas: open source, mendukung 100+ benchmark, dan menangani *parsing* output via regex maupun *log-probability* langsung — cocok untuk evaluasi model lokal di laptop hingga klaster riset [7]. LM Studio Eval lebih ramah pengguna rumahan (klik dan jalan) tetapi terbatas pada benchmark built-in. SGLang menonjol di *production* dengan kemampuan *batch evaluation* berkecepatan tinggi. LangSmith adalah pilihan enterprise — *closed source*, dengan *LLM judge* yang menilai output secara semantik alih-alih mencocokkan teks. Pilihan Anda tergantung posisi di spektrum ini: penelitian butuh kontrol penuh (harness), penggunaan harian butuh simpel (LM Studio), dan enterprise butuh manajemen (LangSmith).
+
+Satu praktik yang membedakan profesional dari amatir dalam evaluasi: **reproduksibilitas**. Catat setiap variabel — versi model, versi harness, jumlah *few-shot*, jenis *parsing*, bahkan suhu *sampling* (untuk tugas generatif, suhu 0 disarankan agar hasil deterministik). Tanpa catatan ini, angka yang Anda hasilkan hari ini tidak bisa dipercaya bulan depan. Banyak tim menambahkan satu langkah ekstra: menyimpan output mentah evaluasi ke file JSONL — bukan hanya skornya — sehingga ketika ada anomali (misalnya satu subjek MMLU jeblok), Anda bisa menelusuri kembali ke soal mana yang gagal dan memutuskan apakah itu kontaminasi data, format prompt, atau batas model [7][9].
+
+---
+
 
 ### Gambar 2: Alur Evaluasi Model dengan lm-evaluation-harness
 
@@ -208,7 +213,11 @@ Sekali lagi terlihat mengapa *pipeline* ini penting: skor akhir bukan hasil "men
 
 ---
 
-## 10. Praktikum / Hands-On: Evaluasi Model Sendiri
+
+---
+
+## 8. Praktikum / Hands-On: Evaluasi Model Sendiri
+
 
 Teori membaca skor tidak akan lengkap tanpa praktik menghitungnya. Ikuti tiga tutorial berikut secara berurutan.
 
@@ -306,7 +315,8 @@ Dengan tiga tutorial ini Anda kini memiliki *toolkit* evaluasi lengkap: **kualit
 
 ---
 
-## 11. Studi Kasus: Memilih Model untuk AI Tutor Matematika
+## 9. Studi Kasus: Memilih Model untuk AI Tutor Matematika
+
 
 **Latar:** Sebuah perusahaan edukasi di Bandung ingin membangun AI tutor matematika untuk siswa SD-SMP. Targetnya sederhana di atas kertas, rumit dalam praktik: model harus sabar menjelaskan soal cerita, menyusun langkah-langkah, dan ramah terhadap Bahasa Indonesia kelas sekolah dasar.
 
@@ -324,7 +334,8 @@ Sebelum memilah kandidat, tim menetapkan satu aturan main yang menenangkan: semu
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

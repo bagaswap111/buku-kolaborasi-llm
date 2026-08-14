@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan cara kerja tokenizer — meliputi **BPE**, **SentencePiece**, dan **TikToken** — beserta perbedaan filosofi masing-masing
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Cara Kerja Tokenizer: Gerbang Pertama Setiap Kata
 
+
 Sebelum model memahami apa pun, teks harus diubah menjadi angka. Perantara itu adalah **tokenizer** — mesin yang membagi teks menjadi **token**, unit terkecil yang bisa diproses model. Sebuah kata bisa menjadi satu token ("pasar"), beberapa token ("pertanggungjawaban" → "pertanggung" + "jawaban"), atau bahkan satu token berisi beberapa kata (*"the cat"* dalam beberapa tokenizer).
 
 Algoritma paling berpengaruh adalah **BPE** (*Byte-Pair Encoding*): proses iteratif yang menggabungkan pasangan karakter yang paling sering muncul menjadi satu token, lalu menggabungkan pasangan token baru, dan seterusnya sampai mencapai batas *vocabulary* [2]. Mulai dari pasangan 'm'+'e' → "me", lalu 'me'+'n' → "men", hingga terbentuk token besar seperti "menye" — setiap *merge* menyimpan frekuensi kemunculan sebagai panduan. Hasilnya: token yang sering muncul menjadi "kata", dan kata langka dipecah menjadi potongan yang wajar.
@@ -28,9 +30,33 @@ Setiap model membawa *vocabulary* sendiri dengan ukuran 32K hingga 256K token �
 
 Ada trade-off tersembunyi di balik ukuran *vocabulary* yang perlu dipahami sejak awal: **semakin besar vocabulary, semakin banyak token yang harus "dipelajari" model sebagai *embedding*** — dan setiap embedding adalah vektor ratusan dimensi yang memakan memori. Itulah mengapa tidak semua pembuat model berani memperbesar vocabulary seenaknya: 100K tambahan token berarti miliaran parameter tambahan hanya untuk tabel *embedding* [6]. Konsekuensinya, keputusan "bahasa mana yang dilayani" adalah keputusan investasi: menambahkan coverage Bahasa Indonesia berarti mengorbankan ruang yang bisa dipakai bahasa lain. Inilah alasan struktural mengapa bahasa-bahasa kecil seperti Indonesia sering menjadi korban pertama ketika *budget* vocabulary dipangkas — bukan karena pembuat model "tidak peduli", tetapi karena setiap token baru punya harga.
 
+### Gambar 1: Proses Tokenisasi BPE
+
+Berikut peta perjalanan teks dari kalimat mentah hingga deretan ID token — lengkap dengan proses *merge* bertahap yang menjadi jantung BPE:
+
+```mermaid
+graph LR
+    TEXT[Teks Bahasa Indonesia] --> NORM[Normalisasi]
+    NORM --> BPE[BPE Tokenizer]
+    BPE --> SUB[Sub-word Splitting]
+    SUB --> ID[Token IDs]
+
+    subgraph BPE Process
+        MERGE1[Pair: 'me'+'n' -> 'men']
+        MERGE2[Pair: 'men'+'ye' -> 'menye']
+        MERGE3[...merge hingga vocab limit]
+    end
+
+    SUB --> MERGE1 --> MERGE2 --> MERGE3
+```
+
+Diagram ini memperlihatkan dua jalur yang berjalan paralel: aliran teks *yang jelas* (kiri), dan proses pembentukan token *yang tersembunyi* (kotak bawah). Kuncinya ada di anak panah terakhir: pembagian sub-word ternyata dipengaruhi oleh *merge history* — token "menye" hanya bisa tercipta jika pasangan "men"+"ye" cukup sering muncul selama pelatihan. Untuk Bahasa Indonesia yang frekuensinya di dataset global rendah, jalur bawah ini hampir tidak pernah "berpihak" pada kata Indonesia — dan akibatnya terlihat pada kolom "Contoh" di Tabel 1. Memahami diagram ini berarti memahami *mengapa* memilih model dengan tokenizer multibahasa sering kali lebih penting daripada memilih model dengan parameter terbesar.
+
+
 ---
 
 ## 3. Masalah Bahasa Indonesia di Tokenizer Global
+
 
 Sekarang tibalah inti bab ini: mengapa model global yang luar biasa di Inggris sering tampak "bodoh" di Bahasa Indonesia? Jawabannya lebih membosankan — dan lebih mudah diperbaiki — daripada dugaan Anda: **tokenizer tidak mengenal kata-kata Anda**.
 
@@ -40,55 +66,38 @@ Konsekuensinya berlapis. Pertama, **konteks efektif menyusut**: jendela 128K tok
 
 Coba perhatikan satu contoh nyata. Kata "ketidakadilan" mengandung tiga morfem: "tidak", "adil", dan "an" dengan awalan "ke-". Dalam tokenizer yang ramah Indonesia, morfem-morfem ini menjadi token-token bermakna, sehingga model dapat *menggabungkan makna*: "tidak" + "adil" + proses nominalisasi. Dalam tokenizer Inggris, kata itu bisa terpecah menjadi potongan tak bermakna seperti "ket"+"idak"+"adil"+"an" — dan model hanya bisa menebak makna dari *konteks sekitar*, bukan dari *bentuk kata itu sendiri*. Inilah mengapa dua model dengan kemampuan Inggris yang setara bisa berbeda jauh dalam kualitas Bahasa Indonesia: perbedaannya bukan di lapisan *reasoning*, melainkan di gerbang masuk — tokenizer — yang menentukan seberapa baik morfologi kata tersampaikan kepada model.
 
+### Tabel 2: Efisiensi Token untuk Bahasa Indonesia
+
+Untuk menyentuh kasus nyata, mari bandingkan empat tokenizer terhadap lima frasa Indonesia sehari-hari:
+
+| Frasa | Llama-3 | Qwen 2.5 | Gemma 2 | Nusantara-7B |
+|:---|:---:|:---:|:---:|:---:|
+| "Saya pergi ke pasar" | 5 | 3 | 4 | 3 |
+| "Pertanggungjawaban" | 5 | 3 | 3 | 2 |
+| "Menyelenggarakan" | 4 | 2 | 3 | 2 |
+| "Ketidakadilan" | 4 | 2 | 2 | 1 |
+| "Berkebinekaan" | 5 | 3 | 3 | 2 |
+| **Rata-rata token/kata** | **1.8** | **1.2** | **1.3** | **0.9** |
+
+Pola boros-hemat antar tokenizer terlihat lebih jelas ketika kelima frasa dipetakan bersisian:
+
+![Efisiensi Token 5 Frasa Bahasa Indonesia per Model](../../assets/images/bab-01-model/sub-bab-6/efisiensi-token-frasa-id.png)
+
+*Gambar 1.6-3 — Llama-3 selalu paling boros di kelima frasa (4-5 token), sementara Nusantara-7B paling hemat (1-3 token) dan bahkan memecah "Ketidakadilan" menjadi satu token utuh. Dengan rata-rata token/kata 0,9, Nusantara lebih efisien dari satu token per kata, sedangkan Llama-3 di angka 1,8.*
+
+Rata-rata token/kata adalah metrik yang paling mudah diingat: **Llama-3 1,8, Qwen 1,2, Gemma 1,3, Nusantara 0,9**. Terjemahan langsungnya: untuk kalimat yang sama, Llama-3 mengonsumsi 50% lebih banyak token daripada Qwen — dan hampir dua kali lipat Nusantara. Ini bukan sekadar statistik salon: 1,8 vs 1,2 berarti setiap dokumen Bahasa Indonesia yang Anda proses di Llama-3 membebani *context window* 50% lebih berat dan memperlambat *inference* dengan proporsi yang sama. Sementara Nusantara yang mencetak 0,9 bahkan lebih efisien daripada satu token per kata — karena kata majemuk dan bentukan umum digabung menjadi satu token utuh — menandakan tokenizer yang benar-benar "hidup" dalam morfologi Indonesia.
+
+
 ---
 
 ## 4. Perbandingan Tokenizer per Model
+
 
 Setiap keluarga model mengambil keputusan berbeda dalam merancang *vocabulary*-nya, dan perbedaan itulah yang menentukan nasib Bahasa Indonesia:
 
 **Llama-3** membawa *vocabulary* 128K berbasis BPE yang dioptimalkan untuk Inggris — angka 95% data Inggris terlihat jelas dalam performa tokennya terhadap bahasa lain. **Qwen 2.5** berinvestasi pada *vocabulary* multibahasa 152K, dan hasilnya terasa: kata-kata Indonesia yang panjang diperlakukan jauh lebih ramah. **Gemma 2** memakai SentencePiece 256K dengan ambisi multibahasa yang luas — kemampuan mengambil konteks lintas aksara. **DeepSeek V4** naik kelas dengan *tokenizer* generasi keduanya yang menyentuh 256K token, menyalip pendahulunya (128K) dalam hal *coverage* non-Inggris. Model seperti **Mistral Large 3** dan **Ministral 3** membawa SentencePiece 131K dengan *coverage* Indonesia yang lumayan. Di ujung spektrum terdapat **model Nusantara** — keluarga model yang melakukan *fine-tuning* dengan *vocabulary* lokal, sehingga "mempertanggungjawabkan" menjadi satu atau dua token saja.
 
-Yang perlu disorot: ukuran *vocabulary* bukan satu-satunya penentu. WordPiece BPE yang sama bisa menghasilkan kualitas berbeda tergantung distribusi data training. Karena itu, mengukur *efisiensi token* secara langsung — bukan menebak dari ukuran vocabulary — adalah cara terbaik menilai. Bab ini memberi Anda alat untuk itu, di Seksi 10.
-
----
-
-## 5. Dampak pada Performa: Harga yang Dibayar Setiap Percakapan
-
-Mari kita kalkulasikan dampak nyata pilihan tokenizer dalam angka. Untuk konten yang sama, **prompt Bahasa Indonesia di Llama-3 bisa dua kali lebih panjang** daripada versi Inggrisnya. Bayangkan Anda menyewa pengurus *storage* yang menuntut ruang dua kali lipat untuk barang yang sama — itulah yang terjadi pada konteks Anda.
-
-Di atas kertas, model dengan konteks 128K bisa memproses dokumen sepanjang 128K token. Tetapi karena satu kata Indonesia rata-rata menjadi 1,8 token, konteks itu hanya menampung sekitar **71 ribu kata** — *terpotong secara efektif* menjadi hampir separuhnya. Model dengan tokenizer lebih ramah (Qwen 2.5, rasio 1,2) masih sanggup menampung sekitar 107 ribu kata. Selisih ini tidak hanya soal kenyamanan: dalam *RAG* atau analisis dokumen panjang, pemilihan tokenizer menentukan apakah dokumen penting *masuk* ke dalam jendela perhatian model atau *tersingkir*.
-
-Selain itu, *perplexity* model terhadap prompt Indonesia cenderung lebih tinggi — model lebih "terkejut" karena aliran sub-word yang tidak lazim. Ini menjelaskan fenomena yang sering dirasakan pengguna: model menjawab dengan kalimat yang benar secara tatabahasa, tetapi "rasanya off" — kaku, penerjemahan harfiah, dan terkadang kaku morfologi. **Fine-tuning** pada data Indonesia dapat memperbaiki kualitas respons secara signifikan, tetapi tidak menghapus akar masalah: selama *tokenisasi-nya* tetap boros, harga konteks dan komputasi tetap dibayar di setiap percakapan [6].
-
-Ada satu pengamatan industri yang patut menjadi pengingat: ketika model-model *frontier* mulai melaporkan "dukungan multibahasa yang ditingkatkan", yang sering berubah sebenarnya adalah tokenizer — bukan arsitektur. GPT-5.5 yang memangkas "mempertanggungjawabkan" menjadi 5 token (dari 6 di GPT-4o) adalah contoh mutakhir: *upgrade bahasa* yang terasa oleh pengguna Indonesia sering kali adalah pergantian gerbang, bukan pergantian otak. Jika Anda melihat klaim "model baru lebih fasih berbahasa Indonesia", cara tercepat memverifikasinya bukan bertanya pada *chatbot*-nya, melainkan menghitung token-nya — caranya ada di Seksi 10 bab ini [3][7].
-
----
-
-## 6. Solusi dan Mitigasi: Empat Langkah Menuju Kefasihan
-
-Kabar baiknya, masalah ini bisa diatasi dari empat arah sekaligus:
-
-**Pertama, pilih tokenizer yang ramah.** Utamakan model dengan *vocabulary* multibahasa besar seperti Qwen (152K) atau Gemma (256K) — keduanya memperlakukan Bahasa Indonesia secara dramatis lebih baik daripada model yang dioptimalkan Inggris. Satu perubahan ini saja memangkas biaya token hingga sepertiga.
-
-**Kedua, manfaatkan model fine-tuned Indonesia.** Keluarga seperti *Llama-3-Nusantara* dan *Qwen-Nusantara* telah disesuaikan dengan percakapan lokal — tokenizer plus *pengetahuan budaya*. Untuk khalayak yang berbicara Indonesia murni, ini pilihan yang paling "dekat dengan tanah".
-
-**Ketiga, perluas *vocabulary* model.** Bagi yang sudah terlanjur berinvestasi di satu model, *embedding extension* memungkinkan penambahan *special tokens* — kata-kata kunci Indonesia yang baru — ke dalam *vocabulary*. Proses ini membutuhkan *fine-tuning* ulang singkat pada *embedding layer*, tetapi hasilnya: kata yang tadinya dipecah menjadi 6 token kini menjadi 1 token utuh.
-
-**Keempat, mainkan *prompt engineering*.** Pada model dengan tokenizer boros, strategi *mixing* bahasa bisa membantu: kampanyekan instruksi dan meta-instruksi dalam Inggris, sisakan konten pengguna dalam Indonesia. Ini bukan kemenangan ideal, tetapi taktik bertahan yang sah di saat belum ada pilihan tokenizer lokal.
-
----
-
-## 7. Masa Depan: Tokenizer Multibahasa
-
-Tren 2026 menunjukkan arah yang jelas: *vocabulary* multibahasa membengkak melampaui 200K token — GPT-5.5 dengan cl200k dan DeepSeek V4 dengan 256K adalah bukti jalan ini. **BPE adaptif** — yang menyesuaikan *merge rules* terhadap distribusi bahasa di setiap domain — mulai diteliti sebagai pengganti BPE statis [6]. Inisiatif regional seperti **Sea-LION** untuk Asia Tenggara dan keluarga **Nusantara** untuk Indonesia membuktikan bahwa tokenizer yang dibangun dari bawah dengan data lokal adalah investasi yang nyata [5]. Dan untuk masa depan yang lebih jauh: *unicode-aware tokenizer* yang memahami aksara non-Latin dan bahasa aglutinatif akan menjadi standar — karena 7 miliar penutur bahasa di dunia tidak semuanya berbicara Inggris.
-
-Bagi praktisi Indonesia, tren ini membuka tiga peluang yang layak diwaspadai. Pertama, **biaya masuk fine-tuning tokenizer menurun**: tools untuk *extending vocabulary* kini tersedia di ekosistem Hugging Face, sehingga tim kecil pun bisa mengadaptasi model global ke kata-kata lokal. Kedua, **pertarungan model multibahasa baru segar**: setiap kali sebuah keluarga model besar merilis tokenizer baru (seperti DeepSeek V4 dengan generasi keduanya), lakukan pengukuran rasio token Indonesia segera — beberapa model ternyata jauh lebih ramah dari yang diklaim *marketing*-nya. Ketiga, **kolaborasi regional semakin matang**: ekosistem Sea-LION dan Nusantara saling melengkapi, artinya model yang merangkul *bahasa-bahasa Asia Tenggara* sekaligus akan lebih hemat daripada membangun tokenizer per bahasa. Masa depan bukan menunggu tokenizer sempurna — masa depan adalah *mengukur, memilih, dan ikut membangun*.
-
-Dampaknya bagi Anda yang membaca buku ini: pilihan model "yang paling cocok untuk Bahasa Indonesia" tidak lagi ditentukan oleh parameter atau harga, tetapi oleh pertanyaan yang lebih halus — *seberapa ramah gerbangnya terhadap kata-kata Anda?*
-
----
-
-## 8. Tabel Wajib
+Yang perlu disorot: ukuran *vocabulary* bukan satu-satunya penentu. WordPiece BPE yang sama bisa menghasilkan kualitas berbeda tergantung distribusi data training. Karena itu, mengukur *efisiensi token* secara langsung — bukan menebak dari ukuran vocabulary — adalah cara terbaik menilai. Bab ini memberi Anda alat untuk itu, di Seksi 8.
 
 ### Tabel 1: Perbandingan Tokenizer per Model
 
@@ -113,65 +122,6 @@ Tabel berikut menjawab pertanyaan "tokenizer siapa yang paling ramah Bahasa Indo
 
 Pola yang muncul sangat jelas: ada korelasi langsung antara *ukuran vocabulary multibahasa* dan *keramahan terhadap morfologi Indonesia*. Mistral dengan vocabulary 32K — dirancang saat *scaling* data belum memprioritaskan multibahasa — membutuhkan 9 token untuk satu kata kerja "mempertanggungjawabkan". Qwen 2.5 dan DeepSeek V4 membutuhkan 4 token; model Nusantara hanya 2. Perhatikan juga anomali menarik: GPT-5.5 dengan cl200k berhasil menekan kata itu menjadi 5 token, jauh lebih baik dari pendahulunya GPT-4o (6 token) — bukti bahwa perusahaan *frontier* mulai serius merombak tokenizer untuk bahasa non-Inggris. Rekomendasinya: jika Bahasa Indonesia adalah bahasa kerja utama Anda, prioritaskan Qwen, Gemma, atau DeepSeek V4 — atau beralih penuh ke model Nusantara jika ekosistem fine-tune-nya telah matang.
 
-### Tabel 2: Efisiensi Token untuk Bahasa Indonesia
-
-Untuk menyentuh kasus nyata, mari bandingkan empat tokenizer terhadap lima frasa Indonesia sehari-hari:
-
-| Frasa | Llama-3 | Qwen 2.5 | Gemma 2 | Nusantara-7B |
-|:---|:---:|:---:|:---:|:---:|
-| "Saya pergi ke pasar" | 5 | 3 | 4 | 3 |
-| "Pertanggungjawaban" | 5 | 3 | 3 | 2 |
-| "Menyelenggarakan" | 4 | 2 | 3 | 2 |
-| "Ketidakadilan" | 4 | 2 | 2 | 1 |
-| "Berkebinekaan" | 5 | 3 | 3 | 2 |
-| **Rata-rata token/kata** | **1.8** | **1.2** | **1.3** | **0.9** |
-
-Pola boros-hemat antar tokenizer terlihat lebih jelas ketika kelima frasa dipetakan bersisian:
-
-![Efisiensi Token 5 Frasa Bahasa Indonesia per Model](../../assets/images/bab-01-model/sub-bab-6/efisiensi-token-frasa-id.png)
-
-*Gambar 1.6-3 — Llama-3 selalu paling boros di kelima frasa (4-5 token), sementara Nusantara-7B paling hemat (1-3 token) dan bahkan memecah "Ketidakadilan" menjadi satu token utuh. Dengan rata-rata token/kata 0,9, Nusantara lebih efisien dari satu token per kata, sedangkan Llama-3 di angka 1,8.*
-
-Rata-rata token/kata adalah metrik yang paling mudah diingat: **Llama-3 1,8, Qwen 1,2, Gemma 1,3, Nusantara 0,9**. Terjemahan langsungnya: untuk kalimat yang sama, Llama-3 mengonsumsi 50% lebih banyak token daripada Qwen — dan hampir dua kali lipat Nusantara. Ini bukan sekadar statistik salon: 1,8 vs 1,2 berarti setiap dokumen Bahasa Indonesia yang Anda proses di Llama-3 membebani *context window* 50% lebih berat dan memperlambat *inference* dengan proporsi yang sama. Sementara Nusantara yang mencetak 0,9 bahkan lebih efisien daripada satu token per kata — karena kata majemuk dan bentukan umum digabung menjadi satu token utuh — menandakan tokenizer yang benar-benar "hidup" dalam morfologi Indonesia.
-
-### Tabel 3: Dampak Tokenisasi pada Biaya Inferensi
-
-Terakhir, mari rupiahkan perbedaan itu dalam metrik biaya dan konteks:
-
-| Metrik | Inggris (100 kata) | Indonesia (100 kata) Llama-3 | Indonesia (100 kata) Qwen |
-|:---|:---:|:---:|:---:|
-| Jumlah token | ~85 | ~153 | ~102 |
-| VRAM untuk KV-cache | ~3 MB | ~5.4 MB | ~3.6 MB |
-| Waktu inferensi (relatif) | 1x | 1.8x | 1.2x |
-| Konteks efektif (128K cap) | 128K token | ~71K kata | ~107K kata |
-
-Bacalah baris demi baris: 100 kata Indonesia membutuhkan 153 token di Llama-3 versus 85 token di bahasa Inggris — hampir dua kali lipat. KV-cache ikut membengkak dari ~3 MB menjadi ~5,4 MB per 100 kata, dan *waktu inferensi* naik ke 1,8 kali. Yang paling pahit ada di baris terakhir: model 128K "melegenda" itu hanya sanggup menampung ~71 ribu kata Indonesia — sementara dengan Qwen, jendela yang sama memegang ~107 ribu kata. Untuk aplikasi *RAG* yang berbagi satu jendela konteks dengan puluhan dokumen, selisih 36 ribu kata ini bisa menjadi pembeda antara jawaban yang berdasarkan konteks penuh dan jawaban yang *truncated* diam-diam. Biaya "gratis" dari model lokal ternyata punya biaya tersembunyi — dan tokenizer adalah pembukunya.
-
----
-
-## 9. Diagram & Visualisasi
-
-### Gambar 1: Proses Tokenisasi BPE
-
-Berikut peta perjalanan teks dari kalimat mentah hingga deretan ID token — lengkap dengan proses *merge* bertahap yang menjadi jantung BPE:
-
-```mermaid
-graph LR
-    TEXT[Teks Bahasa Indonesia] --> NORM[Normalisasi]
-    NORM --> BPE[BPE Tokenizer]
-    BPE --> SUB[Sub-word Splitting]
-    SUB --> ID[Token IDs]
-
-    subgraph BPE Process
-        MERGE1[Pair: 'me'+'n' -> 'men']
-        MERGE2[Pair: 'men'+'ye' -> 'menye']
-        MERGE3[...merge hingga vocab limit]
-    end
-
-    SUB --> MERGE1 --> MERGE2 --> MERGE3
-```
-
-Diagram ini memperlihatkan dua jalur yang berjalan paralel: aliran teks *yang jelas* (kiri), dan proses pembentukan token *yang tersembunyi* (kotak bawah). Kuncinya ada di anak panah terakhir: pembagian sub-word ternyata dipengaruhi oleh *merge history* — token "menye" hanya bisa tercipta jika pasangan "men"+"ye" cukup sering muncul selama pelatihan. Untuk Bahasa Indonesia yang frekuensinya di dataset global rendah, jalur bawah ini hampir tidak pernah "berpihak" pada kata Indonesia — dan akibatnya terlihat pada kolom "Contoh" di Tabel 1. Memahami diagram ini berarti memahami *mengapa* memilih model dengan tokenizer multibahasa sering kali lebih penting daripada memilih model dengan parameter terbesar.
 
 ### Gambar 2: Alur Pemilihan Model Berdasarkan Kebutuhan Bahasa
 
@@ -197,7 +147,66 @@ Alur ini merangkum seluruh bab menjadi satu keputusan praktis: bahasa kerja mene
 
 ---
 
-## 10. Praktikum / Hands-On: Menguji Tokenizer untuk Bahasa Indonesia
+
+---
+
+## 5. Dampak pada Performa: Harga yang Dibayar Setiap Percakapan
+
+
+Mari kita kalkulasikan dampak nyata pilihan tokenizer dalam angka. Untuk konten yang sama, **prompt Bahasa Indonesia di Llama-3 bisa dua kali lebih panjang** daripada versi Inggrisnya. Bayangkan Anda menyewa pengurus *storage* yang menuntut ruang dua kali lipat untuk barang yang sama — itulah yang terjadi pada konteks Anda.
+
+Di atas kertas, model dengan konteks 128K bisa memproses dokumen sepanjang 128K token. Tetapi karena satu kata Indonesia rata-rata menjadi 1,8 token, konteks itu hanya menampung sekitar **71 ribu kata** — *terpotong secara efektif* menjadi hampir separuhnya. Model dengan tokenizer lebih ramah (Qwen 2.5, rasio 1,2) masih sanggup menampung sekitar 107 ribu kata. Selisih ini tidak hanya soal kenyamanan: dalam *RAG* atau analisis dokumen panjang, pemilihan tokenizer menentukan apakah dokumen penting *masuk* ke dalam jendela perhatian model atau *tersingkir*.
+
+Selain itu, *perplexity* model terhadap prompt Indonesia cenderung lebih tinggi — model lebih "terkejut" karena aliran sub-word yang tidak lazim. Ini menjelaskan fenomena yang sering dirasakan pengguna: model menjawab dengan kalimat yang benar secara tatabahasa, tetapi "rasanya off" — kaku, penerjemahan harfiah, dan terkadang kaku morfologi. **Fine-tuning** pada data Indonesia dapat memperbaiki kualitas respons secara signifikan, tetapi tidak menghapus akar masalah: selama *tokenisasi-nya* tetap boros, harga konteks dan komputasi tetap dibayar di setiap percakapan [6].
+
+Ada satu pengamatan industri yang patut menjadi pengingat: ketika model-model *frontier* mulai melaporkan "dukungan multibahasa yang ditingkatkan", yang sering berubah sebenarnya adalah tokenizer — bukan arsitektur. GPT-5.5 yang memangkas "mempertanggungjawabkan" menjadi 5 token (dari 6 di GPT-4o) adalah contoh mutakhir: *upgrade bahasa* yang terasa oleh pengguna Indonesia sering kali adalah pergantian gerbang, bukan pergantian otak. Jika Anda melihat klaim "model baru lebih fasih berbahasa Indonesia", cara tercepat memverifikasinya bukan bertanya pada *chatbot*-nya, melainkan menghitung token-nya — caranya ada di Seksi 8 bab ini [3][7].
+
+### Tabel 3: Dampak Tokenisasi pada Biaya Inferensi
+
+Terakhir, mari rupiahkan perbedaan itu dalam metrik biaya dan konteks:
+
+| Metrik | Inggris (100 kata) | Indonesia (100 kata) Llama-3 | Indonesia (100 kata) Qwen |
+|:---|:---:|:---:|:---:|
+| Jumlah token | ~85 | ~153 | ~102 |
+| VRAM untuk KV-cache | ~3 MB | ~5.4 MB | ~3.6 MB |
+| Waktu inferensi (relatif) | 1x | 1.8x | 1.2x |
+| Konteks efektif (128K cap) | 128K token | ~71K kata | ~107K kata |
+
+Bacalah baris demi baris: 100 kata Indonesia membutuhkan 153 token di Llama-3 versus 85 token di bahasa Inggris — hampir dua kali lipat. KV-cache ikut membengkak dari ~3 MB menjadi ~5,4 MB per 100 kata, dan *waktu inferensi* naik ke 1,8 kali. Yang paling pahit ada di baris terakhir: model 128K "melegenda" itu hanya sanggup menampung ~71 ribu kata Indonesia — sementara dengan Qwen, jendela yang sama memegang ~107 ribu kata. Untuk aplikasi *RAG* yang berbagi satu jendela konteks dengan puluhan dokumen, selisih 36 ribu kata ini bisa menjadi pembeda antara jawaban yang berdasarkan konteks penuh dan jawaban yang *truncated* diam-diam. Biaya "gratis" dari model lokal ternyata punya biaya tersembunyi — dan tokenizer adalah pembukunya.
+
+---
+
+
+---
+
+## 6. Solusi dan Mitigasi: Empat Langkah Menuju Kefasihan
+
+
+Kabar baiknya, masalah ini bisa diatasi dari empat arah sekaligus:
+
+**Pertama, pilih tokenizer yang ramah.** Utamakan model dengan *vocabulary* multibahasa besar seperti Qwen (152K) atau Gemma (256K) — keduanya memperlakukan Bahasa Indonesia secara dramatis lebih baik daripada model yang dioptimalkan Inggris. Satu perubahan ini saja memangkas biaya token hingga sepertiga.
+
+**Kedua, manfaatkan model fine-tuned Indonesia.** Keluarga seperti *Llama-3-Nusantara* dan *Qwen-Nusantara* telah disesuaikan dengan percakapan lokal — tokenizer plus *pengetahuan budaya*. Untuk khalayak yang berbicara Indonesia murni, ini pilihan yang paling "dekat dengan tanah".
+
+**Ketiga, perluas *vocabulary* model.** Bagi yang sudah terlanjur berinvestasi di satu model, *embedding extension* memungkinkan penambahan *special tokens* — kata-kata kunci Indonesia yang baru — ke dalam *vocabulary*. Proses ini membutuhkan *fine-tuning* ulang singkat pada *embedding layer*, tetapi hasilnya: kata yang tadinya dipecah menjadi 6 token kini menjadi 1 token utuh.
+
+**Keempat, mainkan *prompt engineering*.** Pada model dengan tokenizer boros, strategi *mixing* bahasa bisa membantu: kampanyekan instruksi dan meta-instruksi dalam Inggris, sisakan konten pengguna dalam Indonesia. Ini bukan kemenangan ideal, tetapi taktik bertahan yang sah di saat belum ada pilihan tokenizer lokal.
+
+---
+
+## 7. Masa Depan: Tokenizer Multibahasa
+
+
+Tren 2026 menunjukkan arah yang jelas: *vocabulary* multibahasa membengkak melampaui 200K token — GPT-5.5 dengan cl200k dan DeepSeek V4 dengan 256K adalah bukti jalan ini. **BPE adaptif** — yang menyesuaikan *merge rules* terhadap distribusi bahasa di setiap domain — mulai diteliti sebagai pengganti BPE statis [6]. Inisiatif regional seperti **Sea-LION** untuk Asia Tenggara dan keluarga **Nusantara** untuk Indonesia membuktikan bahwa tokenizer yang dibangun dari bawah dengan data lokal adalah investasi yang nyata [5]. Dan untuk masa depan yang lebih jauh: *unicode-aware tokenizer* yang memahami aksara non-Latin dan bahasa aglutinatif akan menjadi standar — karena 7 miliar penutur bahasa di dunia tidak semuanya berbicara Inggris.
+
+Bagi praktisi Indonesia, tren ini membuka tiga peluang yang layak diwaspadai. Pertama, **biaya masuk fine-tuning tokenizer menurun**: tools untuk *extending vocabulary* kini tersedia di ekosistem Hugging Face, sehingga tim kecil pun bisa mengadaptasi model global ke kata-kata lokal. Kedua, **pertarungan model multibahasa baru segar**: setiap kali sebuah keluarga model besar merilis tokenizer baru (seperti DeepSeek V4 dengan generasi keduanya), lakukan pengukuran rasio token Indonesia segera — beberapa model ternyata jauh lebih ramah dari yang diklaim *marketing*-nya. Ketiga, **kolaborasi regional semakin matang**: ekosistem Sea-LION dan Nusantara saling melengkapi, artinya model yang merangkul *bahasa-bahasa Asia Tenggara* sekaligus akan lebih hemat daripada membangun tokenizer per bahasa. Masa depan bukan menunggu tokenizer sempurna — masa depan adalah *mengukur, memilih, dan ikut membangun*.
+
+Dampaknya bagi Anda yang membaca buku ini: pilihan model "yang paling cocok untuk Bahasa Indonesia" tidak lagi ditentukan oleh parameter atau harga, tetapi oleh pertanyaan yang lebih halus — *seberapa ramah gerbangnya terhadap kata-kata Anda?*
+
+---
+
+## 8. Praktikum / Hands-On: Menguji Tokenizer untuk Bahasa Indonesia
+
 
 Membaca tabel tidak cukup — mari buktikan sendiri, karena angka tokenizer adalah barang yang bisa Anda ukur langsung dalam hitungan menit.
 
@@ -317,7 +326,8 @@ Perplexity yang lebih rendah berarti model lebih "mengerti" aliran bahasa Indone
 
 ---
 
-## 11. Studi Kasus: Deploy Chatbot Bahasa Indonesia untuk Desa Digital
+## 9. Studi Kasus: Deploy Chatbot Bahasa Indonesia untuk Desa Digital
+
 
 **Latar:** Pemerintah Desa Sukamaju di Jawa Barat ingin meluncurkan chatbot informasi layanan publik dalam Bahasa Indonesia — jadwal posyandu, syarat KTP, bantuan pangan, dan prosedur administrasi. Target penggunanya: petani dan ibu rumah tangga dengan *literasi digital rendah*. Artinya, jawaban harus natural, santun, dan bisa dimengerti sekali baca — bukan bahasa "robot penerjemahan".
 
@@ -331,7 +341,8 @@ Perplexity yang lebih rendah berarti model lebih "mengerti" aliran bahasa Indone
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

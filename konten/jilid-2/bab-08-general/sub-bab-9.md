@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menguraikan komponen biaya total kepemilikan (TCO) untuk LLM general office 21-50 user ke dalam CAPEX, OPEX, dan biaya software
@@ -17,6 +18,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Komponen Biaya
+
 
 ### CAPEX: Investasi Sekali Bayar
 
@@ -30,9 +32,51 @@ Setelah membaca bab ini, Anda akan mampu:
 
 Komponen ketiga sering terlupakan: biaya software. Untuk model *open-weight* modern, biaya lisensi sebenarnya bisa nol — **DeepSeek V4 Flash** berlisensi MIT dan **Mistral Large 3** berlisensi Apache 2.0 bebas digunakan tanpa royalti, menghemat sekitar Rp 20-60 juta per tahun dibandingkan model *proprietary* berlangganan. Tetapi ada biaya software lain yang tetap muncul: *framework* inference, monitoring, dan — untuk arsitektur hybrid — biaya sewa GPU cloud yang dihitung *pay-per-use* setiap kali *burst* dipicu.
 
+### Gambar 1: Perbandingan Biaya 3 Tahun (40 User)
+
+Diagram berikut merangkum keputusan besar dalam satu pandangan: total biaya 3 tahun untuk empat jalur — on-premise, cloud, hybrid, dan langganan SaaS.
+
+```mermaid
+graph LR
+    subgraph "3-Year Cost Comparison (40 users)"
+        ONPREM[On-premise Medium\nRp 1.32M]
+        CLOUD[Cloud GPU\nRp 1.8M]
+        HYBRID[Hybrid\nRp 1.5M]
+        SAAS[ChatGPT Enterprise\nRp 1.38M]
+    end
+    ONPREM -->|CAPEX 610jt + OPEX 705jt| TOTAL1[Rp 1.32M]
+    CLOUD -->|OPEX only| TOTAL2[Rp 1.8M]
+    HYBRID -->|CAPEX 400jt + OPEX 1.1M| TOTAL3[Rp 1.5M]
+    SAAS -->|Subscription| TOTAL4[Rp 1.38M]
+```
+
+Perhatikan dua hal yang sering salah dibaca. Pertama, *cloud bukan yang termurah*: tanpa CAPEX ia justru menjadi yang termahal dalam 3 tahun. Kedua, *on-premise dan langganan SaaS hampir setara* (Rp 1,32 miliar vs Rp 1,38 miliar) — selisihnya hanya 5%, tetapi karakter biayanya berbeda total: SaaS adalah arus keluar mulus setiap bulan, sementara on-premise menumpuk modal awal lalu "menuai" di tahun-tahun berikutnya. Perbedaan karakter inilah yang menentukan apakah keputusan terbaik bagi arus kas perusahaan Anda adalah jalur A, B, C, atau D.
+
+
+### Gambar 2: Pie Chart Komponen Biaya On-premise
+
+Untuk memahami ke mana uang pergi, berikut komposisi biaya on-premise (skenario medium, 3 tahun) dalam bentuk proporsi.
+
+```mermaid
+pie showData
+    title Komponen Biaya On-premise (3 Tahun)
+    "GPU" : 40
+    "Server + Rack" : 15
+    "Listrik + Cooling" : 12
+    "SDM" : 20
+    "Storage" : 8
+    "Maintenance" : 5
+```
+
+Informasi yang paling mengejutkan dari pie chart ini mungkin bukan GPU (40%) — itu sudah diduga — melainkan **SDM (20%)** dan **Listrik + Cooling (12%)**: gabungan keduanya (32%) hampir menyamai server + storage (23%). Artinya, ketika Anda membeli server seharga Rp 610 juta, Anda juga sedang menandatangani komitmen biaya manusia dan energi yang lebih besar dari separuh komponen hardware. Kesimpulan praktis: *negosiasi paling efektif untuk menekan TCO bukan pada harga GPU, melainkan pada desain yang mereduksi kebutuhan SDM dan listrik* — misalnya *cold standby* hemat energi (Bab 8.8) dan otomasi operasional yang mengurangi jam kerja DevOps.
+
+---
+
+
 ---
 
 ## 3. Skenario Anggaran
+
 
 ### Budget Entry (Rp 200-300 juta): 21-30 User
 
@@ -45,66 +89,6 @@ Tingkatan standar untuk kantor yang asisten AI-nya sudah menjadi bagian alur ker
 ### Budget Premium (Rp 500-800 juta+): 41-50 User
 
 Tingkatan tertinggi untuk kantor yang asisten AI-nya setara layanan produksi. Spesifikasinya: **3-4 GPU H100**, *active-active*, *multi-node cluster*, dan *full knowledge graph*. Model utamanya melompat ke kelas atas: **DeepSeek V4 Pro Q4** untuk kualitas maksimal dan **Mistral Large 3 Q8** untuk presisi tertinggi. *Active-active* (RTO di bawah 5 detik) bukan lagi kemewahan melainkan kebutuhan — pada 41-50 user, satu menit downtime berarti puluhan orang tidak bekerja. Perhatikan bahwa skenario premium hampir dua kali lipat TCO skenario entry — perbedaan inilah yang harus dipertimbangkan pada Bagian 7 (ROI), karena setiap rupiah tambahan harus bisa dijustifikasi oleh produktivitas pengguna.
-
----
-
-## 4. Perbandingan On-premise vs Cloud vs Hybrid
-
-### On-premise: Kendali Penuh, Modal Besar
-
-On-premise berarti seluruh infrastruktur dibeli dan dikelola sendiri di kantor. Keunggulannya jelas: **CAPEX tinggi tetapi OPEX rendah** — setelah server terpasang, biaya bulanan hanya listrik, *maintenance*, dan SDM. Data 100% berada dalam kendali perusahaan (keamanan data "sangat tinggi"), *latency P99* rendah (di bawah 3 detik), dan tidak ada kebocoran ke server pihak ketiga. Kelemahannya: kapasitas terbatas — jika kebutuhan tiba-tiba berlipat, Anda menunggu pengadaan baru; dan kompleksitas tinggi, karena seluruh stack dari hardware hingga software menjadi tanggung jawab tim internal.
-
-### Cloud GPU: Tanpa Modal, Tagihan Bulanan
-
-Cloud GPU (misalnya *instance* GPU AWS atau GCP di *ap-southeast-1*) membalik persamaan: **CAPEX nol, OPEX tinggi**. Anda menyewa GPU per jam dan menambah-mengurangi kapasitas kapan saja — fleksibilitas yang tidak bisa ditiru on-premise, dengan kompleksitas rendah karena operasional ada di penyedia. Namun tiga konsekuensi harus diterima: total biaya 3 tahun lebih tinggi (Tabel 2: Rp 1,8 miliar vs Rp 1,32 miliar on-premise medium); data berada di *shared infrastructure* penyedia; dan *latency P99* naik menjadi 3-8 detik karena lalu lintas jaringan publik. Cloud lebih cocok sebagai titik awal uji coba atau pelengkap, bukan sebagai rumah permanen data sensitif.
-
-### Hybrid: Best of Both Worlds
-
-Hybrid menggabungkan keduanya: **on-premise untuk beban harian**, cloud untuk *burst* saat puncak — dan, seperti dibahas di Bab 8.8, sebagai jalur *cloud failover* saat keadaan darurat. Hasilnya: total biaya 3 tahun (Rp 1,5 miliar) berada di antara keduanya, keamanan data terjaga untuk beban utama (tinggi), *latency P99* tetap rendah (di bawah 3 detik), dan fleksibilitas jauh lebih baik daripada on-premise murni. Kompleksitasnya sedang — Anda harus mengelola dua dunia sekaligus, termasuk cara memigrasikan beban antar keduanya. Untuk perusahaan yang volume kerjanya berfluktuasi musiman (misalnya akhir kuartal), hybrid adalah tempat paling sehat untuk uang mereka.
-
----
-
-## 5. Biaya Listrik & Cooling
-
-### Matematika Sederhana Daya Server LLM
-
-Biaya listrik adalah OPEX yang paling sering diremehkan, padahal dapat diprediksi dengan tiga angka. GPU data center modern mengonsumsi **350-700 Watt per unit** (L40S di ujung bawah, H100 di ujung atas), dan satu server lengkap — CPU, motherboard, RAM, ditambah *cooling* untuk menghilangkan panas yang dihasilkan — total sekitar **3-5 kW**. Kalikan dengan jam operasi 24 jam, 365 hari: biaya listrik untuk sistem 4 kW dengan tarif industri Rp 1.500/kWh adalah 1.500 x 24 x 365 x 4 = **Rp 52 juta per tahun**. Angka ini adalah beban minimum; *cooling* AC ruangan menambahkan lagi **30-50% dari biaya listrik GPU** — sebuah server yang "murah" bisa menagihkan listrik lebih besar dari biaya *maintenance*-nya.
-
-### Implikasi Desain: Utilisasi Menentukan Tagihan
-
-Biaya listrik tidak linear terhadap pemakaian: server LLM yang menyala 24 jam membayar listrik penuh bahkan saat idle (kecuali di-*power down*). Inilah alasan mengapa *cold standby* (Bab 8.8) secara ekonomi menarik — GPU kadang menyala tapi idle tetap membayar listrik, sehingga memilih *standby* yang tepat sama pentingnya dengan memilih model yang tepat. Saat menghitung skenario anggaran, gunakan *kalkulator* pada Tutorial B (Bagian 10) untuk menghitung sendiri: masukkan jumlah GPU, TDP, tarif PLN Anda, dan faktor *cooling* — angka yang keluar adalah komitmen bulanan yang harus dimasukkan ke Tabel 1.
-
----
-
-## 6. Biaya SDM
-
-### DevOps, IT Support, dan Training
-
-Perangkat keras hanyalah separuh biaya; manusia adalah separuh lainnya. Untuk general office 21-50 user, kebutuhan SDM relatif ringan dibandingkan data center korporat: **DevOps/Platform Engineer paruh waktu (0.5 FTE)** dengan kisaran **Rp 10-15 juta/bulan** untuk mengelola kluster, pemantauan, dan failover; **IT Support (0.25 FTE)** sekitar **Rp 3-5 juta/bulan** untuk dukungan pengguna dan perawatan; dan **training & onboarding karyawan** sekitar **Rp 5-10 juta sekali** — biaya yang dihabiskan di awal untuk memastikan pengguna benar-benar memakai sistem, karena infrastruktur yang tidak terpakai adalah biaya terbesar yang halus.
-
-### Mengapa SDM Harus Masuk TCO
-
-Lihat Tabel 1: baris SDM/tahun adalah komponen OPEX terbesar — Rp 120 juta (entry), Rp 180 juta (medium), Rp 240 juta (premium) — melebihi gabungan listrik dan *maintenance*. Keputusan "hemat" yang sering dilakukan perusahaan adalah menekan baris ini: mempekerjakan 0.25 FTE atau meminta IT *generalist* belajar sambil jalan. Hemat jangka pendek, mahal jangka panjang — kesalahan kecil dalam konfigurasi kluster, *alerting* yang tidak ada yang memantau, atau *runbook* yang tidak pernah diuji (Bab 8.8) bisa menelan biaya *downtime* berkali lipat dari gaji yang dihemat. Untuk konteks ini, tuliskan SDM dalam proposal anggaran secara jujur, bukan optimistis.
-
----
-
-## 7. ROI & Payback Period
-
-### Titik Tolak: Berapa yang Sudah Anda Bayar?
-
-ROI tidak pernah bisa dihitung tanpa titik tolak. Untuk general office, titik tolaknya adalah biaya langganan yang sedang berjalan: **ChatGPT Enterprise $60/user/bulan** atau **GitHub Copilot $19/user/bulan**. Untuk 40 user, langganan ChatGPT Enterprise berarti **$2.400/bulan ≈ Rp 38 juta/bulan** — dan Rp 461 juta per tahun. Angka inilah "biaya yang hilang" jika Anda memilih langganan terus-menerus. Perhatikan bahwa Rp 461 juta per tahun sudah dua pertiga jurnal Tabel 1 kasus premium sekalipun — perbandingan ini yang membuat on-premise menarik secara matematis.
-
-### Menghitung Payback
-
-*Payback period* dihitung dengan membandingkan investasi CAPEX terhadap penghematan bulanan: TCO on-premise per bulan (3 tahun) = (Rp 500 juta / 36 bulan) + OPEX ≈ Rp 13,9 juta + Rp 10 juta = **Rp 23,9 juta/bulan** untuk konfigurasi setara medium. Bandingkan dengan Rp 38 juta/bulan langganan => penghematan **Rp 14,1 juta/bulan**, sehingga *payback period* jatuh di **18-24 bulan**. Ini berarti di bulan ke-18 hingga ke-24, investasi server Anda lunas dan setiap bulan berikutnya adalah penghematan murni Rp 14,1 juta. Dengan TCO 3 tahun, hampir separuh umur pakai server menjadi periode "gratis" — justifikasi finansial yang sama-sama dipakai studi kasus di Bagian 11.
-
-### Batas Kejujuran Perhitungan
-
-Perhitungan ROI hanya sebaik asumsinya. Tiga variabel yang paling sering membuat estimasi meleset: *utilisasi GPU* (server yang menganggur tidak menghasilkan penghematan), jumlah *request per user per hari* (berapa sesungguhnya beban kerja?), dan *harga pasar yang bergerak* (tarif listrik PLN, harga GPU, dan harga langganan SaaS berubah — periksa ulang saat menulis proposal). Jangan pernah menyajikan ROI sebagai angka tunggal; sajikan sebagai rentang dengan asumsi eksplisit, karena keputusan CFO paling sering ditentukan oleh kredibilitas asumsi, bukan oleh angka final.
-
----
-
-## 8. Tabel Perbandingan
 
 ### Tabel 1: Rincian Anggaran 3 Skenario
 
@@ -134,6 +118,24 @@ Tabel berikut merinci seluruh komponen biaya untuk tiga skenario — Entry, Medi
 
 Pesan utama tabel ini ada di tiga baris terakhir. Pertama, GPU memang mendominasi CAPEX, tetapi perhatikan bahwa *SDM/tahun* — bukan GPU — adalah komponen OPEX terbesar, dan pada skenario premium nilainya (Rp 240 juta/tahun) menyamai harga satu H100. Kedua, TCO 3 tahun menanjak hampir tiga kali lipat dari Entry (Rp 610 juta) ke Premium (Rp 1,83 miliar) — kenaikan yang harus dihubungkan langsung dengan jumlah user yang dilayani pada Bagian 3. Ketiga, model terpilih evolusinya mengikuti anggaran: DeepSeek V4 Flash Q4 untuk entry, Mistral Large 3 Q4 untuk medium, dan DeepSeek V4 Pro Q4 untuk premium — semuanya *open-weight* yang menghapus komponen biaya lisensi.
 
+
+---
+
+## 4. Perbandingan On-premise vs Cloud vs Hybrid
+
+
+### On-premise: Kendali Penuh, Modal Besar
+
+On-premise berarti seluruh infrastruktur dibeli dan dikelola sendiri di kantor. Keunggulannya jelas: **CAPEX tinggi tetapi OPEX rendah** — setelah server terpasang, biaya bulanan hanya listrik, *maintenance*, dan SDM. Data 100% berada dalam kendali perusahaan (keamanan data "sangat tinggi"), *latency P99* rendah (di bawah 3 detik), dan tidak ada kebocoran ke server pihak ketiga. Kelemahannya: kapasitas terbatas — jika kebutuhan tiba-tiba berlipat, Anda menunggu pengadaan baru; dan kompleksitas tinggi, karena seluruh stack dari hardware hingga software menjadi tanggung jawab tim internal.
+
+### Cloud GPU: Tanpa Modal, Tagihan Bulanan
+
+Cloud GPU (misalnya *instance* GPU AWS atau GCP di *ap-southeast-1*) membalik persamaan: **CAPEX nol, OPEX tinggi**. Anda menyewa GPU per jam dan menambah-mengurangi kapasitas kapan saja — fleksibilitas yang tidak bisa ditiru on-premise, dengan kompleksitas rendah karena operasional ada di penyedia. Namun tiga konsekuensi harus diterima: total biaya 3 tahun lebih tinggi (Tabel 2: Rp 1,8 miliar vs Rp 1,32 miliar on-premise medium); data berada di *shared infrastructure* penyedia; dan *latency P99* naik menjadi 3-8 detik karena lalu lintas jaringan publik. Cloud lebih cocok sebagai titik awal uji coba atau pelengkap, bukan sebagai rumah permanen data sensitif.
+
+### Hybrid: Best of Both Worlds
+
+Hybrid menggabungkan keduanya: **on-premise untuk beban harian**, cloud untuk *burst* saat puncak — dan, seperti dibahas di Bab 8.8, sebagai jalur *cloud failover* saat keadaan darurat. Hasilnya: total biaya 3 tahun (Rp 1,5 miliar) berada di antara keduanya, keamanan data terjaga untuk beban utama (tinggi), *latency P99* tetap rendah (di bawah 3 detik), dan fleksibilitas jauh lebih baik daripada on-premise murni. Kompleksitasnya sedang — Anda harus mengelola dua dunia sekaligus, termasuk cara memigrasikan beban antar keduanya. Untuk perusahaan yang volume kerjanya berfluktuasi musiman (misalnya akhir kuartal), hybrid adalah tempat paling sehat untuk uang mereka.
+
 ### Tabel 2: Perbandingan On-premise vs Cloud vs Hybrid (40 User, 3 Tahun)
 
 Untuk menempatkan keputusan dalam satu tabel, berikut perbandingan tiga jalur implementasi untuk konfigurasi medium dengan 40 user selama 3 tahun.
@@ -149,6 +151,50 @@ Untuk menempatkan keputusan dalam satu tabel, berikut perbandingan tiga jalur im
 | **Kompleksitas** | Tinggi | Rendah | Sedang |
 
 Tiga wawasan dari tabel ini. Pertama, *CAPEX nol bukan berarti murah*: cloud GPU justru menjadi opsi termahal dalam 3 tahun (Rp 1,8 miliar) karena seluruh biaya ditagih bulanan tanpa henti. Kedua, on-premise menang total di keamanan (sangat tinggi) dan latency (di bawah 3 detik) untuk data sensitif — dua baris yang menentukan bagi perusahaan di sektor teratur. Ketiga, hybrid hanya kalah Rp 180 juta dari on-premise murni dalam 3 tahun, tetapi membeli fleksibilitas *burst* dan jaring pengaman failover (Bab 8.8) — untuk perusahaan dengan fluktuasi musiman, selisih semacam ini adalah premi asuransi yang wajar.
+
+
+---
+
+## 5. Biaya Listrik & Cooling
+
+
+### Matematika Sederhana Daya Server LLM
+
+Biaya listrik adalah OPEX yang paling sering diremehkan, padahal dapat diprediksi dengan tiga angka. GPU data center modern mengonsumsi **350-700 Watt per unit** (L40S di ujung bawah, H100 di ujung atas), dan satu server lengkap — CPU, motherboard, RAM, ditambah *cooling* untuk menghilangkan panas yang dihasilkan — total sekitar **3-5 kW**. Kalikan dengan jam operasi 24 jam, 365 hari: biaya listrik untuk sistem 4 kW dengan tarif industri Rp 1.500/kWh adalah 1.500 x 24 x 365 x 4 = **Rp 52 juta per tahun**. Angka ini adalah beban minimum; *cooling* AC ruangan menambahkan lagi **30-50% dari biaya listrik GPU** — sebuah server yang "murah" bisa menagihkan listrik lebih besar dari biaya *maintenance*-nya.
+
+### Implikasi Desain: Utilisasi Menentukan Tagihan
+
+Biaya listrik tidak linear terhadap pemakaian: server LLM yang menyala 24 jam membayar listrik penuh bahkan saat idle (kecuali di-*power down*). Inilah alasan mengapa *cold standby* (Bab 8.8) secara ekonomi menarik — GPU kadang menyala tapi idle tetap membayar listrik, sehingga memilih *standby* yang tepat sama pentingnya dengan memilih model yang tepat. Saat menghitung skenario anggaran, gunakan *kalkulator* pada Tutorial B (Bagian 8) untuk menghitung sendiri: masukkan jumlah GPU, TDP, tarif PLN Anda, dan faktor *cooling* — angka yang keluar adalah komitmen bulanan yang harus dimasukkan ke Tabel 1.
+
+---
+
+## 6. Biaya SDM
+
+
+### DevOps, IT Support, dan Training
+
+Perangkat keras hanyalah separuh biaya; manusia adalah separuh lainnya. Untuk general office 21-50 user, kebutuhan SDM relatif ringan dibandingkan data center korporat: **DevOps/Platform Engineer paruh waktu (0.5 FTE)** dengan kisaran **Rp 10-15 juta/bulan** untuk mengelola kluster, pemantauan, dan failover; **IT Support (0.25 FTE)** sekitar **Rp 3-5 juta/bulan** untuk dukungan pengguna dan perawatan; dan **training & onboarding karyawan** sekitar **Rp 5-10 juta sekali** — biaya yang dihabiskan di awal untuk memastikan pengguna benar-benar memakai sistem, karena infrastruktur yang tidak terpakai adalah biaya terbesar yang halus.
+
+### Mengapa SDM Harus Masuk TCO
+
+Lihat Tabel 1: baris SDM/tahun adalah komponen OPEX terbesar — Rp 120 juta (entry), Rp 180 juta (medium), Rp 240 juta (premium) — melebihi gabungan listrik dan *maintenance*. Keputusan "hemat" yang sering dilakukan perusahaan adalah menekan baris ini: mempekerjakan 0.25 FTE atau meminta IT *generalist* belajar sambil jalan. Hemat jangka pendek, mahal jangka panjang — kesalahan kecil dalam konfigurasi kluster, *alerting* yang tidak ada yang memantau, atau *runbook* yang tidak pernah diuji (Bab 8.8) bisa menelan biaya *downtime* berkali lipat dari gaji yang dihemat. Untuk konteks ini, tuliskan SDM dalam proposal anggaran secara jujur, bukan optimistis.
+
+---
+
+## 7. ROI & Payback Period
+
+
+### Titik Tolak: Berapa yang Sudah Anda Bayar?
+
+ROI tidak pernah bisa dihitung tanpa titik tolak. Untuk general office, titik tolaknya adalah biaya langganan yang sedang berjalan: **ChatGPT Enterprise $60/user/bulan** atau **GitHub Copilot $19/user/bulan**. Untuk 40 user, langganan ChatGPT Enterprise berarti **$2.400/bulan ≈ Rp 38 juta/bulan** — dan Rp 461 juta per tahun. Angka inilah "biaya yang hilang" jika Anda memilih langganan terus-menerus. Perhatikan bahwa Rp 461 juta per tahun sudah dua pertiga jurnal Tabel 1 kasus premium sekalipun — perbandingan ini yang membuat on-premise menarik secara matematis.
+
+### Menghitung Payback
+
+*Payback period* dihitung dengan membandingkan investasi CAPEX terhadap penghematan bulanan: TCO on-premise per bulan (3 tahun) = (Rp 500 juta / 36 bulan) + OPEX ≈ Rp 13,9 juta + Rp 10 juta = **Rp 23,9 juta/bulan** untuk konfigurasi setara medium. Bandingkan dengan Rp 38 juta/bulan langganan => penghematan **Rp 14,1 juta/bulan**, sehingga *payback period* jatuh di **18-24 bulan**. Ini berarti di bulan ke-18 hingga ke-24, investasi server Anda lunas dan setiap bulan berikutnya adalah penghematan murni Rp 14,1 juta. Dengan TCO 3 tahun, hampir separuh umur pakai server menjadi periode "gratis" — justifikasi finansial yang sama-sama dipakai studi kasus di Bagian 9.
+
+### Batas Kejujuran Perhitungan
+
+Perhitungan ROI hanya sebaik asumsinya. Tiga variabel yang paling sering membuat estimasi meleset: *utilisasi GPU* (server yang menganggur tidak menghasilkan penghematan), jumlah *request per user per hari* (berapa sesungguhnya beban kerja?), dan *harga pasar yang bergerak* (tarif listrik PLN, harga GPU, dan harga langganan SaaS berubah — periksa ulang saat menulis proposal). Jangan pernah menyajikan ROI sebagai angka tunggal; sajikan sebagai rentang dengan asumsi eksplisit, karena keputusan CFO paling sering ditentukan oleh kredibilitas asumsi, bukan oleh angka final.
 
 ### Tabel 3: ROI vs SaaS Langganan
 
@@ -169,52 +215,15 @@ Tabel terakhir membandingkan on-premise medium dengan dua langganan SaaS paling 
 
 *Gambar 8.9-2 — Biaya per user per bulan: on-premise medium hampir 3,5x lebih murah dari ChatGPT Enterprise — namun payback terhadap Copilot yang sudah murah tetap berlangsung 30 bulan, bukan 18 bulan.*
 
-Perhatikan dua hal menarik. Pertama, on-premise medium secara per-user (Rp 275 ribu) hampir seperempat biaya ChatGPT Enterprise (Rp 960 ribu) — tetapi *payback* terhadap GitHub Copilot (30 bulan) jauh lebih lama daripada terhadap ChatGPT Enterprise (18 bulan), karena titik tolak Copilot sudah murah. Ini membuka pertanyaan yang jujur: jika kebutuhan kantor hanya *coding assistance*, Copilot mungkin sudah menjadi keputusan yang lebih efisien daripada membangun infrastruktur. Kedua, keputusan akhir tidak pernah murni finansial — keamanan data, kedaulatan data (tidak bocor ke server AS), dan latency ikut menentukan; studi kasus Bagian 11 menunjukkan bagaimana ketiganya digabung dalam satu keputusan nyata.
+Perhatikan dua hal menarik. Pertama, on-premise medium secara per-user (Rp 275 ribu) hampir seperempat biaya ChatGPT Enterprise (Rp 960 ribu) — tetapi *payback* terhadap GitHub Copilot (30 bulan) jauh lebih lama daripada terhadap ChatGPT Enterprise (18 bulan), karena titik tolak Copilot sudah murah. Ini membuka pertanyaan yang jujur: jika kebutuhan kantor hanya *coding assistance*, Copilot mungkin sudah menjadi keputusan yang lebih efisien daripada membangun infrastruktur. Kedua, keputusan akhir tidak pernah murni finansial — keamanan data, kedaulatan data (tidak bocor ke server AS), dan latency ikut menentukan; studi kasus Bagian 9 menunjukkan bagaimana ketiganya digabung dalam satu keputusan nyata.
 
 ---
 
-## 9. Diagram & Visualisasi
-
-### Gambar 1: Perbandingan Biaya 3 Tahun (40 User)
-
-Diagram berikut merangkum keputusan besar dalam satu pandangan: total biaya 3 tahun untuk empat jalur — on-premise, cloud, hybrid, dan langganan SaaS.
-
-```mermaid
-graph LR
-    subgraph "3-Year Cost Comparison (40 users)"
-        ONPREM[On-premise Medium\nRp 1.32M]
-        CLOUD[Cloud GPU\nRp 1.8M]
-        HYBRID[Hybrid\nRp 1.5M]
-        SAAS[ChatGPT Enterprise\nRp 1.38M]
-    end
-    ONPREM -->|CAPEX 610jt + OPEX 705jt| TOTAL1[Rp 1.32M]
-    CLOUD -->|OPEX only| TOTAL2[Rp 1.8M]
-    HYBRID -->|CAPEX 400jt + OPEX 1.1M| TOTAL3[Rp 1.5M]
-    SAAS -->|Subscription| TOTAL4[Rp 1.38M]
-```
-
-Perhatikan dua hal yang sering salah dibaca. Pertama, *cloud bukan yang termurah*: tanpa CAPEX ia justru menjadi yang termahal dalam 3 tahun. Kedua, *on-premise dan langganan SaaS hampir setara* (Rp 1,32 miliar vs Rp 1,38 miliar) — selisihnya hanya 5%, tetapi karakter biayanya berbeda total: SaaS adalah arus keluar mulus setiap bulan, sementara on-premise menumpuk modal awal lalu "menuai" di tahun-tahun berikutnya. Perbedaan karakter inilah yang menentukan apakah keputusan terbaik bagi arus kas perusahaan Anda adalah jalur A, B, C, atau D.
-
-### Gambar 2: Pie Chart Komponen Biaya On-premise
-
-Untuk memahami ke mana uang pergi, berikut komposisi biaya on-premise (skenario medium, 3 tahun) dalam bentuk proporsi.
-
-```mermaid
-pie showData
-    title Komponen Biaya On-premise (3 Tahun)
-    "GPU" : 40
-    "Server + Rack" : 15
-    "Listrik + Cooling" : 12
-    "SDM" : 20
-    "Storage" : 8
-    "Maintenance" : 5
-```
-
-Informasi yang paling mengejutkan dari pie chart ini mungkin bukan GPU (40%) — itu sudah diduga — melainkan **SDM (20%)** dan **Listrik + Cooling (12%)**: gabungan keduanya (32%) hampir menyamai server + storage (23%). Artinya, ketika Anda membeli server seharga Rp 610 juta, Anda juga sedang menandatangani komitmen biaya manusia dan energi yang lebih besar dari separuh komponen hardware. Kesimpulan praktis: *negosiasi paling efektif untuk menekan TCO bukan pada harga GPU, melainkan pada desain yang mereduksi kebutuhan SDM dan listrik* — misalnya *cold standby* hemat energi (Bab 8.8) dan otomasi operasional yang mengurangi jam kerja DevOps.
 
 ---
 
-## 10. Praktikum / Hands-On
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Kalkulator TCO Sederhana (Spreadsheet)
 
@@ -320,11 +329,12 @@ Terakhir, susun argumen Anda ke dalam *template* proposal yang bisa langsung dii
 
 ---
 
-## 11. Studi Kasus: Perbandingan Biaya PT Startup AI (40 User)
+## 9. Studi Kasus: Perbandingan Biaya PT Startup AI (40 User)
+
 
 **Situasi Awal.** PT Startup AI, perusahaan dengan 40 karyawan, memakai **ChatGPT Enterprise** untuk seluruh kebutuhan AI internal — *coding assistant*, *document review*, dan *data analysis*. Biayanya $60/user/bulan atau sekitar **Rp 38,4 juta/bulan** — sebuah arus kas yang membengkak seiring bertambahnya karyawan, tanpa aset apa pun yang tersisa.
 
-**Keputusan.** Manajemen memutuskan beralih ke **on-premise dengan 2× H100** (skenario medium pada Bagian 3), total investasi **Rp 610 juta**. Angka ini sempat mengguncang — hampir setengah miliar keluar di muka — tetapi analisis TCO menunjukkan garis finish: kalkulator *payback* (Tutorial A, Bagian 10) memperlihatkan bahwa langganan yang berjalan akan menelan Rp 461 juta per tahun, hampir setara biaya server dalam satu tahun.
+**Keputusan.** Manajemen memutuskan beralih ke **on-premise dengan 2× H100** (skenario medium pada Bagian 3), total investasi **Rp 610 juta**. Angka ini sempat mengguncang — hampir setengah miliar keluar di muka — tetapi analisis TCO menunjukkan garis finish: kalkulator *payback* (Tutorial A, Bagian 8) memperlihatkan bahwa langganan yang berjalan akan menelan Rp 461 juta per tahun, hampir setara biaya server dalam satu tahun.
 
 **Biaya Operasional.** Setelah server berjalan, biaya bulanan riil: **listrik Rp 3 juta/bulan** + **maintenance Rp 1,7 juta/bulan** + **SDM Rp 15 juta/bulan** (0,5 FTE DevOps) = **Rp 19,7 juta/bulan**.
 
@@ -334,7 +344,8 @@ Terakhir, susun argumen Anda ke dalam *template* proposal yang bisa langsung dii
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

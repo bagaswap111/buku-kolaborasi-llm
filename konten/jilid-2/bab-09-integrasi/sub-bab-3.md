@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Memahami Flowise sebagai *visual RAG builder* berbasis LangChain dan perbedaannya dengan platform seperti Dify
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Flowise dalam Ekosistem LLM Visual
+
 
 ### Kanvas Drag-and-Drop untuk LangChain
 
@@ -32,104 +34,6 @@ Karena posisinya itu, Flowise ideal untuk **developer yang ingin rapid prototypi
 Pilih Flowise jika tim Anda adalah developer yang ingin memahami setiap lapisan pipeline dan bereksperimen cepat dengan parameter LangChain. Pilih Dify jika kebutuhan Anda adalah aplikasi produksi yang lengkap dengan LLMOps dashboard, atau pengguna utamanya bukan developer. Pilihan lain yang sah: gunakan Flowise sebagai laboratorium riset, lalu pindahkan arsitektur yang terbukti ke aplikasi produksi — banyak tim menggunakan persis kombinasi ini.
 
 Ekosistem Flowise juga tumbuh lewat arsitektur plugin modular: node kustom bisa ditulis, dibagikan, dan dipasang dari registri komunitas. Bagi tim dengan kebutuhan internal yang unik — misalnya konektor ke sistem ERP kantor yang tidak tersedia di kategori node standar — kemampuan menulis node sendiri adalah pembeda yang membuat Flowise tetap relevan bahkan saat kebutuhan berkembang jauh melampaui loader dan retriever bawaan.
-
----
-
-## 3. Arsitektur Komponen Flowise
-
-Di kanvas Flowise, segalanya adalah node. Memahami kategorinya berarti memahami peta seluruh ekosistem LangChain:
-
-**Nodes** adalah unit dasar: setiap komponen LangChain tampil sebagai node visual dengan parameter yang dapat diedit langsung di panel. **Kategori node** yang tersedia meliputi: *LLM Models* (ChatOllama, ChatOpenAI, dst.), *Document Loaders* (PDF, CSV, JSON, Notion, Confluence, S3, Web Scraper), *Embeddings* (OpenAI, Ollama, HuggingFace, SentenceTransformers), *Vector Stores* (ChromaDB, Qdrant, Milvus, Pinecone, Weaviate, Supabase, PGVector), *Retrievers* (Similarity, MMR, Self-query, Multi-query), *Chains* (RetrievalQA, ConversationalRetrieval), *Agents* (ReAct, OpenAI Function Agent), *Tools* (Calculator, SQL, SerpAPI), dan *Memory* (BufferMemory, WindowMemory).
-
-**Canvas** adalah DAG editor tempat semua node itu disusun: dukungan *zoom*, *auto-layout*, dan *debug mode* yang menampilkan input/output setiap node secara real-time saat flow dijalankan. Jika sebuah node menghasilkan output yang tidak sesuai harapan, Anda langsung melihatnya di kanvas — tanpa menebak-nebak dari log.
-
-**Chat Widget** adalah cara paling cepat menguji: setiap flow yang disimpan otomatis memiliki widget chat yang bisa dibuka di panel *Preview*, tempat Anda mengajukan pertanyaan dan melihat jawaban lengkap dengan *source documents* yang diambil. Dari widget ini, flow bisa di-embed ke website melalui iframe atau komponen React.
-
----
-
-## 4. Pipeline RAG di Flowise
-
-Pipeline RAG di Flowise dibangun dari lima tahap yang masing-masing dapat diganti-ganti seperti modul:
-
-**Document Loader** — lebih dari 50 loader tersedia: PDF, CSV, JSON, Notion, Confluence, S3, hingga *Web Scraper*. Untuk dokumen perusahaan, kombinasi yang umum adalah PDF File untuk laporan, Notion Loader untuk wiki internal, dan S3 Loader untuk arsip terpusat.
-
-**Text Splitter** — strategi chunking yang menentukan kualitas retrieval: *RecursiveCharacter* (berdasarkan karakter dengan urutan pemisah), *Token-based*, *Markdown*, *HTML*, hingga *Code splitter*. Pemilihan strategi adalah keputusan paling berpengaruh dalam pipeline (lihat Tabel 1).
-
-**Embedding Model** — mengubah setiap chunk menjadi vektor. Dukungannya luas: OpenAI, Ollama, HuggingFace, SentenceTransformers, dengan **dukungan embedding model terbaru hingga 8192 dimensi** — seperti DeepSeek V4 Embedding (2048 dimensi) atau bge-m3 (1024 dimensi). Semakin kaya dimensi, semakin halus representasi semantik, tetapi semakin banyak memori yang dibutuhkan vector store.
-
-**Vector Store** — penyimpanan vektor dengan dukungan ChromaDB, Qdrant, Milvus, Pinecone, Weaviate, Supabase, dan PGVector. Untuk eksperimen, ChromaDB cukup; untuk produksi besar, Qdrant dengan *scalar quantization* menghemat memori hingga 4x.
-
-**Retriever & Chain** — tahap pencarian dan generasi: *Similarity search*, *MMR*, *Self-query*, *Multi-query*, *Contextual compression* sebagai mode retrieval; dan *RetrievalQA*, *ConversationalRetrievalChain* dengan mode *Stuff / MapReduce / Refine* sebagai chain generasi. Model LLM unggulan yang didukung: **DeepSeek V4 Pro/Flash** (via Ollama), **Mistral Large 3** (via Ollama/API), **GPT-5.5** (via OpenAI), **Claude Fable 5** (via Anthropic), dan **Gemini 2.5 Pro** (via Google).
-
----
-
-## 5. Agentic RAG dan Multi-Agent
-
-Pipeline RAG dasar menjawab pertanyaan dengan cara yang sama setiap kali: retrieve lalu generate. **Agentic RAG** mengambil lompatan konseptual: sebuah *agent* yang **memutuskan kapan perlu retrieve dan kapan cukup menjawab langsung**, memilih alat mana yang digunakan, dan mengevaluasi hasilnya sendiri sebelum menjawab.
-
-Pola paling berguna di Flowise adalah **self-correcting RAG**: setelah dokumen diambil, sebuah *relevance checker* (node LLM + kondisi) menilai apakah dokumen itu benar-benar relevan dengan pertanyaan. Jika tidak, alur *loop-back* mengirim query ulang ke retriever dengan formulasi berbeda — hingga batas maksimum iterasi (misalnya 5 loop) untuk mencegah *infinite loop*. Dengan pola ini, kegagalan retrieval pertama tidak otomatis menjadi jawaban yang salah; sistem mencoba lagi dengan lebih cerdas.
-
-Untuk dokumen heterogen — kontrak, laporan, email, tabel — **multi-agent orchestration** bekerja dengan pola *Supervisor + Specialist agents*: supervisor memutuskan dokumen mana yang relevan dengan pertanyaan, lalu menugaskan agent spesialis yang bersangkutan. Ditambah *tool calling*, agent juga bisa mengakses SQL, API, kalkulator, dan *search engine* — mengubah chatbot dokumen menjadi asisten analisis yang benar-benar bekerja.
-
-Perlu dicatat bahwa *agentic RAG* bukanlah pilihan yang selalu tepat. Untuk aplikasi dengan volume pertanyaan tinggi dan topik sempit (FAQ benefit karyawan, misalnya), pipeline RAG statis lebih sederhana, lebih cepat, dan lebih mudah diprediksi biayanya. Agent layak dipakai ketika pertanyaan bervariasi, dokumen beragam format, dan jawaban salah berakibat mahal — misalnya analisis kontrak atau kepatuhan regulasi, tempat *self-correction* dan *tool calling* bekerja untuk Anda. Mulailah dari pipeline statis sebagai *baseline*, ukur akurasinya, lalu tambahkan lapisan agen hanya jika baseline tidak memenuhi ambang.
-
----
-
-## 6. Eksperimen dan Evaluasi
-
-Kelebihan terbesar Flowise justru pada kecepatan eksperimennya. **Visual debugging** menampilkan input dan output setiap node secara real-time — Anda melihat persis chunk mana yang diambil retriever dan mengapa LLM menjawab demikian. **Prompt templating** memungkinkan variasi prompt di node LLM yang berbeda dalam satu flow, sehingga perbandingan prompt dilakukan berdampingan, bukan dari ingatan.
-
-**A/B testing manual** dilakukan dengan menduplikasi flow: gandakan pipeline, ubah satu parameter (misalnya chunk size dari 500 ke 1000), jalankan pertanyaan yang sama di kedua flow, dan bandingkan jawabannya. Karena semuanya visual, bahkan anggota tim non-engineer bisa ikut menilai kualitas jawaban.
-
-Yang sering diremehkan tetapi krusial: **export/import flow sebagai JSON**. Setiap flow tersimpan sebagai file JSON yang bisa di-commit ke Git — ini memberi Anda *version control* penuh atas eksperimen: kapan strategi chunking berubah, siapa yang mengubahnya, dan konfigurasi mana yang menghasilkan hasil terbaik. Eksperimen yang hilang tidak lagi menjadi tragedi; cukup *checkout* commit yang diinginkan.
-
-Satu saran organisasi praktis untuk tim: buat konvensi penamaan flow yang mencerminkan varian, misalnya `rag-kontrak-v1-chunk500`, `rag-kontrak-v2-chunk1000`, `agentic-rag-v3-multiquery`. Dengan konvensi ini, perbandingan antar eksperimen — termasuk hasil yang dipilih untuk produksi — menjadi mudah dibaca oleh seluruh tim, dan *baseline* yang buruk bisa dikembalikan kapan saja tanpa kehilangan jejak sejarah keputusan.
-
----
-
-## 7. Production Deployment
-
-Ketika eksperimen selesai dan flow terbukti, Flowise menyediakan jalur produksi yang layak. **Flowise Cloud** menawarkan *managed service* bagi tim yang tidak ingin mengelola server. **Self-hosted** bisa berupa Docker (sederhana) atau Kubernetes (skala) — pola yang sama seperti n8n di Bab 9.1.
-
-Dua cara distribusi yang paling sering dipakai: **Embedded Chat** — flow di-embed ke website perusahaan melalui iframe atau komponen React, memberikan pengalaman chatbot di halaman produk atau portal karyawan; dan **API Endpoint** — setiap flow otomatis diekspos sebagai REST API, sehingga aplikasi lain (termasuk n8n dari Bab 9.1) bisa memanggilnya dari sistem eksternal. Kombinasi keduanya membuat flow Flowise berfungsi sebagai layanan microservice AI: satu flow = satu endpoint, dengan *payload* pertanyaan masuk dan jawaban keluar.
-
-Sebelum men-deploy, biasakan memisahkan lingkungan: satu flow untuk eksperimen (bebas mengubah parameter) dan satu kopi untuk produksi yang disimpan dengan konfigurasi terkunci. Flow yang diekspos sebagai API publik sebaiknya diproteksi *API key* yang dibagikan melalui environment variable, bukan ditulis langsung di konfigurasi — kebiasaan yang sama dengan pengelolaan kredensial di n8n (Bab 9.1, bagian 6). Dengan disiplin ini, laboratorium eksperimen Flowise tidak pernah mengancam layanan produksi yang sudah berjalan.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Perbandingan Strategi Chunking untuk Dokumen Perusahaan
-
-Hasil eksperimen Flowise pada dataset 500 dokumen PDF perusahaan menunjukkan pengaruh strategi chunking terhadap kualitas retrieval — perhatikan bagaimana struktur dokumen mengubah pilihan optimal.
-
-| Strategi | Karakter per Chunk | Overlap | Recall (test set) | Precision | Best Untuk |
-|:---|:---:|:---:|:---:|:---:|:---|
-| **RecursiveCharacter** | 500 | 50 | 0.81 | 0.76 | Dokumen naratif (laporan, memo) |
-| **RecursiveCharacter** | 1000 | 200 | 0.85 | 0.72 | Dokumen teknis (manual, SOP) |
-| **Token-based** | 512 tokens | 128 | 0.83 | 0.74 | Kode, data terstruktur |
-| **Markdown splitter** | Per header | 0 | 0.88 | 0.85 | Dokumen dengan struktur jelas |
-| **Semantic chunking** | Variabel | 10% | 0.91 | 0.87 | Konten padat informasi |
-
-![Perbandingan Recall dan Precision kelima strategi chunking pada dataset 500 dokumen PDF](../../assets/images/bab-09-integrasi/sub-bab-3/strategi-chunking.png)
-
-*Gambar 9.3-1 — Perbandingan strategi chunking: semantic chunking unggul di kedua metrik (recall 0,91 / precision 0,87), tetapi markdown splitter menawarkan precision tertinggi bagi dokumen berstruktur jelas dengan biaya komputasi nol.*
-
-Analisis dari tabel ini: tidak ada satu strategi yang menang untuk semua dokumen. Dokumen naratif seperti laporan dan memo paling baik dengan chunk 500 karakter (recall 0,81) — chunk kecil menjaga fokus topik. Dokumen teknis justru lebih baik dengan chunk besar 1000 + overlap 200 (recall 0,85) karena unit makna (misalnya satu prosedur SOP) lebih panjang. Markdown splitter yang memotong per header mencapai precision tertinggi (0,85) — untuk dokumen berstruktur jelas seperti panduan dengan judul bermakna. *Semantic chunking* unggul telak (recall 0,91) pada konten padat informasi, tetapi biaya komputasinya paling tinggi karena butuh *embedding* tambahan untuk menentukan batas chunk. Catatan: data berasal dari eksperimen dengan dataset internal; verifikasi ulang dengan dataset Anda sendiri sebelum mengambil keputusan produksi.
-
-### Tabel 2: Perbandingan Mode Retrieval di Flowise
-
-Lima mode retrieval dengan karakteristik, latency, dan kasus penggunaan terbaiknya.
-
-| Mode Retrieval | Deskripsi | Latency | Recall@5 | Best For |
-|:---|:---|:---:|:---:|:---|
-| **Similarity Search** | Cosine similarity standar | <50ms | 0.78 | QA sederhana |
-| **MMR (Max Marginal Relevance)** | Diversity + relevance | <100ms | 0.82 | Butuh variasi hasil |
-| **Multi-Query** | Generate 3 variants query | <300ms | 0.88 | Query ambigu |
-| **Self-Query** | Filter by metadata | <150ms | 0.85 | Dokumen terstruktur |
-| **Contextual Compression** | Rangkai + filter chunks | <500ms | 0.90 | Konteks panjang |
-
-Pola trade-off latency vs kualitas kembali terlihat. *Similarity Search* adalah baseline: cepat (<50ms) tetapi recall rendah (0,78) — memadai untuk QA sederhana dengan pertanyaan yang jelas. *Multi-Query* yang menghasilkan tiga varian query meningkatkan recall menjadi 0,88 untuk query ambigu — sangat berguna ketika pengguna tidak tahu istilah resmi yang dipakai dokumen. *Contextual Compression* menawarkan recall tertinggi (0,90) dengan merangkai dan memfilter chunk sebelum generasi, tetapi latencynya bisa mencapai 500ms — untuk konteks panjang seperti laporan tahunan. Pilihan terbaik ditentukan oleh pertanyaan sederhana: seberapa ambigu query pengguna Anda, dan seberapa toleran mereka terhadap jeda setengah detik.
 
 ### Tabel 3: Perbandingan Node LLM Model di Flowise
 
@@ -151,6 +55,71 @@ Peta model yang tersedia sebagai node LLM di Flowise, dengan perkiraan kecepatan
 
 Tabel ini memperjelas hierarki biaya dan kualitas. Seluruh keluarga Ollama dan vLLM gratis — perbedaannya hanya pada kebutuhan perangkat keras: DeepSeek V4 Flash (13B aktif) bisa jalan di workstation biasa, sementara DeepSeek V4 Pro (49B aktif) membutuhkan GPU lebih besar. Provider cloud menawarkan kualitas "Terbaik" dengan biaya per query: GPT-4o dan Gemini 2.5 Pro sekitar $0,01/query, Claude Fable 5 $0,015/query, dan GPT-5.5 $0,02/query. Pola yang disarankan: gunakan model lokal untuk eksperimen dan data sensitif, pertahankan model cloud untuk tugas yang benar-benar membutuhkan kekuatannya, dan simpan anggaran dengan routing — query sederhana ke Flash, query kompleks ke Pro.
 
+
+---
+
+## 3. Arsitektur Komponen Flowise
+
+
+Di kanvas Flowise, segalanya adalah node. Memahami kategorinya berarti memahami peta seluruh ekosistem LangChain:
+
+**Nodes** adalah unit dasar: setiap komponen LangChain tampil sebagai node visual dengan parameter yang dapat diedit langsung di panel. **Kategori node** yang tersedia meliputi: *LLM Models* (ChatOllama, ChatOpenAI, dst.), *Document Loaders* (PDF, CSV, JSON, Notion, Confluence, S3, Web Scraper), *Embeddings* (OpenAI, Ollama, HuggingFace, SentenceTransformers), *Vector Stores* (ChromaDB, Qdrant, Milvus, Pinecone, Weaviate, Supabase, PGVector), *Retrievers* (Similarity, MMR, Self-query, Multi-query), *Chains* (RetrievalQA, ConversationalRetrieval), *Agents* (ReAct, OpenAI Function Agent), *Tools* (Calculator, SQL, SerpAPI), dan *Memory* (BufferMemory, WindowMemory).
+
+**Canvas** adalah DAG editor tempat semua node itu disusun: dukungan *zoom*, *auto-layout*, dan *debug mode* yang menampilkan input/output setiap node secara real-time saat flow dijalankan. Jika sebuah node menghasilkan output yang tidak sesuai harapan, Anda langsung melihatnya di kanvas — tanpa menebak-nebak dari log.
+
+**Chat Widget** adalah cara paling cepat menguji: setiap flow yang disimpan otomatis memiliki widget chat yang bisa dibuka di panel *Preview*, tempat Anda mengajukan pertanyaan dan melihat jawaban lengkap dengan *source documents* yang diambil. Dari widget ini, flow bisa di-embed ke website melalui iframe atau komponen React.
+
+---
+
+## 4. Pipeline RAG di Flowise
+
+
+Pipeline RAG di Flowise dibangun dari lima tahap yang masing-masing dapat diganti-ganti seperti modul:
+
+**Document Loader** — lebih dari 50 loader tersedia: PDF, CSV, JSON, Notion, Confluence, S3, hingga *Web Scraper*. Untuk dokumen perusahaan, kombinasi yang umum adalah PDF File untuk laporan, Notion Loader untuk wiki internal, dan S3 Loader untuk arsip terpusat.
+
+**Text Splitter** — strategi chunking yang menentukan kualitas retrieval: *RecursiveCharacter* (berdasarkan karakter dengan urutan pemisah), *Token-based*, *Markdown*, *HTML*, hingga *Code splitter*. Pemilihan strategi adalah keputusan paling berpengaruh dalam pipeline (lihat Tabel 1).
+
+**Embedding Model** — mengubah setiap chunk menjadi vektor. Dukungannya luas: OpenAI, Ollama, HuggingFace, SentenceTransformers, dengan **dukungan embedding model terbaru hingga 8192 dimensi** — seperti DeepSeek V4 Embedding (2048 dimensi) atau bge-m3 (1024 dimensi). Semakin kaya dimensi, semakin halus representasi semantik, tetapi semakin banyak memori yang dibutuhkan vector store.
+
+**Vector Store** — penyimpanan vektor dengan dukungan ChromaDB, Qdrant, Milvus, Pinecone, Weaviate, Supabase, dan PGVector. Untuk eksperimen, ChromaDB cukup; untuk produksi besar, Qdrant dengan *scalar quantization* menghemat memori hingga 4x.
+
+**Retriever & Chain** — tahap pencarian dan generasi: *Similarity search*, *MMR*, *Self-query*, *Multi-query*, *Contextual compression* sebagai mode retrieval; dan *RetrievalQA*, *ConversationalRetrievalChain* dengan mode *Stuff / MapReduce / Refine* sebagai chain generasi. Model LLM unggulan yang didukung: **DeepSeek V4 Pro/Flash** (via Ollama), **Mistral Large 3** (via Ollama/API), **GPT-5.5** (via OpenAI), **Claude Fable 5** (via Anthropic), dan **Gemini 2.5 Pro** (via Google).
+
+### Tabel 1: Perbandingan Strategi Chunking untuk Dokumen Perusahaan
+
+Hasil eksperimen Flowise pada dataset 500 dokumen PDF perusahaan menunjukkan pengaruh strategi chunking terhadap kualitas retrieval — perhatikan bagaimana struktur dokumen mengubah pilihan optimal.
+
+| Strategi | Karakter per Chunk | Overlap | Recall (test set) | Precision | Best Untuk |
+|:---|:---:|:---:|:---:|:---:|:---|
+| **RecursiveCharacter** | 500 | 50 | 0.81 | 0.76 | Dokumen naratif (laporan, memo) |
+| **RecursiveCharacter** | 1000 | 200 | 0.85 | 0.72 | Dokumen teknis (manual, SOP) |
+| **Token-based** | 512 tokens | 128 | 0.83 | 0.74 | Kode, data terstruktur |
+| **Markdown splitter** | Per header | 0 | 0.88 | 0.85 | Dokumen dengan struktur jelas |
+| **Semantic chunking** | Variabel | 10% | 0.91 | 0.87 | Konten padat informasi |
+
+![Perbandingan Recall dan Precision kelima strategi chunking pada dataset 500 dokumen PDF](../../assets/images/bab-09-integrasi/sub-bab-3/strategi-chunking.png)
+
+*Gambar 9.3-1 — Perbandingan strategi chunking: semantic chunking unggul di kedua metrik (recall 0,91 / precision 0,87), tetapi markdown splitter menawarkan precision tertinggi bagi dokumen berstruktur jelas dengan biaya komputasi nol.*
+
+Analisis dari tabel ini: tidak ada satu strategi yang menang untuk semua dokumen. Dokumen naratif seperti laporan dan memo paling baik dengan chunk 500 karakter (recall 0,81) — chunk kecil menjaga fokus topik. Dokumen teknis justru lebih baik dengan chunk besar 1000 + overlap 200 (recall 0,85) karena unit makna (misalnya satu prosedur SOP) lebih panjang. Markdown splitter yang memotong per header mencapai precision tertinggi (0,85) — untuk dokumen berstruktur jelas seperti panduan dengan judul bermakna. *Semantic chunking* unggul telak (recall 0,91) pada konten padat informasi, tetapi biaya komputasinya paling tinggi karena butuh *embedding* tambahan untuk menentukan batas chunk. Catatan: data berasal dari eksperimen dengan dataset internal; verifikasi ulang dengan dataset Anda sendiri sebelum mengambil keputusan produksi.
+
+
+### Tabel 2: Perbandingan Mode Retrieval di Flowise
+
+Lima mode retrieval dengan karakteristik, latency, dan kasus penggunaan terbaiknya.
+
+| Mode Retrieval | Deskripsi | Latency | Recall@5 | Best For |
+|:---|:---|:---:|:---:|:---|
+| **Similarity Search** | Cosine similarity standar | <50ms | 0.78 | QA sederhana |
+| **MMR (Max Marginal Relevance)** | Diversity + relevance | <100ms | 0.82 | Butuh variasi hasil |
+| **Multi-Query** | Generate 3 variants query | <300ms | 0.88 | Query ambigu |
+| **Self-Query** | Filter by metadata | <150ms | 0.85 | Dokumen terstruktur |
+| **Contextual Compression** | Rangkai + filter chunks | <500ms | 0.90 | Konteks panjang |
+
+Pola trade-off latency vs kualitas kembali terlihat. *Similarity Search* adalah baseline: cepat (<50ms) tetapi recall rendah (0,78) — memadai untuk QA sederhana dengan pertanyaan yang jelas. *Multi-Query* yang menghasilkan tiga varian query meningkatkan recall menjadi 0,88 untuk query ambigu — sangat berguna ketika pengguna tidak tahu istilah resmi yang dipakai dokumen. *Contextual Compression* menawarkan recall tertinggi (0,90) dengan merangkai dan memfilter chunk sebelum generasi, tetapi latencynya bisa mencapai 500ms — untuk konteks panjang seperti laporan tahunan. Pilihan terbaik ditentukan oleh pertanyaan sederhana: seberapa ambigu query pengguna Anda, dan seberapa toleran mereka terhadap jeda setengah detik.
+
+
 ### Tabel 4: Perbandingan Embedding Model untuk Pipeline Flowise
 
 Pilihan embedding menentukan kualitas representasi semantik — bandingkan dimensi, kapasitas token, dan biaya.
@@ -167,7 +136,6 @@ Analisis: untuk eksperimen gratis, nomic-embed-text (768 dimensi) adalah titik a
 
 ---
 
-## 9. Diagram dan Visualisasi
 
 ### Gambar 1: Arsitektur Flowise RAG Pipeline
 
@@ -207,7 +175,48 @@ Gambar ini adalah peta perjalanan data dalam RAG. Di *Ingestion*, berbagai sumbe
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 5. Agentic RAG dan Multi-Agent
+
+
+Pipeline RAG dasar menjawab pertanyaan dengan cara yang sama setiap kali: retrieve lalu generate. **Agentic RAG** mengambil lompatan konseptual: sebuah *agent* yang **memutuskan kapan perlu retrieve dan kapan cukup menjawab langsung**, memilih alat mana yang digunakan, dan mengevaluasi hasilnya sendiri sebelum menjawab.
+
+Pola paling berguna di Flowise adalah **self-correcting RAG**: setelah dokumen diambil, sebuah *relevance checker* (node LLM + kondisi) menilai apakah dokumen itu benar-benar relevan dengan pertanyaan. Jika tidak, alur *loop-back* mengirim query ulang ke retriever dengan formulasi berbeda — hingga batas maksimum iterasi (misalnya 5 loop) untuk mencegah *infinite loop*. Dengan pola ini, kegagalan retrieval pertama tidak otomatis menjadi jawaban yang salah; sistem mencoba lagi dengan lebih cerdas.
+
+Untuk dokumen heterogen — kontrak, laporan, email, tabel — **multi-agent orchestration** bekerja dengan pola *Supervisor + Specialist agents*: supervisor memutuskan dokumen mana yang relevan dengan pertanyaan, lalu menugaskan agent spesialis yang bersangkutan. Ditambah *tool calling*, agent juga bisa mengakses SQL, API, kalkulator, dan *search engine* — mengubah chatbot dokumen menjadi asisten analisis yang benar-benar bekerja.
+
+Perlu dicatat bahwa *agentic RAG* bukanlah pilihan yang selalu tepat. Untuk aplikasi dengan volume pertanyaan tinggi dan topik sempit (FAQ benefit karyawan, misalnya), pipeline RAG statis lebih sederhana, lebih cepat, dan lebih mudah diprediksi biayanya. Agent layak dipakai ketika pertanyaan bervariasi, dokumen beragam format, dan jawaban salah berakibat mahal — misalnya analisis kontrak atau kepatuhan regulasi, tempat *self-correction* dan *tool calling* bekerja untuk Anda. Mulailah dari pipeline statis sebagai *baseline*, ukur akurasinya, lalu tambahkan lapisan agen hanya jika baseline tidak memenuhi ambang.
+
+---
+
+## 6. Eksperimen dan Evaluasi
+
+
+Kelebihan terbesar Flowise justru pada kecepatan eksperimennya. **Visual debugging** menampilkan input dan output setiap node secara real-time — Anda melihat persis chunk mana yang diambil retriever dan mengapa LLM menjawab demikian. **Prompt templating** memungkinkan variasi prompt di node LLM yang berbeda dalam satu flow, sehingga perbandingan prompt dilakukan berdampingan, bukan dari ingatan.
+
+**A/B testing manual** dilakukan dengan menduplikasi flow: gandakan pipeline, ubah satu parameter (misalnya chunk size dari 500 ke 1000), jalankan pertanyaan yang sama di kedua flow, dan bandingkan jawabannya. Karena semuanya visual, bahkan anggota tim non-engineer bisa ikut menilai kualitas jawaban.
+
+Yang sering diremehkan tetapi krusial: **export/import flow sebagai JSON**. Setiap flow tersimpan sebagai file JSON yang bisa di-commit ke Git — ini memberi Anda *version control* penuh atas eksperimen: kapan strategi chunking berubah, siapa yang mengubahnya, dan konfigurasi mana yang menghasilkan hasil terbaik. Eksperimen yang hilang tidak lagi menjadi tragedi; cukup *checkout* commit yang diinginkan.
+
+Satu saran organisasi praktis untuk tim: buat konvensi penamaan flow yang mencerminkan varian, misalnya `rag-kontrak-v1-chunk500`, `rag-kontrak-v2-chunk1000`, `agentic-rag-v3-multiquery`. Dengan konvensi ini, perbandingan antar eksperimen — termasuk hasil yang dipilih untuk produksi — menjadi mudah dibaca oleh seluruh tim, dan *baseline* yang buruk bisa dikembalikan kapan saja tanpa kehilangan jejak sejarah keputusan.
+
+---
+
+## 7. Production Deployment
+
+
+Ketika eksperimen selesai dan flow terbukti, Flowise menyediakan jalur produksi yang layak. **Flowise Cloud** menawarkan *managed service* bagi tim yang tidak ingin mengelola server. **Self-hosted** bisa berupa Docker (sederhana) atau Kubernetes (skala) — pola yang sama seperti n8n di Bab 9.1.
+
+Dua cara distribusi yang paling sering dipakai: **Embedded Chat** — flow di-embed ke website perusahaan melalui iframe atau komponen React, memberikan pengalaman chatbot di halaman produk atau portal karyawan; dan **API Endpoint** — setiap flow otomatis diekspos sebagai REST API, sehingga aplikasi lain (termasuk n8n dari Bab 9.1) bisa memanggilnya dari sistem eksternal. Kombinasi keduanya membuat flow Flowise berfungsi sebagai layanan microservice AI: satu flow = satu endpoint, dengan *payload* pertanyaan masuk dan jawaban keluar.
+
+Sebelum men-deploy, biasakan memisahkan lingkungan: satu flow untuk eksperimen (bebas mengubah parameter) dan satu kopi untuk produksi yang disimpan dengan konfigurasi terkunci. Flow yang diekspos sebagai API publik sebaiknya diproteksi *API key* yang dibagikan melalui environment variable, bukan ditulis langsung di konfigurasi — kebiasaan yang sama dengan pengelolaan kredensial di n8n (Bab 9.1, bagian 6). Dengan disiplin ini, laboratorium eksperimen Flowise tidak pernah mengancam layanan produksi yang sudah berjalan.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial A: Setup Flowise Self-hosted
 
@@ -304,7 +313,8 @@ Keunggulan konfigurasi ini: dengan 1M context, nyaris tidak perlu chunking agres
 
 ---
 
-## 11. Studi Kasus: RAG untuk Manajemen Kontrak Perusahaan (10.000+ Dokumen)
+## 9. Studi Kasus: RAG untuk Manajemen Kontrak Perusahaan (10.000+ Dokumen)
+
 
 Departemen legal sebuah perusahaan distribusi menghadapi masalah yang familiar: mereka mengelola **lebih dari 10.000 kontrak vendor** — setiap kontrak berisi klausul penting tentang harga, jaminan, dan pembayaran. Ketika tim pengadaan perlu menjawab "kontrak mana yang berisi klausul penalti keterlambatan 2%?" atau "berapa batas kenaikan harga pada kontrak 2024?", pencarian manual memakan **30-60 menit per pertanyaan** — asumsi umum, karena tidak ada satu orang pun yang mengingat isi 10.000 dokumen.
 
@@ -325,7 +335,8 @@ Pelajaran studi kasus ini: keberhasilan RAG enterprise tidak ditentukan oleh mod
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

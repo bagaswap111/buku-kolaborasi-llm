@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan perbedaan antara *full fine-tuning*, **LoRA**, dan **QLoRA** beserta trade-off masing-masing
@@ -17,79 +18,10 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Mengapa Fine-Tuning Diperlukan?
 
+
 ### Model Umum Tidak Cukup untuk Domain Spesifik
 
 Model base yang Anda unduh dari Hugging Face dilatih pada triliunan token dari internet — luas, tetapi generik. Di domain spesifik — medis, hukum, atau bahkan bahasa Indonesia dengan konteks lokal — model ini sering gagal: menjawab dengan frasa asing, salah menafsirkan istilah, atau memberi saran yang melenceng dari SOP. Ada tiga cara mengatasinya. **Prompt engineering** adalah yang termurah tetapi dangkal — model tidak benar-benar "tahu" domainnya, hanya dipandu. **RAG** (Retrieval-Augmented Generation) bisa menjawab dengan data eksternal, tetapi butuh infrastruktur *retrieval* dan tetap tidak mengubah cara model berbicara. **Fine-tuning** adalah jawaban permanen: mengubah *weight* model itu sendiri untuk tugas dan gaya spesifik Anda — seperti menanamkan pengetahuan domain ke dalam "otot" model, bukan sekadar menyuruhnya membaca catatan setiap kali bekerja.
-
----
-
-## 3. Full Fine-Tuning vs Parameter-Efficient
-
-### Full Fine-Tuning: Kualitas Maksimal, Biaya Ekstrem
-
-*Full fine-tuning* memperbarui **semua parameter** model — dari embedding hingga lapisan terakhir. Hasilnya adalah kualitas adaptasi terbaik, tetapi harganya ekstrem: seluruh bobot harus disimpan di VRAM beserta *gradient* dan *optimizer state*-nya. Untuk Llama-3 70B, kebutuhan memorinya mencapai **~560 GB** — setara delapan kartu A100 80 GB. Anda memerlukan *cluster*, bukan satu PC.
-
-### PEFT: Mengupdate Sebagian Kecil Saja
-
-**Parameter-Efficient Fine-Tuning (PEFT)** membalik logika ini: *freeze* bobot asli, dan hanya melatih sebagian kecil parameter tambahan. Metode PEFT paling populer adalah **LoRA**, yang hanya melatih **0,1–1%** parameter model. Dengan begitu, model 70B pun bisa di-*fine-tune* di GPU tunggal. Bukan tanpa konsekuensi — kualitasnya sedikit di bawah *full fine-tuning* — tetapi selisihnya sering tak terlihat di praktik, terutama jika data latih Anda tidak terlalu besar.
-
----
-
-## 4. LoRA — Low-Rank Adaptation
-
-### Ide di Balik Matriks Low-Rank
-
-LoRA memanfaatkan satu pengamatan matematis: perubahan bobot yang dibutuhkan untuk adaptasi (ΔW) ternyata hampir selalu **ber-*rank* rendah** — ia hidup di ruang dimensi kecil. Alih-alih melatih ΔW raksasa berukuran *d × k*, LoRA mendekomposisinya menjadi dua matriks kecil: **B** berukuran *d × r* dan **A** berukuran *r × k*, dengan **r** (rank) biasanya 4–32. Dua matriks kecil inilah yang dilatih; bobot asli model tetap *frozen*.
-
-Semakin besar r, semakin banyak kapasitas adaptasi — tetapi juga semakin boros memori dan rawan *overfitting*. Aturan praktisnya: r=8–16 untuk kebanyakan tugas, r=32 untuk data besar atau gaya yang sangat berbeda. Target yang paling umum adalah proyeksi **QKV + O** pada lapisan *attention*, meskipun Anda bisa memperluas ke seluruh *linear layer* (termasuk FFN) jika ingin daya adaptasi penuh.
-
-### Tanpa Latensi Tambahan
-
-Kelebihan LoRA yang sering diabaikan: adaptor bisa **di-merge** ke bobot asli (`weight + BA`). Setelah merge, model berperilaku seperti model yang di-*fine-tune* penuh — tanpa lapisan tambahan, tanpa *inference latency*, dan tanpa beban VRAM ekstra saat serving. Satu adapter LoRA berukuran hanya puluhan megabyte, sehingga Anda bisa menyimpan puluhan adapter (gaya medis, gaya hukum, gaya sales) dan menukarnya sesuka hati tanpa menggandakan model.
-
----
-
-## 5. QLoRA — Quantized LoRA
-
-### Memori Turun 4×, Kualitas Hampir Sama
-
-**QLoRA** adalah kombinasi dua ide. Pertama, model base dikuantisasi ke **4-bit** menggunakan tipe data baru bernama **NF4 (NormalFloat4)** — tipe data yang dirancang khusus agar optimal untuk distribusi normal bobot jaringan saraf. Kedua, adaptor LoRA tetap dilatih dalam **FP16/BF16** untuk menjaga presisi *gradient*. Hasilnya: memori model turun empat kali lipat, kualitas *fine-tuning* turun hanya sekitar 1–2% dibanding LoRA FP16.
-
-QLoRA juga memperkenalkan **Double Quantization** — konstanta kuantisasi ikut dikuantisasi, menghemat tambahan sekitar 0,5 bit per parameter — serta *paged optimizer* untuk menangani lonjakan memori. Berkat semua ini, model 65B bisa di-*fine-tune* di satu GPU 48 GB, dan model 7–8B berjalan mulus di kartu 6–8 GB.
-
-### MoE Besar Kini Ikut Terjangkau
-
-Lanskap 2026 membawa kabar gembira: model *open-weight* MoE besar seperti **Mistral Large 3** (675B, Apache 2.0) dan **DeepSeek V4 Flash** (284B, MIT) kini bisa di-*fine-tune* dengan LoRA pada *expert* tertentu — meskipun tetap menuntut VRAM besar, sekitar **≥48 GB** untuk QLoRA (DeepSeek V4 Flash) hingga **96 GB** (Mistral Large 3). Ini membuka pintu personalisasi model frontier di laboratorium kecil, bukan hanya di perusahaan raksasa.
-
----
-
-## 6. Tools dan Framework
-
-Pilihan *tooling* sangat menentukan kenyamanan kerja Anda:
-
-- **Hugging Face PEFT** — pustaka standar untuk LoRA/QLoRA, terintegrasi penuh dengan Transformers dan *Trainer*; pilihan paling aman untuk mulai.
-- **Unsloth** — optimasi LoRA yang mengklaim **2× lebih cepat** dan **memori 50% lebih hemat**, dengan API satu baris; sangat populer untuk RTX 3090/4090.
-- **Axolotl** — framework berbasis konfigurasi YAML untuk *fine-tuning* yang *reproducible*; ideal untuk eksperimen tim.
-- **llama.cpp** — menawarkan *fine-tuning* GGUF eksperimental via `train()` di CPU/GPU campuran.
-- **MLX** — untuk *fine-tuning* di Apple Silicon, mulus di Mac dengan *unified memory*.
-
-Pilih berdasarkan ekosistem Anda: jika target akhirnya Ollama/GGUF, Unsloth + merge lalu konversi GGUF adalah jalan yang mulus; jika targetnya riset, PEFT dan Axolotl memberi kendali penuh.
-
----
-
-## 7. Dataset dan Konfigurasi
-
-### Format Data Menentukan Kepribadian
-
-Model belajar dari format yang Anda beri makan. **Format Alpaca** (instruction → input → output) menghasilkan model yang menjawab perintah; **format ShareGPT/chat** (percakapan multi-pesan) menghasilkan model *chat*; format **completion** cocok untuk penyelesaian teks. Jangan lupa *template prompt*: model akan mempelajari format yang dilatih, jadi gunakan template yang sama saat inferensi. Data yang berantakan formatnya akan menghasilkan model yang berantakan pula.
-
-### Hyperparameter: Empat Angka Ajaib
-
-Empat konfigurasi yang paling menentukan: **learning rate** (1e-4 hingga 3e-4 untuk LoRA — lebih tinggi dari *full fine-tuning*), **batch size** (dikali *gradient accumulation*), **epochs** (2–5; lebih dari itu jarang membantu), dan **sequence length** (sesuaikan dengan panjang teks tugas Anda). *Overfitting* adalah musuh utama — selalu sisihkan **eval set** dan pantau apakah *eval loss* naik sementara *training loss* terus turun. Jika iya, turunkan epoch, perbesar r sedikit, atau perbaiki data.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: Perbandingan Metode Fine-Tuning
 
@@ -113,39 +45,70 @@ Grafik berikut memperjelas jurang memori antar metode — skala log sengaja dipa
 
 *Gambar 1.8-1 — QLoRA menurunkan kebutuhan VRAM hingga 9× dibanding *full fine-tuning* di kelas 70B (48 GB vs 560 GB), sekaligus membuka pintu fine-tuning model MoE 284–675B di GPU 48–96 GB.*
 
-### Tabel 2: Rekomendasi Konfigurasi per Hardware
-
-Konfigurasi berikut adalah titik awal yang terbukti berjalan baik di berbagai kelas hardware:
-
-| Hardware | Metode | r | Target Modules | Batch Size | Max Seq |
-|:---|:---|:---:|:---|:---:|:---:|
-| RTX 3060 12GB | QLoRA | 8 | q_proj, v_proj | 2 | 1024 |
-| RTX 3090 24GB | QLoRA | 16 | q_proj, k_proj, v_proj, o_proj | 4 | 2048 |
-| RTX 4090 24GB | LoRA | 16 | Semua linear | 4 | 4096 |
-| A100 40GB | LoRA | 32 | Semua linear | 8 | 4096 |
-| Mac M2 24GB | QLoRA (MLX) | 8 | q_proj, v_proj | 2 | 1024 |
-| 2x RTX 3090 | QLoRA | 16 | Semua linear | 8 | 4096 |
-
-Logika di balik tabel ini: semakin terbatas VRAM, semakin kecil rank, semakin sedikit modul yang ditarget, dan semakin pendek *sequence length*. Di RTX 3060, QLoRA r=8 hanya menyasar q_proj dan v_proj karena kapasitas adaptasi terbatas; di RTX 4090, LoRA penuh dengan seluruh *linear layer* adalah pilihan wajar. Mac M2 memanfaatkan MLX karena CUDA tidak tersedia di sana.
-
-### Tabel 3: Dataset Fine-Tuning Populer
-
-Untuk mulai, Anda tidak harus membuat dataset sendiri — banyak dataset berkualitas siap pakai:
-
-| Dataset | Format | Ukuran | Bahasa | Domain | Contoh Penggunaan |
-|:---|:---|:---:|:---:|:---|:---|
-| Alpaca | Instruction | 52K | EN | General | Base instruction following |
-| OpenAssistant | Chat | 161K | Multilingual | General | Chat model |
-| CodeAlpaca | Instruction | 20K | EN | Coding | Code assistant |
-| Medicina | QA | 20K | EN | Medical | Medical chatbot |
-| Nusantara | Instruction | 10K | ID | General | Bahasa Indonesia |
-| Dolly | Instruction | 15K | EN | General | RAG-style QA |
-
-**Nusantara** patut menjadi perhatian khusus pembaca buku ini: dataset instruksi berbahasa Indonesia yang sempurna untuk memulai. Strategi yang umum adalah mulai dari dataset umum (Alpaca atau Nusantara) untuk membentuk kemampuan dasar, lalu tambahkan data domain Anda sendiri — 500–5.000 pasang QA yang baik sering kali lebih berharga daripada 100.000 pasang yang berantakan.
 
 ---
 
-## 9. Diagram & Visualisasi
+## 3. Full Fine-Tuning vs Parameter-Efficient
+
+
+### Full Fine-Tuning: Kualitas Maksimal, Biaya Ekstrem
+
+*Full fine-tuning* memperbarui **semua parameter** model — dari embedding hingga lapisan terakhir. Hasilnya adalah kualitas adaptasi terbaik, tetapi harganya ekstrem: seluruh bobot harus disimpan di VRAM beserta *gradient* dan *optimizer state*-nya. Untuk Llama-3 70B, kebutuhan memorinya mencapai **~560 GB** — setara delapan kartu A100 80 GB. Anda memerlukan *cluster*, bukan satu PC.
+
+### PEFT: Mengupdate Sebagian Kecil Saja
+
+**Parameter-Efficient Fine-Tuning (PEFT)** membalik logika ini: *freeze* bobot asli, dan hanya melatih sebagian kecil parameter tambahan. Metode PEFT paling populer adalah **LoRA**, yang hanya melatih **0,1–1%** parameter model. Dengan begitu, model 70B pun bisa di-*fine-tune* di GPU tunggal. Bukan tanpa konsekuensi — kualitasnya sedikit di bawah *full fine-tuning* — tetapi selisihnya sering tak terlihat di praktik, terutama jika data latih Anda tidak terlalu besar.
+
+### Gambar 2: Alur Kerja Fine-Tuning yang Sehat
+
+Sebagai panduan praktis, berikut siklus kerja yang disarankan — perhatikan lingkaran umpan balik evaluasi:
+
+```mermaid
+graph LR
+    DATA["Dataset Alpaca/ShareGPT"] --> TOK["Template + Tokenization"]
+    TOK --> TRAIN["Training Loop LoRA/QLoRA"]
+    TRAIN --> EVAL["Eval Set - Monitoring"]
+    EVAL --> TUNE["Tuning Hyperparameter"]
+    TUNE --> TRAIN
+    TRAIN --> SAVE["Save Adapter"]
+    SAVE --> MERGE["Merge ke Base Model"]
+    MERGE --> TEST["Uji di Ollama/GGUF"]
+```
+
+Kunci dari diagram ini adalah loop `EVAL → TUNE → TRAIN`: *fine-tuning* bukanlah sekali jalan. Pantau *eval loss* di setiap *epoch*, catat perilaku model di beberapa *test prompt*, lalu sesuaikan — ini mencegah Anda menghabiskan GPU semalaman hanya untuk menemukan model yang *overfit* di akhir.
+
+---
+
+
+---
+
+## 4. LoRA — Low-Rank Adaptation
+
+
+### Ide di Balik Matriks Low-Rank
+
+LoRA memanfaatkan satu pengamatan matematis: perubahan bobot yang dibutuhkan untuk adaptasi (ΔW) ternyata hampir selalu **ber-*rank* rendah** — ia hidup di ruang dimensi kecil. Alih-alih melatih ΔW raksasa berukuran *d × k*, LoRA mendekomposisinya menjadi dua matriks kecil: **B** berukuran *d × r* dan **A** berukuran *r × k*, dengan **r** (rank) biasanya 4–32. Dua matriks kecil inilah yang dilatih; bobot asli model tetap *frozen*.
+
+Semakin besar r, semakin banyak kapasitas adaptasi — tetapi juga semakin boros memori dan rawan *overfitting*. Aturan praktisnya: r=8–16 untuk kebanyakan tugas, r=32 untuk data besar atau gaya yang sangat berbeda. Target yang paling umum adalah proyeksi **QKV + O** pada lapisan *attention*, meskipun Anda bisa memperluas ke seluruh *linear layer* (termasuk FFN) jika ingin daya adaptasi penuh.
+
+### Tanpa Latensi Tambahan
+
+Kelebihan LoRA yang sering diabaikan: adaptor bisa **di-merge** ke bobot asli (`weight + BA`). Setelah merge, model berperilaku seperti model yang di-*fine-tune* penuh — tanpa lapisan tambahan, tanpa *inference latency*, dan tanpa beban VRAM ekstra saat serving. Satu adapter LoRA berukuran hanya puluhan megabyte, sehingga Anda bisa menyimpan puluhan adapter (gaya medis, gaya hukum, gaya sales) dan menukarnya sesuka hati tanpa menggandakan model.
+
+---
+
+## 5. QLoRA — Quantized LoRA
+
+
+### Memori Turun 4×, Kualitas Hampir Sama
+
+**QLoRA** adalah kombinasi dua ide. Pertama, model base dikuantisasi ke **4-bit** menggunakan tipe data baru bernama **NF4 (NormalFloat4)** — tipe data yang dirancang khusus agar optimal untuk distribusi normal bobot jaringan saraf. Kedua, adaptor LoRA tetap dilatih dalam **FP16/BF16** untuk menjaga presisi *gradient*. Hasilnya: memori model turun empat kali lipat, kualitas *fine-tuning* turun hanya sekitar 1–2% dibanding LoRA FP16.
+
+QLoRA juga memperkenalkan **Double Quantization** — konstanta kuantisasi ikut dikuantisasi, menghemat tambahan sekitar 0,5 bit per parameter — serta *paged optimizer* untuk menangani lonjakan memori. Berkat semua ini, model 65B bisa di-*fine-tune* di satu GPU 48 GB, dan model 7–8B berjalan mulus di kartu 6–8 GB.
+
+### MoE Besar Kini Ikut Terjangkau
+
+Lanskap 2026 membawa kabar gembira: model *open-weight* MoE besar seperti **Mistral Large 3** (675B, Apache 2.0) dan **DeepSeek V4 Flash** (284B, MIT) kini bisa di-*fine-tune* dengan LoRA pada *expert* tertentu — meskipun tetap menuntut VRAM besar, sekitar **≥48 GB** untuk QLoRA (DeepSeek V4 Flash) hingga **96 GB** (Mistral Large 3). Ini membuka pintu personalisasi model frontier di laboratorium kecil, bukan hanya di perusahaan raksasa.
 
 ### Gambar 1: Perbandingan Full FT vs LoRA vs QLoRA
 
@@ -172,27 +135,73 @@ graph TB
 
 Pada *full fine-tuning*, setiap *weight* menghasilkan *gradient* dan diperbarui — mahal. Pada LoRA, *weight* asli tetap membeku dan hanya adapter BA yang dilatih; hasilnya di-*merge* menjadi bobot baru. QLoRA menambahkan satu langkah: bobot disimpan dalam NF4 dan hanya di-*dequantize* ke FP16 saat komputasi — di sinilah penghematan memori 4× berasal.
 
-### Gambar 2: Alur Kerja Fine-Tuning yang Sehat
-
-Sebagai panduan praktis, berikut siklus kerja yang disarankan — perhatikan lingkaran umpan balik evaluasi:
-
-```mermaid
-graph LR
-    DATA["Dataset Alpaca/ShareGPT"] --> TOK["Template + Tokenization"]
-    TOK --> TRAIN["Training Loop LoRA/QLoRA"]
-    TRAIN --> EVAL["Eval Set - Monitoring"]
-    EVAL --> TUNE["Tuning Hyperparameter"]
-    TUNE --> TRAIN
-    TRAIN --> SAVE["Save Adapter"]
-    SAVE --> MERGE["Merge ke Base Model"]
-    MERGE --> TEST["Uji di Ollama/GGUF"]
-```
-
-Kunci dari diagram ini adalah loop `EVAL → TUNE → TRAIN`: *fine-tuning* bukanlah sekali jalan. Pantau *eval loss* di setiap *epoch*, catat perilaku model di beberapa *test prompt*, lalu sesuaikan — ini mencegah Anda menghabiskan GPU semalaman hanya untuk menemukan model yang *overfit* di akhir.
 
 ---
 
-## 10. Tutorial / Hands-On
+## 6. Tools dan Framework
+
+
+Pilihan *tooling* sangat menentukan kenyamanan kerja Anda:
+
+- **Hugging Face PEFT** — pustaka standar untuk LoRA/QLoRA, terintegrasi penuh dengan Transformers dan *Trainer*; pilihan paling aman untuk mulai.
+- **Unsloth** — optimasi LoRA yang mengklaim **2× lebih cepat** dan **memori 50% lebih hemat**, dengan API satu baris; sangat populer untuk RTX 3090/4090.
+- **Axolotl** — framework berbasis konfigurasi YAML untuk *fine-tuning* yang *reproducible*; ideal untuk eksperimen tim.
+- **llama.cpp** — menawarkan *fine-tuning* GGUF eksperimental via `train()` di CPU/GPU campuran.
+- **MLX** — untuk *fine-tuning* di Apple Silicon, mulus di Mac dengan *unified memory*.
+
+Pilih berdasarkan ekosistem Anda: jika target akhirnya Ollama/GGUF, Unsloth + merge lalu konversi GGUF adalah jalan yang mulus; jika targetnya riset, PEFT dan Axolotl memberi kendali penuh.
+
+---
+
+## 7. Dataset dan Konfigurasi
+
+
+### Format Data Menentukan Kepribadian
+
+Model belajar dari format yang Anda beri makan. **Format Alpaca** (instruction → input → output) menghasilkan model yang menjawab perintah; **format ShareGPT/chat** (percakapan multi-pesan) menghasilkan model *chat*; format **completion** cocok untuk penyelesaian teks. Jangan lupa *template prompt*: model akan mempelajari format yang dilatih, jadi gunakan template yang sama saat inferensi. Data yang berantakan formatnya akan menghasilkan model yang berantakan pula.
+
+### Hyperparameter: Empat Angka Ajaib
+
+Empat konfigurasi yang paling menentukan: **learning rate** (1e-4 hingga 3e-4 untuk LoRA — lebih tinggi dari *full fine-tuning*), **batch size** (dikali *gradient accumulation*), **epochs** (2–5; lebih dari itu jarang membantu), dan **sequence length** (sesuaikan dengan panjang teks tugas Anda). *Overfitting* adalah musuh utama — selalu sisihkan **eval set** dan pantau apakah *eval loss* naik sementara *training loss* terus turun. Jika iya, turunkan epoch, perbesar r sedikit, atau perbaiki data.
+
+### Tabel 2: Rekomendasi Konfigurasi per Hardware
+
+Konfigurasi berikut adalah titik awal yang terbukti berjalan baik di berbagai kelas hardware:
+
+| Hardware | Metode | r | Target Modules | Batch Size | Max Seq |
+|:---|:---|:---:|:---|:---:|:---:|
+| RTX 3060 12GB | QLoRA | 8 | q_proj, v_proj | 2 | 1024 |
+| RTX 3090 24GB | QLoRA | 16 | q_proj, k_proj, v_proj, o_proj | 4 | 2048 |
+| RTX 4090 24GB | LoRA | 16 | Semua linear | 4 | 4096 |
+| A100 40GB | LoRA | 32 | Semua linear | 8 | 4096 |
+| Mac M2 24GB | QLoRA (MLX) | 8 | q_proj, v_proj | 2 | 1024 |
+| 2x RTX 3090 | QLoRA | 16 | Semua linear | 8 | 4096 |
+
+Logika di balik tabel ini: semakin terbatas VRAM, semakin kecil rank, semakin sedikit modul yang ditarget, dan semakin pendek *sequence length*. Di RTX 3060, QLoRA r=8 hanya menyasar q_proj dan v_proj karena kapasitas adaptasi terbatas; di RTX 4090, LoRA penuh dengan seluruh *linear layer* adalah pilihan wajar. Mac M2 memanfaatkan MLX karena CUDA tidak tersedia di sana.
+
+
+### Tabel 3: Dataset Fine-Tuning Populer
+
+Untuk mulai, Anda tidak harus membuat dataset sendiri — banyak dataset berkualitas siap pakai:
+
+| Dataset | Format | Ukuran | Bahasa | Domain | Contoh Penggunaan |
+|:---|:---|:---:|:---:|:---|:---|
+| Alpaca | Instruction | 52K | EN | General | Base instruction following |
+| OpenAssistant | Chat | 161K | Multilingual | General | Chat model |
+| CodeAlpaca | Instruction | 20K | EN | Coding | Code assistant |
+| Medicina | QA | 20K | EN | Medical | Medical chatbot |
+| Nusantara | Instruction | 10K | ID | General | Bahasa Indonesia |
+| Dolly | Instruction | 15K | EN | General | RAG-style QA |
+
+**Nusantara** patut menjadi perhatian khusus pembaca buku ini: dataset instruksi berbahasa Indonesia yang sempurna untuk memulai. Strategi yang umum adalah mulai dari dataset umum (Alpaca atau Nusantara) untuk membentuk kemampuan dasar, lalu tambahkan data domain Anda sendiri — 500–5.000 pasang QA yang baik sering kali lebih berharga daripada 100.000 pasang yang berantakan.
+
+---
+
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: QLoRA Fine-Tuning dengan Hugging Face PEFT
 
@@ -331,7 +340,8 @@ Model hasil merge bisa langsung dikonversi ke GGUF dan dijalankan di Ollama — 
 
 ---
 
-## 11. Studi Kasus: Fine-Tuning untuk Medical Chatbot Bahasa Indonesia
+## 9. Studi Kasus: Fine-Tuning untuk Medical Chatbot Bahasa Indonesia
+
 
 **Skenario:** Sebuah klinik ingin membangun AI asisten untuk menjawab pertanyaan umum pasien — jadwal praktik, aturan minum obat, gejala ringan — seluruhnya dalam Bahasa Indonesia. Masalah awal: model base menjawab dengan nada medis generik dan, lebih parah, kadang memberikan saran yang berbahaya seperti mengajak pasien *self-diagnosis*.
 
@@ -351,7 +361,8 @@ Model hasil merge bisa langsung dikonversi ke GGUF dan dijalankan di Ollama — 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa agen otonom — bukan chatbot pasif — adalah lompatan berikutnya dalam komputasi personal
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Dari Chatbot ke Agent: Mesin Ketik vs Robot
+
 
 ### Mesin Ketik yang Sangat Pintar
 
@@ -34,9 +36,48 @@ Implikasi perubahan ini menjangkau cara kerja kita sehari-hari. Jika sebelumnya 
 
 Secara historis, setiap lompatan antarmuka selalu menggeser kurva keahlian. Di era *command line*, keahlian adalah menghafal sintaks; di era GUI, keahlian adalah mengenali pola visual; di era agentic, keahlian bergeser menjadi *kejelasan intensi dan kemampuan menyusun rencana yang bisa dipahami mesin*. Konsekuensinya menarik: orang yang tidak pernah belajar pemrograman kini bisa "memprogram" komputer — cukup dengan kalimat yang terstruktur baik.
 
+### Tabel 1: Chatbot vs Agent — Perbandingan Fundamental
+
+Berikut peta perbedaan paling esensial antara dua paradigma yang menentukan cara kita berinteraksi dengan komputer.
+
+| Dimensi | Chatbot (Pasif) | Agent (Aktif) |
+|:---|:---|:---|
+| **Input/Output** | Teks → Teks | Observasi → Action |
+| **State** | Stateless per turn | Stateful (konteks berkelanjutan) |
+| **Tool Access** | Tidak ada | File system, API, shell, browser |
+| **Loop** | Single turn | Think → Act → Observe → Repeat |
+| **Kontrol** | Sepenuhnya manual | Autonomi dengan supervision |
+| **Use Case** | Tanya jawab | Otomasi workflow kompleks |
+| **Keamanan** | Rendah (hanya teks) | Tinggi (perlu sandbox) |
+
+Setelah membaca baris per baris, pola yang terlihat bukanlah "chatbot yang ditingkatkan", melainkan dua kelas sistem yang berbeda secara fundamental. Dimensi yang paling menentukan adalah *Loop* dan *Control*: chatbot berhenti setelah satu jawaban karena manusia yang memegang semua kendali, sedangkan agen terus berputar pada *Think → Act → Observe* karena kendali dieksekusi oleh sistem. Konsekuensinya, *keamanan* berbanding terbalik dengan kenyamanan — semakin aktif sistem, semakin besar tanggung jawab yang Anda pikul. Pilihan "chatbot atau agen" karena itu bukan pilihan teknis semata, melainkan pilihan tentang seberapa besar kendali yang ingin Anda serahkan.
+
+
+### Gambar 1: Agent Loop — Siklus Observe-Think-Act
+
+Jantung *agentic computing* adalah lingkaran perhatian: sebuah putaran yang terus berulang sampai tugas selesai.
+
+```mermaid
+graph TD
+    A[User Task] --> B[Planner CoT]
+    B --> C[Tool Selector]
+    C --> D[File System / Shell / Browser / API]
+    D --> E[Result]
+    E --> F[Memory Update]
+    F --> G{Task Selesai?}
+    G -- Belum --> B
+    G -- Ya --> H[Next Step / Report]
+```
+
+Diagram ini menunjukkan *agent loop* dalam bentuk paling murni: tugas masuk ke *Planner* yang menyusun langkah (CoT), *Tool Selector* memilih alat yang tepat, alat dieksekusi, hasilnya diamati, dan memori diperbarui. Keputusan ada di *diamond* di tengah: bila tugas belum selesai, putaran kembali ke *Planner* dengan memori yang lebih kaya — ini yang membuat setiap iterasi lebih cerdas dari iterasi sebelumnya. Bila selesai, agen melapor. Poin penting yang sering luput: tidak ada *arrow* yang keluar dari diagram ini menuju manusia — intervensi manusia hanya terjadi melalui *approval gates* di titik-titik tertentu, bukan di setiap langkah. Inilah keseimbangan *autonomy with supervision* yang menjadi ciri khas OpenClaw.
+
+Dua varian *loop* ini layak dikenal. *Single-step loop* — pola paling sederhana, cocok untuk tugas seperti transkripsi file — menjalankan satu siklus *plan → act → observe* lalu berhenti. *Multi-step loop* — seperti pada diagram di atas — berulang hingga kriteria selesai terpenuhi, dan inilah yang dibutuhkan tugas seperti "bersihkan direktori proyek" yang melibatkan puluhan keputusan kecil. Perbedaan keduanya persis seperti membeli bahan sekali (*single*) dibandingkan berbelanja sambil memeriksa dapur setiap kali (*multi*): yang kedua lebih lambat per langkahnya, tetapi lebih hemat dan tepat sasaran untuk tugas kompleks. ReAct [4] adalah contoh formal dari *multi-step loop* yang akan dibedah di Bab 4.3.
+
+
 ---
 
 ## 3. Apa Itu OpenClaw?
+
 
 ### Platform Agen Otonom Open-Source
 
@@ -60,9 +101,30 @@ OpenClaw tidak hidup sendiri. Ia hadir dalam empat bentuk yang saling melengkapi
 
 Pilih antarmuka berdasarkan konteks kerja Anda, bukan berdasarkan mode. Pengguna yang sering bekerja di terminal akan betah di CLI karena ia bisa dipanggil dari dalam skrip dan *cron job* — otomasi yang mengotomasi otomasi. Pengembang yang menulis kode sepanjang hari lebih produktif dengan ekstensi VS Code karena konteks kode langsung tersedia bagi agen. Tim yang mengawasi banyak tugas paralel mendapat manfaat dari Kanban: setiap kartu adalah satu agen, setiap kolom adalah tahap pengerjaan, dan status terlihat sekilas tanpa membuka log. Semua pintu masuk ini menuju *engine* yang sama, sehingga menguasai satu berarti menguasai semuanya — inilah keputusan desain yang membuat OpenClaw mudah diadopsi bertahap.
 
+### Gambar 2: Stack Filosofi OpenClaw — Tiga Lapisan
+
+Arsitektur OpenClaw tersusun berlapis seperti makanan siap saji: antarmuka di atas, mesin di tengah, otak di bawah.
+
+```mermaid
+graph TD
+    A[Interface: CLI / VS Code Extension / Kanban Multi-Agent] -->|instruksi user| B[OpenClaw Agent Engine]
+    B -->|panggil alat| C[Tool Use: file system, shell, browser, API]
+    B -->|susun rencana| D[Planning: CoT + ReAct]
+    B -->|simpan konteks| E[Memory: short-term window + RAG/file]
+    B -->|jaga batas| F[Autonomy: approval gates + sandbox]
+    B -->|inference| G[Local LLM: Ollama / LM Studio]
+    G -->|token output| B
+```
+
+Tiga lapisan terlihat jelas. Lapisan atas adalah antarmuka yang beragam — CLI untuk ketangkasan, VS Code untuk coding, Kanban untuk pengawasan multi-agen. Lapisan tengah adalah *OpenClaw Agent Engine* yang merangkai empat pilar: *Tool Use*, *Planning*, *Memory*, dan *Autonomy*. Lapisan bawah adalah *Local LLM* (via Ollama atau LM Studio) yang menjadi otak — dengan *arrow* kembali ke atas, memperlihatkan bahwa hasil inference selalu mengalir balik ke engine untuk langkah berikutnya. Kecantikan arsitektur ini ada pada *decoupling*: Anda bisa mengganti lapisan bawah (dari model 8B ke DeepSeek V4 Flash) atau lapisan atas (dari CLI ke Kanban) tanpa menyentuh mesin di tengah.
+
+---
+
+
 ---
 
 ## 4. Empat Pilar Agentic Computing
+
 
 ### Pilar 1: Tool Use (Function Calling)
 
@@ -86,15 +148,32 @@ Empat pilar ini tidak bekerja sendiri-sendiri — ia saling menguatkan seperti k
 
 ## 5. Passive LLM vs Active Agent
 
+
 Setelah memahami empat pilar, kita bisa memetakan perbedaan *chatbot* dan *agent* secara tegas. Chatbot bekerja dalam satu putaran (*single-turn*): pertanyaan masuk, jawaban keluar, selesai. Ia *stateless* — tidak mengingat apa-apa antar putaran — dan tidak memiliki akses ke alat apa pun. Agent bekerja dalam banyak putaran (*multi-turn*): ia mengamati, berpikir, bertindak, mengamati lagi, dan mengulang sampai tuntas. Ia *stateful* — konteks terus diperbarui di setiap langkah — dan punya akses ke *file system*, API, *shell*, dan *browser*.
 
 Contoh nyata yang mudah dikenali: ChatGPT adalah *passive LLM* — mumpuni dalam percakapan, tetapi buntu ketika diminta "tolong backup folder saya". OpenClaw atau Cline adalah *active agent* — dengan satu instruksi, mereka menyusun rencana, menjalankan perintah, dan melaporkan hasil. Perbandingan lengkapnya dapat Anda lihat pada **Tabel 1** di seksi tabel nanti; poin terpentingnya adalah kontrol bergeser dari manusia yang mengoperasikan ke manusia yang *mengawasi*.
 
 Perlu kejujuran di sini: kedua paradigma tetap punya tempatnya masing-masing di tahun 2026. Chatbot masih yang terbaik untuk menjawab pertanyaan cepat, menulis draf, dan mengoreksi teks — tugas yang satu putaran dan tidak menyentuh sistem Anda. Agen baru unggul ketika tugasnya *multi-step*, menyentuh banyak *tool*, dan berulang. Kesalahan umum yang dilakukan pengguna baru adalah memaksakan semua interaksi menjadi sesi agen; pemborosan yang sama seperti membawa robot ke meja untuk menanyakan "jam berapa sekarang". Kuncinya adalah *memilih alat sesuai tugas* — dan buku ini ditulis agar Anda bisa membedakan keduanya dengan cepat.
 
+### Tabel 2: Perbandingan Filosofi Framework Agent
+
+OpenClaw bukan satu-satunya framework agen yang ada. Tabel ini membandingkannya dengan tiga pesaing populer agar Anda tahu kapan masing-masing paling tepat.
+
+| Aspek | OpenClaw | AutoGen (Microsoft) | LangChain Agents | CrewAI |
+|:---|:---|:---|:---|:---|
+| **Fokus** | Agen personal lokal | Multi-agent conversation | Chain/pipeline | Role-based crew |
+| **Tool-first** | Ya (built-in) | Via plugin | Ya (integrations) | Ya |
+| **Sandbox** | Docker-in-Docker | Tidak built-in | Tidak built-in | Tidak built-in |
+| **Local LLM** | First-class | Via config | Via config | Via Ollama |
+| **Human-in-loop** | Ya (approval gates) | Opsional | Opsional | Opsional |
+
+Analisisnya menarik: OpenClaw adalah satu-satunya framework yang menjadikan *sandbox* dan *human-in-loop* sebagai fitur bawaan, bukan *add-on*. Bagi penggunaan personal dengan data sensitif, keduanya bukan kemewahan — melainkan prasyarat keamanan. AutoGen unggul bila Anda ingin meniru percakapan antar-agen, LangChain unggul sebagai lapisan integrasi umum, dan CrewAI unggul ketika tugas perlu dibagi per peran. Namun bila kriteria Anda adalah "agent lokal yang aman untuk dipakai setiap hari", OpenClaw menawarkan paket yang paling lengkap sejak awal — yang justru menjadi kelemahannya: ekosistem ketiganya lebih besar dan dokumentasi komunitasnya lebih banyak.
+
+
 ---
 
 ## 6. Mengapa Local-First?
+
 
 ### Privasi dan Latensi
 
@@ -116,45 +195,12 @@ Bahkan arsitektur paling pragmatis sekalipun — *hybrid* — berakar pada fonda
 
 ## 7. Tantangan & Risiko: Kekuatan yang Perlu Sangkur
 
+
 Kekuatan agen adalah juga bahayanya. Setiap pilar yang membuat agen berguna — akses *shell*, otonomi, memori — adalah permukaan serangan baru. Risiko pertama: **keamanan**. Agen dengan akses *shell* bisa menghapus data, menimpa file penting, atau menjalankan perintah yang merusak sistem. Kesalahan satu argumen dalam satu panggilan tool bisa berarti hilangnya folder yang berisi tahunan pekerjaan. Risiko kedua: **halusinasi yang berbahaya**. Jika agen salah menalar, ia bisa mengeksekusi perintah yang salah — dan karena ia "percaya diri", kesalahan ini bisa berlangsung beberapa langkah sebelum terdeteksi [1].
 
 Solusinya berlapis, seperti *sangkur* (pengaman) pada peralatan listrik. Pertama, **sandboxing Docker**: jalankan agen di kontainer yang terisolasi sehingga kerusakan tidak menjalar ke sistem utama. Kedua, **approval gates**: perintah berisiko (menghapus, menimpa, mengirim data keluar) menunggu persetujuan manusia. Ketiga, **permission system**: setiap tool memiliki izin granular — agent boleh membaca, tetapi tidak boleh menulis; boleh mengakses satu folder, tetapi tidak seluruh disk. Filosofi OpenClaw merangkumnya dalam satu aturan sederhana: **delegasikan tugas, tetapi jangan pernah mengirimkan kedaulatan**. Bab 4.8 buku ini akan membahas keamanan sandbox secara menyeluruh.
 
 Dalam praktiknya, keamanan agen adalah *manajemen risiko*, bukan *penghapusan risiko*. Mustahil membuat agen yang serba bisa dan serba aman sekaligus; yang bisa diatur adalah *peluang dan dampak* kecelakaan. Analisis risiko sederhana berbunyi seperti ini: tool apa yang paling berbahaya? (jawabannya *shell* dan *database*), kapan ia paling sering salah? (saat instruksi ambigu), dan berapa besar kerugian jika salah? (sebanding dengan apa yang bisa disentuh agen). Dari tiga jawaban itu Anda bisa menyusun kebijakan: batasi tool berbahaya dengan sandbox, minta konfirmasi untuk instruksi ambigu, dan sempitkan akses agen ke folder kerja saja. Kebiasaan ini — berpikir seperti *insurer* sebelum berpikir seperti *programmer* — membedakan pengguna agen yang bertahan lama dari yang berhenti setelah satu kecelakaan.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Chatbot vs Agent — Perbandingan Fundamental
-
-Berikut peta perbedaan paling esensial antara dua paradigma yang menentukan cara kita berinteraksi dengan komputer.
-
-| Dimensi | Chatbot (Pasif) | Agent (Aktif) |
-|:---|:---|:---|
-| **Input/Output** | Teks → Teks | Observasi → Action |
-| **State** | Stateless per turn | Stateful (konteks berkelanjutan) |
-| **Tool Access** | Tidak ada | File system, API, shell, browser |
-| **Loop** | Single turn | Think → Act → Observe → Repeat |
-| **Kontrol** | Sepenuhnya manual | Autonomi dengan supervision |
-| **Use Case** | Tanya jawab | Otomasi workflow kompleks |
-| **Keamanan** | Rendah (hanya teks) | Tinggi (perlu sandbox) |
-
-Setelah membaca baris per baris, pola yang terlihat bukanlah "chatbot yang ditingkatkan", melainkan dua kelas sistem yang berbeda secara fundamental. Dimensi yang paling menentukan adalah *Loop* dan *Control*: chatbot berhenti setelah satu jawaban karena manusia yang memegang semua kendali, sedangkan agen terus berputar pada *Think → Act → Observe* karena kendali dieksekusi oleh sistem. Konsekuensinya, *keamanan* berbanding terbalik dengan kenyamanan — semakin aktif sistem, semakin besar tanggung jawab yang Anda pikul. Pilihan "chatbot atau agen" karena itu bukan pilihan teknis semata, melainkan pilihan tentang seberapa besar kendali yang ingin Anda serahkan.
-
-### Tabel 2: Perbandingan Filosofi Framework Agent
-
-OpenClaw bukan satu-satunya framework agen yang ada. Tabel ini membandingkannya dengan tiga pesaing populer agar Anda tahu kapan masing-masing paling tepat.
-
-| Aspek | OpenClaw | AutoGen (Microsoft) | LangChain Agents | CrewAI |
-|:---|:---|:---|:---|:---|
-| **Fokus** | Agen personal lokal | Multi-agent conversation | Chain/pipeline | Role-based crew |
-| **Tool-first** | Ya (built-in) | Via plugin | Ya (integrations) | Ya |
-| **Sandbox** | Docker-in-Docker | Tidak built-in | Tidak built-in | Tidak built-in |
-| **Local LLM** | First-class | Via config | Via config | Via Ollama |
-| **Human-in-loop** | Ya (approval gates) | Opsional | Opsional | Opsional |
-
-Analisisnya menarik: OpenClaw adalah satu-satunya framework yang menjadikan *sandbox* dan *human-in-loop* sebagai fitur bawaan, bukan *add-on*. Bagi penggunaan personal dengan data sensitif, keduanya bukan kemewahan — melainkan prasyarat keamanan. AutoGen unggul bila Anda ingin meniru percakapan antar-agen, LangChain unggul sebagai lapisan integrasi umum, dan CrewAI unggul ketika tugas perlu dibagi per peran. Namun bila kriteria Anda adalah "agent lokal yang aman untuk dipakai setiap hari", OpenClaw menawarkan paket yang paling lengkap sejak awal — yang justru menjadi kelemahannya: ekosistem ketiganya lebih besar dan dokumentasi komunitasnya lebih banyak.
 
 ### Tabel 3: Evolusi Komputasi Personal
 
@@ -171,48 +217,11 @@ Membaca tabel ini secara diagonal, pola yang konsisten adalah *penurunan hambata
 
 ---
 
-## 9. Diagram & Visualisasi
-
-### Gambar 1: Agent Loop — Siklus Observe-Think-Act
-
-Jantung *agentic computing* adalah lingkaran perhatian: sebuah putaran yang terus berulang sampai tugas selesai.
-
-```mermaid
-graph TD
-    A[User Task] --> B[Planner CoT]
-    B --> C[Tool Selector]
-    C --> D[File System / Shell / Browser / API]
-    D --> E[Result]
-    E --> F[Memory Update]
-    F --> G{Task Selesai?}
-    G -- Belum --> B
-    G -- Ya --> H[Next Step / Report]
-```
-
-Diagram ini menunjukkan *agent loop* dalam bentuk paling murni: tugas masuk ke *Planner* yang menyusun langkah (CoT), *Tool Selector* memilih alat yang tepat, alat dieksekusi, hasilnya diamati, dan memori diperbarui. Keputusan ada di *diamond* di tengah: bila tugas belum selesai, putaran kembali ke *Planner* dengan memori yang lebih kaya — ini yang membuat setiap iterasi lebih cerdas dari iterasi sebelumnya. Bila selesai, agen melapor. Poin penting yang sering luput: tidak ada *arrow* yang keluar dari diagram ini menuju manusia — intervensi manusia hanya terjadi melalui *approval gates* di titik-titik tertentu, bukan di setiap langkah. Inilah keseimbangan *autonomy with supervision* yang menjadi ciri khas OpenClaw.
-
-Dua varian *loop* ini layak dikenal. *Single-step loop* — pola paling sederhana, cocok untuk tugas seperti transkripsi file — menjalankan satu siklus *plan → act → observe* lalu berhenti. *Multi-step loop* — seperti pada diagram di atas — berulang hingga kriteria selesai terpenuhi, dan inilah yang dibutuhkan tugas seperti "bersihkan direktori proyek" yang melibatkan puluhan keputusan kecil. Perbedaan keduanya persis seperti membeli bahan sekali (*single*) dibandingkan berbelanja sambil memeriksa dapur setiap kali (*multi*): yang kedua lebih lambat per langkahnya, tetapi lebih hemat dan tepat sasaran untuk tugas kompleks. ReAct [4] adalah contoh formal dari *multi-step loop* yang akan dibedah di Bab 4.3.
-
-### Gambar 2: Stack Filosofi OpenClaw — Tiga Lapisan
-
-Arsitektur OpenClaw tersusun berlapis seperti makanan siap saji: antarmuka di atas, mesin di tengah, otak di bawah.
-
-```mermaid
-graph TD
-    A[Interface: CLI / VS Code Extension / Kanban Multi-Agent] -->|instruksi user| B[OpenClaw Agent Engine]
-    B -->|panggil alat| C[Tool Use: file system, shell, browser, API]
-    B -->|susun rencana| D[Planning: CoT + ReAct]
-    B -->|simpan konteks| E[Memory: short-term window + RAG/file]
-    B -->|jaga batas| F[Autonomy: approval gates + sandbox]
-    B -->|inference| G[Local LLM: Ollama / LM Studio]
-    G -->|token output| B
-```
-
-Tiga lapisan terlihat jelas. Lapisan atas adalah antarmuka yang beragam — CLI untuk ketangkasan, VS Code untuk coding, Kanban untuk pengawasan multi-agen. Lapisan tengah adalah *OpenClaw Agent Engine* yang merangkai empat pilar: *Tool Use*, *Planning*, *Memory*, dan *Autonomy*. Lapisan bawah adalah *Local LLM* (via Ollama atau LM Studio) yang menjadi otak — dengan *arrow* kembali ke atas, memperlihatkan bahwa hasil inference selalu mengalir balik ke engine untuk langkah berikutnya. Kecantikan arsitektur ini ada pada *decoupling*: Anda bisa mengganti lapisan bawah (dari model 8B ke DeepSeek V4 Flash) atau lapisan atas (dari CLI ke Kanban) tanpa menyentuh mesin di tengah.
 
 ---
 
-## 10. Praktikum / Hands-On
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Instal OpenClaw CLI
 
@@ -314,7 +323,8 @@ Setelah berjalan, periksa file `hello.txt` di direktori yang sama — isinya "He
 
 ---
 
-## 11. Studi Kasus: Migrasi dari ChatGPT ke Agent Lokal
+## 9. Studi Kasus: Migrasi dari ChatGPT ke Agent Lokal
+
 
 **Profil:** Rina, seorang *content creator* yang setiap minggu merekam 10-20 file audio percakapan. Alur kerjanya konstan: ambil file dari folder rekaman → transkripsikan dengan Whisper → rangkum dengan LLM → simpan ringkasan ke aplikasi catatan lokal (Notion-Local). Masalahnya: seluruh proses ini *manual*.
 
@@ -334,7 +344,8 @@ Setelah berjalan, periksa file `hello.txt` di direktori yang sama — isinya "He
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

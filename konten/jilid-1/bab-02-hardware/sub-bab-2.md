@@ -12,6 +12,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa **memory bandwidth (GB/s)** adalah metrik paling krusial untuk
@@ -29,6 +30,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa VRAM Bandwidth adalah Raja
+
 
 ### Fase Decode: Parade yang Berjalan Melalui Satu Pintu
 
@@ -74,6 +76,7 @@ dihitung hanyalah aliran.
 
 ## 3. Prefill vs Decode: Dua Wajah Beban Kerja
 
+
 ### Fase Prefill: Ketika Komputasi Masih Menang
 
 Sebelum decode, ada fase yang sering dilupakan: **prefill** — saat GPU memproses
@@ -111,6 +114,7 @@ context*, ia bisa menjadi pembeda antara model yang "terbata-bata" dan model yan
 
 ## 4. Anatomi Memory GPU
 
+
 ### Tiga Sekrup yang Menahan Semuanya
 
 Bandwidth GPU bukanlah angka ajaib; ia adalah hasil kali tiga komponen: **bus-width**
@@ -146,100 +150,6 @@ berarti "lebih cepat" — yang dihitung tetaplah lebar gerbang dan kecepatan ali
 Setiap kali Anda melihat sebuah GPU "mahal tapi cepat", sebagian besar harga itu
 sebenarnya dibayarkan untuk lebar gerbang.
 
----
-
-## 5. Bandwidth yang Dibutuhkan per Model
-
-### Berhitung Sebelum Membayar
-
-Setiap model adalah "permintaan" dan setiap GPU adalah "pemasok". Pertanyaan yang
-harus dijawab sebelum membeli: *berapa liter/detik air yang dibutuhkan kolam saya?*
-Ambil contoh model 7B dalam FP16: bobotnya 14 GB, dan setiap token baru menuntut
-pembacaan seluruh 14 GB tersebut per langkah (ditambah KV cache dan overhead). Dengan
-GPU berbandwidth 272 GB/s, satu token ekor-ke-ekor memakan waktu sekitar 50-70
-milidetik — terasa lambat di mata, mustahil untuk *agent* yang responsif.
-
-Sekarang terapkan **kuantisasi**: model 7B yang sama dalam Q4_K_M menyusut menjadi
-~4 GB. Kebutuhan bandwidth per token turun *empat kali*, dan kecepatan token naik
-dengan proporsi yang sama. Inilah mengapa komunitas lokal menyebut kuantisasi sebagai
-"mesin waktu": kartu yang tadi hanya mampu 30 token/detik bisa melompat ke 110
-token/detik tanpa mengganti satu komponen pun. Semakin besar model, semakin dramatis
-efeknya — Llama-3.1-70B FP16 (140 GB) membutuhkan bandwidth minimum ~160 GB/s hanya
-untuk berjalan pelan 4 token/detik, sementara versi Q4 (40 GB) membuka pintu untuk GPU
-kelas 3090 yang "hanya" 936 GB/s. Ukuran model menentukan kelas GPU Anda; bandwidth
-menentukan siapa di kelas mana.
-
----
-
-## 6. Pengaruh Kuantisasi pada Bandwidth Utilization
-
-### Garis Lurus yang Mulai Melengkung
-
-Jika kuantisasi sesederhana garis lurus, semua orang akan mengkuantisasi sampai 2-bit.
-Kenyataannya ada titik di mana garis itu melengkung: **overhead dequantisasi**. Model
-terkuantisasi tidak disimpan sebagai FP16; ia disimpan sebagai bilangan bulat 4-bit
-yang harus *didequantisasi* — dikembalikan ke format floating point — sebelum dikalikan.
-Proses ini adalah beban komputasi (compute) di dalam unit pemrosesan. Semakin agresif
-kuantisasi, semakin besar beban dequantisasi per token, hingga pada titik tertentu
-bottleneck bergeser: dari *memori yang kehabisan aliran* menjadi *prosesor yang
-kehabisan waktu*.
-
-Keseimbangan terbaik saat ini, berdasarkan konsensus praktik komunitas, terletak pada
-**Q4_K_M atau Q5_K_M**. Di titik ini, pengurangan data (4x lebih kecil) masih
-diterjemahkan hampir linier ke kecepatan, sementara biaya dequantisasi masih relatif
-kecil. Di bawahnya — kuantisasi 2-3 bit — penghematan bandwidth mulai dimakan habis oleh
-komputasi tambahan, dan kualitas output menurun tanpa manfaat kecepatan yang sepadan.
-Seperti diet ekstrem: pada titik tertentu, yang berkurang bukan lemak, melainkan otot.
-Untuk model yang *compute-bound* di prefill (prompt raksasa), titik keseimbangan ini
-bahkan bisa bergeser lebih tinggi — Q6/Q8 justru menjadi pilihan bijak.
-
----
-
-## 7. Benchmarks GPU per Bandwidth Class
-
-Para penguji independen sudah memotret hubungan ini dengan kamera *llama-bench*. Untuk
-model **Llama-3-8B Q4_K_M** (4,5 GB), deret GPU berikut menunjukkan pola yang hampir
-menakutkan keteraturannya: **RTX 4060** (272 GB/s) menghasilkan ~30 t/s; **RTX 4070**
-(504 GB/s) ~55 t/s; **RTX 4080 Super** (736 GB/s) ~80 t/s; **RTX 4090** (1.008 GB/s)
-~110 t/s. Perhatikan intervalnya: setiap kenaikan bandwidth sekitar 230-270 GB/s
-menambah sekitar 25-30 t/s. **Scaling hampir linear — dua kali bandwidth berarti
-sekitar dua kali token/detik** untuk model yang muat di VRAM.
-
-Interpretasi sederhananya: jika Anda sedang mempertimbangkan dua kartu yang VRAM-nya
-sama (misalnya 24 GB RTX 3090 vs 24 GB RTX 4090), perbandingan performa sebenarnya
-sudah ditentukan sebelumnya oleh bandwidth — 936 GB/s vs 1.008 GB/s. Bukan oleh jumlah
-CUDA core, bukan oleh klaim "generasi baru", melainkan oleh lebar pintu yang sama
-sekali tidak terlihat di kemasan. Di bab berikutnya kita akan melihat mengapa angka ini
-menjadi *penentu* segalanya dalam perbandingan NVIDIA vs AMD vs Apple — dan mengapa
-kartu dengan TFLOPS kecil bisa mengalahkan kartu dengan TFLOPS besar.
-
----
-
-## 8. Panduan Praktis Membaca Spesifikasi
-
-Sebelum menekan tombol "bayar" di *marketplace* mana pun, biasakan rutinitas dua menit
-berikut:
-
-1. **Cek bus-width, bukan hanya VRAM.** Dua GPU dengan 16 GB tidaklah sama: RTX 4060 Ti
-   16GB memakai bus 128-bit (288 GB/s), sedangkan RTX 4070 Ti Super memakai bus 256-bit
-   (672 GB/s) — lebih dari dua kali lipat performa inferensi untuk model yang sama.
-2. **Gunakan `nvidia-smi` untuk GPU sendiri**, atau **TechPowerUp GPU Database** untuk
-   GPU incaran — tabel spesifikasi di sana mencantumkan bandwidth resmi dari pengukuran
-   pabrikan.
-3. **Bagi harga dengan bandwidth** — bukan VRAM — untuk menghitung nilai sebenarnya.
-   Kartu dengan "Rp per GB/s" terendah biasanya adalah keputusan terbaik untuk inferensi
-   LLM.
-
-Contoh nyata: RTX 4090 (~Rp 30 jt, 1.008 GB/s) memiliki rasio ~Rp 30 juta per 1000 GB/s;
-RTX 3090 *used* (~Rp 12 jt, 936 GB/s) hanya ~Rp 13 juta per 1000 GB/s. Untuk inferensi,
-kartu used itu menawarkan nilai hampir 2,5x. Spesifikasi pelengkap — jumlah core, TFLOPS —
-baru relevan jika model Anda cukup besar hingga *prefill* (pemrosesan prompt) menjadi
-*compute-bound*, sebuah kasus yang jarang terjadi di pengguna lokal.
-
----
-
-## 9. Tabel Wajib
-
 ### Tabel 1: Memory Bandwidth GPU Populer untuk LLM
 
 Inilah *katalog induk* yang akan Anda rujuk kembali pada bab-bab berikutnya — setiap
@@ -273,6 +183,31 @@ ia adalah jawaban AMD untuk pertanyaan "bagaimana menjalankan satu model 400B ta
 membagi-baginya". Di kelas *datacenter*, bandwidth adalah pembeda utama — bukan jumlah
 transistor.
 
+
+---
+
+## 5. Bandwidth yang Dibutuhkan per Model
+
+
+### Berhitung Sebelum Membayar
+
+Setiap model adalah "permintaan" dan setiap GPU adalah "pemasok". Pertanyaan yang
+harus dijawab sebelum membeli: *berapa liter/detik air yang dibutuhkan kolam saya?*
+Ambil contoh model 7B dalam FP16: bobotnya 14 GB, dan setiap token baru menuntut
+pembacaan seluruh 14 GB tersebut per langkah (ditambah KV cache dan overhead). Dengan
+GPU berbandwidth 272 GB/s, satu token ekor-ke-ekor memakan waktu sekitar 50-70
+milidetik — terasa lambat di mata, mustahil untuk *agent* yang responsif.
+
+Sekarang terapkan **kuantisasi**: model 7B yang sama dalam Q4_K_M menyusut menjadi
+~4 GB. Kebutuhan bandwidth per token turun *empat kali*, dan kecepatan token naik
+dengan proporsi yang sama. Inilah mengapa komunitas lokal menyebut kuantisasi sebagai
+"mesin waktu": kartu yang tadi hanya mampu 30 token/detik bisa melompat ke 110
+token/detik tanpa mengganti satu komponen pun. Semakin besar model, semakin dramatis
+efeknya — Llama-3.1-70B FP16 (140 GB) membutuhkan bandwidth minimum ~160 GB/s hanya
+untuk berjalan pelan 4 token/detik, sementara versi Q4 (40 GB) membuka pintu untuk GPU
+kelas 3090 yang "hanya" 936 GB/s. Ukuran model menentukan kelas GPU Anda; bandwidth
+menentukan siapa di kelas mana.
+
 ### Tabel 2: Scaling Tokens/s vs Bandwidth (Llama-3-8B Q4_K_M)
 
 Berikut hasil pengukuran `llama-bench` untuk model yang sama di lima GPU — bukti empiris
@@ -304,6 +239,7 @@ efisien per gigabyte aliran. Pelajaran operasional: *jangan membeli "kartu terce
 belilah kartu dengan karakteristik yang Anda pahami* — dan dengan angka utilization ini,
 kita bisa menurunkan rumus simulasi di bagian Hands-On.
 
+
 ### Tabel 3: Bandwidth yang Dibutuhkan per Model dan Kuantisasi
 
 Tabel terakhir menjawab pertanyaan paling praktis: *GPU sekelas apa yang saya butuhkan
@@ -331,7 +267,52 @@ sekalipun: bukan prosesornya yang lambat — alirannya yang kurang.
 
 ---
 
-## 10. Diagram & Visualisasi
+
+---
+
+## 6. Pengaruh Kuantisasi pada Bandwidth Utilization
+
+
+### Garis Lurus yang Mulai Melengkung
+
+Jika kuantisasi sesederhana garis lurus, semua orang akan mengkuantisasi sampai 2-bit.
+Kenyataannya ada titik di mana garis itu melengkung: **overhead dequantisasi**. Model
+terkuantisasi tidak disimpan sebagai FP16; ia disimpan sebagai bilangan bulat 4-bit
+yang harus *didequantisasi* — dikembalikan ke format floating point — sebelum dikalikan.
+Proses ini adalah beban komputasi (compute) di dalam unit pemrosesan. Semakin agresif
+kuantisasi, semakin besar beban dequantisasi per token, hingga pada titik tertentu
+bottleneck bergeser: dari *memori yang kehabisan aliran* menjadi *prosesor yang
+kehabisan waktu*.
+
+Keseimbangan terbaik saat ini, berdasarkan konsensus praktik komunitas, terletak pada
+**Q4_K_M atau Q5_K_M**. Di titik ini, pengurangan data (4x lebih kecil) masih
+diterjemahkan hampir linier ke kecepatan, sementara biaya dequantisasi masih relatif
+kecil. Di bawahnya — kuantisasi 2-3 bit — penghematan bandwidth mulai dimakan habis oleh
+komputasi tambahan, dan kualitas output menurun tanpa manfaat kecepatan yang sepadan.
+Seperti diet ekstrem: pada titik tertentu, yang berkurang bukan lemak, melainkan otot.
+Untuk model yang *compute-bound* di prefill (prompt raksasa), titik keseimbangan ini
+bahkan bisa bergeser lebih tinggi — Q6/Q8 justru menjadi pilihan bijak.
+
+---
+
+## 7. Benchmarks GPU per Bandwidth Class
+
+
+Para penguji independen sudah memotret hubungan ini dengan kamera *llama-bench*. Untuk
+model **Llama-3-8B Q4_K_M** (4,5 GB), deret GPU berikut menunjukkan pola yang hampir
+menakutkan keteraturannya: **RTX 4060** (272 GB/s) menghasilkan ~30 t/s; **RTX 4070**
+(504 GB/s) ~55 t/s; **RTX 4080 Super** (736 GB/s) ~80 t/s; **RTX 4090** (1.008 GB/s)
+~110 t/s. Perhatikan intervalnya: setiap kenaikan bandwidth sekitar 230-270 GB/s
+menambah sekitar 25-30 t/s. **Scaling hampir linear — dua kali bandwidth berarti
+sekitar dua kali token/detik** untuk model yang muat di VRAM.
+
+Interpretasi sederhananya: jika Anda sedang mempertimbangkan dua kartu yang VRAM-nya
+sama (misalnya 24 GB RTX 3090 vs 24 GB RTX 4090), perbandingan performa sebenarnya
+sudah ditentukan sebelumnya oleh bandwidth — 936 GB/s vs 1.008 GB/s. Bukan oleh jumlah
+CUDA core, bukan oleh klaim "generasi baru", melainkan oleh lebar pintu yang sama
+sekali tidak terlihat di kemasan. Di bab berikutnya kita akan melihat mengapa angka ini
+menjadi *penentu* segalanya dalam perbandingan NVIDIA vs AMD vs Apple — dan mengapa
+kartu dengan TFLOPS kecil bisa mengalahkan kartu dengan TFLOPS besar.
 
 ### Gambar 1: Memory Bandwidth Hierarchy GPU
 
@@ -358,7 +339,35 @@ diklaim pabrikannya tentang "kecerdasan buatan" di atasnya.
 
 ---
 
-## 11. Tutorial / Hands-On
+
+---
+
+## 8. Panduan Praktis Membaca Spesifikasi
+
+
+Sebelum menekan tombol "bayar" di *marketplace* mana pun, biasakan rutinitas dua menit
+berikut:
+
+1. **Cek bus-width, bukan hanya VRAM.** Dua GPU dengan 16 GB tidaklah sama: RTX 4060 Ti
+   16GB memakai bus 128-bit (288 GB/s), sedangkan RTX 4070 Ti Super memakai bus 256-bit
+   (672 GB/s) — lebih dari dua kali lipat performa inferensi untuk model yang sama.
+2. **Gunakan `nvidia-smi` untuk GPU sendiri**, atau **TechPowerUp GPU Database** untuk
+   GPU incaran — tabel spesifikasi di sana mencantumkan bandwidth resmi dari pengukuran
+   pabrikan.
+3. **Bagi harga dengan bandwidth** — bukan VRAM — untuk menghitung nilai sebenarnya.
+   Kartu dengan "Rp per GB/s" terendah biasanya adalah keputusan terbaik untuk inferensi
+   LLM.
+
+Contoh nyata: RTX 4090 (~Rp 30 jt, 1.008 GB/s) memiliki rasio ~Rp 30 juta per 1000 GB/s;
+RTX 3090 *used* (~Rp 12 jt, 936 GB/s) hanya ~Rp 13 juta per 1000 GB/s. Untuk inferensi,
+kartu used itu menawarkan nilai hampir 2,5x. Spesifikasi pelengkap — jumlah core, TFLOPS —
+baru relevan jika model Anda cukup besar hingga *prefill* (pemrosesan prompt) menjadi
+*compute-bound*, sebuah kasus yang jarang terjadi di pengguna lokal.
+
+---
+
+## 9. Tutorial / Hands-On
+
 
 ### Tutorial 1: Cek Memory Bandwidth GPU Anda Sendiri
 
@@ -437,7 +446,8 @@ ditentukan oleh dua angka input — bandwidth dan ukuran model. Ganti `model_gb`
 
 ---
 
-## 12. Studi Kasus: Upgrade dari RTX 4060 ke RTX 4090
+## 10. Studi Kasus: Upgrade dari RTX 4060 ke RTX 4090
+
 
 **Latar.** Bayangkan seorang *machine learning enthusiast* di Bandung yang membeli
 RTX 4060 (8 GB, 272 GB/s) untuk menjalankan Llama-3.1-8B. Setiap prompt terasa berat:
@@ -477,7 +487,8 @@ di sana.
 
 ---
 
-## 13. Referensi
+## 11. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

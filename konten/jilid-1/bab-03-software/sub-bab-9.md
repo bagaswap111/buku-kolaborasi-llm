@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan tantangan deployment LLM di perangkat mobile: memori terbatas, *thermal throttling*, dan daya baterai
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Tantangan Mobile Inference
+
 
 ### Memori yang Terbagi, Bukan Dedicated
 
@@ -34,6 +36,7 @@ Ketiga pembatas ini — memori, panas, baterai — bukan sekadar angka; mereka m
 ---
 
 ## 3. Arsitektur Inference Mobile
+
 
 ### Tiga Unit Komputasi, Tiga Karakter
 
@@ -58,9 +61,31 @@ Keputusan tidak dibuat sekali untuk seluruh sesi percakapan, melainkan **per fas
 
 Arsitektur *heterogeneous execution* memanfaatkan perbedaan ini: **NPU untuk prefill** (cepat, efisien, selesai dalam sekejap), **GPU untuk decode** (kecepatan stabil 8–12 t/s), dan **CPU sebagai jaring pengaman** saat termal memaksa. Pembagian kerja semacam ini menyerupai *pipeline* industri: setiap stasiun kerja menangani tahap yang paling cocok untuknya, bukan satu mesin yang mengerjakan semua.
 
+### Gambar 1: Arsitektur LLM Inference di Mobile
+
+Diagram berikut menggambarkan bagaimana sebuah aplikasi mobile memilih unit komputasi secara dinamis.
+
+```mermaid
+graph TB
+    APP[Mobile App] --> ENGINE[Inference Engine]
+    ENGINE --> BACKEND_SELECT[Runtime Backend Selector]
+    BACKEND_SELECT --> CPU_B[CPU: llama.cpp / TFLite]
+    BACKEND_SELECT --> GPU_B[GPU: OpenCL / Metal / Vulkan]
+    BACKEND_SELECT --> NPU_B[NPU: Hexagon / Apple Neural Engine]
+    CPU_B --> RAM[(System RAM)]
+    GPU_B --> GPU_MEM[(GPU Memory)]
+    NPU_B --> NPU[(Dedicated NPU)]
+    THERM[Thermal Monitor] --> BACKEND_SELECT
+    THERM --> POWER[Power Management]
+```
+
+Dua elemen diagram ini yang paling layak diperhatikan. Pertama, tiga jalur backend berbagi satu *Runtime Backend Selector* — keputusan pemilihan unit terjadi per fase (prefill vs decode) dan per kondisi (suhu, daya). Kedua, *Thermal Monitor* adalah karakter tersembunyi yang sebenarnya memegang kendali: ia memberi sinyal ke *Backend Selector* (turunkan ke CPU jika GPU kepanasan) dan ke *Power Management* (batasi daya). Pada perangkat mobile, suhu adalah *scheduler* tertinggi — sesuatu yang tidak pernah dialami developer server.
+
+
 ---
 
 ## 4. MLC-LLM untuk Mobile
+
 
 ### Dari Model ke APK
 
@@ -74,9 +99,25 @@ Dua keputusan dalam alur tersebut yang paling menentukan pengalaman pengguna ada
 
 Keluarga model yang paling nyaman untuk MLC-LLM mobile adalah **Phi-3-mini** (3,8B), **Qwen 2.5**, dan **Llama 3.2**. Ketiganya punya varian Q4 yang muat di perangkat menengah. Untuk beban *edge* yang paling efisien, keluarga **Ministral 3** (3B/8B) patut diperhitungkan — model *dense* kompak yang memakai *Cascade Distillation* sehingga kualitasnya tinggi untuk ukurannya, cocok dipasangkan dengan footprint memori yang ketat di ponsel.
 
+### Tabel A: Framework Mobile LLM
+
+Tabel berikut memetakan framework utama beserta dukungan platform dan backend-nya.
+
+| Framework | Android | iOS | GPU Backend | NPU Backend | Bahasa |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **MLC-LLM** | Ya | Ya | OpenCL, Vulkan | - | Python/JS |
+| **llama.cpp** | Ya (Termux) | Ya (LLMFarm) | Metal, OpenCL | - | C++ |
+| **ExecuTorch** | Ya | Ya | MPS, OpenCL | - | Python |
+| **llm.npu** | Ya (Qualcomm) | - | - | Hexagon NPU | C++ |
+| **MNN** | Ya | Ya | OpenCL, Vulkan, Metal | Huawei NPU | C++ |
+
+Analisis: tidak ada satu framework yang menang di semua dimensi. **MLC-LLM** adalah pilihan utama untuk integrasi penuh dengan performa GPU terbaik di kedua platform. **llama.cpp** unggul dalam kesederhanaan dan portabilitas format GGUF, tetapi integrasi GPU di Android masih kalah matang dari MLC-LLM. **ExecuTorch** menarik bagi tim yang sudah berinvestasi di ekosistem PyTorch. **llm.npu** dan **MNN** adalah pilihan khusus: yang pertama untuk memaksimalkan NPU Qualcomm, yang kedua untuk dukungan NPU Huawei. Tabel ini juga menegaskan: backend NPU masih langka — ini adalah medan yang baru mulai berkembang.
+
+
 ---
 
 ## 5. llama.cpp di Mobile
+
 
 ### Android: Termux dan Aplikasi Inferensi
 
@@ -94,6 +135,7 @@ Keunggulan utama jalur llama.cpp adalah **format GGUF yang universal**: satu fil
 
 ## 6. MobileLLM: Arsitektur Model untuk Mobile
 
+
 ### Deep & Thin: Menipis, Bukan Mengecil
 
 Paper **MobileLLM** (Liu et al., 2024) [1] menjawab pertanyaan arsitektural yang tampak sederhana: model kecil mana yang terbaik untuk perangkat? Temuan utamanya melawan intuisi konvensional: daripada model "lebar tapi dangkal" (banyak neuron per lapisan, sedikit lapisan), model **deep & thin** — banyak lapisan dengan dimensi sempit — memberi akurasi lebih tinggi dengan parameter yang sama. Dengan kata lain, *kedalaman* lebih bernilai daripada *lebar* untuk model sub-miliar.
@@ -105,42 +147,6 @@ MobileLLM menambah dua teknik kunci. **Embedding sharing**: proyeksi input dan o
 ### 125M–350M: Kecil tapi Terampil
 
 Hasilnya adalah kelas model **sub-billion** (125M–350M) yang untuk tugas spesifik — chat sederhana, klasifikasi, intent detection — mendekati performa model yang jauh lebih besar. Angka akurasinya tercantum di Tabel C: MobileLLM-LS-350M mencapai 65,3% *zero-shot accuracy*. Ini bukan pengganti model 7B untuk penalaran kompleks, tetapi untuk tugas sempit di perangkat, ukurannya yang hanya 350 MB adalah nilai jual yang tak tertandingi.
-
----
-
-## 7. NPU Offloading dengan llm.npu
-
-### NPU: Otot Paling Efisien yang Baru Dipakai
-
-Paper **llm.npu** (Hou et al., 2024) [2] adalah studi pertama yang berhasil melepas beban LLM sepenuhnya ke **NPU Qualcomm Hexagon** di perangkat Android. Hasilnya spektakuler: **7,3× hingga 18,4× lebih cepat daripada CPU** untuk beban prefill, dengan presisi FP16 dan *accuracy loss* di bawah 1%. Model yang didukung mencakup keluarga Qwen, Gemma, Phi, dan Llama 2.
-
-Angka ini mengubah ekonomi komputasi mobile. Prefill — fase memproses prompt awal — adalah bagian yang paling berat dari tiap percakapan; memindahkannya ke NPU berarti *time-to-first-token* turun drastis, sementara fase *decode* (generasi token berikutnya) tetap bisa ditangani GPU atau CPU.
-
-### Catatan untuk Model Frontier 2026
-
-Perlu kejujuran di sini: model *frontier* 2026 — seperti DeepSeek V4 Flash dengan ratusan miliar parameter atau Mistral Large 3 — **tidak feasible di NPU mobile** karena footprint memorinya jauh melampaui kapasitas NPU dan memori perangkat. NPU unggul pada kelas model kecil hingga menengah (1–8B). Pemahaman batas ini justru penting agar ekspektasi realistis: NPU adalah pengungkit untuk model *on-device* kelas menengah, bukan pintu masuk ke model raksasa.
-
-### Kapan NPU, Kapan Tidak?
-
-Meski angka speedup NPU mengesankan, dukungannya masih terbatas pada model dan operator tertentu. Panduan praktisnya: gunakan NPU ketika (1) model yang dipilih masuk dalam daftar dukungan llm.npu (keluarga Qwen, Gemma, Phi, Llama 2), (2) beban didominasi prefill panjang — misalnya dokumen yang harus dirangkum, dan (3) perangkat memakai chipset Qualcomm dengan Hexagon NPU. Sebaliknya, jangan bergantung pada NPU untuk *decode* interaktif yang panjang — di sana GPU OpenCL atau Metal masih lebih stabil, dan jangan berharap NPU menangani model >8B dalam waktu dekat. Strategi terbaik hari ini bukan "pakai NPU untuk segalanya", melainkan NPU sebagai *booster prefill* dalam arsitektur yang sudah memiliki GPU dan CPU sebagai jalur utama.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel A: Framework Mobile LLM
-
-Tabel berikut memetakan framework utama beserta dukungan platform dan backend-nya.
-
-| Framework | Android | iOS | GPU Backend | NPU Backend | Bahasa |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **MLC-LLM** | Ya | Ya | OpenCL, Vulkan | - | Python/JS |
-| **llama.cpp** | Ya (Termux) | Ya (LLMFarm) | Metal, OpenCL | - | C++ |
-| **ExecuTorch** | Ya | Ya | MPS, OpenCL | - | Python |
-| **llm.npu** | Ya (Qualcomm) | - | - | Hexagon NPU | C++ |
-| **MNN** | Ya | Ya | OpenCL, Vulkan, Metal | Huawei NPU | C++ |
-
-Analisis: tidak ada satu framework yang menang di semua dimensi. **MLC-LLM** adalah pilihan utama untuk integrasi penuh dengan performa GPU terbaik di kedua platform. **llama.cpp** unggul dalam kesederhanaan dan portabilitas format GGUF, tetapi integrasi GPU di Android masih kalah matang dari MLC-LLM. **ExecuTorch** menarik bagi tim yang sudah berinvestasi di ekosistem PyTorch. **llm.npu** dan **MNN** adalah pilihan khusus: yang pertama untuk memaksimalkan NPU Qualcomm, yang kedua untuk dukungan NPU Huawei. Tabel ini juga menegaskan: backend NPU masih langka — ini adalah medan yang baru mulai berkembang.
 
 ### Tabel B: Performa di Perangkat Mobile (Model 7B Q4)
 
@@ -163,6 +169,7 @@ Angka *tokens per second* berikut menggambarkan performa aktual di perangkat mai
 
 Analisis: pola yang paling menonjol adalah lompatan besar CPU → GPU → NPU. Di Xiaomi 14, GPU 2,7× lebih cepat dari CPU, dan NPU lebih dari 2× di atas GPU — total 5,8× lompatan dari CPU ke NPU. Perlu dicatat bahwa angka GPU 8–12 t/s ini masih di bawah pengalaman desktop; pada kecepatan ini, respons panjang tetap terasa lambat. Angka NPU 18,4 t/s, bagaimanapun, mendekati pengalaman desktop — dan itulah mengapa prefill di NPU terasa "instan". Untuk aplikasi produksi, kombinasi yang disarankan: **NPU untuk prefill, GPU untuk decode**, dengan CPU sebagai jaring pengaman termal.
 
+
 ### Tabel C: MobileLLM Model Sizes vs Akurasi
 
 Tabel ini membandingkan model kecil arsitektur MobileLLM dengan model populer yang biasa dipakai di mobile (data akurasi mengacu pada paper [1]).
@@ -181,27 +188,25 @@ Analisis: tabel ini menunjukkan *hukum harga* model mobile: setiap kenaikan akur
 
 ---
 
-## 9. Diagram & Visualisasi
 
-### Gambar 1: Arsitektur LLM Inference di Mobile
+---
 
-Diagram berikut menggambarkan bagaimana sebuah aplikasi mobile memilih unit komputasi secara dinamis.
+## 7. NPU Offloading dengan llm.npu
 
-```mermaid
-graph TB
-    APP[Mobile App] --> ENGINE[Inference Engine]
-    ENGINE --> BACKEND_SELECT[Runtime Backend Selector]
-    BACKEND_SELECT --> CPU_B[CPU: llama.cpp / TFLite]
-    BACKEND_SELECT --> GPU_B[GPU: OpenCL / Metal / Vulkan]
-    BACKEND_SELECT --> NPU_B[NPU: Hexagon / Apple Neural Engine]
-    CPU_B --> RAM[(System RAM)]
-    GPU_B --> GPU_MEM[(GPU Memory)]
-    NPU_B --> NPU[(Dedicated NPU)]
-    THERM[Thermal Monitor] --> BACKEND_SELECT
-    THERM --> POWER[Power Management]
-```
 
-Dua elemen diagram ini yang paling layak diperhatikan. Pertama, tiga jalur backend berbagi satu *Runtime Backend Selector* — keputusan pemilihan unit terjadi per fase (prefill vs decode) dan per kondisi (suhu, daya). Kedua, *Thermal Monitor* adalah karakter tersembunyi yang sebenarnya memegang kendali: ia memberi sinyal ke *Backend Selector* (turunkan ke CPU jika GPU kepanasan) dan ke *Power Management* (batasi daya). Pada perangkat mobile, suhu adalah *scheduler* tertinggi — sesuatu yang tidak pernah dialami developer server.
+### NPU: Otot Paling Efisien yang Baru Dipakai
+
+Paper **llm.npu** (Hou et al., 2024) [2] adalah studi pertama yang berhasil melepas beban LLM sepenuhnya ke **NPU Qualcomm Hexagon** di perangkat Android. Hasilnya spektakuler: **7,3× hingga 18,4× lebih cepat daripada CPU** untuk beban prefill, dengan presisi FP16 dan *accuracy loss* di bawah 1%. Model yang didukung mencakup keluarga Qwen, Gemma, Phi, dan Llama 2.
+
+Angka ini mengubah ekonomi komputasi mobile. Prefill — fase memproses prompt awal — adalah bagian yang paling berat dari tiap percakapan; memindahkannya ke NPU berarti *time-to-first-token* turun drastis, sementara fase *decode* (generasi token berikutnya) tetap bisa ditangani GPU atau CPU.
+
+### Catatan untuk Model Frontier 2026
+
+Perlu kejujuran di sini: model *frontier* 2026 — seperti DeepSeek V4 Flash dengan ratusan miliar parameter atau Mistral Large 3 — **tidak feasible di NPU mobile** karena footprint memorinya jauh melampaui kapasitas NPU dan memori perangkat. NPU unggul pada kelas model kecil hingga menengah (1–8B). Pemahaman batas ini justru penting agar ekspektasi realistis: NPU adalah pengungkit untuk model *on-device* kelas menengah, bukan pintu masuk ke model raksasa.
+
+### Kapan NPU, Kapan Tidak?
+
+Meski angka speedup NPU mengesankan, dukungannya masih terbatas pada model dan operator tertentu. Panduan praktisnya: gunakan NPU ketika (1) model yang dipilih masuk dalam daftar dukungan llm.npu (keluarga Qwen, Gemma, Phi, Llama 2), (2) beban didominasi prefill panjang — misalnya dokumen yang harus dirangkum, dan (3) perangkat memakai chipset Qualcomm dengan Hexagon NPU. Sebaliknya, jangan bergantung pada NPU untuk *decode* interaktif yang panjang — di sana GPU OpenCL atau Metal masih lebih stabil, dan jangan berharap NPU menangani model >8B dalam waktu dekat. Strategi terbaik hari ini bukan "pakai NPU untuk segalanya", melainkan NPU sebagai *booster prefill* dalam arsitektur yang sudah memiliki GPU dan CPU sebagai jalur utama.
 
 ### Gambar 2: Strategi Heterogeneous Execution
 
@@ -221,7 +226,11 @@ Aliran ini menggambarkan prinsip *per fase, bukan per sesi*: NPU menangani beban
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Build Aplikasi Android dengan MLC-LLM
 
@@ -331,7 +340,8 @@ Angka *prefill speed* 1000+ token/detik versus ~50 token/detik di CPU adalah ilu
 
 ---
 
-## 11. Studi Kasus: AI Assistant Offline untuk Dokter di Daerah Terpencil
+## 9. Studi Kasus: AI Assistant Offline untuk Dokter di Daerah Terpencil
+
 
 **Skenario:** Seorang dokter di klinik desa memiliki ponsel **Xiaomi 14** (Snapdragon 8 Gen 3, 12 GB RAM) dan sinyal internet yang tidak stabil. Ia butuh asisten AI untuk tiga tugas: merangkum rekam medis, memberikan saran diagnosis awal, dan memeriksa interaksi obat. Semua harus berjalan **100% offline** — mengirim data pasien ke cloud bukan hanya tidak praktis, tetapi melanggar etika medis.
 
@@ -347,7 +357,8 @@ Angka *prefill speed* 1000+ token/detik versus ~50 token/detik di CPU adalah ilu
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

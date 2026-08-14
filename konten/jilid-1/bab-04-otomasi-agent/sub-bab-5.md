@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan cara kerja *browser agent*: siklus *observasi → keputusan → aksi* yang berulang
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep Dasar Browser Agent
+
 
 ### Mengapa Scraping Tradisional Gagal
 
@@ -32,87 +34,13 @@ Kegagalan ini bukan kasus langka: setiap kali sebuah situs e-commerce besar memp
 
 Loop ini diulang hingga tugas selesai atau batas langkah tercapai. Karena keputusannya berbasis penglihatan dan pemahaman bahasa, agent ini sanggup menangani situs yang berat JavaScript, berubah-ubah, dan bahkan yang belum pernah dilihat sebelumnya.
 
-Dalam praktiknya, dua jenis *state* yang diamati saling melengkapi: *screenshot* memberikan gambaran visual yang dibutuhkan model multimodal, sementara *DOM* menyediakan teks dan atribut yang bisa dibaca dengan presisi (misalnya `aria-label` tombol). Agent terbaik menggabungkan keduanya — mengambil konteks visual untuk orientasi umum, lalu detail tekstual untuk aksi yang presisi. Kombinasi inilah yang membuat agent sanggup menyelesaikan tugas yang gagal dilakukan model teks murni, sekaligus menjelaskan mengapa Tabel 2 pada seksi 7 selalu menyertakan informasi kemampuan *vision* setiap agent.
+Dalam praktiknya, dua jenis *state* yang diamati saling melengkapi: *screenshot* memberikan gambaran visual yang dibutuhkan model multimodal, sementara *DOM* menyediakan teks dan atribut yang bisa dibaca dengan presisi (misalnya `aria-label` tombol). Agent terbaik menggabungkan keduanya — mengambil konteks visual untuk orientasi umum, lalu detail tekstual untuk aksi yang presisi. Kombinasi inilah yang membuat agent sanggup menyelesaikan tugas yang gagal dilakukan model teks murni, sekaligus menjelaskan mengapa Tabel 2 pada seksi 2 selalu menyertakan informasi kemampuan *vision* setiap agent.
 
 ### Benchmark: Bagaimana Mengukur Keberhasilan Agent Web?
 
 Sebelum memilih agent, Anda perlu mengenal empat tolok ukur yang akan muncul pada Tabel 2. **WebArena** adalah lingkungan web realistis — situs tiruan e-commerce, forum, dan manajemen konten — yang menuntut agent menyelesaikan tugas nyata di dalamnya. **Mind2Web** menguji kemampuan mengikuti instruksi web dunia nyata dalam skala besar. **MiniWoB++** menyajikan tugas-tugas dasar (mengisi form, memilih opsi) di lingkungan yang disederhanakan — baik untuk mengukur kemampuan dasar tanpa gangguan situs kompleks. Sedangkan *real-world tasks* adalah skenario nyata seperti booking tiket atau riset produk.
 
 Empat benchmark ini membentuk tangga kesulitan: MiniWoB++ mengukur fondasi, Mind2Web dan WebArena mengukur adaptasi pada lingkungan realistis, dan tugas dunia nyata mengukur kelayakan praktis. Karena itu, jangan pernah membandingkan agent hanya dari satu angka — perhatikan pola di seluruh kolom, persis seperti yang akan Anda lakukan pada Tabel 2.
-
----
-
-## 3. Skyvern — Open Source Browser Agent
-
-### Visi: Komputer Vision + LLM
-
-**Skyvern** adalah *browser agent* open-source (lisensi AGPL) yang dibangun di atas kombinasi **computer vision** dan **LLM**. Berbeda dari agent yang mem-parsing HTML secara tekstual, Skyvern "melihat" halaman dan memahami elemen interaktifnya secara visual. Inilah mengapa ia diklaim **tidak tergantung pada struktur HTML** — perubahan kecil pada layout tidak mematahkan alurnya, karena ia mengenali tombol dari penampilannya, bukan dari selector-nya.
-
-Pendekatan visual ini adalah jawaban langsung atas masalah yang dibahas di seksi 2: halaman yang berubah layout tidak perlu mematahkan otomasi. Yang perlu dipahami adalah batasannya — pengenalan visual tetap bergantung pada kualitas model multimodal di belakangnya; ketika halaman terlalu padat atau elemennya ambigu (dua tombol identik berdampingan), keputusan bisa meleset. Untuk tugas sederhana dengan elemen jelas, performanya sangat andal; inilah wilayah kerja idealnya.
-
-### Arsitektur
-
-Secara internal, Skyvern menggunakan **Playwright** sebagai lapisan kontrol browser, dengan model multimodal di belakangnya. Anda bisa mengarahkannya ke model cloud seperti GPT-4V, atau ke model lokal — yang menarik untuk pembaca buku ini — dengan menyetel `LLM_PROVIDER=ollama` dan menyebutkan model seperti `qwen2.5:7b`. Server Skyvern mengekspos API REST (`POST /task`) sehingga workflow bisa dipicu dari skrip, cron, maupun aplikasi lain.
-
-Keputusan untuk *self-host* Skyvern adalah keputusan arsitektur yang perlu disadari: Anda bertanggung jawab atas server, *database*, dan browser yang berjalan di dalamnya. Tabel 3 pada seksi 7 memperlihatkan biayanya — sekitar 2 GB RAM, 6-24 GB VRAM, dan latensi 3-8 detik per aksi. Untuk alur produksi yang dijalankan per jam, pastikan host Anda sanggup; untuk percobaan pertama, laptop pribadi sudah lebih dari cukup.
-
----
-
-## 4. MultiOn dan Alternatif Lain
-
-### MultiOn: API-First, Closed-Source
-
-**MultiOn** adalah *browser agent* komersial yang berorientasi API — Anda mengirim deskripsi tugas dan menerima hasil eksekusi, tanpa perlu mengelola browser sendiri. Nyaman dan tangguh, tetapi *closed-source* dan berbiaya *per call*. Untuk pengguna yang mengejar kendali penuh dan biaya nol, alternatifnya adalah kombinasi **Playwright + Ollama** yang dirakit sendiri, sebagaimana ditunjukkan Tutorial 1 nanti.
-
-Kapan MultiOn layak dipilih? Ketika kecepatan pengembangan lebih berharga daripada biaya dan privasi — misalnya untuk *proof of concept* yang harus berjalan hari ini juga, atau ketika sumber daya mesin lokal terbatas. Model bisnis ini juga berarti Anda menyerahkan data halaman yang Anda akses kepada penyedia — keputusan yang perlu dipertimbangkan untuk data sensitif.
-
-### WebVoyager dan AutoWebGLM
-
-Dua nama dari riset perlu dikenal sebagai titik acuan. **WebVoyager** [2] adalah *multimodal web agent* yang bekerja dengan *screenshot* dan teks, sekaligus memperkenalkan protokol evaluasi untuk tugas web dunia nyata. **AutoWebGLM** [1] adalah agent open-source (MIT, model 6B) yang *bilingual* (Inggris dan Mandarin) dan dilaporkan mengungguli GPT-4 pada beberapa benchmark navigasi web — bukti bahwa agent kecil yang dilatih khusus bisa bersaing dengan model raksasa. Keduanya menjadi dasar perbandingan performa pada Tabel 2.
-
-### Playwright + LLM: Rakitan Sendiri
-
-Kombinasi terakhir — *Playwright + LLM* — adalah strategi yang penulis rekomendasikan untuk belajar: tidak ada framework, hanya library kontrol browser (Playwright), server model (Ollama), dan logika loop yang Anda tulis sendiri, persis seperti Tutorial 1. Kelebihannya: setiap baris kode dipahami, biaya nol, dan mudah dimodifikasi. Kekurangannya: performa di bawah framework jadi-jadian — lihat baris terakhir Tabel 2 (~40% pada *real-world tasks*). Ini bukan alat produksi akhir, melainkan *laboratorium belajar* yang ideal sebelum naik kelas ke Skyvern.
-
----
-
-## 5. Setup untuk Mac Lokal
-
-### Dua Jalur yang Tersedia
-
-Di Mac lokal ada dua jalur utama. Jalur *ringan*: Playwright + Ollama dengan model multimodal seperti **Qwen-VL** — cukup untuk tugas sederhana, semuanya transparan dan bisa dimodifikasi. Jalur *lengkap*: **Skyvern self-host** — lebih berat (Tabel 3) tetapi langsung menangani loop observasi-keputusan-aksi tanpa harus menulis logika agent dari nol.
-
-Pemilihan jalur sebaiknya mengikuti tahap proyek Anda. Sedang belajar konsep agent? Mulai dari jalur ringan — tulis sendiri loop-nya sekali, dan Anda memahami 90% cara kerja semua framework. Sudah punya kebutuhan produksi yang konkret (misalnya monitoring harga harian)? Langsung ke Skyvern, karena menulis ulang loop yang sudah matang adalah pemborosan. Kedua jalur tidak eksklusif — banyak pengguna memakai keduanya: rakitan ringan untuk eksperimen, Skyvern untuk produksi.
-
-### Headed vs Headless
-
-Satu keputusan penting: jalankan browser dalam mode **headless** (tanpa jendela, untuk produksi dan cron) atau **headed** (dengan jendela terlihat, untuk debugging). Saat mengembangkan workflow, selalu mulai dari mode *headed* — melihat agent mengklik dan mengetik di depan mata Anda adalah cara terbaik menemukan kesalahan logika, jauh lebih efisien daripada membaca log.
-
-### Debugging Workflow yang Efektif
-
-Saat workflow gagal, tiga tempat yang paling sering menjadi biang: (1) **prompt yang ambigu** — tugas seperti "cari informasi" memberi agent terlalu banyak kebebasan; perjelas dengan langkah dan kriteria hasil; (2) **model yang lemah** — model 7B sering salah memahami elemen halaman; coba naikkan ke model yang lebih besar atau tambahkan contoh output di prompt; (3) **situs yang berubah** — jika halaman memuat iklan atau pop-up yang tidak terduga, tambahkan langkah penanganan eksplisit. Kebiasaan baik: simpan *screenshot* pada setiap langkah ke folder log, sehingga kegagalan bisa ditelusuri tanpa menjalankan ulang seluruh proses.
-
----
-
-## 6. Use Cases: Lebih dari Sekadar Scraping
-
-Kekuatan *browser agent* baru terasa pada *workflow multi-step*: tugas yang membutuhkan urutan login → pencarian → ekstraksi → penyimpanan. Contoh nyata: otomasi pengisian form (pendaftaran, klaim, pengajuan), *booking* tiket, scraping data terstruktur, dan **monitoring harga** yang berjalan harian melalui cron — seperti studi kasus di seksi 10. Karena agent "melihat" dan "membaca", ia juga bisa menangani situs dengan CAPTCHA sederhana, dialog pop-up, dan elemen yang dimuat lambat — area di mana *scraper* tradisional paling sering tersandung.
-
-### Otomasi Form: Lebih dari Sekadar Mengisi
-
-Pengisian form adalah kasus yang paling mudah dipahami nilainya. Sebagian besar pekerjaan administratif digital — dari mengajukan lamaran hingga memperbarui profil — hanya membutuhkan pengisian berulang pada form yang sama. Browser agent menghilangkan repetisi ini: simpan data di file konfigurasi, dan biarkan agent mengisi, menyerahkan, dan mencatat hasilnya. Bahkan ketika situs mengubah tata letak form, agent tetap bisa menyesuaikan karena ia membaca label daripada mengandalkan posisi elemen yang tetap.
-
-### Monitoring Berkelanjutan
-
-Skenario paling menguntungkan adalah **pemantauan berkala**: harga tiket, ketersediaan stok, jadwal, atau perubahan halaman. Karena agent berjalan tanpa pengawasan, satu *cron* pagi bisa membandingkan kondisi hari ini dengan kemarin dan mengirim notifikasi hanya ketika ada perubahan signifikan. Inilah yang membuat studi kasus booking tiket di seksi 10 berhasil — bukan karena teknologinya canggih, melainkan karena sebuah tugas kecil dijalankan dengan konsisten setiap hari.
-
-### Batasan dan Etika Otomasi Web
-
-Kekuatan untuk mengotomasi apa pun di browser membawa tanggung jawab. Tiga batasan yang harus selalu diingat: (1) **hormati *terms of service*** — beberapa situs melarang akses otomatis; baca kebijakannya sebelum membangun workflow, dan jaga *rate* permintaan tetap wajar agar tidak membebani server; (2) **lindungi akun** — jangan pernah menyimpan kredensial login dalam teks polos di skrip atau env var yang ikut ter-*commit* ke git; (3) **batasi dampak** — workflow yang menulis data (misalnya mengirim form) harus punya *dry-run* dan konfirmasi, seperti halnya prinsip *file agent* pada sub-bab 4.6.
-
----
-
-## 7. Tabel Perbandingan
 
 ### Tabel 1: Perbandingan Browser Agent
 
@@ -129,6 +57,7 @@ Berikut peta lima opsi utama — dari yang sepenuhnya open-source hingga komersi
 Pola yang terlihat: lisensi dan kendali berjalan beriringan. Skyvern memberi kebebasan paling besar dengan lisensi AGPL dan dukungan model lokal opsional — tetapi Anda bertanggung jawab atas infrastruktur. MultiOn menukar semua itu dengan kenyamanan API, sambil menagih per *call*. Untuk belajar, AutoWebGLM (6B) dan WebVoyager menawarkan fondasi riset yang sudah teruji; sementara rakitan **Playwright + LLM** memberi fleksibilitas total karena setiap baris loop ada di tangan Anda.
 
 Tabel ini adalah peta pilihan, bukan papan skor — tidak ada jawaban "terbaik" mutlak. Untuk *learning* dan fleksibilitas, Playwright + LLM adalah laboratorium yang ideal; untuk produksi yang butuh keandalan, Skyvern adalah titik berangkat yang kuat; dan untuk proyek komersial tanpa tim infrastruktur, MultiOn menawarkan jalan pintas berbayar. Tabel berikutnya akan memperlihatkan berapa "kemampuan" yang dibeli oleh setiap pilihan — dan berapa yang tersisa di meja.
+
 
 ### Tabel 2: Performa Web Agent (Task Success Rate)
 
@@ -150,6 +79,24 @@ Dua pelajaran penting dari tabel ini. Pertama, **navigasi web masih sulit** — 
 
 *Gambar 4.5-1 — Semua agent menurun drastis dari MiniWoB++ (75-94%) ke WebArena (10-22,5%): tugas dasar bisa dikuasai model kecil, tetapi navigasi situs dinamis masih menjadi tantangan bahkan bagi model frontier.*
 
+
+---
+
+## 3. Skyvern — Open Source Browser Agent
+
+
+### Visi: Komputer Vision + LLM
+
+**Skyvern** adalah *browser agent* open-source (lisensi AGPL) yang dibangun di atas kombinasi **computer vision** dan **LLM**. Berbeda dari agent yang mem-parsing HTML secara tekstual, Skyvern "melihat" halaman dan memahami elemen interaktifnya secara visual. Inilah mengapa ia diklaim **tidak tergantung pada struktur HTML** — perubahan kecil pada layout tidak mematahkan alurnya, karena ia mengenali tombol dari penampilannya, bukan dari selector-nya.
+
+Pendekatan visual ini adalah jawaban langsung atas masalah yang dibahas di seksi 2: halaman yang berubah layout tidak perlu mematahkan otomasi. Yang perlu dipahami adalah batasannya — pengenalan visual tetap bergantung pada kualitas model multimodal di belakangnya; ketika halaman terlalu padat atau elemennya ambigu (dua tombol identik berdampingan), keputusan bisa meleset. Untuk tugas sederhana dengan elemen jelas, performanya sangat andal; inilah wilayah kerja idealnya.
+
+### Arsitektur
+
+Secara internal, Skyvern menggunakan **Playwright** sebagai lapisan kontrol browser, dengan model multimodal di belakangnya. Anda bisa mengarahkannya ke model cloud seperti GPT-4V, atau ke model lokal — yang menarik untuk pembaca buku ini — dengan menyetel `LLM_PROVIDER=ollama` dan menyebutkan model seperti `qwen2.5:7b`. Server Skyvern mengekspos API REST (`POST /task`) sehingga workflow bisa dipicu dari skrip, cron, maupun aplikasi lain.
+
+Keputusan untuk *self-host* Skyvern adalah keputusan arsitektur yang perlu disadari: Anda bertanggung jawab atas server, *database*, dan browser yang berjalan di dalamnya. Tabel 3 pada seksi 2 memperlihatkan biayanya — sekitar 2 GB RAM, 6-24 GB VRAM, dan latensi 3-8 detik per aksi. Untuk alur produksi yang dijalankan per jam, pastikan host Anda sanggup; untuk percobaan pertama, laptop pribadi sudah lebih dari cukup.
+
 ### Tabel 3: Resource Usage Browser Agent Lokal
 
 Biaya menjalankan agent web lokal, komponen demi komponen.
@@ -164,7 +111,68 @@ Perhatikan bahwa browser itu sendiri murah — 200 MB RAM dan latensi 0,1 detik 
 
 ---
 
-## 8. Diagram: Browser Agent Loop
+
+---
+
+## 4. MultiOn dan Alternatif Lain
+
+
+### MultiOn: API-First, Closed-Source
+
+**MultiOn** adalah *browser agent* komersial yang berorientasi API — Anda mengirim deskripsi tugas dan menerima hasil eksekusi, tanpa perlu mengelola browser sendiri. Nyaman dan tangguh, tetapi *closed-source* dan berbiaya *per call*. Untuk pengguna yang mengejar kendali penuh dan biaya nol, alternatifnya adalah kombinasi **Playwright + Ollama** yang dirakit sendiri, sebagaimana ditunjukkan Tutorial 1 nanti.
+
+Kapan MultiOn layak dipilih? Ketika kecepatan pengembangan lebih berharga daripada biaya dan privasi — misalnya untuk *proof of concept* yang harus berjalan hari ini juga, atau ketika sumber daya mesin lokal terbatas. Model bisnis ini juga berarti Anda menyerahkan data halaman yang Anda akses kepada penyedia — keputusan yang perlu dipertimbangkan untuk data sensitif.
+
+### WebVoyager dan AutoWebGLM
+
+Dua nama dari riset perlu dikenal sebagai titik acuan. **WebVoyager** [2] adalah *multimodal web agent* yang bekerja dengan *screenshot* dan teks, sekaligus memperkenalkan protokol evaluasi untuk tugas web dunia nyata. **AutoWebGLM** [1] adalah agent open-source (MIT, model 6B) yang *bilingual* (Inggris dan Mandarin) dan dilaporkan mengungguli GPT-4 pada beberapa benchmark navigasi web — bukti bahwa agent kecil yang dilatih khusus bisa bersaing dengan model raksasa. Keduanya menjadi dasar perbandingan performa pada Tabel 2.
+
+### Playwright + LLM: Rakitan Sendiri
+
+Kombinasi terakhir — *Playwright + LLM* — adalah strategi yang penulis rekomendasikan untuk belajar: tidak ada framework, hanya library kontrol browser (Playwright), server model (Ollama), dan logika loop yang Anda tulis sendiri, persis seperti Tutorial 1. Kelebihannya: setiap baris kode dipahami, biaya nol, dan mudah dimodifikasi. Kekurangannya: performa di bawah framework jadi-jadian — lihat baris terakhir Tabel 2 (~40% pada *real-world tasks*). Ini bukan alat produksi akhir, melainkan *laboratorium belajar* yang ideal sebelum naik kelas ke Skyvern.
+
+---
+
+## 5. Setup untuk Mac Lokal
+
+
+### Dua Jalur yang Tersedia
+
+Di Mac lokal ada dua jalur utama. Jalur *ringan*: Playwright + Ollama dengan model multimodal seperti **Qwen-VL** — cukup untuk tugas sederhana, semuanya transparan dan bisa dimodifikasi. Jalur *lengkap*: **Skyvern self-host** — lebih berat (Tabel 3) tetapi langsung menangani loop observasi-keputusan-aksi tanpa harus menulis logika agent dari nol.
+
+Pemilihan jalur sebaiknya mengikuti tahap proyek Anda. Sedang belajar konsep agent? Mulai dari jalur ringan — tulis sendiri loop-nya sekali, dan Anda memahami 90% cara kerja semua framework. Sudah punya kebutuhan produksi yang konkret (misalnya monitoring harga harian)? Langsung ke Skyvern, karena menulis ulang loop yang sudah matang adalah pemborosan. Kedua jalur tidak eksklusif — banyak pengguna memakai keduanya: rakitan ringan untuk eksperimen, Skyvern untuk produksi.
+
+### Headed vs Headless
+
+Satu keputusan penting: jalankan browser dalam mode **headless** (tanpa jendela, untuk produksi dan cron) atau **headed** (dengan jendela terlihat, untuk debugging). Saat mengembangkan workflow, selalu mulai dari mode *headed* — melihat agent mengklik dan mengetik di depan mata Anda adalah cara terbaik menemukan kesalahan logika, jauh lebih efisien daripada membaca log.
+
+### Debugging Workflow yang Efektif
+
+Saat workflow gagal, tiga tempat yang paling sering menjadi biang: (1) **prompt yang ambigu** — tugas seperti "cari informasi" memberi agent terlalu banyak kebebasan; perjelas dengan langkah dan kriteria hasil; (2) **model yang lemah** — model 7B sering salah memahami elemen halaman; coba naikkan ke model yang lebih besar atau tambahkan contoh output di prompt; (3) **situs yang berubah** — jika halaman memuat iklan atau pop-up yang tidak terduga, tambahkan langkah penanganan eksplisit. Kebiasaan baik: simpan *screenshot* pada setiap langkah ke folder log, sehingga kegagalan bisa ditelusuri tanpa menjalankan ulang seluruh proses.
+
+---
+
+## 6. Use Cases: Lebih dari Sekadar Scraping
+
+
+Kekuatan *browser agent* baru terasa pada *workflow multi-step*: tugas yang membutuhkan urutan login → pencarian → ekstraksi → penyimpanan. Contoh nyata: otomasi pengisian form (pendaftaran, klaim, pengajuan), *booking* tiket, scraping data terstruktur, dan **monitoring harga** yang berjalan harian melalui cron — seperti studi kasus di seksi 9. Karena agent "melihat" dan "membaca", ia juga bisa menangani situs dengan CAPTCHA sederhana, dialog pop-up, dan elemen yang dimuat lambat — area di mana *scraper* tradisional paling sering tersandung.
+
+### Otomasi Form: Lebih dari Sekadar Mengisi
+
+Pengisian form adalah kasus yang paling mudah dipahami nilainya. Sebagian besar pekerjaan administratif digital — dari mengajukan lamaran hingga memperbarui profil — hanya membutuhkan pengisian berulang pada form yang sama. Browser agent menghilangkan repetisi ini: simpan data di file konfigurasi, dan biarkan agent mengisi, menyerahkan, dan mencatat hasilnya. Bahkan ketika situs mengubah tata letak form, agent tetap bisa menyesuaikan karena ia membaca label daripada mengandalkan posisi elemen yang tetap.
+
+### Monitoring Berkelanjutan
+
+Skenario paling menguntungkan adalah **pemantauan berkala**: harga tiket, ketersediaan stok, jadwal, atau perubahan halaman. Karena agent berjalan tanpa pengawasan, satu *cron* pagi bisa membandingkan kondisi hari ini dengan kemarin dan mengirim notifikasi hanya ketika ada perubahan signifikan. Inilah yang membuat studi kasus booking tiket di seksi 9 berhasil — bukan karena teknologinya canggih, melainkan karena sebuah tugas kecil dijalankan dengan konsisten setiap hari.
+
+### Batasan dan Etika Otomasi Web
+
+Kekuatan untuk mengotomasi apa pun di browser membawa tanggung jawab. Tiga batasan yang harus selalu diingat: (1) **hormati *terms of service*** — beberapa situs melarang akses otomatis; baca kebijakannya sebelum membangun workflow, dan jaga *rate* permintaan tetap wajar agar tidak membebani server; (2) **lindungi akun** — jangan pernah menyimpan kredensial login dalam teks polos di skrip atau env var yang ikut ter-*commit* ke git; (3) **batasi dampak** — workflow yang menulis data (misalnya mengirim form) harus punya *dry-run* dan konfirmasi, seperti halnya prinsip *file agent* pada sub-bab 4.6.
+
+---
+
+## 7. Diagram: Browser Agent Loop
+
 
 Siklus kerja yang menjadi jantung setiap *browser agent*:
 
@@ -186,7 +194,8 @@ Perhatikan juga bahwa *screenshot* dan *DOM* diambil pada setiap iterasi — buk
 
 ---
 
-## 9. Tutorial / Hands-On
+## 8. Tutorial / Hands-On
+
 
 ### Langkah 1: Browser Agent Sederhana dengan Playwright + Ollama
 
@@ -299,7 +308,8 @@ Perhatikan langkah 4: mengganti `MODEL_NAME` memungkinkan Anda berpindah dari mo
 
 ---
 
-## 10. Studi Kasus: Otomasi Booking Tiket Kereta
+## 9. Studi Kasus: Otomasi Booking Tiket Kereta
+
 
 **Skenario:** Seorang pekerja rutin pulang pergi Jakarta–Bandung setiap akhir pekan. Harga tiket kereta sering naik-turun, dan pembelian seminggu sebelum keberangkatan bisa menghemat puluhan ribu rupiah. Tetapi memeriksa harga manual setiap pagi adalah kebiasaan yang mustahil dipertahankan. Ia membutuhkan mata yang selalu memantau — dan di sinilah Skyvern berperan.
 
@@ -327,7 +337,8 @@ Dari proyek ini, ada tiga kebiasaan yang layak dibawa ke proyek otomasi berikutn
 
 ---
 
-## 11. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

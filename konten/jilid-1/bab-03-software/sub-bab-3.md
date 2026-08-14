@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menginstal dan menjalankan GPT4All di perangkat dengan spesifikasi minimal — laptop tanpa GPU *dedicated*, RAM 4-8 GB
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Filosofi GPT4All: AI untuk Semua
 
+
 Setiap *software* punya asal-usul yang menjelaskan karakternya. GPT4All dikembangkan oleh **Nomic AI** dengan satu tujuan yang jelas: **aksesibilitas**. Namanya sendiri — "GPT untuk semua orang" — adalah manifestonya. Di tengah ekosistem yang berlomba membuat model makin besar dan butuh GPU makin mahal, Nomic memilih arah sebaliknya: membuat LLM berjalan di perangkat yang sudah dimiliki kebanyakan orang.
 
 Filosofi ini diterjemahkan ke dalam tiga keputusan desain yang konsisten. Pertama, **CPU-first** — GPT4All dirancang untuk berjalan *tanpa GPU*, dan bahkan *tanpa koneksi internet* setelah model terpasang; privasi dan kemandirian adalah fitur, bukan sekadar janji. Kedua, **instalasi minimal** — ukuran aplikasi hanya sekitar **100MB**, jauh lebih ramping dari *runtime* yang membawa serta CUDA/PyTorch; satu laptop tua yang bahkan kesulitan membuka browser modern tetap sanggup menjalankan GPT4All. Ketiga, **satu klik** — pengguna biasa tidak pernah berhadapan dengan terminal; model diunduh dari katalog bawaan dan langsung dipakai. Inilah *software* yang dirancang untuk kakek-nenek yang baru kenal AI, sekaligus untuk kantor pemerintah yang komputer-komputernya masih Windows 7.
@@ -29,6 +31,7 @@ Satu catatan penting tentang **audiens GPT4All**: target pembaca sub-bab ini ada
 ---
 
 ## 3. Arsitektur CPU-Only: Kekuatan dari Kesederhanaan
+
 
 Bagaimana mungkin *inference* model 7 miliar parameter berjalan di CPU yang bahkan tidak bisa menjalankan game modern? Jawabannya terletak pada dua pilar: **llama.cpp** sebagai *backend* dan **kuantisasi GGUF** sebagai bahasa penyimpanan. Keduanya bukan teknologi baru yang mewah — keduanya adalah hasil bertahun-tahun optimasi untuk menjawab satu pertanyaan: bagaimana membuat matematika *neural network* selingkas mungkin di perangkat yang tidak memiliki akselerator khusus.
 
@@ -48,9 +51,51 @@ Masih dalam arsitektur CPU-only, ada satu detail *threading* yang layak dipahami
 
 Sebagai penutup seksi ini, satu rangkuman yang perlu dibawa ke sesi praktikum: GPT4All adalah **sistem CPU-only yang berlapis tiga** — format GGUF memungkinkan model muat, instruksi SIMD (AVX2/NEON) mempercepat hitungan, dan *threading* OpenMP memanfaatkan semua inti. Ketiganya bekerja di atas satu sumber daya bersama: RAM. Setiap keputusan di Langkah 1-3 praktikum nanti — pilihan model, kuantisasi, jumlah *thread* — pada akhirnya adalah keputusan tentang bagaimana memakai RAM yang terbatas itu sebaik mungkin.
 
+### Tabel 2: Perbandingan GPT4All vs Alternatif CPU-Only
+
+| Fitur | GPT4All | Ollama (CPU) | llama.cpp | LM Studio |
+|:---|:---|:---|:---|:---|
+| **GUI Desktop** | Native | CLI | CLI | Native |
+| **Instalasi** | Satu klik | Manual | Build from source | Satu klik |
+| **Ukuran Installer** | ~80 MB | ~400 MB | ~50 MB (build) | ~200 MB |
+| **LocalDocs / RAG** | Built-in | Eksternal | Manual | Eksternal |
+| **Model Discovery** | Built-in leaderboard | `ollama pull` | Manual download | HF browser |
+| **CPU AVX2 fallback** | Otomatis | Otomatis | Manual flag | Otomatis |
+| **GPU Support** | Tidak | Ya (opsional) | Ya (opsional) | Ya |
+
+Dari tabel ini, GPT4All menang telak pada tiga hal yang paling penting bagi pengguna perangkat tua: GUI native, instalasi satu klik, dan **LocalDocs built-in**. Namun keunggulannya berhenti di situ: tanpa dukungan GPU sama sekali, ia bukan pilihan untuk pemilik kartu grafis yang ingin *inference* cepat. llama.cpp adalah level paling rendah (paling terkontrol) tetapi juga paling menyakitkan untuk non-teknis. Strategi terbaik: GPT4All untuk perangkat lawas murni CPU, Ollama untuk perangkat dengan GPU atau kebutuhan *server*, dan LM Studio untuk eksperimen desktop yang kaya fitur.
+
+Perhatikan juga kolom **Model Discovery**: satu-satunya aplikasi yang punya katalog internal adalah GPT4All dan LM Studio — dan keduanya mengambil pendekatan berbeda. Katalog LM Studio terhubung ke Hugging Face (ribuan model, butuh filter yang dipahami), sedangkan *leaderboard* GPT4All dikurasi untuk CPU (kecil, sudah tersaring). Bagi pengguna yang tidak ingin berpikir, kurasi adalah anugerah: mereka tidak perlu tahu kenapa Q4_K_M lebih baik dari Q4_0 — mereka hanya perlu memilih model yang sudah diberi peringkat untuk perangkat semacam miliknya. Ini bukan pembodohan; ini *good design* yang menempatkan keputusan sulit di tempat yang tepat.
+
+
+Dua diagram di bawah merangkum sisi *alur komputasi* dan sisi *alur dokumen* GPT4All. Gambar 1 menunjukkan siklus *inference* CPU-only yang menjadi inti aplikasi; Gambar 2 menunjukkan bagaimana LocalDocs mengubah dokumen pribadi menjadi sumber jawaban — dua setengah mesin yang, digabungkan, membentuk seluruh pengalaman GPT4All. Kedua diagram menggunakan notasi yang sama (kotak = proses, panah = aliran data), sehingga keduanya bisa "disambung" secara mental: keluaran Gambar 2 (konteks dokumen) menjadi bagian dari input Gambar 1 (prompt).
+
+### Gambar 1: Alur Kerja GPT4All CPU-Only
+
+Berikut siklus lengkap *inference* di GPT4All, dari input pengguna hingga output token.
+
+```mermaid
+graph LR
+    A[User Input] --> B[Tokenizer SentencePiece]
+    B --> C[CPU Inference llama.cpp]
+    C --> D[GGML Tensor Ops: AVX2/NEON]
+    D --> E[KV Cache di RAM]
+    E --> F[Sampling: temperature/top-p]
+    F --> G[Decode Token]
+    G --> A
+```
+
+Perhatikan siklusnya: setelah input diubah menjadi token oleh **SentencePiece**, komputasi berputar di CPU — operasi tensor *GGML* memanfaatkan AVX2/NEON, *KV cache* menyimpan riwayat di RAM, *sampling* memilih token berikutnya, lalu token itu di-*decode* dan ditambahkan ke input, memulai iterasi berikutnya. Sirkuit inilah yang menjelaskan dua karakteristik GPT4All: ia *memory-bound* (RAM menentukan batas konteks) dan *sequential* (token harus keluar satu per satu), sehingga kecepatan token/detik adalah metrik yang paling jujur untuk mengukur pengalaman pengguna.
+
+Ada satu implikasi *by design* dari sirkuit ini yang jarang disadari: karena *KV cache* hidup di RAM dan terus membengkak sepanjang percakapan, **panjang percakapan memengaruhi kecepatan**. Di awal sesi, model secepat angka Tabel 3; setelah 20-30 pesan, cache membesar, RAM semakin penuh, dan kecepatan bisa turun setengah. Ini bukan *bug* — ini konsekuensi langsung arsitektur yang digambarkan diagram. Bagi pengguna produktif, dampaknya nyata: mulailah sesi baru untuk tugas baru, dan jangan biarkan satu percakapan menggendong seluruh pekerjaan hari itu — kebiasaan "satu tugas, satu sesi" adalah optimasi paling sederhana yang bisa dilakukan di atas GPT4All.
+
+Perhatikan juga bahwa sirkuit ini **tidak memiliki cabang GPU** — karena memang tidak ada. Bandingkan dengan diagram arsitektur Ollama di sub-bab 3.1 yang penuh GPU dan *scheduler*; inilah dua ujung spektrum desain: optimasi untuk kecepatan di perangkat kaya versus optimasi untuk kemungkinan di perangkat miskin. GPT4All sengaja membuang kompleksitas *offload* agar aplikasi tetap ringan dan dapat diprediksi — keputusan desain yang keliru bagi *workstation*, tetapi tepat bagi target pasarnya. Setiap diagram arsitektur dalam buku ini layak dibaca dua kali: sekali untuk melihat apa yang ada, sekali lagi untuk melihat apa yang sengaja tidak ada — dan bertanya mengapa.
+
+
 ---
 
 ## 4. Koleksi Model Teroptimasi: Pilih yang Muat, Bukan yang Terbesar
+
 
 Salah satu jebakan terbesar pengguna *hardware* tua adalah memaksakan model besar. GPT4All menjawabnya dengan **leaderboard internal** — katalog model yang diuji khusus pada performa CPU, bukan GPU. Setiap model diberi peringkat berdasarkan kecepatan dan kualitas di perangkat kelas menengah, sehingga pengguna tidak perlu menebak.
 
@@ -67,59 +112,6 @@ Aturan praktisnya sederhana: **mulai dari yang paling kecil yang bisa menyelesai
 Cara terbaik memutuskan adalah melakukan **uji tiga tingkat**: mulai dengan model 1-3B untuk merasakan kecepatan penuh perangkat, naik ke 3-4B untuk melihat batas kualitas, lalu (jika RAM memungkinkan) coba 7B sebagai pembanding. Tiga sesi singkat ini memberi Anda kurva kualitas-vs-kecepatan milik perangkat sendiri — dan biasanya berakhir dengan keputusan yang tidak terduga: banyak pengguna menemukan bahwa 1.1B yang lincah lebih "dipakai sehari-hari" daripada 7B yang kaku, karena terasa instan dan tidak menguji kesabaran. Memahami preferensi ini adalah bagian dari menemukan *ritme kerja* Anda sendiri, bukan sekadar memilih spesifikasi tertinggi.
 
 Satu pola yang bisa diprediksi dari pengalaman banyak pengguna GPT4All: **model yang dipakai akhirnya bermigrasi ke ukuran yang lebih kecil seiring waktu**. Minggu pertama biasanya dipenuhi kekaguman terhadap model 7B; minggu kedua mulai terasa lama menunggu; minggu ketiga pengguna menemukan model 3B yang menjawab "cukup baik" dalam sepertiga waktu — dan di situlah model harian ditetapkan. Bukan berarti 7B ditinggalkan: ia tetap berguna untuk tugas yang benar-benar membutuhkan kualitas, misalnya merangkum dokumen penting sekali sehari. Memiliki "model harian" dan "model istimewa" adalah pola manajemen yang sehat di perangkat terbatas.
-
----
-
-## 5. Fitur Desktop App: Chat, LocalDocs, dan Kemerdekaan dari Cloud
-
-Tampilan GPT4All adalah aplikasi desktop sederhana *cross-platform* (Windows, macOS, Linux) dengan *chat interface* yang akrab, *dark mode*, dan kemampuan ekspor percakapan. Namun fitur yang membuatnya istimewa adalah **LocalDocs** — sistem **RAG lokal** bawaan yang tidak menuntut satu baris kode pun.
-
-Bagi pengguna perangkat tua, tiga properti antarmuka ini lebih penting daripada yang terlihat: *dark mode* mengurangi beban panel pada layar lama yang cahayanya sudah redup; *ekspor percakapan* memungkinkan hasil diskusi dengan AI disimpan sebagai dokumen kerja; dan *kesederhanaan wajah aplikasi* berarti tidak ada fitur yang menghalangi — sesuatu yang sayangnya tidak bisa dikatakan untuk banyak aplikasi modern yang penuh tombol dan menu. GPT4All sengaja menjaga fokus: satu jendela, satu percakapan, satu folder dokumen — filosofi yang sama dengan desain *tool* produktivitas terbaik.
-
-Mengapa "*kemerdekaan dari cloud*" dipilih sebagai bagian judul seksi ini? Karena bagi banyak pengguna *hardware* lawas, internet bukan hal yang bisa diandalkan — kantor di daerah terpencil, ruangan tanpa sinyal, atau kuota yang terbatas. GPT4All bekerja penuh dalam keadaan *offline*: model, *embedding*, hingga *LocalDocs* semuanya lokal. Internet hanya diperlukan saat mengunduh aplikasi dan model pertama kali; setelah itu, aplikasi berfungsi seperti mesin yang terisolasi dengan aman. Bagi pengguna yang menangani dokumen sensitif — surat dinas, data internal — kemerdekaan ini bukan sekadar kenyamanan, melainkan keharusan: tidak ada data yang berangkat ke mana pun, karena memang tidak ada jalannya.
-
-Dengan LocalDocs, Anda memilih satu atau beberapa folder berisi dokumen (PDF, TXT, Markdown), dan aplikasi mengindeks isinya menjadi *chunk* teks. Saat Anda bertanya, GPT4All mencari bagian dokumen yang relevan (melalui *embedding* lokal), menempelkannya ke *prompt* sebagai konteks, lalu menjawab berdasarkan dokumen Anda. Tidak ada data yang keluar dari perangkat — *retrieval* dan generasi semuanya lokal. Inilah penggunaan nyata yang diimpikan pengguna *hardware* tua: laptop kantor lawas berubah menjadi "sistem manajemen pengetahuan" yang menjawab pertanyaan dari arsip surat, prosedur operasional, atau kumpulan resep keluarga, tanpa internet dan tanpa risiko bocor.
-
-Perlu digarisbawahi bahwa *embedding* yang dipakai LocalDocs juga dijalankan lokal — kecil, ringan, dan bisa berjalan di CPU yang sama. Pada perangkat dengan RAM terbatas, proses *indexing* sebaiknya dilakukan saat laptop tidak sedang dipakai pekerjaan lain, karena ia bersaing dengan model utama untuk mendapatkan memori dan waktu CPU. Setelah indeks terbentuk, pencarian menjadi cepat; *chunk* yang relevan disimpan di indeks vektor, sehingga *full scan* dokumen tidak dilakukan setiap kali bertanya.
-
-Ada juga batas wajar yang perlu dipahami: LocalDocs bukan *search engine* untuk korpus raksasa. Pada folder dengan ratusan dokumen, kualitas jawaban bergantung pada presisi *embedding* — dan *embedding* ringan yang dipakai di perangkat CPU-only bekerja paling baik pada dokumen yang topiknya jelas dan bahasa yang konsisten. Untuk arsip berpuluh ribu halaman, lebih bijak memecah korpus menjadi beberapa koleksi tematik (lihat rekomendasi di Langkah 2). Dengan kata lain: *LocalDocs* adalah *manajer pengetahuan pribadi* yang hebat, bukan perpustakaan nasional — dan mengetahui batas itu adalah bagian dari menggunakannya dengan baik.
-
----
-
-## 6. Trade-off Hardware Lama: Mengetahui Batas, Menghindari Frustrasi
-
-Menjalankan LLM di perangkat tua adalah seni mengelola keterbatasan. Berikut peta batas yang perlu Anda pahami sebelum memilih model:
-
-- **CPU tanpa AVX2** — prosesor dari era sebelum ~2013 (misalnya Core 2 Duo). GPT4All otomatis *fallback* ke **Q4_0** — kuantisasi dasar yang tidak memanfaatkan instruksi vektor lanjutan — dan bukan Q4_K_M yang lebih cerdas. Model yang sama bisa berjalan 3-4 kali lebih lambat.
-- **RAM 4GB** — hanya model **1-3B** dengan *context* pendek yang realistis. Sistem operasi sendiri sudah memakan 2-3GB; model 7B akan membuat sistem *thrashing* ke *swap*.
-- **RAM 8GB** — model **7B Q4** bisa berjalan, tetapi *context* praktisnya sekitar **2048 token**; sisanya untuk KV cache yang membengkak seiring panjang percakapan.
-- **SSD vs HDD** — *loading time* model bergantung pada kecepatan baca disk. Model 4GB yang dimuat dari HDD bisa terasa seperti menunggu kopi; SSD mempercepatnya beberapa kali lipat.
-
-Peta ini bisa diringkas menjadi satu kalimat yang layak ditempel di monitor: **RAM dan AVX2 menentukan model yang bisa dipilih; disk menentukan seberapa cepat model itu siap dipakai; konteks menyisakan ruang untuk percakapan.** Ketiga variabel ini berinteraksi: SSD mempercepat *load* tetapi tidak mempercepat generasi token; RAM menentukan ukuran model tetapi *context* yang panjang bisa menggerus keuntungan itu. Setiap upgrade perangkat (SSD murah, RAM tambah) menggeser peta ini — dan saat itulah waktu yang tepat untuk *re-benchmark* pilihan model Anda.
-
-Praktik yang kami rekomendasikan untuk semua pengguna *hardware* lawas: **catat satu set angka rujukan** — kecepatan t/s model favorit di perangkat Anda, waktu *load*, dan sisa RAM saat model berjalan — lalu ulangi pengukuran setiap kali mengganti model atau mengubah pengaturan. Angka rujukan ini menjadi radar pribadi: ketika sistem terasa lambat, Anda bisa langsung membandingkan dengan baseline, bukan menebak. Menjalankan LLM di perangkat tua bukanlah perlombaan melawan waktu; ia adalah pengelolaan sumber daya yang sabar — dan setiap pengelolaan yang baik dimulai dari catatan yang jujur.
-
-Memahami peta ini mengubah ekspektasi: di RAM 8GB, jangan berharap *chat* panjang dengan konteks 32K — itu bukan kegagalan *software*, melainkan fisika memori. Yang bijak adalah menyesuaikan gaya penggunaan dengan batas perangkat: *prompt* pendek, model kecil, dan sesi yang disegarkan.
-
-Ada satu pengorbanan lagi yang sering luput dari perhatian: **suhu dan baterai**. *Inference* CPU memaksa prosesor bekerja pada beban penuh selama puluhan detik hingga menit — di laptop lawas, ini berarti kipas menyala terus dan baterai terkuras lebih cepat daripada penggunaan biasa. Untuk sesi kerja panjang, colokkan laptop; untuk laptop yang sudah bermasalah dengan panas (umum pada perangkat 2015-2020), batasi sesi *chat* menjadi 20-30 menit, lalu biarkan dingin. Bagi pengguna yang perangkatnya untuk kerja 8 jam, kebiasaan "sesi pendek dan istirahat" ini bukan sekadar saran kenyamanan, melainkan perlindungan perangkat keras.
-
----
-
-## 7. Keterbatasan dan Alternatif: Jujur pada Diri Sendiri
-
-Tidak ada solusi tanpa kompromi, dan GPT4All jujur mengenai keterbatasannya. Pertama, **tidak ada GPU offload** — semua komputasi di CPU, sehingga GPU yang Anda miliki (jika ada) menganggur. Kedua, **kecepatan terbatas**: pada CPU modern *inference* berada di kisaran **5-15 token/detik**, sementara pada CPU lawas turun menjadi **1-3 token/detik** — untuk model 7B, jawaban 200 kata bisa menunggu beberapa menit. Ketiga, pengendaliannya lebih terbatas dibandingkan *tool* tingkat lanjut.
-
-Ketiga keterbatasan ini sebenarnya satu cerita yang sama: GPT4All memilih *kesederhanaan* sebagai desain, dan kesederhanaan selalu datang dengan harga. Harga yang dibayar ada pada *throughput* (lambat), *fleksibilitas* (sedikit opsi), dan *skalabilitas* (satu pengguna, satu perangkat). Namun harga itu membuat aplikasi bisa diinstal oleh siapa pun dalam satu klik — dan bagi sebagian besar calon pengguna di segmen ini, menukar fleksibilitas demi satu klik adalah kesepakatan yang sangat menguntungkan. Justru pengguna yang butuh *fleksibilitas* itulah yang harus jujur menilai diri dan berpindah ke alat lain.
-
-Jika batas-batas ini terasa menghambat, ada jalan keluar: **Ollama** atau llama.cpp langsung memberi kendali lebih besar — pengaturan *thread*, pemilihan kuantisasi, hingga *GPU offload* jika suatu saat perangkat di-upgrade. Namun untuk pengguna yang perangkatnya memang lawas dan tujuannya sederhana — asisten menulis, RAG dokumen pribadi, belajar AI tanpa biaya — GPT4All tetap pilihan paling masuk akal: instalasi satu klik, tanpa konfigurasi, dan langsung jalan. Seperti kata pepatah, alat yang tepat adalah alat yang dipakai; bagi jutaan laptop tua di Indonesia, GPT4All adalah alat yang tepat itu.
-
-Ada satu skenario lagi yang menarik untuk dicatat: ketika pengguna dengan laptop lawas **meng-upgrade** perangkatnya, GPT4All tidak harus ditinggalkan. Model yang sama — file GGUF yang sama — bisa langsung dijalankan di Ollama atau LM Studio tanpa konversi apa pun. Inilah keuntungan format GGUF yang menjadi bahasa bersama (lihat sub-bab 3.1): investasi Anda dalam memilih dan mengunduh model tidak pernah hangus. Perjalanan pengguna sering kali linear: mulai dengan GPT4All di perangkat tua, lalu "lulus" ke tool yang lebih canggih ketika perangkatnya ikut naik kelas — tanpa kehilangan satu file pun.
-
-Untuk menutup seksi ini, mari jawab pertanyaan yang mungkin sudah muncul di kepala pembaca: **"kalau begitu, kapan GPT4All bukan pilihan?"** Jawabannya: ketika pekerjaan Anda membutuhkan *throughput* tinggi (menulis ratusan halaman otomatis), konteks sangat panjang (menganalisis dokumen 50 halaman dalam satu sesi), atau integrasi *server* (banyak pengguna bersamaan). Untuk tiga kebutuhan itu, komputasi CPU-only dan RAM 4-8GB memang bukan medan yang tepat — dan tidak ada salahnya mengakuinya. Memilih *tool* bukan tentang menemukan yang "paling hebat", melainkan yang paling cocok dengan perangkat, keterampilan, dan tugas Anda; bagi banyak orang, GPT4All adalah jawaban yang tepat untuk dua dari tiga syarat itu.
-
----
-
-## 8. Tabel Wajib
 
 Tiga tabel berikut adalah peta jalan praktis untuk pengguna *hardware* lawas: Tabel 1 memetakan model ke kebutuhan perangkat, Tabel 2 membandingkan GPT4All dengan tiga alternatif, dan Tabel 3 menunjukkan angka nyata di salah satu laptop lawas paling umum di pasaran. Bacalah berurutan: pilih kelas model dari Tabel 1, konfirmasi keunggulan alat dari Tabel 2, dan temper ekspektasi dengan data nyata dari Tabel 3.
 
@@ -144,68 +136,23 @@ Insight dari tabel ini: kolom CPU (AVX2) dan kecepatan adalah pasangan yang tida
 
 Cara terbaik menggunakan tabel ini adalah dengan **menandai kolom yang relevan dengan perangkat Anda** sebelum mengunduh apa pun. Pemilik laptop 4GB cukup membaca baris pertama dan mengabaikan sisanya; pemilik 16GB boleh melirik baris 13B, tetapi harus siap dengan kecepatan 1-5 t/s yang menguji kesabaran. Bagi pengguna yang perangkatnya belum jelas dukungan AVX2-nya, cek dulu dengan `lscpu | grep avx2` (Langkah 3) sebelum memilih baris — karena memilih baris yang salah berarti membuang waktu unduhan dan memori. Tabel ini dirancang untuk dipakai, bukan untuk dihafal.
 
-### Tabel 2: Perbandingan GPT4All vs Alternatif CPU-Only
-
-| Fitur | GPT4All | Ollama (CPU) | llama.cpp | LM Studio |
-|:---|:---|:---|:---|:---|
-| **GUI Desktop** | Native | CLI | CLI | Native |
-| **Instalasi** | Satu klik | Manual | Build from source | Satu klik |
-| **Ukuran Installer** | ~80 MB | ~400 MB | ~50 MB (build) | ~200 MB |
-| **LocalDocs / RAG** | Built-in | Eksternal | Manual | Eksternal |
-| **Model Discovery** | Built-in leaderboard | `ollama pull` | Manual download | HF browser |
-| **CPU AVX2 fallback** | Otomatis | Otomatis | Manual flag | Otomatis |
-| **GPU Support** | Tidak | Ya (opsional) | Ya (opsional) | Ya |
-
-Dari tabel ini, GPT4All menang telak pada tiga hal yang paling penting bagi pengguna perangkat tua: GUI native, instalasi satu klik, dan **LocalDocs built-in**. Namun keunggulannya berhenti di situ: tanpa dukungan GPU sama sekali, ia bukan pilihan untuk pemilik kartu grafis yang ingin *inference* cepat. llama.cpp adalah level paling rendah (paling terkontrol) tetapi juga paling menyakitkan untuk non-teknis. Strategi terbaik: GPT4All untuk perangkat lawas murni CPU, Ollama untuk perangkat dengan GPU atau kebutuhan *server*, dan LM Studio untuk eksperimen desktop yang kaya fitur.
-
-Perhatikan juga kolom **Model Discovery**: satu-satunya aplikasi yang punya katalog internal adalah GPT4All dan LM Studio — dan keduanya mengambil pendekatan berbeda. Katalog LM Studio terhubung ke Hugging Face (ribuan model, butuh filter yang dipahami), sedangkan *leaderboard* GPT4All dikurasi untuk CPU (kecil, sudah tersaring). Bagi pengguna yang tidak ingin berpikir, kurasi adalah anugerah: mereka tidak perlu tahu kenapa Q4_K_M lebih baik dari Q4_0 — mereka hanya perlu memilih model yang sudah diberi peringkat untuk perangkat semacam miliknya. Ini bukan pembodohan; ini *good design* yang menempatkan keputusan sulit di tempat yang tepat.
-
-### Tabel 3: Benchmark di Hardware Lawas (Intel i5-7200U, 8GB RAM)
-
-Pengukuran berikut dilakukan pada laptop generasi 2017 — Intel i5-7200U dengan 8GB RAM — sebagai gambaran nyata performa CPU-only.
-
-| Model | Q Level | Load Time | Speed (t/s) | VRAM | RAM Usage |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| Phi-3-mini-3.8B | Q4_0 | 3.2s | 8.5 t/s | 0 GB | 3.1 GB |
-| Mistral-7B | Q4_0 | 8.1s | 3.2 t/s | 0 GB | 5.8 GB |
-| TinyLlama-1.1B | Q4_0 | 1.5s | 22 t/s | 0 GB | 1.2 GB |
-
-Gambar berikut menampilkan dua kolom paling menentukan dari tabel ini: kecepatan dan konsumsi RAM ketiga model.
-
-![Kecepatan token/detik dan penggunaan RAM pada benchmark hardware lawas](../../assets/images/bab-03-software/sub-bab-3/benchmark-hardware-lawas.png)
-
-*Gambar 3.3-2 — Phi-3-mini-3.8B adalah titik keseimbangan emas (8,5 t/s dengan RAM 3,1 GB), sementara Mistral-7B menyedot 5,8 GB untuk 3,2 t/s dan TinyLlama-1.1B lincah (22 t/s) namun kualitasnya terbatas — segitiga kualitas, kecepatan, dan memori yang hanya bisa memilih dua.*
-
-Tabel ini merangkum semua *trade-off* yang dibahas di seksi 6 ke dalam satu set angka. Phi-3-mini 3.8B adalah titik keseimbangan emas: *load* 3,2 detik, kecepatan 8,5 t/s, dan RAM hanya 3,1GB — meninggalkan ruang cukup untuk sistem. Mistral-7B menunjukkan mengapa model besar terasa menyakitkan di perangkat ini: *load* 8 detik, kecepatan merosot ke 3,2 t/s, dan RAM 5,8GB membuat sistem nyaris kehabisan napas. Sementara TinyLlama 1.1B, dengan 22 t/s, terasa lincah tetapi kualitasnya terbatas. Keputusan akhir selalu berupa segitiga: kualitas, kecepatan, dan memori — dan di perangkat lawas, Anda hanya bisa memilih dua.
-
-Perhatikan juga kolom "VRAM 0 GB" pada ketiga baris: ini bukan kebetulan, melainkan esensi GPT4All — komputasi tidak menyentuh kartu grafis sama sekali. Implikasinya sederhana namun penting: RAM sistem adalah satu-satunya *bottleneck* memori. Pada perangkat dengan 8GB, model 7B yang memakai 5,8GB menyisakan 2,2GB untuk sistem operasi — nyaris tidak cukup, sehingga muncul *swapping* dan sistem terasa membeku. Data Tabel 3 adalah alasan terkuat untuk tidak memaksakan model 7B di laptop 8GB yang sekaligus dipakai bekerja; angka di tabel ini, bukan spekulasi, yang sebaiknya menjadi dasar keputusan.
 
 ---
 
-## 9. Diagram & Visualisasi
+## 5. Fitur Desktop App: Chat, LocalDocs, dan Kemerdekaan dari Cloud
 
-Dua diagram di bawah merangkum sisi *alur komputasi* dan sisi *alur dokumen* GPT4All. Gambar 1 menunjukkan siklus *inference* CPU-only yang menjadi inti aplikasi; Gambar 2 menunjukkan bagaimana LocalDocs mengubah dokumen pribadi menjadi sumber jawaban — dua setengah mesin yang, digabungkan, membentuk seluruh pengalaman GPT4All. Kedua diagram menggunakan notasi yang sama (kotak = proses, panah = aliran data), sehingga keduanya bisa "disambung" secara mental: keluaran Gambar 2 (konteks dokumen) menjadi bagian dari input Gambar 1 (prompt).
 
-### Gambar 1: Alur Kerja GPT4All CPU-Only
+Tampilan GPT4All adalah aplikasi desktop sederhana *cross-platform* (Windows, macOS, Linux) dengan *chat interface* yang akrab, *dark mode*, dan kemampuan ekspor percakapan. Namun fitur yang membuatnya istimewa adalah **LocalDocs** — sistem **RAG lokal** bawaan yang tidak menuntut satu baris kode pun.
 
-Berikut siklus lengkap *inference* di GPT4All, dari input pengguna hingga output token.
+Bagi pengguna perangkat tua, tiga properti antarmuka ini lebih penting daripada yang terlihat: *dark mode* mengurangi beban panel pada layar lama yang cahayanya sudah redup; *ekspor percakapan* memungkinkan hasil diskusi dengan AI disimpan sebagai dokumen kerja; dan *kesederhanaan wajah aplikasi* berarti tidak ada fitur yang menghalangi — sesuatu yang sayangnya tidak bisa dikatakan untuk banyak aplikasi modern yang penuh tombol dan menu. GPT4All sengaja menjaga fokus: satu jendela, satu percakapan, satu folder dokumen — filosofi yang sama dengan desain *tool* produktivitas terbaik.
 
-```mermaid
-graph LR
-    A[User Input] --> B[Tokenizer SentencePiece]
-    B --> C[CPU Inference llama.cpp]
-    C --> D[GGML Tensor Ops: AVX2/NEON]
-    D --> E[KV Cache di RAM]
-    E --> F[Sampling: temperature/top-p]
-    F --> G[Decode Token]
-    G --> A
-```
+Mengapa "*kemerdekaan dari cloud*" dipilih sebagai bagian judul seksi ini? Karena bagi banyak pengguna *hardware* lawas, internet bukan hal yang bisa diandalkan — kantor di daerah terpencil, ruangan tanpa sinyal, atau kuota yang terbatas. GPT4All bekerja penuh dalam keadaan *offline*: model, *embedding*, hingga *LocalDocs* semuanya lokal. Internet hanya diperlukan saat mengunduh aplikasi dan model pertama kali; setelah itu, aplikasi berfungsi seperti mesin yang terisolasi dengan aman. Bagi pengguna yang menangani dokumen sensitif — surat dinas, data internal — kemerdekaan ini bukan sekadar kenyamanan, melainkan keharusan: tidak ada data yang berangkat ke mana pun, karena memang tidak ada jalannya.
 
-Perhatikan siklusnya: setelah input diubah menjadi token oleh **SentencePiece**, komputasi berputar di CPU — operasi tensor *GGML* memanfaatkan AVX2/NEON, *KV cache* menyimpan riwayat di RAM, *sampling* memilih token berikutnya, lalu token itu di-*decode* dan ditambahkan ke input, memulai iterasi berikutnya. Sirkuit inilah yang menjelaskan dua karakteristik GPT4All: ia *memory-bound* (RAM menentukan batas konteks) dan *sequential* (token harus keluar satu per satu), sehingga kecepatan token/detik adalah metrik yang paling jujur untuk mengukur pengalaman pengguna.
+Dengan LocalDocs, Anda memilih satu atau beberapa folder berisi dokumen (PDF, TXT, Markdown), dan aplikasi mengindeks isinya menjadi *chunk* teks. Saat Anda bertanya, GPT4All mencari bagian dokumen yang relevan (melalui *embedding* lokal), menempelkannya ke *prompt* sebagai konteks, lalu menjawab berdasarkan dokumen Anda. Tidak ada data yang keluar dari perangkat — *retrieval* dan generasi semuanya lokal. Inilah penggunaan nyata yang diimpikan pengguna *hardware* tua: laptop kantor lawas berubah menjadi "sistem manajemen pengetahuan" yang menjawab pertanyaan dari arsip surat, prosedur operasional, atau kumpulan resep keluarga, tanpa internet dan tanpa risiko bocor.
 
-Ada satu implikasi *by design* dari sirkuit ini yang jarang disadari: karena *KV cache* hidup di RAM dan terus membengkak sepanjang percakapan, **panjang percakapan memengaruhi kecepatan**. Di awal sesi, model secepat angka Tabel 3; setelah 20-30 pesan, cache membesar, RAM semakin penuh, dan kecepatan bisa turun setengah. Ini bukan *bug* — ini konsekuensi langsung arsitektur yang digambarkan diagram. Bagi pengguna produktif, dampaknya nyata: mulailah sesi baru untuk tugas baru, dan jangan biarkan satu percakapan menggendong seluruh pekerjaan hari itu — kebiasaan "satu tugas, satu sesi" adalah optimasi paling sederhana yang bisa dilakukan di atas GPT4All.
+Perlu digarisbawahi bahwa *embedding* yang dipakai LocalDocs juga dijalankan lokal — kecil, ringan, dan bisa berjalan di CPU yang sama. Pada perangkat dengan RAM terbatas, proses *indexing* sebaiknya dilakukan saat laptop tidak sedang dipakai pekerjaan lain, karena ia bersaing dengan model utama untuk mendapatkan memori dan waktu CPU. Setelah indeks terbentuk, pencarian menjadi cepat; *chunk* yang relevan disimpan di indeks vektor, sehingga *full scan* dokumen tidak dilakukan setiap kali bertanya.
 
-Perhatikan juga bahwa sirkuit ini **tidak memiliki cabang GPU** — karena memang tidak ada. Bandingkan dengan diagram arsitektur Ollama di sub-bab 3.1 yang penuh GPU dan *scheduler*; inilah dua ujung spektrum desain: optimasi untuk kecepatan di perangkat kaya versus optimasi untuk kemungkinan di perangkat miskin. GPT4All sengaja membuang kompleksitas *offload* agar aplikasi tetap ringan dan dapat diprediksi — keputusan desain yang keliru bagi *workstation*, tetapi tepat bagi target pasarnya. Setiap diagram arsitektur dalam buku ini layak dibaca dua kali: sekali untuk melihat apa yang ada, sekali lagi untuk melihat apa yang sengaja tidak ada — dan bertanya mengapa.
+Ada juga batas wajar yang perlu dipahami: LocalDocs bukan *search engine* untuk korpus raksasa. Pada folder dengan ratusan dokumen, kualitas jawaban bergantung pada presisi *embedding* — dan *embedding* ringan yang dipakai di perangkat CPU-only bekerja paling baik pada dokumen yang topiknya jelas dan bahasa yang konsisten. Untuk arsip berpuluh ribu halaman, lebih bijak memecah korpus menjadi beberapa koleksi tematik (lihat rekomendasi di Langkah 2). Dengan kata lain: *LocalDocs* adalah *manajer pengetahuan pribadi* yang hebat, bukan perpustakaan nasional — dan mengetahui batas itu adalah bagian dari menggunakannya dengan baik.
 
 ### Gambar 2: Alur LocalDocs (RAG Lokal)
 
@@ -232,7 +179,69 @@ Jika digabungkan dengan sirkuit pada Gambar 1, terlihat bahwa *LocalDocs* tidak 
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 6. Trade-off Hardware Lama: Mengetahui Batas, Menghindari Frustrasi
+
+
+Menjalankan LLM di perangkat tua adalah seni mengelola keterbatasan. Berikut peta batas yang perlu Anda pahami sebelum memilih model:
+
+- **CPU tanpa AVX2** — prosesor dari era sebelum ~2013 (misalnya Core 2 Duo). GPT4All otomatis *fallback* ke **Q4_0** — kuantisasi dasar yang tidak memanfaatkan instruksi vektor lanjutan — dan bukan Q4_K_M yang lebih cerdas. Model yang sama bisa berjalan 3-4 kali lebih lambat.
+- **RAM 4GB** — hanya model **1-3B** dengan *context* pendek yang realistis. Sistem operasi sendiri sudah memakan 2-3GB; model 7B akan membuat sistem *thrashing* ke *swap*.
+- **RAM 8GB** — model **7B Q4** bisa berjalan, tetapi *context* praktisnya sekitar **2048 token**; sisanya untuk KV cache yang membengkak seiring panjang percakapan.
+- **SSD vs HDD** — *loading time* model bergantung pada kecepatan baca disk. Model 4GB yang dimuat dari HDD bisa terasa seperti menunggu kopi; SSD mempercepatnya beberapa kali lipat.
+
+Peta ini bisa diringkas menjadi satu kalimat yang layak ditempel di monitor: **RAM dan AVX2 menentukan model yang bisa dipilih; disk menentukan seberapa cepat model itu siap dipakai; konteks menyisakan ruang untuk percakapan.** Ketiga variabel ini berinteraksi: SSD mempercepat *load* tetapi tidak mempercepat generasi token; RAM menentukan ukuran model tetapi *context* yang panjang bisa menggerus keuntungan itu. Setiap upgrade perangkat (SSD murah, RAM tambah) menggeser peta ini — dan saat itulah waktu yang tepat untuk *re-benchmark* pilihan model Anda.
+
+Praktik yang kami rekomendasikan untuk semua pengguna *hardware* lawas: **catat satu set angka rujukan** — kecepatan t/s model favorit di perangkat Anda, waktu *load*, dan sisa RAM saat model berjalan — lalu ulangi pengukuran setiap kali mengganti model atau mengubah pengaturan. Angka rujukan ini menjadi radar pribadi: ketika sistem terasa lambat, Anda bisa langsung membandingkan dengan baseline, bukan menebak. Menjalankan LLM di perangkat tua bukanlah perlombaan melawan waktu; ia adalah pengelolaan sumber daya yang sabar — dan setiap pengelolaan yang baik dimulai dari catatan yang jujur.
+
+Memahami peta ini mengubah ekspektasi: di RAM 8GB, jangan berharap *chat* panjang dengan konteks 32K — itu bukan kegagalan *software*, melainkan fisika memori. Yang bijak adalah menyesuaikan gaya penggunaan dengan batas perangkat: *prompt* pendek, model kecil, dan sesi yang disegarkan.
+
+Ada satu pengorbanan lagi yang sering luput dari perhatian: **suhu dan baterai**. *Inference* CPU memaksa prosesor bekerja pada beban penuh selama puluhan detik hingga menit — di laptop lawas, ini berarti kipas menyala terus dan baterai terkuras lebih cepat daripada penggunaan biasa. Untuk sesi kerja panjang, colokkan laptop; untuk laptop yang sudah bermasalah dengan panas (umum pada perangkat 2015-2020), batasi sesi *chat* menjadi 20-30 menit, lalu biarkan dingin. Bagi pengguna yang perangkatnya untuk kerja 8 jam, kebiasaan "sesi pendek dan istirahat" ini bukan sekadar saran kenyamanan, melainkan perlindungan perangkat keras.
+
+### Tabel 3: Benchmark di Hardware Lawas (Intel i5-7200U, 8GB RAM)
+
+Pengukuran berikut dilakukan pada laptop generasi 2017 — Intel i5-7200U dengan 8GB RAM — sebagai gambaran nyata performa CPU-only.
+
+| Model | Q Level | Load Time | Speed (t/s) | VRAM | RAM Usage |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| Phi-3-mini-3.8B | Q4_0 | 3.2s | 8.5 t/s | 0 GB | 3.1 GB |
+| Mistral-7B | Q4_0 | 8.1s | 3.2 t/s | 0 GB | 5.8 GB |
+| TinyLlama-1.1B | Q4_0 | 1.5s | 22 t/s | 0 GB | 1.2 GB |
+
+Gambar berikut menampilkan dua kolom paling menentukan dari tabel ini: kecepatan dan konsumsi RAM ketiga model.
+
+![Kecepatan token/detik dan penggunaan RAM pada benchmark hardware lawas](../../assets/images/bab-03-software/sub-bab-3/benchmark-hardware-lawas.png)
+
+*Gambar 3.3-2 — Phi-3-mini-3.8B adalah titik keseimbangan emas (8,5 t/s dengan RAM 3,1 GB), sementara Mistral-7B menyedot 5,8 GB untuk 3,2 t/s dan TinyLlama-1.1B lincah (22 t/s) namun kualitasnya terbatas — segitiga kualitas, kecepatan, dan memori yang hanya bisa memilih dua.*
+
+Tabel ini merangkum semua *trade-off* yang dibahas di seksi 6 ke dalam satu set angka. Phi-3-mini 3.8B adalah titik keseimbangan emas: *load* 3,2 detik, kecepatan 8,5 t/s, dan RAM hanya 3,1GB — meninggalkan ruang cukup untuk sistem. Mistral-7B menunjukkan mengapa model besar terasa menyakitkan di perangkat ini: *load* 8 detik, kecepatan merosot ke 3,2 t/s, dan RAM 5,8GB membuat sistem nyaris kehabisan napas. Sementara TinyLlama 1.1B, dengan 22 t/s, terasa lincah tetapi kualitasnya terbatas. Keputusan akhir selalu berupa segitiga: kualitas, kecepatan, dan memori — dan di perangkat lawas, Anda hanya bisa memilih dua.
+
+Perhatikan juga kolom "VRAM 0 GB" pada ketiga baris: ini bukan kebetulan, melainkan esensi GPT4All — komputasi tidak menyentuh kartu grafis sama sekali. Implikasinya sederhana namun penting: RAM sistem adalah satu-satunya *bottleneck* memori. Pada perangkat dengan 8GB, model 7B yang memakai 5,8GB menyisakan 2,2GB untuk sistem operasi — nyaris tidak cukup, sehingga muncul *swapping* dan sistem terasa membeku. Data Tabel 3 adalah alasan terkuat untuk tidak memaksakan model 7B di laptop 8GB yang sekaligus dipakai bekerja; angka di tabel ini, bukan spekulasi, yang sebaiknya menjadi dasar keputusan.
+
+---
+
+
+---
+
+## 7. Keterbatasan dan Alternatif: Jujur pada Diri Sendiri
+
+
+Tidak ada solusi tanpa kompromi, dan GPT4All jujur mengenai keterbatasannya. Pertama, **tidak ada GPU offload** — semua komputasi di CPU, sehingga GPU yang Anda miliki (jika ada) menganggur. Kedua, **kecepatan terbatas**: pada CPU modern *inference* berada di kisaran **5-15 token/detik**, sementara pada CPU lawas turun menjadi **1-3 token/detik** — untuk model 7B, jawaban 200 kata bisa menunggu beberapa menit. Ketiga, pengendaliannya lebih terbatas dibandingkan *tool* tingkat lanjut.
+
+Ketiga keterbatasan ini sebenarnya satu cerita yang sama: GPT4All memilih *kesederhanaan* sebagai desain, dan kesederhanaan selalu datang dengan harga. Harga yang dibayar ada pada *throughput* (lambat), *fleksibilitas* (sedikit opsi), dan *skalabilitas* (satu pengguna, satu perangkat). Namun harga itu membuat aplikasi bisa diinstal oleh siapa pun dalam satu klik — dan bagi sebagian besar calon pengguna di segmen ini, menukar fleksibilitas demi satu klik adalah kesepakatan yang sangat menguntungkan. Justru pengguna yang butuh *fleksibilitas* itulah yang harus jujur menilai diri dan berpindah ke alat lain.
+
+Jika batas-batas ini terasa menghambat, ada jalan keluar: **Ollama** atau llama.cpp langsung memberi kendali lebih besar — pengaturan *thread*, pemilihan kuantisasi, hingga *GPU offload* jika suatu saat perangkat di-upgrade. Namun untuk pengguna yang perangkatnya memang lawas dan tujuannya sederhana — asisten menulis, RAG dokumen pribadi, belajar AI tanpa biaya — GPT4All tetap pilihan paling masuk akal: instalasi satu klik, tanpa konfigurasi, dan langsung jalan. Seperti kata pepatah, alat yang tepat adalah alat yang dipakai; bagi jutaan laptop tua di Indonesia, GPT4All adalah alat yang tepat itu.
+
+Ada satu skenario lagi yang menarik untuk dicatat: ketika pengguna dengan laptop lawas **meng-upgrade** perangkatnya, GPT4All tidak harus ditinggalkan. Model yang sama — file GGUF yang sama — bisa langsung dijalankan di Ollama atau LM Studio tanpa konversi apa pun. Inilah keuntungan format GGUF yang menjadi bahasa bersama (lihat sub-bab 3.1): investasi Anda dalam memilih dan mengunduh model tidak pernah hangus. Perjalanan pengguna sering kali linear: mulai dengan GPT4All di perangkat tua, lalu "lulus" ke tool yang lebih canggih ketika perangkatnya ikut naik kelas — tanpa kehilangan satu file pun.
+
+Untuk menutup seksi ini, mari jawab pertanyaan yang mungkin sudah muncul di kepala pembaca: **"kalau begitu, kapan GPT4All bukan pilihan?"** Jawabannya: ketika pekerjaan Anda membutuhkan *throughput* tinggi (menulis ratusan halaman otomatis), konteks sangat panjang (menganalisis dokumen 50 halaman dalam satu sesi), atau integrasi *server* (banyak pengguna bersamaan). Untuk tiga kebutuhan itu, komputasi CPU-only dan RAM 4-8GB memang bukan medan yang tepat — dan tidak ada salahnya mengakuinya. Memilih *tool* bukan tentang menemukan yang "paling hebat", melainkan yang paling cocok dengan perangkat, keterampilan, dan tugas Anda; bagi banyak orang, GPT4All adalah jawaban yang tepat untuk dua dari tiga syarat itu.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 Tiga tutorial berikut bergerak dari yang paling dasar hingga paling teknis: instalasi model pertama (Langkah 1), RAG dokumen pribadi dengan LocalDocs (Langkah 2), dan optimasi untuk CPU tanpa AVX2 (Langkah 3). Kerjakan berurutan; Langkah 3 hanya wajib bagi pemilik prosesor pra-2013, tetapi tetap berguna sebagai pengetahuan diagnostik bagi semua. Bagi pengguna yang perangkatnya hanya 4GB RAM, mulailah dari model 1-3B di Langkah 1 — penyesuaian itu akan menghemat banyak waktu tunggu dibandingkan memaksa model 7B.
 
@@ -321,7 +330,8 @@ Satu pertanyaan yang sering muncul dari pembaca bagian ini: "bagaimana jika CPU 
 
 ---
 
-## 11. Studi Kasus: Laptop Kantor Lawas untuk Asisten Menulis
+## 9. Studi Kasus: Laptop Kantor Lawas untuk Asisten Menulis
+
 
 Studi kasus berikut menyatukan semua konsep sub-bab ini — pemilihan model sesuai RAM, pemanfaatan LocalDocs, hingga *trade-off* bahasa — dalam satu kisah nyata yang bisa ditiru di lingkungan pemerintahan, sekolah, atau usaha kecil.
 
@@ -339,7 +349,8 @@ Pelajaran terakhir dari kasus ini jarang disebut, tetapi paling berharga secara 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

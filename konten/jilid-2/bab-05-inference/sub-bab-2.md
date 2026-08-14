@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan arsitektur **TGI**: backend Rust/C++, router HTTP, scheduler, dan *model shards*
@@ -19,6 +20,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Sejarah dan Posisi TGI
 
+
 **Text Generation Inference** (TGI) lahir dari kebutuhan internal Hugging Face untuk menyajikan ratusan ribu model yang ada di *Hugging Face Hub* dengan cara yang terkelola dan *production-grade*. Pada awal perkembangannya, TGI dibangun di atas *transformers* dengan *custom CUDA kernels* — cukup untuk melayani satu model, tetapi belum sanggup menahan beban banyak pengguna sekaligus. Seiring waktu, TGI menyerap dua teknik paling penting dari generasi sebelumnya: **continuous batching** yang terinspirasi sistem Orca [5] — melayani banyak request secara interleaved dalam satu iterasi — dan kemudian **PagedAttention** dari vLLM [4] untuk mengelola KV-cache secara efisien. Saat ini TGI berdiri sejajar dengan vLLM sebagai dua *serving engine* terpopuler di ekosistem open-source, masing-masing dengan kekuatan dan karakter yang berbeda.
 
 Posisi TGI secara strategis unik: ia adalah jembatan paling mulus antara *Hugging Face Hub* dan infrastruktur produksi. Tidak ada mesin lain yang bisa menarik model dari hub, mengelola *cache* bobot, dan menyediakan endpoint langsung secepat TGI — dan karena itulah TGI menjadi pilihan *default* bagi tim yang sudah hidup di ekosistem Hugging Face.
@@ -28,6 +30,7 @@ Ritme rilis TGI mengikuti ekosistem model: setiap model besar yang populer di hu
 ---
 
 ## 3. Arsitektur TGI
+
 
 ### 3.1 Backend Rust/C++ dengan Python Bindings
 
@@ -47,9 +50,50 @@ Fitur yang paling membedakan TGI adalah integrasi native dengan **Hugging Face H
 
 TGI menangani berbagai skema *quantization* agar model muat di VRAM yang tersedia: **bitsandbytes** (untuk pemuatan dinamis, termasuk 4-bit NF4), **GPTQ** (4-bit pasca-training), **AWQ** (4-bit berbasis aktivasi), **EETQ** (8-bit cepat), hingga **FP8** yang dipakai Mistral Large 3 secara native. Pilihan kuantisasi dikendalikan lewat opsi `--quantize` atau variabel `QUANTIZE`, dan secara langsung menentukan *throughput* serta kualitas output — kita akan melihat angkanya di Tabel 2.
 
+### Tabel 2: Benchmark Throughput TGI (A100 80GB)
+
+Untuk menilai dampak kuantisasi secara kuantitatif, perhatikan *throughput*, TTFT, dan *latency* berbagai konfigurasi TGI di atas satu A100 80GB.
+
+| Konfigurasi | Throughput (req/s) | TTFT P50 (ms) | Latency P50 (ms) |
+|:---|:---:|:---:|:---:|
+| TGI default (Llama-3.1-8B, no quant) | 28.5 | 185 | 1250 |
+| TGI + AWQ 4-bit | 45.2 | 142 | 890 |
+| TGI + FP8 | 52.1 | 128 | 760 |
+| TGI + Mistral Large 3 (FP8, 4xA100) | 22.4 | 210 | 1,450 |
+| TGI + Ministral 3 8B (AWQ) | 58.7 | 112 | 680 |
+| vLLM (comparison, Llama-3.1-8B) | 45.3 | 195 | 1120 |
+
+![Kuantisasi menaikkan throughput TGI dari 28,5 req/s (no quant) menjadi 52,1 req/s (FP8), dengan latensi P50 turun dari 1250 ms ke 760 ms](../../assets/images/bab-05-inference/sub-bab-2/throughput-dan-latensi-tgi.png)
+
+*Gambar 5.2-1 — Kuantisasi bukan hanya mengecilkan model: bobot yang lebih kecil memangkas beban memory bandwidth, sehingga throughput naik ~1,8x dan latensi turun ~40% tanpa mengganti GPU.*
+
+Tiga baris pertama menunjukkan pola yang sangat instruktif: kuantisasi bukan hanya mengecilkan *footprint* model, tetapi juga menaikkan *throughput* — dari 28,5 req/s (tanpa kuantisasi) menjadi 52,1 req/s (FP8) — karena pesos yang lebih kecil mengurangi beban *memory bandwidth* yang memang menjadi *bottleneck* *decode*. Bandingkan juga dengan vLLM pada model sama: vLLM unggul pada konfigurasi standar (45,3 vs 28,5 req/s), menegaskan bahwa vLLM memang lebih agresif dalam *throughput* murni. Sementara itu, **Ministral 3 8B** (seri edge-optimized Mistral, Apache 2.0) menunjukkan performa terbaik di tabel — 58,7 req/s dengan TTFT 112 ms — menjadikannya pilihan menarik untuk TGI di *home server* dan *edge*. **Mistral Large 3** (675B/41B aktif) yang mendukung FP8 dan NVFP4 secara native tetap layak untuk beban bertonase besar di empat A100 [7][8].
+
+
+### Gambar 1: Arsitektur TGI
+
+```mermaid
+flowchart LR
+    A[Client] --> B[HTTP Router]
+    B --> C[Scheduler]
+    C --> D[Tokenizer]
+    D --> E[Batching Engine]
+    E --> F[Model Shards di GPU]
+    F --> G[Safety Checker]
+    G --> H[Watermarking]
+    H --> I[SSE Output Stream]
+    I --> J[Client Menerima Token]
+```
+
+Diagram ini merangkum perjalanan sebuah *request* di TGI. Klien mengirim teks; *router* menerima dan mengantrekan; *scheduler* memutuskan batch; tokenizer mengubah teks menjadi token; *batching engine* menggabungkan beberapa request; *model shards* menghitung; lalu aliran hasil melewati **safety checker** dan **watermarking** sebelum disalurkan kembali lewat **SSE** token demi token. Fitur-fitur penyaring itu tidak menempel di luar server — mereka adalah bintang tamu tetap di dalam *pipeline*, itulah mengapa TGI terasa "lengkap" sejak instalasi pertama.
+
+---
+
+
 ---
 
 ## 4. Fitur Unggulan TGI
+
 
 ### 4.1 Message Streaming dengan Server-Sent Events
 
@@ -71,21 +115,8 @@ Terakhir, TGI mendukung **grammar-guided generation**: memaksa output model meng
 
 ## 5. TGI vs vLLM
 
+
 Kedua mesin kini sama-sama memakai PagedAttention dan continuous batching, sehingga perbedaan aslinya terletak pada prioritas desain. **TGI** unggul di integrasi *Hugging Face Hub* (otomatis, terpusat, dengan *token management*), fitur penyaring (*watermarking* dan *safety checker*), serta *streaming* SSE — paket lengkap untuk tim yang ingin cepat go-live. **vLLM** unggul di *throughput* murni pada model besar, kompatibilitas penuh dengan API OpenAI, serta dukungan parameter tuning yang lebih dalam. Keduanya mendukung *quantization*, *multi-LoRA*, dan *speculative decoding* — perbandingan fitur demi fitur akan Anda lihat di Tabel 1. Aturan praktisnya: jika tim Anda hidup dari ekosistem model Hugging Face dan membutuhkan penyaring konten, pilih TGI; jika targetnya adalah *throughput* maksimal dengan API yang sepenuhnya kompatibel OpenAI, vLLM lebih tepat.
-
----
-
-## 6. Deployment Patterns
-
-TGI dirancang untuk berjalan sebagai **container Docker** — satu *image* resmi di `ghcr.io/huggingface/text-generation-inference` sudah berisi seluruh runtime, sehingga *deploy* ke server produksi cukup dengan satu `docker run`. Di atas itu, ada tiga pola umum. **Kubernetes** dengan *Horizontal Pod Autoscaler* (HPA) menambah atau mengurangi *replica* TGI berdasarkan metrik seperti `tgi_queue_size` — responsif terhadap lonjakan trafik tanpa intervensi manual. Untuk variasi yang lebih sederhana, **Docker Compose** dengan beberapa *replica* di belakang *load balancer* seperti Nginx sudah cukup bagi tim kecil. Terakhir, Hugging Face menyediakan **Inference Endpoints** — versi *serverless* terkelola dari TGI yang menangani *scaling*, *rolling update*, dan *monitoring* secara otomatis, cocok untuk tim yang tidak ingin mengelola infrastruktur.
-
-Perlu ditegaskan bahwa ketiga pola tersebut bukan tiga tingkat kebaikan yang berurutan — melainkan pilihan yang harus disesuaikan dengan ukuran tim dan beban. Tim berdua dengan trafik kecil justru akan menderita jika langsung memakai Kubernetes: kompleksitas *cluster*, *networking*, dan *CI/CD* akan memakan waktu lebih banyak daripada manfaatnya. Aturan sederhananya: mulai dari **Docker Compose**, pindah ke **Kubernetes** ketika metrik menunjukkan *replica* bergerak (naik-turun manual sudah terlalu sering), dan pilih **Inference Endpoints** ketika tim bahkan tidak ingin mengurus server sama sekali.
-
-Dua praktik keamanan patut diperhatikan di pola mana pun. Pertama, jangan pernah menulis `HF_TOKEN` di dalam `docker run` yang terekam di *shell history* atau *CI pipeline* — gunakan *secret manager* atau *env file* yang tidak masuk repositori. Kedua, untuk model internal yang bukan publik, unggah ke *Hugging Face Hub* privat dan beri akses hanya ke token yang dibutuhkan; TGI tidak membedakan model publik dan privat selama token valid, sehingga token dengan akses berlebihan adalah risiko yang tidak perlu.
-
----
-
-## 7. Tabel Wajib
 
 Tiga tabel berikut membandingkan TGI dan vLLM dari tiga sudut pandang: fitur, performa terukur, dan konfigurasi praktis. Baca berturut-turut — tabel pertama menjawab "apa bedanya", tabel kedua "berapa bedanya", dan tabel ketiga "bagaimana mengaturnya".
 
@@ -109,24 +140,6 @@ Berikut peta fitur kedua mesin secara berdampingan — perhatikan bahwa "sama-sa
 
 Yang patut disorot: sel-sel yang berisi "Tidak" hampir semuanya berada di sisi vLLM — *watermarking* dan *safety checker* adalah pembeda eksklusif TGI. Sebaliknya, vLLM menang di kompatibilitas API OpenAI yang penuh, sementara TGI hanya parsial. Dua kolom terakhir menunjukkan bahwa kedua mesin sama-sama sudah mendukung teknik lanjutan seperti *multi-LoRA* dan *speculative decoding*, sehingga keputusan pemilihan sangat bergantung pada fitur pembeda dan ekosistem — bukan pada kemampuan dasar.
 
-### Tabel 2: Benchmark Throughput TGI (A100 80GB)
-
-Untuk menilai dampak kuantisasi secara kuantitatif, perhatikan *throughput*, TTFT, dan *latency* berbagai konfigurasi TGI di atas satu A100 80GB.
-
-| Konfigurasi | Throughput (req/s) | TTFT P50 (ms) | Latency P50 (ms) |
-|:---|:---:|:---:|:---:|
-| TGI default (Llama-3.1-8B, no quant) | 28.5 | 185 | 1250 |
-| TGI + AWQ 4-bit | 45.2 | 142 | 890 |
-| TGI + FP8 | 52.1 | 128 | 760 |
-| TGI + Mistral Large 3 (FP8, 4xA100) | 22.4 | 210 | 1,450 |
-| TGI + Ministral 3 8B (AWQ) | 58.7 | 112 | 680 |
-| vLLM (comparison, Llama-3.1-8B) | 45.3 | 195 | 1120 |
-
-![Kuantisasi menaikkan throughput TGI dari 28,5 req/s (no quant) menjadi 52,1 req/s (FP8), dengan latensi P50 turun dari 1250 ms ke 760 ms](../../assets/images/bab-05-inference/sub-bab-2/throughput-dan-latensi-tgi.png)
-
-*Gambar 5.2-1 — Kuantisasi bukan hanya mengecilkan model: bobot yang lebih kecil memangkas beban memory bandwidth, sehingga throughput naik ~1,8x dan latensi turun ~40% tanpa mengganti GPU.*
-
-Tiga baris pertama menunjukkan pola yang sangat instruktif: kuantisasi bukan hanya mengecilkan *footprint* model, tetapi juga menaikkan *throughput* — dari 28,5 req/s (tanpa kuantisasi) menjadi 52,1 req/s (FP8) — karena pesos yang lebih kecil mengurangi beban *memory bandwidth* yang memang menjadi *bottleneck* *decode*. Bandingkan juga dengan vLLM pada model sama: vLLM unggul pada konfigurasi standar (45,3 vs 28,5 req/s), menegaskan bahwa vLLM memang lebih agresif dalam *throughput* murni. Sementara itu, **Ministral 3 8B** (seri edge-optimized Mistral, Apache 2.0) menunjukkan performa terbaik di tabel — 58,7 req/s dengan TTFT 112 ms — menjadikannya pilihan menarik untuk TGI di *home server* dan *edge*. **Mistral Large 3** (675B/41B aktif) yang mendukung FP8 dan NVFP4 secara native tetap layak untuk beban bertonase besar di empat A100 [7][8].
 
 ### Tabel 3: Opsi Environment TGI yang Penting
 
@@ -145,28 +158,22 @@ Dua pasang limit di baris atas bekerja serupa "BKPB di jalan tol": `MAX_BATCH_PR
 
 ---
 
-## 8. Diagram & Visualisasi
-
-### Gambar 1: Arsitektur TGI
-
-```mermaid
-flowchart LR
-    A[Client] --> B[HTTP Router]
-    B --> C[Scheduler]
-    C --> D[Tokenizer]
-    D --> E[Batching Engine]
-    E --> F[Model Shards di GPU]
-    F --> G[Safety Checker]
-    G --> H[Watermarking]
-    H --> I[SSE Output Stream]
-    I --> J[Client Menerima Token]
-```
-
-Diagram ini merangkum perjalanan sebuah *request* di TGI. Klien mengirim teks; *router* menerima dan mengantrekan; *scheduler* memutuskan batch; tokenizer mengubah teks menjadi token; *batching engine* menggabungkan beberapa request; *model shards* menghitung; lalu aliran hasil melewati **safety checker** dan **watermarking** sebelum disalurkan kembali lewat **SSE** token demi token. Fitur-fitur penyaring itu tidak menempel di luar server — mereka adalah bintang tamu tetap di dalam *pipeline*, itulah mengapa TGI terasa "lengkap" sejak instalasi pertama.
 
 ---
 
-## 9. Praktikum / Hands-On
+## 6. Deployment Patterns
+
+
+TGI dirancang untuk berjalan sebagai **container Docker** — satu *image* resmi di `ghcr.io/huggingface/text-generation-inference` sudah berisi seluruh runtime, sehingga *deploy* ke server produksi cukup dengan satu `docker run`. Di atas itu, ada tiga pola umum. **Kubernetes** dengan *Horizontal Pod Autoscaler* (HPA) menambah atau mengurangi *replica* TGI berdasarkan metrik seperti `tgi_queue_size` — responsif terhadap lonjakan trafik tanpa intervensi manual. Untuk variasi yang lebih sederhana, **Docker Compose** dengan beberapa *replica* di belakang *load balancer* seperti Nginx sudah cukup bagi tim kecil. Terakhir, Hugging Face menyediakan **Inference Endpoints** — versi *serverless* terkelola dari TGI yang menangani *scaling*, *rolling update*, dan *monitoring* secara otomatis, cocok untuk tim yang tidak ingin mengelola infrastruktur.
+
+Perlu ditegaskan bahwa ketiga pola tersebut bukan tiga tingkat kebaikan yang berurutan — melainkan pilihan yang harus disesuaikan dengan ukuran tim dan beban. Tim berdua dengan trafik kecil justru akan menderita jika langsung memakai Kubernetes: kompleksitas *cluster*, *networking*, dan *CI/CD* akan memakan waktu lebih banyak daripada manfaatnya. Aturan sederhananya: mulai dari **Docker Compose**, pindah ke **Kubernetes** ketika metrik menunjukkan *replica* bergerak (naik-turun manual sudah terlalu sering), dan pilih **Inference Endpoints** ketika tim bahkan tidak ingin mengurus server sama sekali.
+
+Dua praktik keamanan patut diperhatikan di pola mana pun. Pertama, jangan pernah menulis `HF_TOKEN` di dalam `docker run` yang terekam di *shell history* atau *CI pipeline* — gunakan *secret manager* atau *env file* yang tidak masuk repositori. Kedua, untuk model internal yang bukan publik, unggah ke *Hugging Face Hub* privat dan beri akses hanya ke token yang dibutuhkan; TGI tidak membedakan model publik dan privat selama token valid, sehingga token dengan akses berlebihan adalah risiko yang tidak perlu.
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Deploy TGI dengan Docker — Llama-3.1-8B
 
@@ -312,7 +319,8 @@ EOF
 
 ---
 
-## 10. Studi Kasus: Platform Edukasi dengan AI Tutor
+## 8. Studi Kasus: Platform Edukasi dengan AI Tutor
+
 
 **Latar.** Sebuah platform belajar online di Bandung ingin menambahkan AI tutor untuk 500 siswa belajar bersamaan dalam sesi sore hari. Tiga kebutuhan tidak bisa ditawar: respons datang di bawah 2 detik, konten yang tidak pantas harus tersaring, dan jawaban tampil *streaming* agar siswa merasa sedang "diajar", bukan menunggu unduhan.
 
@@ -328,7 +336,8 @@ Pada bulan ketiga, mereka memindahkan dua *replica* TGI ke Kubernetes dengan *Ho
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

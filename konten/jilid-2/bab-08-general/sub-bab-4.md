@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan fungsi LiteLLM sebagai *AI Gateway* untuk lingkungan general office dengan 21-50 pengguna
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep AI Gateway: Mengapa 21-50 User Butuh Gerbang?
+
 
 ### Masalah Akses Langsung
 
@@ -41,9 +43,27 @@ Fitur kunci LiteLLM yang langsung berguna bagi general office adalah:
 - **Load balancing** — distribusi permintaan antar *backend* dengan *round-robin* atau *least-connections*
 - **Audit logging** — pencatatan setiap permintaan ke PostgreSQL untuk kebutuhan pelaporan dan *compliance*
 
+### Tabel 2: Perbandingan AI Gateway
+
+Sebelum memilih LiteLLM, ada baiknya membandingkan dengan alternatif pasar — tabel berikut merangkum keempat opsi utama.
+
+| Fitur | LiteLLM (OSS) | Kong AI Gateway | Azure API Management | AWS Bedrock |
+|:---|:---|:---|:---|:---|
+| **Virtual Keys** | Ya | Enterprise | Ya | Ya |
+| **Budget Tracking** | Ya (built-in) | Custom | Azure Cost Mgmt | AWS Budgets |
+| **Rate Limiting** | Ya | Ya | Ya | Ya |
+| **Multi-Provider** | 100+ LLMs | Terbatas | Azure only | AWS only |
+| **Self-hosted** | Ya | Ya | Tidak | Tidak |
+| **Audit Logs** | Enterprise | Enterprise | Ya | CloudTrail |
+| **Biaya Lisensi** | Gratis (OSS) | $5k+/tahun | Pay-as-you-go | Pay-as-you-go |
+
+Pola yang terbaca jelas: LiteLLM unggul di **multi-provider** (100+ LLM) dan lisensi **gratis**, sementara Azure dan AWS mengikat pengguna ke ekosistem *cloud* masing-masing. Kekurangan LiteLLM ada di *audit log* kelas enterprise yang butuh lisensi tambahan — bagi kantor yang belum diwajibkan *audit* penuh, fitur gratisnya sudah memadai. Keputusan akhir biasanya jatuh pada satu pertanyaan: apakah kantor sudah terkunci di satu *cloud vendor* dan membutuhkan fitur *managed*, atau ingin kebebasan berganti model kapan saja dengan biaya lisensi nol? Bagi general office 21-50 user dengan model on-premise, jawabannya hampir selalu LiteLLM.
+
+
 ---
 
 ## 3. Arsitektur LiteLLM Proxy di Lingkungan Kantor
+
 
 ### Deployment sebagai Service di K3s
 
@@ -64,146 +84,6 @@ Pengaturan ini adalah pola *hybrid* yang mengoptimalkan biaya tanpa mengorbankan
 ### Database: PostgreSQL sebagai Sumber Kebenaran
 
 **PostgreSQL** adalah database yang menyimpan metadata penting: kunci (*keys*), pengguna dan tim (*teams*), serta catatan pengeluaran (*spend logs*). Setiap kali sebuah *virtual key* mengirim permintaan, LiteLLM mencatat jumlah token, model yang dipakai, dan biaya yang timbul ke dalam tabel *spend*. Database inilah yang menjadi *single source of truth* untuk laporan bulanan, penyelidikan insiden, dan perhitungan biaya per departemen di Bab 8.6. Ukurannya relatif kecil untuk skala kantor — tidak perlu *database* khusus kelas enterprise — tetapi tetap harus dicadangkan secara rutin karena nilainya sangat tinggi saat *audit*.
-
----
-
-## 4. Manajemen Virtual Keys & RBAC
-
-### Satu Kunci per Departemen
-
-Prinsip pertama pengendalian biaya di LiteLLM adalah **setiap departemen mendapat *virtual key* sendiri dengan budget terpisah**. Kunci Engineering tidak sama dengan kunci HR; kunci HR tidak bisa menghabiskan anggaran Legal. Setiap kunci mengikat identitas pengguna (melalui metadata seperti `department: engineering`), sehingga setiap rupiah yang terpakai dapat ditelusuri kembali ke pemegang kuncinya.
-
-Pemisahan ini bukan hanya soal biaya — ia juga menciptakan *accountability*. Ketika laporan bulanan menunjukkan Finance menghabiskan budget dua kali lipat HR, manajemen bisa langsung berbicara dengan kepala Finance dengan angka konkret, bukan perasaan. Di sinilah *virtual keys* berbeda dari sekadar membagikan satu kunci API bersama: kunci bersama adalah "uang kas di meja," sedangkan kunci per departemen adalah "buku kas per unit."
-
-### Empat Tier Akses
-
-Akses dibagi menjadi empat *tier* dengan jenjang kuota dan hak model:
-
-- **Admin** (IT, DevOps) — akses semua model termasuk model besar 70B dan Whisper untuk *speech-to-text*, budget tertinggi.
-- **Power** (Engineering, Data) — akses model 70B + 8B untuk *coding* dan analisis data berat.
-- **Standard** (HR, Finance, Legal) — hanya model 8B, cukup untuk *summarization*, tanya jawab dokumen, dan penulisan.
-- **Guest** (Intern, Trainee) — hanya model 8B tanpa RAG, budget paling kecil, untuk orientasi dan tugas-tugas ringan.
-
-Logika di balik *tier* ini adalah **menuangkan kebutuhan kerja ke dalam kuota** (pemetaan rinci lihat Tabel 1 di Seksi 8). Karyawan yang pekerjaannya menuntut model besar dibayar mahal oleh perusahaan — mereka mendapat kuota besar. Karyawan yang hanya butuh bantuan menulis surat tidak perlu menyentuh model 70B yang biayanya jauh lebih tinggi. Hasilnya: budget terpakai tepat sasaran, bukan menguap tanpa arah.
-
-### RBAC: Tiga Peran Pengelola
-
-RBAC di LiteLLM berjalan dalam tiga lapisan peran: **Proxy Admin** — pengelola infrastruktur yang membuat kunci, mengatur model, dan membaca semua laporan; **Internal User** — operator aplikasi internal yang memakai kunci untuk kebutuhan departemennya; dan **End User** — karyawan akhir yang tidak pernah melihat kunci sama sekali, cukup memakai aplikasi yang sudah terhubung. Batas ini penting: hanya *Proxy Admin* yang dapat mengubah budget atau melihat laporan lintas departemen, mencegah seorang *power user* menaikkan kuotanya sendiri secara diam-diam.
-
-Setiap lapisan peran ini juga dapat dipautkan ke **SSO** (misalnya Google Workspace atau Microsoft Entra ID) sehingga identitas karyawan yang sudah ada di direktori kantor langsung dipakai untuk otentikasi. Karyawan yang keluar otomatis kehilangan akses saat akunnya dinonaktifkan di direktori — tidak ada lagi "kunci API yang masih hidup setelah mantan karyawan itu pergi."
-
----
-
-## 5. Budget & Rate Limiting: Mengendalikan Aliran Rupiah
-
-### Hard Limit dan Soft Limit
-
-Setiap kunci memiliki dua lapis pengendali anggaran. **Hard limit** adalah pagu absolut: ketika budget kunci habis, permintaan ditolak, titik. **Soft limit** bekerja lebih dulu: saat budget mencapai **80% terpakai**, sistem mengirim *email alert* kepada pemegang kunci dan admin — memberi kesempatan menyesuaikan penggunaan sebelum tersandung tembok. Ambang 80% ini bukan angka sembarangan: kerangka *Policy-to-Prompt compliance* merekomendasikan peringatan dini pada ambang tersebut agar tim punya waktu reaksi sebelum quota benar-benar habis [4].
-
-Pengaturan ini bekerja per kunci, per tim, dan per model. Artinya perusahaan bisa menetapkan: "tim Engineering boleh menghabiskan Rp 5 juta secara total, tetapi model 70B dalam tim ini hanya dialokasikan Rp 2 juta." Jika suatu model mendekati batasnya, permintaan ke model tersebut dialihkan atau ditolak tanpa memengaruhi kuota model lain.
-
-### RPM dan TPM: Dua Meter Kecepatan
-
-*Rate limiting* diukur dengan dua metrik: **RPM (Request Per Minute)** dan **TPM (Token Per Minute)**. RPM membatasi jumlah permintaan per menit — berguna mencegah *loop* tak terkendali dari skrip. TPM membatasi jumlah token yang diproses per menit — berguna mencegah satu pengguna memonopoli model dengan dokumen raksasa berkonteks panjang. Keduanya seperti dua *speedometer* sekaligus: yang satu mengukur berapa sering mesin dinyalakan, yang lain mengukur seberapa jauh perjalanan tiap nyala.
-
-Tanpa kedua meter ini, satu karyawan yang mengunggah 500 baris kode ke model 70B lima puluh kali berturut-turut bisa membuat GPU *backend* berasap sementara rekan sekantornya hanya mendapat respons lambat. Dengan TPM 200k untuk *tier* Power, perilaku seperti itu langsung dibatasi secara otomatis tanpa campur tangan manusia.
-
-### Model-Specific Budgets
-
-Model besar (70B) memang diberi porsi budget lebih kecil daripada model kecil (8B), karena model kecil menangani mayoritas trafik harian — *summarization*, tanya jawab dokumen, penyuntingan surat — sementara model besar hanya untuk tugas berat yang benar-benar membutuhkannya. *Routing* cerdas di gateway memastikan permintaan sederhana diarahkan ke model murah, sehingga setiap permintaan menghasilkan biaya yang proporsional dengan kompleksitas kerjanya.
-
----
-
-## 6. Cost Tracking & Spend Reports: Laporan yang Bisa Dibawa ke Rapat Finance
-
-### Cost Map Otomatis
-
-Salah satu keunggulan LiteLLM adalah **pelacakan biaya otomatis**: setiap penyedia model memiliki *cost map* yang mencatat harga per 1.000 token input dan output. Saat sebuah permintaan selesai, gateway menghitung harga berdasarkan model dan jumlah token aktual — tanpa perkiraan, tanpa perhitungan manual. Data ini mengalir ke tabel *spend* di PostgreSQL dan menjadi dasar semua laporan.
-
-Perhitungan presisi ini penting untuk *general office* karena anggaran LLM biasanya kecil dibanding anggaran software lain — sehingga kesalahan estimasi 20-30% langsung terasa di akhir bulan. Dengan *cost map* yang dipelihara otomatis, laporan biaya LLM kantor bisa dipercaya oleh bagian keuangan, bukan sekadar angka "kira-kira dari IT."
-
-### Endpoint Pelaporan dan Ekspor ke Akuntansi
-
-LiteLLM menyediakan endpoint **`/global/spend/report`** untuk laporan pengeluaran global bulanan: berapa per departemen, per model, per pengguna, dengan *breakdown* harian. Dari endpoint ini, bagian keuangan dapat **mengekspor CSV** dan memuatnya ke sistem akuntansi kantor, sehingga biaya AI masuk ke *chart of account* secara formal — bukan tercatat sebagai "biaya IT lain-lain."
-
-Kemampuan ekspor ini mengubah percakapan anggaran dari obrolan informal menjadi *management review* yang berdasar. Kepala departemen melihat angka pemakaian timnya, CFO melihat total investasi AI, dan IT melihat *drift* pemakaian yang tidak wajar — semua dari dokumen yang sama.
-
----
-
-## 7. High Availability & Failover: Tetap Hidup Saat GPU Penuh
-
-### Multi-Region Routing dan Fallback
-
-Ketika GPU on-premise penuh — misalnya sore hari ketika seluruh tim Data Science mengirim pekerjaan berat bersamaan — gateway otomatis melakukan **fallback multi-region**: permintaan dialihkan ke *cloud* (GPT-5.5, Gemini 2.5 Pro) tanpa karyawan harus mengganti URL atau menunggu antrean. Arah *fallback* ini digambar sebagai garis putus-putus pada Diagram 1: jalur utama selalu on-premise, jalur cadangan baru dipakai saat dibutuhkan.
-
-Strategi ini menyeimbangkan biaya dan kesiapan: *failover* jarang terjadi sehingga biaya cloud tetap rendah, tetapi ketika terjadi, kantor tidak berhenti. Penelitian tentang *enterprise data leakage* pada *query* ke LLM eksternal mengingatkan bahwa *fallback* ke cloud harus disertai kontrol data — prompt yang mengandung rahasia perusahaan sebaiknya tidak pernah dialihkan ke luar [3]. Di Bab 8.5 kita akan melihat bagaimana DLP menyaring prompt sebelum mencapai jalur manapun.
-
-### Load Balancing dan Health Check
-
-*Load balancing* di LiteLLM menggunakan dua strategi standar: **round-robin** — permintaan bergiliran merata ke semua *backend*; dan **least-connections** — permintaan dikirim ke *backend* yang sedang paling sedikit menangani koneksi, ideal ketika pemakaian tidak merata. *Health check* berkala memastikan *backend* yang rusak otomatis dinonaktifkan dari rotasi: jika vLLM Mistral *down*, gateway berhenti mengirim permintaan ke sana dan beralih ke model lain yang sehat, lalu menyalakannya kembali saat sudah pulih.
-
-Gabungan ketiga mekanisme ini — *fallback*, *load balancing*, *health check* — menghasilkan layanan yang mendekati **100% uptime**: satu *backend* mati tidak pernah berarti seluruh kantor kehilangan AI. Detail penerapannya dapat Anda lihat dalam praktikum di Seksi 10.
-
----
-
-## 8. Tabel Wajib: Tier, Perbandingan Gateway, dan Contoh Budget
-
-### Tabel 1: Tier Virtual Key untuk General Office
-
-Empat *tier* kunci berikut memetakan kebutuhan kerja departemen ke kuota model, budget, dan batas kecepatan — angka-angka ini adalah titik awal yang lazim untuk kantor 21-50 user.
-
-| Tier | Departemen | Model Access | Budget/bulan | RPM Limit | TPM Limit |
-|:---|:---|:---|:---:|:---:|:---:|
-| **Admin** | IT, DevOps | Semua model (70B, 8B, Whisper) | Rp 10jt | 100 | 500k |
-| **Power** | Engineering, Data | 70B + 8B | Rp 5jt | 50 | 200k |
-| **Standard** | HR, Finance, Legal | 8B only | Rp 2jt | 20 | 100k |
-| **Guest** | Intern, Trainee | 8B only, no RAG | Rp 500k | 10 | 50k |
-
-![Perbandingan batas kecepatan empat tier virtual key — Admin, Power, Standard, dan Guest — untuk RPM dan TPM.](../../assets/images/bab-08-general/sub-bab-4/batas-rpm-tpm-tier.png)
-
-*Gambar 8.4-1 — Kuota menurun drastis dari Admin (RPM 100, TPM 500k) ke Guest (RPM 10, TPM 50k), dengan penurunan sepuluh kali lipat di kedua metrik; hierarki ini memastikan pengguna sementara tidak pernah memonopoli gateway.*
-
-Analisis singkat: hierarki kuota mengikuti pola *diminishing need* — departemen yang paling bergantung pada AI (Engineering, Data) mendapat kuota tertinggi, sementara pengguna sementara (Intern) dibatasi seperdua puluh kuota admin. Perhatikan bahwa *tier* Standard tetap mendapat akses model 8B penuh; pembeda utamanya adalah kuota token per menit, bukan kualitas model. Ini adalah keputusan desain yang bijak: kualitas jawaban tidak berbeda antar departemen, tetapi volume pemakaian harus terkendali. Sedangkan *tier* Guest tanpa RAG berarti pengguna sementara tidak bisa menarik data internal melalui *retrieval* — lapisan keamanan ekstra yang murah.
-
-### Tabel 2: Perbandingan AI Gateway
-
-Sebelum memilih LiteLLM, ada baiknya membandingkan dengan alternatif pasar — tabel berikut merangkum keempat opsi utama.
-
-| Fitur | LiteLLM (OSS) | Kong AI Gateway | Azure API Management | AWS Bedrock |
-|:---|:---|:---|:---|:---|
-| **Virtual Keys** | Ya | Enterprise | Ya | Ya |
-| **Budget Tracking** | Ya (built-in) | Custom | Azure Cost Mgmt | AWS Budgets |
-| **Rate Limiting** | Ya | Ya | Ya | Ya |
-| **Multi-Provider** | 100+ LLMs | Terbatas | Azure only | AWS only |
-| **Self-hosted** | Ya | Ya | Tidak | Tidak |
-| **Audit Logs** | Enterprise | Enterprise | Ya | CloudTrail |
-| **Biaya Lisensi** | Gratis (OSS) | $5k+/tahun | Pay-as-you-go | Pay-as-you-go |
-
-Pola yang terbaca jelas: LiteLLM unggul di **multi-provider** (100+ LLM) dan lisensi **gratis**, sementara Azure dan AWS mengikat pengguna ke ekosistem *cloud* masing-masing. Kekurangan LiteLLM ada di *audit log* kelas enterprise yang butuh lisensi tambahan — bagi kantor yang belum diwajibkan *audit* penuh, fitur gratisnya sudah memadai. Keputusan akhir biasanya jatuh pada satu pertanyaan: apakah kantor sudah terkunci di satu *cloud vendor* dan membutuhkan fitur *managed*, atau ingin kebebasan berganti model kapan saja dengan biaya lisensi nol? Bagi general office 21-50 user dengan model on-premise, jawabannya hampir selalu LiteLLM.
-
-### Tabel 3: Contoh Budget Departemen Bulanan (General Office 40 User)
-
-Berikut contoh nyata pemakaian satu bulan di kantor 40 user — angka yang bisa Anda jadikan acuan saat menyusun anggaran tahunan.
-
-| Departemen | User | Key Tier | Budget/bln | Pemakaian/bln | Sisa |
-|:---|:---:|:---|:---:|:---:|:---:|
-| **Engineering** | 15 | Power | Rp 5jt | Rp 4.2jt | Rp 800k |
-| **Data Science** | 5 | Power | Rp 5jt | Rp 4.8jt | Rp 200k |
-| **HR** | 8 | Standard | Rp 2jt | Rp 1.1jt | Rp 900k |
-| **Finance** | 6 | Standard | Rp 2jt | Rp 1.5jt | Rp 500k |
-| **Legal** | 4 | Standard | Rp 2jt | Rp 1.8jt | Rp 200k |
-| **IT Ops** | 2 | Admin | Rp 10jt | Rp 3.5jt | Rp 6.5jt |
-| **Total** | **40** | | **Rp 26jt** | **Rp 16.9jt** | **Rp 9.1jt** |
-
-![Perbandingan budget dan pemakaian bulanan enam departemen di kantor 40 user, dalam juta rupiah.](../../assets/images/bab-08-general/sub-bab-4/budget-vs-pemakaian-departemen.png)
-
-*Gambar 8.4-2 — Pemakaian paling timpang ada di Data Science (96% budget, Rp 4.8jt) dan IT Ops (35%, Rp 3.5jt); dengan total sisa Rp 9.1jt dari budget Rp 26jt, alokasi hulu terbukti lebih longgar dari kebutuhan aktual.*
-
-Dua *insight* langsung terlihat. Pertama, **pemakaian tidak merata**: Data Science memakai 96% budget-nya (Rp 4.8jt dari Rp 5jt) sementara IT Ops baru 35% — signal untuk audit internal: apakah workload Data Science memang sedang tinggi, atau ada *script* yang berulang sia-sia? Kedua, **total sisa Rp 9.1jt (35%)** menunjukkan budget hulu Rp 26jt lebih longgar dari kebutuhan aktual Rp 16.9jt; kantor bisa menurunkan alokasi atau menyalurkan sisa ke pelatihan AI karyawan. Tabel seperti ini juga menjadi bahan introspeksi: kalau sebuah departemen selalu habis di minggu ketiga, itu bukan masalah budget, melainkan masalah kebutuhan yang tidak dipetakan sejak awal — persis kasus yang terjadi pada departemen Legal di studi kasus PT Finansial Sejahtera (Seksi 11).
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Diagram 1: Arsitektur LiteLLM Gateway
 
@@ -243,6 +123,97 @@ graph TB
 
 Diagram ini menunjukkan tiga hal penting. Pertama, semua pengguna bertemu di dua *replica* LiteLLM — tidak ada jalur langsung ke model mana pun, sehingga pemeriksaan *key*, *budget*, dan *rate limit* tidak mungkin terlewat. Kedua, vLLM on-premise menjadi jalur utama sementara *cloud* (OpenAI/Anthropic) hanya jalur putus-putus *fallback* — kontras yang menegaskan strategi biaya: bayar rupiah ke GPU sendiri dulu, *cloud* hanya saat darurat. Ketiga, *monitoring* Prometheus mengarah ke Grafana untuk *dashboard spend* dan Alert Manager untuk peringatan budget — menutup siklus pengawasan dari permintaan hingga laporan.
 
+
+---
+
+## 4. Manajemen Virtual Keys & RBAC
+
+
+### Satu Kunci per Departemen
+
+Prinsip pertama pengendalian biaya di LiteLLM adalah **setiap departemen mendapat *virtual key* sendiri dengan budget terpisah**. Kunci Engineering tidak sama dengan kunci HR; kunci HR tidak bisa menghabiskan anggaran Legal. Setiap kunci mengikat identitas pengguna (melalui metadata seperti `department: engineering`), sehingga setiap rupiah yang terpakai dapat ditelusuri kembali ke pemegang kuncinya.
+
+Pemisahan ini bukan hanya soal biaya — ia juga menciptakan *accountability*. Ketika laporan bulanan menunjukkan Finance menghabiskan budget dua kali lipat HR, manajemen bisa langsung berbicara dengan kepala Finance dengan angka konkret, bukan perasaan. Di sinilah *virtual keys* berbeda dari sekadar membagikan satu kunci API bersama: kunci bersama adalah "uang kas di meja," sedangkan kunci per departemen adalah "buku kas per unit."
+
+### Empat Tier Akses
+
+Akses dibagi menjadi empat *tier* dengan jenjang kuota dan hak model:
+
+- **Admin** (IT, DevOps) — akses semua model termasuk model besar 70B dan Whisper untuk *speech-to-text*, budget tertinggi.
+- **Power** (Engineering, Data) — akses model 70B + 8B untuk *coding* dan analisis data berat.
+- **Standard** (HR, Finance, Legal) — hanya model 8B, cukup untuk *summarization*, tanya jawab dokumen, dan penulisan.
+- **Guest** (Intern, Trainee) — hanya model 8B tanpa RAG, budget paling kecil, untuk orientasi dan tugas-tugas ringan.
+
+Logika di balik *tier* ini adalah **menuangkan kebutuhan kerja ke dalam kuota** (pemetaan rinci lihat Tabel 1 di Seksi 4). Karyawan yang pekerjaannya menuntut model besar dibayar mahal oleh perusahaan — mereka mendapat kuota besar. Karyawan yang hanya butuh bantuan menulis surat tidak perlu menyentuh model 70B yang biayanya jauh lebih tinggi. Hasilnya: budget terpakai tepat sasaran, bukan menguap tanpa arah.
+
+### RBAC: Tiga Peran Pengelola
+
+RBAC di LiteLLM berjalan dalam tiga lapisan peran: **Proxy Admin** — pengelola infrastruktur yang membuat kunci, mengatur model, dan membaca semua laporan; **Internal User** — operator aplikasi internal yang memakai kunci untuk kebutuhan departemennya; dan **End User** — karyawan akhir yang tidak pernah melihat kunci sama sekali, cukup memakai aplikasi yang sudah terhubung. Batas ini penting: hanya *Proxy Admin* yang dapat mengubah budget atau melihat laporan lintas departemen, mencegah seorang *power user* menaikkan kuotanya sendiri secara diam-diam.
+
+Setiap lapisan peran ini juga dapat dipautkan ke **SSO** (misalnya Google Workspace atau Microsoft Entra ID) sehingga identitas karyawan yang sudah ada di direktori kantor langsung dipakai untuk otentikasi. Karyawan yang keluar otomatis kehilangan akses saat akunnya dinonaktifkan di direktori — tidak ada lagi "kunci API yang masih hidup setelah mantan karyawan itu pergi."
+
+### Tabel 1: Tier Virtual Key untuk General Office
+
+Empat *tier* kunci berikut memetakan kebutuhan kerja departemen ke kuota model, budget, dan batas kecepatan — angka-angka ini adalah titik awal yang lazim untuk kantor 21-50 user.
+
+| Tier | Departemen | Model Access | Budget/bulan | RPM Limit | TPM Limit |
+|:---|:---|:---|:---:|:---:|:---:|
+| **Admin** | IT, DevOps | Semua model (70B, 8B, Whisper) | Rp 10jt | 100 | 500k |
+| **Power** | Engineering, Data | 70B + 8B | Rp 5jt | 50 | 200k |
+| **Standard** | HR, Finance, Legal | 8B only | Rp 2jt | 20 | 100k |
+| **Guest** | Intern, Trainee | 8B only, no RAG | Rp 500k | 10 | 50k |
+
+![Perbandingan batas kecepatan empat tier virtual key — Admin, Power, Standard, dan Guest — untuk RPM dan TPM.](../../assets/images/bab-08-general/sub-bab-4/batas-rpm-tpm-tier.png)
+
+*Gambar 8.4-1 — Kuota menurun drastis dari Admin (RPM 100, TPM 500k) ke Guest (RPM 10, TPM 50k), dengan penurunan sepuluh kali lipat di kedua metrik; hierarki ini memastikan pengguna sementara tidak pernah memonopoli gateway.*
+
+Analisis singkat: hierarki kuota mengikuti pola *diminishing need* — departemen yang paling bergantung pada AI (Engineering, Data) mendapat kuota tertinggi, sementara pengguna sementara (Intern) dibatasi seperdua puluh kuota admin. Perhatikan bahwa *tier* Standard tetap mendapat akses model 8B penuh; pembeda utamanya adalah kuota token per menit, bukan kualitas model. Ini adalah keputusan desain yang bijak: kualitas jawaban tidak berbeda antar departemen, tetapi volume pemakaian harus terkendali. Sedangkan *tier* Guest tanpa RAG berarti pengguna sementara tidak bisa menarik data internal melalui *retrieval* — lapisan keamanan ekstra yang murah.
+
+
+---
+
+## 5. Budget & Rate Limiting: Mengendalikan Aliran Rupiah
+
+
+### Hard Limit dan Soft Limit
+
+Setiap kunci memiliki dua lapis pengendali anggaran. **Hard limit** adalah pagu absolut: ketika budget kunci habis, permintaan ditolak, titik. **Soft limit** bekerja lebih dulu: saat budget mencapai **80% terpakai**, sistem mengirim *email alert* kepada pemegang kunci dan admin — memberi kesempatan menyesuaikan penggunaan sebelum tersandung tembok. Ambang 80% ini bukan angka sembarangan: kerangka *Policy-to-Prompt compliance* merekomendasikan peringatan dini pada ambang tersebut agar tim punya waktu reaksi sebelum quota benar-benar habis [4].
+
+Pengaturan ini bekerja per kunci, per tim, dan per model. Artinya perusahaan bisa menetapkan: "tim Engineering boleh menghabiskan Rp 5 juta secara total, tetapi model 70B dalam tim ini hanya dialokasikan Rp 2 juta." Jika suatu model mendekati batasnya, permintaan ke model tersebut dialihkan atau ditolak tanpa memengaruhi kuota model lain.
+
+### RPM dan TPM: Dua Meter Kecepatan
+
+*Rate limiting* diukur dengan dua metrik: **RPM (Request Per Minute)** dan **TPM (Token Per Minute)**. RPM membatasi jumlah permintaan per menit — berguna mencegah *loop* tak terkendali dari skrip. TPM membatasi jumlah token yang diproses per menit — berguna mencegah satu pengguna memonopoli model dengan dokumen raksasa berkonteks panjang. Keduanya seperti dua *speedometer* sekaligus: yang satu mengukur berapa sering mesin dinyalakan, yang lain mengukur seberapa jauh perjalanan tiap nyala.
+
+Tanpa kedua meter ini, satu karyawan yang mengunggah 500 baris kode ke model 70B lima puluh kali berturut-turut bisa membuat GPU *backend* berasap sementara rekan sekantornya hanya mendapat respons lambat. Dengan TPM 200k untuk *tier* Power, perilaku seperti itu langsung dibatasi secara otomatis tanpa campur tangan manusia.
+
+### Model-Specific Budgets
+
+Model besar (70B) memang diberi porsi budget lebih kecil daripada model kecil (8B), karena model kecil menangani mayoritas trafik harian — *summarization*, tanya jawab dokumen, penyuntingan surat — sementara model besar hanya untuk tugas berat yang benar-benar membutuhkannya. *Routing* cerdas di gateway memastikan permintaan sederhana diarahkan ke model murah, sehingga setiap permintaan menghasilkan biaya yang proporsional dengan kompleksitas kerjanya.
+
+### Tabel 3: Contoh Budget Departemen Bulanan (General Office 40 User)
+
+Berikut contoh nyata pemakaian satu bulan di kantor 40 user — angka yang bisa Anda jadikan acuan saat menyusun anggaran tahunan.
+
+| Departemen | User | Key Tier | Budget/bln | Pemakaian/bln | Sisa |
+|:---|:---:|:---|:---:|:---:|:---:|
+| **Engineering** | 15 | Power | Rp 5jt | Rp 4.2jt | Rp 800k |
+| **Data Science** | 5 | Power | Rp 5jt | Rp 4.8jt | Rp 200k |
+| **HR** | 8 | Standard | Rp 2jt | Rp 1.1jt | Rp 900k |
+| **Finance** | 6 | Standard | Rp 2jt | Rp 1.5jt | Rp 500k |
+| **Legal** | 4 | Standard | Rp 2jt | Rp 1.8jt | Rp 200k |
+| **IT Ops** | 2 | Admin | Rp 10jt | Rp 3.5jt | Rp 6.5jt |
+| **Total** | **40** | | **Rp 26jt** | **Rp 16.9jt** | **Rp 9.1jt** |
+
+![Perbandingan budget dan pemakaian bulanan enam departemen di kantor 40 user, dalam juta rupiah.](../../assets/images/bab-08-general/sub-bab-4/budget-vs-pemakaian-departemen.png)
+
+*Gambar 8.4-2 — Pemakaian paling timpang ada di Data Science (96% budget, Rp 4.8jt) dan IT Ops (35%, Rp 3.5jt); dengan total sisa Rp 9.1jt dari budget Rp 26jt, alokasi hulu terbukti lebih longgar dari kebutuhan aktual.*
+
+Dua *insight* langsung terlihat. Pertama, **pemakaian tidak merata**: Data Science memakai 96% budget-nya (Rp 4.8jt dari Rp 5jt) sementara IT Ops baru 35% — signal untuk audit internal: apakah workload Data Science memang sedang tinggi, atau ada *script* yang berulang sia-sia? Kedua, **total sisa Rp 9.1jt (35%)** menunjukkan budget hulu Rp 26jt lebih longgar dari kebutuhan aktual Rp 16.9jt; kantor bisa menurunkan alokasi atau menyalurkan sisa ke pelatihan AI karyawan. Tabel seperti ini juga menjadi bahan introspeksi: kalau sebuah departemen selalu habis di minggu ketiga, itu bukan masalah budget, melainkan masalah kebutuhan yang tidak dipetakan sejak awal — persis kasus yang terjadi pada departemen Legal di studi kasus PT Finansial Sejahtera (Seksi 9).
+
+---
+
+
 ### Diagram 2: Alur Rate Limiting dan Budget Check
 
 Setiap permintaan melewati tiga gerbang sebelum sampai ke model — RPM, TPM, lalu *budget*:
@@ -264,7 +235,45 @@ Mengapa urutan RPM → TPM → budget? Karena RPM adalah pemeriksaan termurah (h
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 6. Cost Tracking & Spend Reports: Laporan yang Bisa Dibawa ke Rapat Finance
+
+
+### Cost Map Otomatis
+
+Salah satu keunggulan LiteLLM adalah **pelacakan biaya otomatis**: setiap penyedia model memiliki *cost map* yang mencatat harga per 1.000 token input dan output. Saat sebuah permintaan selesai, gateway menghitung harga berdasarkan model dan jumlah token aktual — tanpa perkiraan, tanpa perhitungan manual. Data ini mengalir ke tabel *spend* di PostgreSQL dan menjadi dasar semua laporan.
+
+Perhitungan presisi ini penting untuk *general office* karena anggaran LLM biasanya kecil dibanding anggaran software lain — sehingga kesalahan estimasi 20-30% langsung terasa di akhir bulan. Dengan *cost map* yang dipelihara otomatis, laporan biaya LLM kantor bisa dipercaya oleh bagian keuangan, bukan sekadar angka "kira-kira dari IT."
+
+### Endpoint Pelaporan dan Ekspor ke Akuntansi
+
+LiteLLM menyediakan endpoint **`/global/spend/report`** untuk laporan pengeluaran global bulanan: berapa per departemen, per model, per pengguna, dengan *breakdown* harian. Dari endpoint ini, bagian keuangan dapat **mengekspor CSV** dan memuatnya ke sistem akuntansi kantor, sehingga biaya AI masuk ke *chart of account* secara formal — bukan tercatat sebagai "biaya IT lain-lain."
+
+Kemampuan ekspor ini mengubah percakapan anggaran dari obrolan informal menjadi *management review* yang berdasar. Kepala departemen melihat angka pemakaian timnya, CFO melihat total investasi AI, dan IT melihat *drift* pemakaian yang tidak wajar — semua dari dokumen yang sama.
+
+---
+
+## 7. High Availability & Failover: Tetap Hidup Saat GPU Penuh
+
+
+### Multi-Region Routing dan Fallback
+
+Ketika GPU on-premise penuh — misalnya sore hari ketika seluruh tim Data Science mengirim pekerjaan berat bersamaan — gateway otomatis melakukan **fallback multi-region**: permintaan dialihkan ke *cloud* (GPT-5.5, Gemini 2.5 Pro) tanpa karyawan harus mengganti URL atau menunggu antrean. Arah *fallback* ini digambar sebagai garis putus-putus pada Diagram 1: jalur utama selalu on-premise, jalur cadangan baru dipakai saat dibutuhkan.
+
+Strategi ini menyeimbangkan biaya dan kesiapan: *failover* jarang terjadi sehingga biaya cloud tetap rendah, tetapi ketika terjadi, kantor tidak berhenti. Penelitian tentang *enterprise data leakage* pada *query* ke LLM eksternal mengingatkan bahwa *fallback* ke cloud harus disertai kontrol data — prompt yang mengandung rahasia perusahaan sebaiknya tidak pernah dialihkan ke luar [3]. Di Bab 8.5 kita akan melihat bagaimana DLP menyaring prompt sebelum mencapai jalur manapun.
+
+### Load Balancing dan Health Check
+
+*Load balancing* di LiteLLM menggunakan dua strategi standar: **round-robin** — permintaan bergiliran merata ke semua *backend*; dan **least-connections** — permintaan dikirim ke *backend* yang sedang paling sedikit menangani koneksi, ideal ketika pemakaian tidak merata. *Health check* berkala memastikan *backend* yang rusak otomatis dinonaktifkan dari rotasi: jika vLLM Mistral *down*, gateway berhenti mengirim permintaan ke sana dan beralih ke model lain yang sehat, lalu menyalakannya kembali saat sudah pulih.
+
+Gabungan ketiga mekanisme ini — *fallback*, *load balancing*, *health check* — menghasilkan layanan yang mendekati **100% uptime**: satu *backend* mati tidak pernah berarti seluruh kantor kehilangan AI. Detail penerapannya dapat Anda lihat dalam praktikum di Seksi 8.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Setup LiteLLM Proxy dengan Docker Compose
 
@@ -392,7 +401,8 @@ Dengan *webhook* ini, tidak ada lagi alasan "tidak tahu budget habis": saat kunc
 
 ---
 
-## 11. Studi Kasus: Implementasi LiteLLM di PT Finansial Sejahtera
+## 9. Studi Kasus: Implementasi LiteLLM di PT Finansial Sejahtera
+
 
 **Latar.** PT Finansial Sejahtera adalah perusahaan *fintech* dengan 45 karyawan dan tuntutan ganda: kontrol biaya yang ketat karena margin bisnis yang tipis, serta *audit trail* yang solid karena bisnis di industri keuangan. Sebelumnya, karyawan memakai ChatGPT Enterprise secara langsung — perkiraan biaya **Rp 45 juta/bulan** di puncaknya, tanpa rincian siapa memakai berapa. CFO menolak memperpanjang anggaran sebelum ada mekanisme kontrol.
 
@@ -406,7 +416,8 @@ Dengan *webhook* ini, tidak ada lagi alasan "tidak tahu budget habis": saat kunc
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan *threat model* agentic AI: apa yang bisa salah ketika agen memiliki akses ke *file system*, *shell*, *network*, dan API
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Threat Model Agentic AI: Apa yang Bisa Salah?
+
 
 ### Akses Luas, Pengawasan Sempit
 
@@ -37,6 +39,7 @@ Cara berpikir yang benar adalah menganggap agen sebagai *untrusted code* — kod
 
 ## 3. Docker Sandbox: Lapisan Dasar
 
+
 ### Isolasi via Namespaces dan cgroups
 
 Container Docker adalah lapisan dasar isolasi yang paling mudah diadopsi. Setiap container berjalan dalam *Linux namespaces* — namespace terpisah untuk PID, *mount*, *network*, *user*, dan *UTS* — sehingga proses di dalam container "melihat" dunia yang terbatas. Sementara itu, *cgroups* (control groups) membatasi sumber daya: berapa banyak CPU, memori, dan I/O yang boleh dikonsumsi. Hasilnya, sebuah agen yang berjalan di dalam container tidak bisa melihat proses di luar container, tidak bisa me-mount *file system* host secara sembarangan, dan tidak bisa memboroskan seluruh RAM mesin.
@@ -55,6 +58,7 @@ Bagian paling penting dari konfigurasi container untuk agen adalah cara Anda mem
 
 ## 4. Docker-in-Docker: Sandbox di dalam Sandbox
 
+
 ### Konsep DinD
 
 Banyak agen modern membutuhkan kemampuan untuk menjalankan container sendiri — misalnya, menguji aplikasi, menjalankan kode dalam lingkungan terisolasi, atau membangun image. Memberi agen akses ke *Docker socket* host (`/var/run/docker.sock`) adalah salah satu kesalahan keamanan paling fatal: siapa pun yang menguasai socket itu menguasai seluruh host, karena Docker socket memberikan akses *root* efektif. Solusinya adalah **Docker-in-Docker (DinD)** — agen menjalankan Docker di *dalam* container Docker, bukan pada Docker host.
@@ -63,56 +67,7 @@ Dengan DinD, agen bebas menjalankan `docker run` sebanyak yang ia mau — tetapi
 
 ### Lapisan Hypervisor: gVisor dan Firecracker
 
-Untuk mereka yang membutuhkan jaminan isolasi yang lebih kuat, ada dua teknologi utama. **gVisor** dari Google adalah *user-space kernel* yang menjadi penghalang antara aplikasi dan kernel host — setiap *syscall* dicegat dan diterjemahkan, sehingga kernel host tidak pernah melihat permintaan yang berbahaya. **Firecracker** dari AWS mengambil pendekatan berbeda: ia adalah *MicroVM* yang menjalankan kernel khusus yang sangat ramping, sehingga setiap container mendapat kernel *dedicated* sendiri tanpa overhead VM tradisional. Keduanya mengatasi masalah *shared kernel* container biasa dengan biaya overhead yang relatif kecil (lihat Tabel A pada bagian 8).
-
----
-
-## 5. Network Isolation: Memutus Akses Dunia Luar
-
-### Sandbox Tanpa Internet
-
-Sebagian besar ancaman terhadap agen membutuhkan satu jalur: jaringan. *Data exfiltration* tidak mungkin terjadi tanpa koneksi keluar; *malware* tidak bisa diunduh tanpa akses ke internet. Karena itu, salah satu langkah keamanan paling efektif adalah memblokir akses internet dari sandbox sejak awal. Konfigurasi Docker `--network none` memutus total komunikasi jaringan — agen hanya bisa berbicara dengan proses di dalam container-nya sendiri. Ini adalah pilihan terbaik untuk tugas yang tidak membutuhkan internet sama sekali, seperti pemrosesan berkas atau eksekusi kode lokal.
-
-### Proxy dan DNS Whitelist
-
-Ketika agen *memang* membutuhkan akses jaringan — misalnya untuk memanggil API LLM atau mengambil data dari sumber tertentu — gunakan *proxy* sebagai satu-satunya pintu keluar. Semua lalu lintas jaringan diarahkan ke proxy yang berperan sebagai penjaga gerbang: hanya *domain whitelist* yang diizinkan lewat, permintaan ke IP internal atau *LAN* diblokir, dan setiap koneksi dicatat. Dengan pendekatan ini, agen secara teknis "memiliki akses internet", tetapi praktis hanya bisa menjangkau tiga domain yang Anda setujui. Tidak ada akses ke jaringan internal perusahaan, tidak ada akses ke host lain, tidak ada akses ke layanan cloud yang tidak dikenal.
-
----
-
-## 6. Permission & Approval Gates: Pintu Konfirmasi Manusia
-
-### Empat Tingkat Permission
-
-Isolasi teknis saja tidak cukup — Anda juga perlu mengatur *kebijakan* tentang apa yang boleh dilakukan agen. Model permission yang umum digunakan memiliki empat tingkat, diurutkan dari paling aman:
-
-1. **Read-only** — agen hanya bisa membaca dan menganalisis; tidak ada operasi yang mengubah sistem.
-2. **Dry-run** — agen boleh merencanakan operasi, tetapi semua eksekusi ditampilkan sebagai simulasi.
-3. **With-approval** — agen dapat mengeksekusi, tetapi setiap operasi berisiko harus dikonfirmasi manusia terlebih dahulu.
-4. **Full-auto** — agen berjalan tanpa konfirmasi; hanya cocok untuk tugas yang sepenuhnya dapat dipercaya dan tidak berisiko.
-
-### Approval Gate untuk Operasi Destruktif
-
-Operasi destruktif — `rm`, `mv`, `chmod`, `format`, dan sejenisnya — harus selalu melewati *approval gate*. Sistem ini memeriksa setiap perintah sebelum dieksekusi, membandingkannya dengan daftar *dangerous commands*, dan meminta konfirmasi manusia ketika menemukan kecocokan. Pola sederhananya dapat dilihat pada Tutorial B di bagian 10, di mana sebuah kelas `SafetyGate` memblokir `rm -rf` secara otomatis tanpa menunggu interaksi manusia sama sekali. Prinsipnya sederhana: biarkan agen bekerja cepat untuk hal-hal aman, dan paksa berhenti untuk hal-hal yang berisiko.
-
-### Audit Log: Jejak Digital yang Tidak Terhapus
-
-Setiap keputusan — disetujui, ditolak, atau diblokir — harus dicatat dalam **audit log** dengan timestamp, perintah, dan alasan. Log ini bukan sekadar formalitas; ia adalah alat debugging terbaik ketika insiden terjadi. Anda bisa menjawab pertanyaan "kenapa berkas ini terhapus?" dengan membuka log dan melihat: perintah apa yang dieksekusi, oleh siapa, disetujui oleh siapa, dan pada pukul berapa. Tanpa audit log, investigasi insiden berubah menjadi permainan menebak. Dengan audit log, setiap tindakan agen memiliki jejak yang dapat dipertanggungjawabkan [4].
-
----
-
-## 7. Rollback & Snapshot: Jaring Pengaman Terakhir
-
-### Snapshot Sebelum Agen Mulai
-
-Tidak peduli seberapa baik isolasi dan *approval gate* Anda, insiden tetap bisa terjadi — dan ketika terjadi, pertanyaan paling penting bukan "bagaimana mencegahnya", melainkan "bagaimana mengembalikan keadaan". Sebelum agen mulai bekerja, buat **snapshot** dari *file system* menggunakan ZFS, btrfs, atau Timeshift. Snapshot adalah foto lengkap sistem pada satu titik waktu; jika agen mengacau, Anda tinggal kembali ke foto itu. Operasi ini murah, cepat, dan dapat diotomatisasi untuk setiap sesi kerja agen.
-
-### Pendekatan Transaksional
-
-Langkah lebih lanjut adalah pendekatan **transaksional**, yang diusung oleh penelitian *Fault-Tolerant Sandboxing* [3]: semua perubahan agen dibungkus dalam satu *transaction* atomik. Perubahan hanya di-*commit* ke sistem ketika seluruh tugas selesai tanpa error; jika terjadi kegagalan di tengah jalan, seluruh perubahan dibatalkan otomatis (*auto-rollback*) — seperti *database transaction* yang dibatalkan ketika satu pernyataan gagal. Kombinasi snapshot periodik dan *transactional filesystem* membuat kerusakan dari agen menjadi masalah sementara, bukan permanen.
-
----
-
-## 8. Tabel Perbandingan
+Untuk mereka yang membutuhkan jaminan isolasi yang lebih kuat, ada dua teknologi utama. **gVisor** dari Google adalah *user-space kernel* yang menjadi penghalang antara aplikasi dan kernel host — setiap *syscall* dicegat dan diterjemahkan, sehingga kernel host tidak pernah melihat permintaan yang berbahaya. **Firecracker** dari AWS mengambil pendekatan berbeda: ia adalah *MicroVM* yang menjalankan kernel khusus yang sangat ramping, sehingga setiap container mendapat kernel *dedicated* sendiri tanpa overhead VM tradisional. Keduanya mengatasi masalah *shared kernel* container biasa dengan biaya overhead yang relatif kecil (lihat Tabel A pada bagian 4).
 
 ### Tabel A: Sandbox Isolation Levels
 
@@ -132,6 +87,7 @@ Analisis dari tabel ini: ada hubungan langsung antara *overhead* dan keamanan, t
 
 *Gambar 4.8-1 — MicroVM Firecracker justru paling cepat boot (~150 ms) meski isolasinya jauh lebih kuat daripada container biasa (~200 ms); Full VM adalah satu-satunya level dengan boot time dalam orde detik (5-30 s).*
 
+
 ### Tabel B: Risk Matrix — File Operations
 
 Tabel ini memetakan setiap operasi yang mungkin dilakukan agen ke tingkat risiko, *permission* minimum yang dibutuhkan, kebutuhan *approval*, dan strategi mitigasinya.
@@ -147,6 +103,7 @@ Tabel ini memetakan setiap operasi yang mungkin dilakukan agen ke tingkat risiko
 | **Format disk** | Kritis | root | Ya (manual) | Block by default |
 
 Pola yang jelas terlihat: semakin tinggi risiko, semakin ketat kontrolnya. *Read file* berjalan tanpa hambatan, sedangkan *format disk* diblokir secara default bahkan tidak ditawarkan untuk disetujui secara otomatis. Mitigasi yang menarik adalah "trash instead" untuk penghapusan — alih-alih `rm`, pindahkan berkas ke folder sampah yang bisa dipulihkan, sehingga penghapusan yang keliru tidak pernah permanen. Perhatikan juga bahwa "Execute command" dan "Install package" membutuhkan *approval* karena keduanya adalah pintu gerbang ke kemampuan yang lebih luas: satu perintah bisa memicu serangkaian tindakan lain.
+
 
 ### Tabel C: Perbandingan Sandbox Tools untuk AI Agent
 
@@ -164,23 +121,43 @@ Dari tabel ini, pesan utamanya adalah: tidak ada satu tool yang menang di semua 
 
 ---
 
-## 9. Diagram: Arsitektur Sandbox Defense-in-Depth
 
-Diagram berikut menggambarkan arsitektur *defense-in-depth* yang ideal untuk agentic AI. Setiap lapisan memeriksa dan menahan potensi kerusakan, sehingga kegagalan satu lapisan tidak menggagalkan seluruh sistem.
+---
 
-```mermaid
-flowchart LR
-    A[Host System] -->|lapisan 1| B[Docker Engine]
-    B -->|lapisan 2| C[Container Agent]
-    C -->|lapisan 3| D[MicroVM / gVisor]
-    C -->|lapisan 4| E[Network Proxy\nDNS whitelist]
-    C -->|lapisan 5| F[Filesystem Filter\nread-only mount]
-    C -->|lapisan 6| G[Audit Log\ntimestamp + status]
-    G -->|approval gate| H[Human Approval]
-    D --> I[Snapshot & Rollback\nZFS / transactional FS]
-```
+## 5. Network Isolation: Memutus Akses Dunia Luar
 
-Diagram ini menunjukkan enam lapisan yang bekerja bersama. Di lapisan pertama, host dan Docker Engine memisahkan container dari sistem utama. Lapisan kedua adalah container itu sendiri — agen bekerja di sini. Lapisan ketiga adalah MicroVM atau gVisor yang memotong jalur langsung ke kernel host. Lapisan keempat hingga keenam — proxy jaringan, filter *filesystem*, dan audit log — mengawasi setiap tindakan agen dari tiga sudut yang berbeda. Yang terpenting: *audit log* mengalir ke *human approval*, yang berarti setiap keputusan kritis pada akhirnya kembali ke manusia. Di bawah semua itu, *snapshot* dan sistem transaksional menunggu sebagai jaring pengaman terakhir. Tidak ada satu lapisan pun yang sempurna, tetapi enam lapisan sekaligus membuat kegagalan berlapis menjadi sangat sulit.
+
+### Sandbox Tanpa Internet
+
+Sebagian besar ancaman terhadap agen membutuhkan satu jalur: jaringan. *Data exfiltration* tidak mungkin terjadi tanpa koneksi keluar; *malware* tidak bisa diunduh tanpa akses ke internet. Karena itu, salah satu langkah keamanan paling efektif adalah memblokir akses internet dari sandbox sejak awal. Konfigurasi Docker `--network none` memutus total komunikasi jaringan — agen hanya bisa berbicara dengan proses di dalam container-nya sendiri. Ini adalah pilihan terbaik untuk tugas yang tidak membutuhkan internet sama sekali, seperti pemrosesan berkas atau eksekusi kode lokal.
+
+### Proxy dan DNS Whitelist
+
+Ketika agen *memang* membutuhkan akses jaringan — misalnya untuk memanggil API LLM atau mengambil data dari sumber tertentu — gunakan *proxy* sebagai satu-satunya pintu keluar. Semua lalu lintas jaringan diarahkan ke proxy yang berperan sebagai penjaga gerbang: hanya *domain whitelist* yang diizinkan lewat, permintaan ke IP internal atau *LAN* diblokir, dan setiap koneksi dicatat. Dengan pendekatan ini, agen secara teknis "memiliki akses internet", tetapi praktis hanya bisa menjangkau tiga domain yang Anda setujui. Tidak ada akses ke jaringan internal perusahaan, tidak ada akses ke host lain, tidak ada akses ke layanan cloud yang tidak dikenal.
+
+---
+
+## 6. Permission & Approval Gates: Pintu Konfirmasi Manusia
+
+
+### Empat Tingkat Permission
+
+Isolasi teknis saja tidak cukup — Anda juga perlu mengatur *kebijakan* tentang apa yang boleh dilakukan agen. Model permission yang umum digunakan memiliki empat tingkat, diurutkan dari paling aman:
+
+1. **Read-only** — agen hanya bisa membaca dan menganalisis; tidak ada operasi yang mengubah sistem.
+2. **Dry-run** — agen boleh merencanakan operasi, tetapi semua eksekusi ditampilkan sebagai simulasi.
+3. **With-approval** — agen dapat mengeksekusi, tetapi setiap operasi berisiko harus dikonfirmasi manusia terlebih dahulu.
+4. **Full-auto** — agen berjalan tanpa konfirmasi; hanya cocok untuk tugas yang sepenuhnya dapat dipercaya dan tidak berisiko.
+
+### Approval Gate untuk Operasi Destruktif
+
+Operasi destruktif — `rm`, `mv`, `chmod`, `format`, dan sejenisnya — harus selalu melewati *approval gate*. Sistem ini memeriksa setiap perintah sebelum dieksekusi, membandingkannya dengan daftar *dangerous commands*, dan meminta konfirmasi manusia ketika menemukan kecocokan. Pola sederhananya dapat dilihat pada Tutorial B di bagian 8, di mana sebuah kelas `SafetyGate` memblokir `rm -rf` secara otomatis tanpa menunggu interaksi manusia sama sekali. Prinsipnya sederhana: biarkan agen bekerja cepat untuk hal-hal aman, dan paksa berhenti untuk hal-hal yang berisiko.
+
+### Audit Log: Jejak Digital yang Tidak Terhapus
+
+Setiap keputusan — disetujui, ditolak, atau diblokir — harus dicatat dalam **audit log** dengan timestamp, perintah, dan alasan. Log ini bukan sekadar formalitas; ia adalah alat debugging terbaik ketika insiden terjadi. Anda bisa menjawab pertanyaan "kenapa berkas ini terhapus?" dengan membuka log dan melihat: perintah apa yang dieksekusi, oleh siapa, disetujui oleh siapa, dan pada pukul berapa. Tanpa audit log, investigasi insiden berubah menjadi permainan menebak. Dengan audit log, setiap tindakan agen memiliki jejak yang dapat dipertanggungjawabkan [4].
+
+Diagram berikut menggambarkan arsitektur *defense-in-depth* yang ideal untuk agentic AI. Setiap lapisan memeriksa dan menahan potensi kerusakan, sehingga kegagalan satu lapisan tidak menggagalkan seluruh sistem. ```mermaid flowchart LR A[Host System] -->|lapisan 1| B[Docker Engine] B -->|lapisan 2| C[Container Agent] C -->|lapisan 3| D[MicroVM / gVisor] C -->|lapisan 4| E[Network Proxy\nDNS whitelist] C -->|lapisan 5| F[Filesystem Filter\nread-only mount] C -->|lapisan 6| G[Audit Log\ntimestamp + status] G -->|approval gate| H[Human Approval] D --> I[Snapshot & Rollback\nZFS / transactional FS] ``` Diagram ini menunjukkan enam lapisan yang bekerja bersama. Di lapisan pertama, host dan Docker Engine memisahkan container dari sistem utama. Lapisan kedua adalah container itu sendiri — agen bekerja di sini. Lapisan ketiga adalah MicroVM atau gVisor yang memotong jalur langsung ke kernel host. Lapisan keempat hingga keenam — proxy jaringan, filter *filesystem*, dan audit log — mengawasi setiap tindakan agen dari tiga sudut yang berbeda. Yang terpenting: *audit log* mengalir ke *human approval*, yang berarti setiap keputusan kritis pada akhirnya kembali ke manusia. Di bawah semua itu, *snapshot* dan sistem transaksional menunggu sebagai jaring pengaman terakhir. Tidak ada satu lapisan pun yang sempurna, tetapi enam lapisan sekaligus membuat kegagalan berlapis menjadi sangat sulit.
 
 ### Diagram Pelengkap: Siklus Approval Gate
 
@@ -202,7 +179,24 @@ Alur ini menunjukkan tiga jalur keputusan. Perintah yang mengandung pola berbaha
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 7. Rollback & Snapshot: Jaring Pengaman Terakhir
+
+
+### Snapshot Sebelum Agen Mulai
+
+Tidak peduli seberapa baik isolasi dan *approval gate* Anda, insiden tetap bisa terjadi — dan ketika terjadi, pertanyaan paling penting bukan "bagaimana mencegahnya", melainkan "bagaimana mengembalikan keadaan". Sebelum agen mulai bekerja, buat **snapshot** dari *file system* menggunakan ZFS, btrfs, atau Timeshift. Snapshot adalah foto lengkap sistem pada satu titik waktu; jika agen mengacau, Anda tinggal kembali ke foto itu. Operasi ini murah, cepat, dan dapat diotomatisasi untuk setiap sesi kerja agen.
+
+### Pendekatan Transaksional
+
+Langkah lebih lanjut adalah pendekatan **transaksional**, yang diusung oleh penelitian *Fault-Tolerant Sandboxing* [3]: semua perubahan agen dibungkus dalam satu *transaction* atomik. Perubahan hanya di-*commit* ke sistem ketika seluruh tugas selesai tanpa error; jika terjadi kegagalan di tengah jalan, seluruh perubahan dibatalkan otomatis (*auto-rollback*) — seperti *database transaction* yang dibatalkan ketika satu pernyataan gagal. Kombinasi snapshot periodik dan *transactional filesystem* membuat kerusakan dari agen menjadi masalah sementara, bukan permanen.
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Docker Sandbox untuk AI Agent
 
@@ -324,7 +318,8 @@ Baris pertama menjalankan daemon Docker di dalam container (`docker:27-dind`) �
 
 ---
 
-## 11. Studi Kasus: Insiden Nyata — Agent Hampir Hapus Production Database
+## 9. Studi Kasus: Insiden Nyata — Agent Hampir Hapus Production Database
+
 
 **Skenario:** Sebuah perusahaan menengah mengoperasikan server produksi dengan ribuan berkas log audit — data yang secara regulasi wajib disimpan selama bertahun-tahun. Manajemen memutuskan memanfaatkan agentic AI untuk pekerjaan operasional harian, termasuk pembersihan berkas. Seorang engineer memberikan perintah kepada agen: "Bersihkan file log lama di server".
 
@@ -336,7 +331,8 @@ Baris pertama menjalankan daemon Docker di dalam container (`docker:27-dind`) �
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

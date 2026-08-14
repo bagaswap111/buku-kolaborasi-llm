@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menyiapkan pipeline *speech-to-text* real-time dengan Whisper di server rumah
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Konsep ASR Real-Time di Edge
 
+
 ### Dari Gelombang Suara ke Teks
 
 **Automatic Speech Recognition (ASR)** adalah teknologi yang mengubah audio menjadi teks — dan di antara semua model ASR modern, **Whisper** dari OpenAI adalah bintangnya. Whisper adalah model *transformer* *multilingual* yang dilatih dengan *weak supervision* pada ratusan ribu jam audio, dan — kabar baik untuk keluarga Indonesia — **mendukung bahasa Indonesia secara langsung** [1]. Dengan Whisper, perintah "hidupkan lampu" atau percakapan makan malam bisa ditranskrip tanpa mengonfigurasi bahasa secara manual.
@@ -29,90 +31,6 @@ Kesalahpahaman umum: *real-time* berarti transkrip kata-per-kata saat berbicara.
 ### Mengapa Lokal Lebih Menang
 
 Menjalankan ASR di server rumah memberi tiga keunggulan sekaligus. **Privasi**: audio keluarga — termasuk percakapan makan malam yang tidak direncanakan — tidak pernah dikirim ke server pihak ketiga. **Latensi**: tanpa perjalanan pulang-pergi ke cloud, respons terasa jauh lebih alami. **Biaya**: tanpa langganan per jam atau per menit; setelah hardware terpasang, transkrip berapa pun gratis. Survei *privacy-preserving LLM inference* menegaskan bahwa menjalankan model di *edge* menghilangkan risiko kebocoran data sekaligus biaya berulang [4].
-
----
-
-## 3. Model Whisper: Memilih Ukuran yang Tepat
-
-### Keluarga Model Whisper
-
-Whisper hadir dalam beberapa ukuran dengan keseimbangan kecepatan-akurasi yang berbeda:
-
-- **Tiny (39M parameter, ~75 MB):** WER ~18%, sangat cepat — ideal untuk *voice command* sederhana
-- **Base (74M, ~140 MB):** WER ~14% — kompromi untuk *command* + dikte singkat
-- **Small (244M, ~0.5 GB):** WER ~10% — keseimbangan terbaik untuk rumah, dan pilihan utama sub-bab ini
-- **Medium (769M, ~1.5 GB):** WER ~7% — untuk transkrip yang butuh akurasi tinggi
-- **Large-v3 (1.55B, ~3.1 GB):** WER ~5% — akurasi maksimal, cocok untuk *batch* offline
-- **Turbo (809M, ~1.6 GB):** WER ~5.5% — kualitas Large dengan kecepatan Small
-
-Dua peningkatan infrastruktur layak dicatat. **faster-whisper** adalah implementasi ulang Whisper di atas CTranslate2 yang **4× lebih cepat** dari Whisper asli, dengan penggunaan memori lebih kecil. **Whisper Turbo** adalah versi *distilled* yang mempertahankan kualitas Large sambil melaju dengan kecepatan Small.
-
-### Kapan Memilih yang Mana
-
-Aturan praktis untuk rumah: gunakan **Small** sebagai *sweet spot* — akurasinya cukup untuk percakapan normal Indonesia, dan latensinya di GPU hanya ~0,6 detik. Turun ke **Tiny** jika server tidak punya GPU atau jika trafik *voice command* sangat padat; naik ke **Medium/Turbo** jika tujuan utamanya transkrip rapat keluarga atau wawancara yang harus akurat. **Large-v3** hampir tidak pernah diperlukan secara real-time — simpan untuk *batch* file audio di malam hari.
-
----
-
-## 4. Arsitektur Voice Pipeline untuk Ruang Tamu
-
-### Empat Pilar: Mic, Server, LLM, Output
-
-Pipeline suara ruang tamu terdiri dari empat blok. **Tangkap:** *microphone array* (misalnya MiniDSP UMA-8 dengan 8 mikrofon) atau *node* wireless ESP32-S3 + mikrofon I2S INMP441 yang mengirim audio streaming via **WebSocket**. **Transkrip:** server menjalankan **faster-whisper** + **VAD** (*Voice Activity Detection*) untuk memutuskan kapan seseorang mulai dan selesai bicara. **Pahami & bertindak:** teks diteruskan ke **LLM** (melalui Ollama) yang mengubahnya menjadi aksi — nyalakan lampu, buat catatan, pasang *reminder*. **Ucapkan:** respons dibacakan kembali lewat **TTS** (Piper) atau dijalankan langsung sebagai aksi *smart home*.
-
-### Wake Word: "Hai Rumah"
-
-Agar sistem tidak menyalin seluruh percakapan keluarga sepanjang hari, gunakan **wake word** — kata pemicu yang disadap mikrofon secara kontinu oleh detektor ringan. **openWakeWord** adalah pilihan populer: ringan (~100 MB RAM), berjalan terus-menerus, dan memicu pipeline penuh hanya saat kata seperti "Hai Rumah" terdengar. Dengan *wake word*, biaya komputasi sehari-hari sistem suara mendekati nol.
-
-### Server Tanpa GPU: Mungkin, dengan Syarat
-
-Jalur *CPU-only* tetap bisa berfungsi, tetapi dengan kompromi latensi: Whisper Small di CPU butuh ~3,5 detik per segmen — di atas batas nyaman 2 detik. Solusinya, pilih model yang lebih kecil (Tiny ~1,5 detik), atau gunakan **Ministral 3 3B** sebagai LLM pengolah perintah — hanya butuh ~2 GB RAM dan bisa jalan *CPU-only* dengan latensi di bawah 2 detik. Untuk GPU tersedia, **DeepSeek V4 Flash** dengan konteks 1 juta token bahkan bisa memproses transkrip obrolan keluarga seharian penuh dalam satu *prompt* tanpa kehilangan konteks.
-
----
-
-## 5. Optimasi Latency
-
-### VAD: Tahu Kapan Diam Berarti Selesai
-
-Tanpa VAD, sistem tidak tahu kapan sebuah perintah berakhir — ia akan menunggu tanpa batas atau memotong kalimat di tengah. **Silero VAD** dan **WebRTC VAD** memecahkan masalah ini dengan mendeteksi jeda bicara (biasanya ~1 detik diam dianggap akhir kalimat). Ini adalah penghemat latensi terbesar dalam pipeline: tanpa VAD, setiap segmen membawa "ekor diam" yang terbuang.
-
-### Two-Pass: Tiny untuk Memutuskan, Small untuk Menulis
-
-Teknik yang elegan untuk menyeimbangkan kecepatan dan akurasi: **two-pass**. Model Tiny melakukan transkrip cepat untuk memutuskan apakah segmen itu ucapan yang berarti atau hanya suara TV; jika berarti, model Small (atau Turbo) menulis transkrip final. Hasilnya: latensi mendekati Tiny dengan akurasi mendekati Small — kombinasi terbaik untuk *voice command* (lihat Tabel 3).
-
-### Batching dan Transport
-
-Whisper paling efisien saat memproses audio **~30 detik** per batch — lebih panjang justru menambah latensi tanpa manfaat. Untuk transport, **WebSocket lebih cepat dari HTTP polling**: koneksi sekali dibuka, audio mengalir dua arah tanpa *handshake* berulang. Perpaduan VAD + *two-pass* + WebSocket inilah yang membawa latensi turun dari ~6-12 detik (CPU, *single-pass*) menjadi ~0,8 detik di GPU.
-
----
-
-## 6. Multi-Room Audio
-
-### Satu Server, Banyak Telinga
-
-Rumah bukan satu ruangan: mikrofon di ruang tamu, dapur, dan kamar anak bisa berbagi satu server ASR. Setiap *node* memiliki **identifier unik** yang melekat pada aliran datanya, sehingga sistem tahu suara datang dari ruangan mana — berguna saat dua orang bicara bersamaan, atau saat perintah "matikan lampu" harus ditargetkan ke ruangan asal suara. **MQTT** menjadi pilihan transport antar *node* karena *publish-subscribe*-nya yang ringan; WebSocket dipakai untuk aliran audio mentah yang kontinu.
-
-### Musuh Multi-Room: Echo dan Feedback
-
-Dua masalah khas multi-mikrofon adalah *echo* (suara speaker tertangkap mikrofon) dan *feedback* (siulan bernada tinggi). Aturan emasnya: **mute speaker saat pipeline aktif** — sistem yang sedang mendengarkan tidak boleh bersuara, dan sistem yang sedang berbicara (TTS) harus menangguhkan pendengaran. Di arsitektur sederhana, satu jalur *mute* di aplikasi orkestrasi sudah cukup mencegah keduanya.
-
----
-
-## 7. Aplikasi Transkrip Real-Time
-
-### Empat Guna Utama
-
-Setelah teks mengalir, nilainya bergantung pada aplikasi yang menampungnya:
-
-- **Catatan otomatis:** "Ibu: beli telur di pasar" → tersimpan rapi di notes keluarga
-- **Smart home:** "Hidupkan lampu" → aksi Home Assistant, 2 detik kemudian lampu menyala
-- **Reminder:** "Ingatkan saya jemput anak jam 3" → masuk kalender bersama notifikasi
-- **Diari keluarga:** transkrip obrolan makan malam → arsip mingguan yang bisa dibaca ulang bertahun-tahun
-
-Keempatnya berbagi satu pipeline; yang membedakan hanyalah rute tujuan di lapisan aplikasi — dan semuanya bisa diaktifkan bertahap: mulai dari catatan, lalu *smart home*, baru diari.
-
----
-
-## 8. Tabel Referensi
 
 ### Tabel 1: Perbandingan Model Whisper untuk Real-Time
 
@@ -137,6 +55,46 @@ Pilih model dengan mencocokkan prioritas keluarga (kecepatan vs akurasi) terhada
 
 Analisis: dua kolom yang paling menentukan keputusan adalah *Latency CPU* dan *WER*. Jika server keluarga tidak memiliki GPU, hanya Tiny dan Base yang berada di zona nyaman sub-2 detik — dan Tiny dengan WER ~18% masih cukup untuk perintah pendek yang vokabulernya terbatas ("nyalakan lampu", "buat catatan"). Dengan GPU, Small membuka zona akurasi tinggi (~10% WER) dengan latensi hanya 0,6 detik — inilah *sweet spot* yang direkomendasikan di seksi 3. Perhatikan juga kolom RAM: seluruh keluarga Whisper muat di RAM server 16 GB, bahkan dengan LLM pendamping — jadi model bukan pembatas hardware, GPU-lah pembatasnya.
 
+
+---
+
+## 3. Model Whisper: Memilih Ukuran yang Tepat
+
+
+### Keluarga Model Whisper
+
+Whisper hadir dalam beberapa ukuran dengan keseimbangan kecepatan-akurasi yang berbeda:
+
+- **Tiny (39M parameter, ~75 MB):** WER ~18%, sangat cepat — ideal untuk *voice command* sederhana
+- **Base (74M, ~140 MB):** WER ~14% — kompromi untuk *command* + dikte singkat
+- **Small (244M, ~0.5 GB):** WER ~10% — keseimbangan terbaik untuk rumah, dan pilihan utama sub-bab ini
+- **Medium (769M, ~1.5 GB):** WER ~7% — untuk transkrip yang butuh akurasi tinggi
+- **Large-v3 (1.55B, ~3.1 GB):** WER ~5% — akurasi maksimal, cocok untuk *batch* offline
+- **Turbo (809M, ~1.6 GB):** WER ~5.5% — kualitas Large dengan kecepatan Small
+
+Dua peningkatan infrastruktur layak dicatat. **faster-whisper** adalah implementasi ulang Whisper di atas CTranslate2 yang **4× lebih cepat** dari Whisper asli, dengan penggunaan memori lebih kecil. **Whisper Turbo** adalah versi *distilled* yang mempertahankan kualitas Large sambil melaju dengan kecepatan Small.
+
+### Kapan Memilih yang Mana
+
+Aturan praktis untuk rumah: gunakan **Small** sebagai *sweet spot* — akurasinya cukup untuk percakapan normal Indonesia, dan latensinya di GPU hanya ~0,6 detik. Turun ke **Tiny** jika server tidak punya GPU atau jika trafik *voice command* sangat padat; naik ke **Medium/Turbo** jika tujuan utamanya transkrip rapat keluarga atau wawancara yang harus akurat. **Large-v3** hampir tidak pernah diperlukan secara real-time — simpan untuk *batch* file audio di malam hari.
+
+---
+
+## 4. Arsitektur Voice Pipeline untuk Ruang Tamu
+
+
+### Empat Pilar: Mic, Server, LLM, Output
+
+Pipeline suara ruang tamu terdiri dari empat blok. **Tangkap:** *microphone array* (misalnya MiniDSP UMA-8 dengan 8 mikrofon) atau *node* wireless ESP32-S3 + mikrofon I2S INMP441 yang mengirim audio streaming via **WebSocket**. **Transkrip:** server menjalankan **faster-whisper** + **VAD** (*Voice Activity Detection*) untuk memutuskan kapan seseorang mulai dan selesai bicara. **Pahami & bertindak:** teks diteruskan ke **LLM** (melalui Ollama) yang mengubahnya menjadi aksi — nyalakan lampu, buat catatan, pasang *reminder*. **Ucapkan:** respons dibacakan kembali lewat **TTS** (Piper) atau dijalankan langsung sebagai aksi *smart home*.
+
+### Wake Word: "Hai Rumah"
+
+Agar sistem tidak menyalin seluruh percakapan keluarga sepanjang hari, gunakan **wake word** — kata pemicu yang disadap mikrofon secara kontinu oleh detektor ringan. **openWakeWord** adalah pilihan populer: ringan (~100 MB RAM), berjalan terus-menerus, dan memicu pipeline penuh hanya saat kata seperti "Hai Rumah" terdengar. Dengan *wake word*, biaya komputasi sehari-hari sistem suara mendekati nol.
+
+### Server Tanpa GPU: Mungkin, dengan Syarat
+
+Jalur *CPU-only* tetap bisa berfungsi, tetapi dengan kompromi latensi: Whisper Small di CPU butuh ~3,5 detik per segmen — di atas batas nyaman 2 detik. Solusinya, pilih model yang lebih kecil (Tiny ~1,5 detik), atau gunakan **Ministral 3 3B** sebagai LLM pengolah perintah — hanya butuh ~2 GB RAM dan bisa jalan *CPU-only* dengan latensi di bawah 2 detik. Untuk GPU tersedia, **DeepSeek V4 Flash** dengan konteks 1 juta token bahkan bisa memproses transkrip obrolan keluarga seharian penuh dalam satu *prompt* tanpa kehilangan konteks.
+
 ### Tabel 2: Komponen Hardware Voice Pipeline
 
 Perkiraan belanja untuk membangun sisi *input/output* suara rumah.
@@ -150,6 +108,24 @@ Perkiraan belanja untuk membangun sisi *input/output* suara rumah.
 | **GPU** | Akselerasi Whisper | RTX 3090/4090 | (dari server) |
 
 Analisis: perhatikan bahwa sebagian besar biaya ada di sisi *input* — dan ESP32-S3 + INMP441 di ~Rp 150rb per *node* adalah nilai terbaik untuk rumah yang ingin *multi-room* (tiga ruangan = ~Rp 450rb, masih lebih murah dari satu *microphone array*). MiniDSP UMA-8 unggul bila satu meja makan adalah pusat percakapan — 8 arah berarti siapa pun yang bicara tertangkap jelas. GPU tidak perlu dibeli baru: RTX 3090 yang sudah digunakan server keluarga (lihat Bab 6.8) menjalankan Whisper Small sekaligus LLM tanpa kewalahan.
+
+
+---
+
+## 5. Optimasi Latency
+
+
+### VAD: Tahu Kapan Diam Berarti Selesai
+
+Tanpa VAD, sistem tidak tahu kapan sebuah perintah berakhir — ia akan menunggu tanpa batas atau memotong kalimat di tengah. **Silero VAD** dan **WebRTC VAD** memecahkan masalah ini dengan mendeteksi jeda bicara (biasanya ~1 detik diam dianggap akhir kalimat). Ini adalah penghemat latensi terbesar dalam pipeline: tanpa VAD, setiap segmen membawa "ekor diam" yang terbuang.
+
+### Two-Pass: Tiny untuk Memutuskan, Small untuk Menulis
+
+Teknik yang elegan untuk menyeimbangkan kecepatan dan akurasi: **two-pass**. Model Tiny melakukan transkrip cepat untuk memutuskan apakah segmen itu ucapan yang berarti atau hanya suara TV; jika berarti, model Small (atau Turbo) menulis transkrip final. Hasilnya: latensi mendekati Tiny dengan akurasi mendekati Small — kombinasi terbaik untuk *voice command* (lihat Tabel 3).
+
+### Batching dan Transport
+
+Whisper paling efisien saat memproses audio **~30 detik** per batch — lebih panjang justru menambah latensi tanpa manfaat. Untuk transport, **WebSocket lebih cepat dari HTTP polling**: koneksi sekali dibuka, audio mengalir dua arah tanpa *handshake* berulang. Perpaduan VAD + *two-pass* + WebSocket inilah yang membawa latensi turun dari ~6-12 detik (CPU, *single-pass*) menjadi ~0,8 detik di GPU.
 
 ### Tabel 3: Perbandingan Pipeline ASR untuk Latency
 
@@ -166,7 +142,35 @@ Analisis: baris *Streaming* menunjukkan kecepatan ekstrem (0,4 detik) dengan men
 
 ---
 
-## 9. Diagram & Visualisasi
+
+---
+
+## 6. Multi-Room Audio
+
+
+### Satu Server, Banyak Telinga
+
+Rumah bukan satu ruangan: mikrofon di ruang tamu, dapur, dan kamar anak bisa berbagi satu server ASR. Setiap *node* memiliki **identifier unik** yang melekat pada aliran datanya, sehingga sistem tahu suara datang dari ruangan mana — berguna saat dua orang bicara bersamaan, atau saat perintah "matikan lampu" harus ditargetkan ke ruangan asal suara. **MQTT** menjadi pilihan transport antar *node* karena *publish-subscribe*-nya yang ringan; WebSocket dipakai untuk aliran audio mentah yang kontinu.
+
+### Musuh Multi-Room: Echo dan Feedback
+
+Dua masalah khas multi-mikrofon adalah *echo* (suara speaker tertangkap mikrofon) dan *feedback* (siulan bernada tinggi). Aturan emasnya: **mute speaker saat pipeline aktif** — sistem yang sedang mendengarkan tidak boleh bersuara, dan sistem yang sedang berbicara (TTS) harus menangguhkan pendengaran. Di arsitektur sederhana, satu jalur *mute* di aplikasi orkestrasi sudah cukup mencegah keduanya.
+
+---
+
+## 7. Aplikasi Transkrip Real-Time
+
+
+### Empat Guna Utama
+
+Setelah teks mengalir, nilainya bergantung pada aplikasi yang menampungnya:
+
+- **Catatan otomatis:** "Ibu: beli telur di pasar" → tersimpan rapi di notes keluarga
+- **Smart home:** "Hidupkan lampu" → aksi Home Assistant, 2 detik kemudian lampu menyala
+- **Reminder:** "Ingatkan saya jemput anak jam 3" → masuk kalender bersama notifikasi
+- **Diari keluarga:** transkrip obrolan makan malam → arsip mingguan yang bisa dibaca ulang bertahun-tahun
+
+Keempatnya berbagi satu pipeline; yang membedakan hanyalah rute tujuan di lapisan aplikasi — dan semuanya bisa diaktifkan bertahap: mulai dari catatan, lalu *smart home*, baru diari.
 
 ### Gambar 1: Pipeline Voice Real-Time
 
@@ -204,7 +208,11 @@ Perhatikan dua hal dalam diagram ini. *Pertama*, mikrofon fisik (MIC) dan node w
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Setup faster-whisper untuk Transkrip Real-Time
 
@@ -372,7 +380,8 @@ Catatan desain yang penting di sini: server menggunakan model **Tiny**, bukan Sm
 
 ---
 
-## 11. Studi Kasus: Rumah Keluarga Kusuma — Ruang Tamu dengan Voice AI
+## 9. Studi Kasus: Rumah Keluarga Kusuma — Ruang Tamu dengan Voice AI
+
 
 **Latar:** Rumah keluarga Kusuma bertipe 36/72 dengan ruang tamu dan dapur terbuka. Lima anggota keluarga aktif berbicara — masalah terbaik yang bisa dimiliki sebuah rumah. Ibu selalu lupa mencatat belanjaan, ayah sering tidak mendengar jeritan "ayah jemput aku jam 3" dari kamar anak, dan lampu ruang tamu selalu menyala karena tak seorang pun mau bangkit dari sofa.
 
@@ -384,7 +393,8 @@ Catatan desain yang penting di sini: server menggunakan model **Tiny**, bukan Sm
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

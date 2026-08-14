@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Membangun agent yang bisa *sortir*, *rename*, dan menganalisa file secara otonom dengan bantuan LLM
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Masalah File System Modern
 
+
 ### 50.000 File di Satu Tempat
 
 Coba jalankan `find ~ -type f | wc -l` di terminal Mac Anda — hasilnya kemungkinan besar di angka **50.000 hingga 100.000 file**. Angka itu bukan anomali; rata-rata pengguna Mac memang menyimpan puluhan ribu file: dokumen kerja, foto, screenshot, unduhan, file project, dan sisa-sisa aplikasi yang tidak pernah dibuka lagi. Sebagian besar menghuni dua tempat yang oleh banyak orang disebut "tempat sampah digital": folder **Documents** dan **Downloads** — berisi file tanpa struktur, nama file seperti `final_v2_REAL(1).docx`, dan duplikat yang menghabiskan gigabyte.
@@ -26,9 +28,29 @@ Coba jalankan `find ~ -type f | wc -l` di terminal Mac Anda — hasilnya kemungk
 
 Menata 100.000 file secara manual adalah pekerjaan yang tidak akan pernah selesai — dan di sinilah letak masalahnya. Mengorganisir file bukan sekadar memindahkan; itu membutuhkan *pemahaman*: dokumen ini tentang apa? foto ini kapan diambil? file ini masih dipakai atau sudah usang? Pertanyaan-pertanyaan ini justru menjadi kekuatan LLM. Inilah mengapa *file agent* — kombinasi skrip otomasi dan model bahasa — adalah jawaban modern untuk masalah kuno ini.
 
+### Tabel 1: Strategi Organisasi File
+
+Lima strategi penyortiran dari yang paling sederhana hingga paling kompleks, lengkap dengan biaya kecepatan dan akurasi masing-masing.
+
+| Strategi | Metode | Akurasi | Kecepatan | Cocok untuk |
+|:---|:---|:---:|:---:|:---|
+| **By Extension** | Rule-based | 100% | 10.000 file/detik | Semua file |
+| **By Metadata** | EXIF/ID3 | 85-95% | 1.000 file/detik | Foto, musik, dokumen |
+| **By Content (LLM)** | AI classification | 90-95% | 10 file/detik | Dokumen, kode |
+| **By Usage Pattern** | atime/mtime log | 70-80% | 100.000 file/detik | Arsip, backup |
+| **Hybrid** | Multi-pass | 95%+ | Bervariasi | Best practice |
+
+Tabel ini menunjukkan *trade-off* yang tidak bisa dihindari: kecerdasan membutuhkan waktu. *By extension* menyortir 10.000 file per detik tetapi tidak memahami apa pun; *by content* memahami isi tetapi hanya 10 file per detik — 1.000 kali lebih lambat karena setiap file harus dikirim ke LLM. Strategi hibrid mengatasi ini dengan *multi-pass*: lintasan cepat (extension, metadata) menyelesaikan mayoritas file, lalu lintasan LLM hanya untuk sisanya yang ambigu. Pendekatan inilah yang dipakai pada studi kasus 50.000 foto di seksi 9.
+
+![Trade-off strategi organisasi file: kecepatan sortir (skala log) versus akurasi lima strategi dari Tabel 1](../../assets/images/bab-04-otomasi-agent/sub-bab-6/kecepatan-akurasi-sortir.png)
+
+*Gambar 4.6-1 — By usage pattern adalah yang tercepat (100.000 file/detik) tetapi paling tidak akurat (70-80%), sedangkan by content justru kebalikannya (10 file/detik, 90-95%); hibrid menggabungkan keduanya lewat multi-pass.*
+
+
 ---
 
 ## 3. Tool Set untuk File Agent
+
 
 ### Fondasi Python
 
@@ -42,6 +64,7 @@ Beberapa perintah terminal yang sudah ada selama puluhan tahun tetap tak tergant
 
 ## 4. Strategi Sorting Berbasis AI
 
+
 ### Lima Lapisan Strategi
 
 Organisasi file bisa dilakukan pada lima tingkat kecerdasan yang berbeda:
@@ -53,9 +76,26 @@ Organisasi file bisa dilakukan pada lima tingkat kecerdasan yang berbeda:
 
 Perbandingan kuantitatif kelima strategi ini ada pada Tabel 1.
 
+### Tabel 2: Tools Comparison
+
+Peta peralatan — dari pustaka Python hingga tool baris perintah — menurut fungsi, dukungan batch, dan keamanannya.
+
+| Tool | Fungsi | Platform | Batch | LLM Integration | Safety |
+|:---|:---|:---|:---:|:---:|:---:|
+| **Python pathlib** | File ops | Cross | Ya | Manual | Manual |
+| **rsync** | Backup/sync | Unix | Ya | Tidak | --dry-run |
+| **exiftool** | Metadata | Cross | Ya | Tidak | Read-only |
+| **fdupes** | Duplicate find | Unix | Ya | Tidak | --delete |
+| **rclone** | Cloud sync | Cross | Ya | Tidak | --dry-run |
+| **OpenClaw file tools** | Agent-based | Cross | Ya | Built-in | Permission gates |
+
+Perhatikan kolom terakhir: tool tradisional menyerahkan keamanan kepada pemakainya (Anda harus ingat menambahkan `--dry-run`), sementara *agent-based tools* seperti file tools di OpenClaw memasang *permission gates* secara bawaan — setiap operasi tulis harus disetujui. Inilah arah perkembangan yang sehat: keamanan bukan lagi kebiasaan pengguna, melainkan desain sistem. Untuk pekerjaan harian, kombinasi `pathlib` (logika), `exiftool` (metadata), dan `fdupes` (duplikat) sudah mencukupi 90% kebutuhan.
+
+
 ---
 
 ## 5. Rename Cerdas dan Analisa Otomatis
+
 
 ### Pattern Nama yang Bermakna
 
@@ -75,6 +115,7 @@ Tahap analisa melengkapi organisasi: *scan* folder → ekstrak metadata → hasi
 
 ## 6. Safety & Backup
 
+
 ### Prinsip "Read Before Write, Backup Before Modify"
 
 Memberi agent kekuatan memindahkan ribuan file adalah memberi senjata yang bisa menghancurkan dalam satu kesalahan konfigurasi. Karena itu, tiga aturan wajib:
@@ -84,43 +125,6 @@ Memberi agent kekuatan memindahkan ribuan file adalah memberi senjata yang bisa 
 3. **Tiga level permission** — *read-only* (analisa saja), *dry-run* (tunjukkan rencana tanpa eksekusi), dan *full-access* (eksekusi nyata). Alur ini persis yang dilaksanakan agent pada Tutorial 1: `dry_run=True` secara default.
 
 Prinsip ini juga berlaku untuk tool: `rsync` memiliki `--dry-run`, dan skrip Python yang baik meniru perilaku itu dengan mode simulasi.
-
----
-
-## 7. Tabel Perbandingan
-
-### Tabel 1: Strategi Organisasi File
-
-Lima strategi penyortiran dari yang paling sederhana hingga paling kompleks, lengkap dengan biaya kecepatan dan akurasi masing-masing.
-
-| Strategi | Metode | Akurasi | Kecepatan | Cocok untuk |
-|:---|:---|:---:|:---:|:---|
-| **By Extension** | Rule-based | 100% | 10.000 file/detik | Semua file |
-| **By Metadata** | EXIF/ID3 | 85-95% | 1.000 file/detik | Foto, musik, dokumen |
-| **By Content (LLM)** | AI classification | 90-95% | 10 file/detik | Dokumen, kode |
-| **By Usage Pattern** | atime/mtime log | 70-80% | 100.000 file/detik | Arsip, backup |
-| **Hybrid** | Multi-pass | 95%+ | Bervariasi | Best practice |
-
-Tabel ini menunjukkan *trade-off* yang tidak bisa dihindari: kecerdasan membutuhkan waktu. *By extension* menyortir 10.000 file per detik tetapi tidak memahami apa pun; *by content* memahami isi tetapi hanya 10 file per detik — 1.000 kali lebih lambat karena setiap file harus dikirim ke LLM. Strategi hibrid mengatasi ini dengan *multi-pass*: lintasan cepat (extension, metadata) menyelesaikan mayoritas file, lalu lintasan LLM hanya untuk sisanya yang ambigu. Pendekatan inilah yang dipakai pada studi kasus 50.000 foto di seksi 10.
-
-![Trade-off strategi organisasi file: kecepatan sortir (skala log) versus akurasi lima strategi dari Tabel 1](../../assets/images/bab-04-otomasi-agent/sub-bab-6/kecepatan-akurasi-sortir.png)
-
-*Gambar 4.6-1 — By usage pattern adalah yang tercepat (100.000 file/detik) tetapi paling tidak akurat (70-80%), sedangkan by content justru kebalikannya (10 file/detik, 90-95%); hibrid menggabungkan keduanya lewat multi-pass.*
-
-### Tabel 2: Tools Comparison
-
-Peta peralatan — dari pustaka Python hingga tool baris perintah — menurut fungsi, dukungan batch, dan keamanannya.
-
-| Tool | Fungsi | Platform | Batch | LLM Integration | Safety |
-|:---|:---|:---|:---:|:---:|:---:|
-| **Python pathlib** | File ops | Cross | Ya | Manual | Manual |
-| **rsync** | Backup/sync | Unix | Ya | Tidak | --dry-run |
-| **exiftool** | Metadata | Cross | Ya | Tidak | Read-only |
-| **fdupes** | Duplicate find | Unix | Ya | Tidak | --delete |
-| **rclone** | Cloud sync | Cross | Ya | Tidak | --dry-run |
-| **OpenClaw file tools** | Agent-based | Cross | Ya | Built-in | Permission gates |
-
-Perhatikan kolom terakhir: tool tradisional menyerahkan keamanan kepada pemakainya (Anda harus ingat menambahkan `--dry-run`), sementara *agent-based tools* seperti file tools di OpenClaw memasang *permission gates* secara bawaan — setiap operasi tulis harus disetujui. Inilah arah perkembangan yang sehat: keamanan bukan lagi kebiasaan pengguna, melainkan desain sistem. Untuk pekerjaan harian, kombinasi `pathlib` (logika), `exiftool` (metadata), dan `fdupes` (duplikat) sudah mencukupi 90% kebutuhan.
 
 ### Tabel 3: Contoh Klasifikasi Konten (LLM-based)
 
@@ -138,7 +142,11 @@ Tabel ini bisa dipahami sebagai *taxonomy* awal: ekstensi memberi petunjuk perta
 
 ---
 
-## 8. Diagram: File Agent Workflow
+
+---
+
+## 7. Diagram: File Agent Workflow
+
 
 Alur kerja lengkap sebuah *file agent* — dari folder kacau hingga laporan rapi:
 
@@ -160,7 +168,8 @@ Ada dua hal yang perlu diperhatikan dari diagram ini. Pertama, **titik krusial d
 
 ---
 
-## 9. Tutorial / Hands-On
+## 8. Tutorial / Hands-On
+
 
 ### Langkah 1: File Sorting Agent dengan Python + Ollama
 
@@ -319,7 +328,8 @@ Urutan ini adalah manifestasi prinsip keamanan bab ini: *dry-run* → eksekusi �
 
 ---
 
-## 10. Studi Kasus: Organisasi Foto Keluarga 10 Tahun
+## 9. Studi Kasus: Organisasi Foto Keluarga 10 Tahun
+
 
 **Skenario:** Seorang ayah memiliki **50.000 foto** dari tahun 2015-2025 yang tersebar di tiga hard drive dan dua layanan cloud. Foto liburan bercampur dengan screenshot kerja, duplikat memenuhi penyimpanan, dan mencari "foto ulang tahun anak 2019" berarti membuka lima folder berbeda. Selama bertahun-tahun ia menunda merapikan — pekerjaan ini tampak terlalu besar.
 
@@ -339,7 +349,8 @@ Urutan ini adalah manifestasi prinsip keamanan bab ini: *dry-run* → eksekusi �
 
 ---
 
-## 11. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

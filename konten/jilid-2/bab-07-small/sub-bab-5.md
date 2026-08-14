@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menimbang kapan memilih **Tabby** (*server-based*) versus **Continue** (*IDE extension*) untuk tim Anda
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Kebutuhan Coding Assistant Terpusat untuk Tim
+
 
 ### Satu Server, Banyak Keyboard
 
@@ -35,6 +37,7 @@ Ollama di laptop masing-masing developer memang mudah, tetapi mengajarkan kebias
 
 ## 3. Tabby: Server Code Completion Self-Hosted
 
+
 ### Bangun Arsitektur Tabby
 
 **Tabby** adalah server *code completion* open source yang ditulis dalam **Rust** — pilihan bahasa yang bukan kebetulan, karena Rust memberi kecepatan tinggi dan penggunaan memori yang rendah untuk server yang melayani puluhan koneksi bersamaan. Arsitekturnya terdiri dari tiga lapisan: *server* inti yang mengekspos **REST API**, *indexer* yang membaca repository kode tim, dan *extension* yang dipasang di IDE — VS Code, JetBrains, hingga Vim/Neovim untuk para *terminal purist*. Semua IDE berbicara ke satu API yang sama, sehingga pengalaman menyeluruh seragam.
@@ -45,9 +48,30 @@ Fitur unggulan Tabby yang jarang dimiliki asisten coding lain: **repository-leve
 
 Dari sisi model, Tabby mendukung model open seperti **DeepSeek-Coder**, **StarCoder2**, dan **CodeLlama** melalui *backend* llama.cpp — tanpa dependensi ke layanan komersial mana pun. Kebutuhan sumber dayanya bersahabat untuk small office: **minimal 8 GB VRAM untuk context 16K**, dan **rekomendasi 24 GB untuk context 32K**. Sebuah RTX 4090 24 GB atau dua RTX 3090 yang dipasang *used* sudah cukup untuk melayani belasan developer aktif secara nyaman.
 
+### Tabel 3: Kebutuhan Resource Tabby Server
+
+Terakhir, pilih konfigurasi berdasarkan jumlah pengguna yang harus dilayani — tabel ini menjadi acuan *sizing* sebelum Anda membeli atau mengalokasikan GPU.
+
+| Model Completion | Jumlah User | VRAM | RAM | Storage (Index) |
+|:---|:---:|:---:|:---:|:---:|
+| DeepSeek-Coder-1.3B | 10 user | 4 GB | 8 GB | ~500 MB |
+| Ministral 3 8B | 15 user | 6 GB | 16 GB | ~1.5 GB |
+| Qwen-2.5-Coder-7B | 15 user | 8 GB | 16 GB | ~2 GB |
+| DeepSeek-Coder-6.7B | 20 user | 10 GB | 16 GB | ~2 GB |
+| Qwen-2.5-Coder-14B | 20 user | 12 GB | 24 GB | ~3 GB |
+| Ministral 3 14B | 20 user | 12 GB | 24 GB | ~3 GB |
+| DeepSeek-Coder-33B | 20 user | 24 GB | 32 GB | ~5 GB |
+| DeepSeek V4 Flash | 20 user | 16 GB | 32 GB | ~10 GB |
+
+Tabel ini perlu dibaca sebagai spektrum, bukan daftar harga mati. Jika tim Anda 10 developer dan saran sederhana sudah memadai, DeepSeek-Coder-1.3B dengan 4 GB VRAM bahkan bisa berbagi GPU dengan layanan lain dari Bab 7.7. Namun perhatikan juga *storage index*: model besar dengan konteks panjang (DeepSeek V4 Flash) membutuhkan ~10 GB untuk menampung *index* repository — pastikan partisi data Tabby disimpan di NVMe, bukan HDD, agar pencarian *index* tidak menjadi botol.
+
+---
+
+
 ---
 
 ## 4. Continue: Extension IDE dengan Backend Bebas Pilih
+
 
 ### Arsitektur Ringan
 
@@ -63,21 +87,8 @@ Perbedaan filosofi ini penting dipahami sebelum memilih (lihat Tabel 1). Tabby h
 
 ## 5. Tabby vs Continue: Kapan Memilih yang Mana?
 
+
 Keputusan pemilihan sebaiknya mengikuti tiga pertanyaan. **Pertama, berapa ukuran tim?** Untuk tim di atas 10 developer, pengelolaan terpusat menjadi kebutuhan — Tabby unggul dengan *centralized management*, *repository indexing*, dan *admin dashboard*. Untuk tim di bawah 10 developer, beban administrasi Tabby bisa berlebihan; Continue yang langsung terhubung ke Ollama/vLLM yang sudah ada lebih praktis. **Kedua, seberapa penting fleksibilitas model?** Continue memenangkan kategori ini dengan dukungan *backend* apa pun. **Ketiga, apakah Anda butuh visibilitas pemakaian?** Hanya Tabby yang menyediakan *dashboard* pemakaian per developer. Bila jawaban ketiganya campur, jangan ragu menjalankan keduanya secara paralel — keduanya open source dan tidak saling mengunci.
-
----
-
-## 6. Model Coding Assistant yang Direkomendasikan
-
-Pemilihan model menentukan dua hal: kualitas saran dan kapasitas pengguna. Untuk **code completion** — tugas yang harus merespons dalam puluhan hingga ratusan milidetik — pilih model kecil yang gesit: **DeepSeek-Coder-6.7B** sebagai pekerja keras serbaguna, **Ministral 3 8B** (Apache 2.0, dibekali *Cascade Distillation* dari Mistral), atau **Qwen-2.5-Coder-7B** yang unggul dalam *multilingual code generation*. Untuk **chat dan code review**, butuh model yang lebih berpikir: **DeepSeek-Coder-33B**, **Qwen-2.5-Coder-14B**, atau **Ministral 3 14B**; sementara **Llama-3.1-8B** bisa menjadi jenderal serbaguna untuk pertanyaan umum.
-
-Untuk tim besar yang sering bekerja dengan *repository* raksasa, ada kelas baru yang menarik: **DeepSeek V4 Flash** (284B parameter, 13B aktif, lisensi MIT, konteks **1 juta token**) — seluruh *codebase* perusahaan dapat masuk ke dalam satu konteks tanpa *chunking*, mengubah cara *code review* dilakukan. Terakhir, jika tim sudah matang, jalan berikutnya adalah **fine-tuning dengan QLoRA** untuk mengadaptasi model ke gaya kode dan domain bisnis Anda sendiri — topik yang akan dibahas lebih dalam pada jilid berikutnya.
-
-Sebagai panduan kasar memilih posisi di Tabel 2: mulailah dari model 6-8B untuk *completion* dan 14B untuk *chat* — pasangan ini adalah titik manis antara kualitas, VRAM, dan *latency* bagi tim di bawah 20 developer. Naik ke 33B hanya jika *review* kode membutuhkan pemahaman lintas file yang dalam; melompat ke DeepSeek V4 Flash hanya jika tim sering membaca *codebase* puluhan ribu baris dalam sekali konteks. Turun ke model 1.3-3B hanya untuk pengujian atau *autocomplete* di mesin tanpa GPU. Prinsipnya: beli kemampuan yang benar-benar dipakai, bukan yang paling mengesankan di *leaderboard*.
-
----
-
-## 7. Tabel Perbandingan
 
 ### Tabel 1: Tabby vs Continue vs GitHub Copilot
 
@@ -97,6 +108,18 @@ Berikut peta lengkap ketiga pendekatan utama agar keputusan tim Anda berbasis pe
 | **GPU Requirement** | 8-24 GB VRAM | Tidak perlu | Tidak perlu |
 
 Tabel ini langsung menjawab pertanyaan yang paling sering diajukan: mengapa repot diri-*hosting* padahal Copilot tinggal pasang? Jawabannya ada di baris *Data Privacy* dan *Harga*: untuk 15 developer, Copilot menghabiskan $285 per bulan (lihat detail kalkulasinya di Bab 7.8) dan semua konteks kode mengalir ke cloud Microsoft. Tabby menawarkan privasi penuh dan biaya nol per pengguna, dengan syarat Anda menyediakan GPU 8-24 GB. Continue adalah pelengkap sempurna — ia menambahkan *inline editing* yang tidak dimiliki Tabby, sekaligus menjadi *client* untuk segala *backend*.
+
+
+---
+
+## 6. Model Coding Assistant yang Direkomendasikan
+
+
+Pemilihan model menentukan dua hal: kualitas saran dan kapasitas pengguna. Untuk **code completion** — tugas yang harus merespons dalam puluhan hingga ratusan milidetik — pilih model kecil yang gesit: **DeepSeek-Coder-6.7B** sebagai pekerja keras serbaguna, **Ministral 3 8B** (Apache 2.0, dibekali *Cascade Distillation* dari Mistral), atau **Qwen-2.5-Coder-7B** yang unggul dalam *multilingual code generation*. Untuk **chat dan code review**, butuh model yang lebih berpikir: **DeepSeek-Coder-33B**, **Qwen-2.5-Coder-14B**, atau **Ministral 3 14B**; sementara **Llama-3.1-8B** bisa menjadi jenderal serbaguna untuk pertanyaan umum.
+
+Untuk tim besar yang sering bekerja dengan *repository* raksasa, ada kelas baru yang menarik: **DeepSeek V4 Flash** (284B parameter, 13B aktif, lisensi MIT, konteks **1 juta token**) — seluruh *codebase* perusahaan dapat masuk ke dalam satu konteks tanpa *chunking*, mengubah cara *code review* dilakukan. Terakhir, jika tim sudah matang, jalan berikutnya adalah **fine-tuning dengan QLoRA** untuk mengadaptasi model ke gaya kode dan domain bisnis Anda sendiri — topik yang akan dibahas lebih dalam pada jilid berikutnya.
+
+Sebagai panduan kasar memilih posisi di Tabel 2: mulailah dari model 6-8B untuk *completion* dan 14B untuk *chat* — pasangan ini adalah titik manis antara kualitas, VRAM, dan *latency* bagi tim di bawah 20 developer. Naik ke 33B hanya jika *review* kode membutuhkan pemahaman lintas file yang dalam; melompat ke DeepSeek V4 Flash hanya jika tim sering membaca *codebase* puluhan ribu baris dalam sekali konteks. Turun ke model 1.3-3B hanya untuk pengujian atau *autocomplete* di mesin tanpa GPU. Prinsipnya: beli kemampuan yang benar-benar dipakai, bukan yang paling mengesankan di *leaderboard*.
 
 ### Tabel 2: Model untuk Coding Assistant
 
@@ -121,26 +144,6 @@ Perhatikan polanya: kualitas bintang dan *latency* bergerak berlawanan secara ha
 
 *Gambar 7.5-1 — Spektrum latency turun drastis seiring naiknya kelas model: DeepSeek-Coder-1.3B merespons ~120 t/s tetapi hanya berbintang kualitas dua, sementara DeepSeek-Coder-33B melambat ke ~15 t/s. DeepSeek V4 Flash mematahkan pola itu — ~25 t/s dengan VRAM hanya ~12 GB berkat arsitektur MoE 13B aktif.*
 
-### Tabel 3: Kebutuhan Resource Tabby Server
-
-Terakhir, pilih konfigurasi berdasarkan jumlah pengguna yang harus dilayani — tabel ini menjadi acuan *sizing* sebelum Anda membeli atau mengalokasikan GPU.
-
-| Model Completion | Jumlah User | VRAM | RAM | Storage (Index) |
-|:---|:---:|:---:|:---:|:---:|
-| DeepSeek-Coder-1.3B | 10 user | 4 GB | 8 GB | ~500 MB |
-| Ministral 3 8B | 15 user | 6 GB | 16 GB | ~1.5 GB |
-| Qwen-2.5-Coder-7B | 15 user | 8 GB | 16 GB | ~2 GB |
-| DeepSeek-Coder-6.7B | 20 user | 10 GB | 16 GB | ~2 GB |
-| Qwen-2.5-Coder-14B | 20 user | 12 GB | 24 GB | ~3 GB |
-| Ministral 3 14B | 20 user | 12 GB | 24 GB | ~3 GB |
-| DeepSeek-Coder-33B | 20 user | 24 GB | 32 GB | ~5 GB |
-| DeepSeek V4 Flash | 20 user | 16 GB | 32 GB | ~10 GB |
-
-Tabel ini perlu dibaca sebagai spektrum, bukan daftar harga mati. Jika tim Anda 10 developer dan saran sederhana sudah memadai, DeepSeek-Coder-1.3B dengan 4 GB VRAM bahkan bisa berbagi GPU dengan layanan lain dari Bab 7.7. Namun perhatikan juga *storage index*: model besar dengan konteks panjang (DeepSeek V4 Flash) membutuhkan ~10 GB untuk menampung *index* repository — pastikan partisi data Tabby disimpan di NVMe, bukan HDD, agar pencarian *index* tidak menjadi botol.
-
----
-
-## 8. Diagram Arsitektur
 
 ### Diagram 1: Arsitektur Centralized Coding Assistant
 
@@ -183,7 +186,11 @@ Setelah arsitektur hidup, dua tempat patut dikunjungi untuk memastikan semuanya 
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Deploy Tabby Server dengan Docker
 
@@ -304,7 +311,8 @@ Bacaan hasilnya: **P50** mewakili pengalaman pengguna "biasa", sementara **P95**
 
 ---
 
-## 10. Studi Kasus: Centralized Coding Assistant untuk 15 Developer
+## 8. Studi Kasus: Centralized Coding Assistant untuk 15 Developer
+
 
 **Skenario.** Sebuah *software agency* dengan 15 developer — 5 *frontend* (React), 6 *backend* (Node.js, Python, Go), dan 4 *mobile* (Flutter) — selama ini mengandalkan GitHub Copilot. Setiap bulan mereka membayar langganan *per seat*, dan yang lebih merisaukan: kode klien perbankan mereka dikirim ke cloud Microsoft. Pimpinan engineering mendapat mandat membangun asisten internal tanpa mengorbankan kualitas.
 
@@ -318,7 +326,8 @@ Bacaan hasilnya: **P50** mewakili pengalaman pengguna "biasa", sementara **P95**
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan prinsip Low-Rank Adaptation (LoRA) dan mengapa ia sangat cocok untuk *multi-tenant serving*
@@ -19,6 +20,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep LoRA: Melatih Ulang Tanpa Menyalin Otak
+
 
 ### Matriks Kecil dengan Efek Besar
 
@@ -38,6 +40,7 @@ Satu pertanyaan wajar muncul di titik ini: kalau adapter begitu ringan, bagaiman
 
 ## 3. Tantangan LoRA Serving: Dari Sepuluh Model Menjadi Satu
 
+
 ### Pendekatan Naif: Satu Adapter = Satu Deployment
 
 Sebelum memahami solusi multi-LoRA, mari kita pahami dulu masalahnya. Misalkan Anda ingin melayani sepuluh model hasil fine-tuning — katakanlah satu untuk bias bahasa hukum, satu untuk diagnosis medis, satu untuk gaya penulisan marketing, dan seterusnya. Pendekatan naif adalah men-deploy sepuluh instance model: sepuluh kali base model di-load ke VRAM. Untuk Llama-3.1-8B yang membutuhkan 16 GB dalam FP16, sepuluh instance berarti 160 GB — sekitar sepuluh kartu GPU hanya untuk memuat model yang sama berulang-ulang. Untuk Llama-3.1-70B dengan 140 GB per instance, biayanya menjadi tidak masuk akal: 1,4 TB VRAM. Sembilan puluh sembilan persen dari memori tersebut digunakan untuk menyimpan bobot yang identik — sebuah pemborosan yang menyakitkan.
@@ -48,9 +51,46 @@ Solusi yang elegan: simpan **satu salinan base model** di VRAM GPU, lalu tukar a
 
 Analoginya dalam kehidupan sehari-hari: bayangkan sebuah pabrik roti yang memproduksi roti tawar, bagel, dan croissant dari adonan dasar yang sama. Membangun tiga pabrik terpisah untuk tiga produk adalah pemborosan yang konyol — adonannya identik; yang berbeda hanyalah cetakan dan lapisan tambahannya. LoRA serving adalah "cetakan" itu: base model adalah adonan (mahal untuk dibuat, murah untuk dibagikan), adapter adalah cetakan (murah untuk dibuat, mudah ditukar). Setiap pelanggan tetap mendapat roti sesuai pesanannya — bukan roti generik — tetapi dapur yang menjalankannya hanya satu. Kesederhanaan mental model ini adalah alasan mengapa arsitektur ini begitu cepat diadopsi: satu konsep, satu kalimat, seluruh tim langsung memahaminya.
 
+### Tabel A: VRAM Usage — Base Model + LoRA Adapters
+
+Berikut proyeksi kebutuhan VRAM ketika satu base model dilayani bersama sejumlah adapter ber-rank r=16 — perhatikan bagaimana penambahan adapter hanya menambah kebutuhan memori secara linear dan sangat kecil.
+
+| Konfigurasi | Base Model (FP16) | Per Adapter (r=16) | 10 Adapters | 50 Adapters | 100 Adapters |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| Llama-3.1-8B | 16 GB | 0.034 GB | 16.34 GB | 17.7 GB | 19.4 GB |
+| Llama-3.1-70B | 140 GB | 0.26 GB | 142.6 GB | 153 GB | 166 GB |
+| Qwen-2.5-32B | 64 GB | 0.12 GB | 65.2 GB | 70 GB | 76 GB |
+| Mistral-7B | 14 GB | 0.028 GB | 14.28 GB | 15.4 GB | 16.8 GB |
+| Mistral Large 3 (675B MoE) | 168 GB (FP8) | 0.42 GB | 172.2 GB | 189 GB | 210 GB |
+| Ministral 3 8B | 16 GB | 0.030 GB | 16.3 GB | 17.5 GB | 19 GB |
+
+Tabel A memperlihatkan keajaiban ekonomi multi-LoRA: seratus adapter untuk Llama-3.1-8B hanya menambah 3,4 GB di atas base model — dibandingkan 1.600 GB bila seratus instance terpisah di-deploy. Perhatikan juga pola menarik pada Mistral Large 3: base model granular MoE 675B dilayani dalam FP8 (168 GB), dan adapter-nya justru lebih besar per buah (0,42 GB) karena harus menyesuaikan 41B parameter aktif — namun karena *sparse activation*, hanya parameter aktif yang perlu diadaptasi per *forward pass*, sehingga biaya inference tetap terkendali.
+
+
+### Gambar 1: Arsitektur Multi-LoRA Serving
+
+Diagram berikut menggambarkan alur request pada sistem multi-LoRA serving: request membawa identitas user, router mencari adapter yang sesuai, adapter diambil dari gudang CPU memory, lalu Punica kernel menggabungkan kontribusinya dengan base model di GPU.
+
+```mermaid
+flowchart LR
+    A[Request + user_id] --> B[Router]
+    B --> C[Adapter Lookup]
+    C --> D[(CPU Memory<br>Adapter Store)]
+    D --> E[Adapter Cache<br>di GPU]
+    E --> F[Punica Kernel]
+    G[(GPU VRAM<br>Base Model)] --> F
+    F --> H[Output<br>dengan gaya adapter]
+```
+
+Gambar ini menunjukkan tiga lapisan memori yang bekerja bersama: **CPU memory** sebagai penyimpanan adapter yang tidak terbatas secara praktis, **GPU adapter cache** sebagai etalase untuk adapter yang sedang aktif, dan **GPU VRAM** untuk base model yang dibagikan semua tenant. Perhatikan bahwa base model tidak pernah dimuat ulang — inilah sumber penghematan VRAM hingga 300% dibandingkan deployment terpisah.
+
+Poin desain yang perlu dicermati adalah bagaimana *lookup* dan *routing* terjadi di lapisan aplikasi, bukan di dalam engine inference. Router di depan vLLM memetakan `user_id` ke nama adapter (misalnya user dari klien hukum → `legal`), lalu meneruskannya sebagai `lora_name` pada request. Engine tidak perlu tahu bisnis Anda; ia hanya perlu tahu adapter mana yang harus diaktifkan. Pemisahan tanggung jawab ini membuat sistem mudah dirawat: daftar adapter dapat bertambah tanpa menyentuh kode engine, dan kebijakan routing (siapa berhak adapter mana) hidup di satu tempat yang bisa diaudit — sama pentingnya untuk keamanan tenant dan untuk pengujian A/B perilaku antar persona.
+
+
 ---
 
 ## 4. Multi-LoRA di vLLM: Mesin Itu Satu, Adapter Banyak
+
 
 ### Punica Kernel: Jantung Batch Multi-Adapter
 
@@ -71,41 +111,6 @@ Salah satu keuntungan yang sering tidak terduga dari multi-LoRA serving adalah s
 ### vLLM dan TGI: Dua Rute Menuju Tujuan yang Sama
 
 Dua engine inference utama menawarkan dukungan multi-LoRA dengan filosofi yang sedikit berbeda. **vLLM**, yang mengadopsi arsitektur Punica [3], menonjol dalam hal *performance engineering*: kernel CUDA khusus, scheduling berbasis continuous batching, dan fleksibilitas konfigurasi yang tinggi — pilihan utama untuk beban tinggi di GPU data center. **TGI (Text Generation Inference)** dari Hugging Face menawarkan jalur yang lebih sederhana: dukungan adapter via parameter `--lora-modules` pada versi modern, manajemen adapter di memori CPU yang mirip, dan integrasi yang rapat dengan ekosistem Hugging Face — cocok bagi tim yang sudah hidup di ekosistem tersebut dan menginginkan startup yang cepat. Keduanya berbagi prinsip yang sama: satu base model, banyak adapter, dan swap yang dinamis. Keputusan antara keduanya lebih banyak ditentukan oleh ekosistem sekitar — observability yang sudah ada, familiaritas tim, dan kebutuhan integrasi dengan framework lain — daripada kemampuan dasar yang keduanya sama-sama ungguli.
-
----
-
-## 5. Trade-off: Semakin Banyak, Semakin Terfragmentasi
-
-Kebebasan "satu model melayani banyak" tidak datang tanpa harga. Trade-off pertama adalah **batch fragmentation**: semakin banyak adapter yang aktif bersamaan dalam batch, semakin sulit scheduler mengumpulkan request yang sehati — throughput turun, latency naik. Data pengukuran menunjukkan penurunan yang nyata: tanpa adapter throughput 45,2 request/detik; dengan 10 adapter aktif turun ke 38,5; dan dengan 100 adapter aktif tersisa 16,8 request/detik dengan latency P50 yang membengkak dari 180 ms menjadi 680 ms [4]. Trade-off kedua adalah ukuran adapter: rank r yang lebih besar memang memberi kualitas lebih baik — hingga mendekati hasil full fine-tuning — tetapi setiap kenaikan rank berarti matriks A dan B yang lebih gemuk, sehingga memory adapter bertambah dan bandwidth transfer saat swap meningkat. Trade-off ketiga justru menjadi penyelamat: **prefix caching** tetap bekerja dengan baik di lingkungan multi-LoRA, karena prefix yang sama (misalnya system prompt perusahaan) hanya perlu diproses sekali meskipun kemudian dicabang ke adapter yang berbeda.
-
----
-
-## 6. Use Cases: Satu Fondasi, Puluhan Layanan
-
-Pola ini membuka pintu bagi skenario yang sebelumnya tidak ekonomis. Pertama, **chatbot dengan persona berbeda untuk tiap user** — sebuah platform percakapan dapat menyediakan seratus persona (prospektor, sahabat, mentor, guru bahasa Jepang) hanya dari satu base model, masing-masing pengguna cukup 0,05% parameter sebagai adapter persona. Kedua, **AI code assistant per bahasa pemrograman** — satu base model dengan adapter Python, Rust, dan JavaScript terpisah, sehingga masing-masing bahasa mendapat gaya penulisan dan pola idiom yang spesifik tanpa mengganggu bahasa lainnya. Ketiga, **model dengan domain expertise berbeda** — firma hukum, klinik, dan konsultan teknik dapat berbagi satu infrastruktur sementara setiap domain berperilaku seolah-olah memiliki model khususnya sendiri, lengkap dengan vokabulari dan konvensi penulisan masing-masing. Kombinasi ini menjadikan LoRA serving fondasi utama arsitektur AI multi-tenant modern: murah, skalabel, dan tetap personal.
-
-### Kapan LoRA Bukan Jawaban: Mengenali Batasnya
-
-Kejujuran teknis menuntut kita membahas sisi sebaliknya. Penelitian *LoRA Learns Less and Forgets Less* [5] menunjukkan bahwa LoRA menyerap pengetahuan baru secara signifikan lebih sedikit daripada full fine-tuning — matriks low-rank yang ramping memang efisien, tetapi ia juga membatasi jumlah informasi baru yang dapat ditampung. Untuk **knowledge injection** — misalnya mengajarkan model regulasi baru yang tidak ada di data latih — LoRA seringkali kurang, dan kombinasi dengan RAG atau full fine-tuning pada subset parameter lain menjadi pilihan yang lebih tepat. Ada juga batas praktis: ketika skala tenant terlalu besar (ribuan adapter yang semuanya aktif bersamaan), *batch fragmentation* di Tabel B menjadi beban yang tidak lagi bisa ditutup oleh efisiensi memori — titik di mana solusi berubah menjadi masalah infrastruktur. Terakhir, di lingkungan yang sangat membutuhkan determinisme output (misalnya produksi keuangan yang diaudit), "hampir identik dengan full fine-tuning" tidak selalu cukup; di sana, memilih rank yang lebih besar dan mengukur gap terhadap baseline full FT secara berkala adalah disiplin yang harus dijalankan.
-
----
-
-## 7. Tabel Wajib
-
-### Tabel A: VRAM Usage — Base Model + LoRA Adapters
-
-Berikut proyeksi kebutuhan VRAM ketika satu base model dilayani bersama sejumlah adapter ber-rank r=16 — perhatikan bagaimana penambahan adapter hanya menambah kebutuhan memori secara linear dan sangat kecil.
-
-| Konfigurasi | Base Model (FP16) | Per Adapter (r=16) | 10 Adapters | 50 Adapters | 100 Adapters |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| Llama-3.1-8B | 16 GB | 0.034 GB | 16.34 GB | 17.7 GB | 19.4 GB |
-| Llama-3.1-70B | 140 GB | 0.26 GB | 142.6 GB | 153 GB | 166 GB |
-| Qwen-2.5-32B | 64 GB | 0.12 GB | 65.2 GB | 70 GB | 76 GB |
-| Mistral-7B | 14 GB | 0.028 GB | 14.28 GB | 15.4 GB | 16.8 GB |
-| Mistral Large 3 (675B MoE) | 168 GB (FP8) | 0.42 GB | 172.2 GB | 189 GB | 210 GB |
-| Ministral 3 8B | 16 GB | 0.030 GB | 16.3 GB | 17.5 GB | 19 GB |
-
-Tabel A memperlihatkan keajaiban ekonomi multi-LoRA: seratus adapter untuk Llama-3.1-8B hanya menambah 3,4 GB di atas base model — dibandingkan 1.600 GB bila seratus instance terpisah di-deploy. Perhatikan juga pola menarik pada Mistral Large 3: base model granular MoE 675B dilayani dalam FP8 (168 GB), dan adapter-nya justru lebih besar per buah (0,42 GB) karena harus menyesuaikan 41B parameter aktif — namun karena *sparse activation*, hanya parameter aktif yang perlu diadaptasi per *forward pass*, sehingga biaya inference tetap terkendali.
 
 ### Tabel B: Performance Impact — Multi-LoRA Serving (vLLM, 8B, A100)
 
@@ -132,6 +137,42 @@ Ada juga pertimbangan yang sering terlupakan: **di mana garis pemisah antara "cu
 
 Angka 55% fragmentasi pada 100 adapter perlu dipahami dengan tepat agar tidak salah menafsirkan. Fragmentasi di sini bukan berarti setengah GPU menganggur — melainkan bahwa batch yang terbentuk menjadi lebih kecil dan lebih beragam daripada jika semua request memakai satu adapter. GPU masih bekerja penuh, tetapi *compute efficiency*-nya turun: batch kecil berarti lebih sedikit token yang diproses per unit waktu, dan peralihan antar adapter (swap) menyela *pipeline* tanpa menghasilkan token. Ini menjelaskan mengapa solusi teknis terus berkembang ke arah *co-batching yang agresif*: semakna adapter yang dapat dijamin kompatibel di-load bersama dalam satu batch, semakin rendah fragmentasi. Pada praktiknya, kesimpulan yang bisa diambil adalah menyeimbangkan dua variabel yang bisa Anda kendalikan — *jumlah adapter yang didaftarkan* (bisa banyak, tidak masalah) dan *jumlah adapter yang aktif per menit* (jaga tetap kecil dengan merutekan trafik yang sama ke adapter yang sama, mirip session affinity di Bab 5.8).
 
+
+### Gambar 2: Visualisasi Fusi Bobot LoRA
+
+Bagaimana W' = W + BA bekerja secara visual — bobot frozen yang besar ditambah kontribusi dua matriks ramping yang dapat dilatih:
+
+```mermaid
+flowchart LR
+    W[(W: d x k<br>Frozen, tetap)]--> SUM[W' = W + BA<br>Bobot final]
+    A[Matriks A: r x k<br>Trainable] --> BA[BA: d x k]
+    B[Matriks B: d x r<br>Trainable] --> BA
+    BA --> SUM
+```
+
+Perhatikan dimensinya: W berukuran d×k dengan d dan k yang besar (misalnya 4096×4096), sedangkan A dan B masing-masing berukuran r×k dan d×r dengan r=8-128 — dimensi kecil yang membuatnya berpengaruh pada perilaku model namun murah untuk disimpan, dipindahkan, dan digabungkan. Karena hasil BA berdimensi persis sama dengan W, penjumlahan W' = W + BA menghasilkan model berperilaku seperti hasil fine-tuning penuh dengan biaya komputasi yang identik.
+
+---
+
+
+---
+
+## 5. Trade-off: Semakin Banyak, Semakin Terfragmentasi
+
+
+Kebebasan "satu model melayani banyak" tidak datang tanpa harga. Trade-off pertama adalah **batch fragmentation**: semakin banyak adapter yang aktif bersamaan dalam batch, semakin sulit scheduler mengumpulkan request yang sehati — throughput turun, latency naik. Data pengukuran menunjukkan penurunan yang nyata: tanpa adapter throughput 45,2 request/detik; dengan 10 adapter aktif turun ke 38,5; dan dengan 100 adapter aktif tersisa 16,8 request/detik dengan latency P50 yang membengkak dari 180 ms menjadi 680 ms [4]. Trade-off kedua adalah ukuran adapter: rank r yang lebih besar memang memberi kualitas lebih baik — hingga mendekati hasil full fine-tuning — tetapi setiap kenaikan rank berarti matriks A dan B yang lebih gemuk, sehingga memory adapter bertambah dan bandwidth transfer saat swap meningkat. Trade-off ketiga justru menjadi penyelamat: **prefix caching** tetap bekerja dengan baik di lingkungan multi-LoRA, karena prefix yang sama (misalnya system prompt perusahaan) hanya perlu diproses sekali meskipun kemudian dicabang ke adapter yang berbeda.
+
+---
+
+## 6. Use Cases: Satu Fondasi, Puluhan Layanan
+
+
+Pola ini membuka pintu bagi skenario yang sebelumnya tidak ekonomis. Pertama, **chatbot dengan persona berbeda untuk tiap user** — sebuah platform percakapan dapat menyediakan seratus persona (prospektor, sahabat, mentor, guru bahasa Jepang) hanya dari satu base model, masing-masing pengguna cukup 0,05% parameter sebagai adapter persona. Kedua, **AI code assistant per bahasa pemrograman** — satu base model dengan adapter Python, Rust, dan JavaScript terpisah, sehingga masing-masing bahasa mendapat gaya penulisan dan pola idiom yang spesifik tanpa mengganggu bahasa lainnya. Ketiga, **model dengan domain expertise berbeda** — firma hukum, klinik, dan konsultan teknik dapat berbagi satu infrastruktur sementara setiap domain berperilaku seolah-olah memiliki model khususnya sendiri, lengkap dengan vokabulari dan konvensi penulisan masing-masing. Kombinasi ini menjadikan LoRA serving fondasi utama arsitektur AI multi-tenant modern: murah, skalabel, dan tetap personal.
+
+### Kapan LoRA Bukan Jawaban: Mengenali Batasnya
+
+Kejujuran teknis menuntut kita membahas sisi sebaliknya. Penelitian *LoRA Learns Less and Forgets Less* [5] menunjukkan bahwa LoRA menyerap pengetahuan baru secara signifikan lebih sedikit daripada full fine-tuning — matriks low-rank yang ramping memang efisien, tetapi ia juga membatasi jumlah informasi baru yang dapat ditampung. Untuk **knowledge injection** — misalnya mengajarkan model regulasi baru yang tidak ada di data latih — LoRA seringkali kurang, dan kombinasi dengan RAG atau full fine-tuning pada subset parameter lain menjadi pilihan yang lebih tepat. Ada juga batas praktis: ketika skala tenant terlalu besar (ribuan adapter yang semuanya aktif bersamaan), *batch fragmentation* di Tabel B menjadi beban yang tidak lagi bisa ditutup oleh efisiensi memori — titik di mana solusi berubah menjadi masalah infrastruktur. Terakhir, di lingkungan yang sangat membutuhkan determinisme output (misalnya produksi keuangan yang diaudit), "hampir identik dengan full fine-tuning" tidak selalu cukup; di sana, memilih rank yang lebih besar dan mengukur gap terhadap baseline full FT secara berkala adalah disiplin yang harus dijalankan.
+
 ### Tabel C: Rekomendasi r (Rank) per Use Case
 
 Panduan ringkas untuk memilih rank LoRA sesuai tujuan — semakin spesifik dan dalam perubahan yang diinginkan, semakin besar rank yang dibutuhkan [5].
@@ -150,44 +191,11 @@ Dimensi terakhir yang sering diabaikan adalah **ukuran file adapter sebagai biay
 
 ---
 
-## 8. Diagram & Visualisasi
-
-### Gambar 1: Arsitektur Multi-LoRA Serving
-
-Diagram berikut menggambarkan alur request pada sistem multi-LoRA serving: request membawa identitas user, router mencari adapter yang sesuai, adapter diambil dari gudang CPU memory, lalu Punica kernel menggabungkan kontribusinya dengan base model di GPU.
-
-```mermaid
-flowchart LR
-    A[Request + user_id] --> B[Router]
-    B --> C[Adapter Lookup]
-    C --> D[(CPU Memory<br>Adapter Store)]
-    D --> E[Adapter Cache<br>di GPU]
-    E --> F[Punica Kernel]
-    G[(GPU VRAM<br>Base Model)] --> F
-    F --> H[Output<br>dengan gaya adapter]
-```
-
-Gambar ini menunjukkan tiga lapisan memori yang bekerja bersama: **CPU memory** sebagai penyimpanan adapter yang tidak terbatas secara praktis, **GPU adapter cache** sebagai etalase untuk adapter yang sedang aktif, dan **GPU VRAM** untuk base model yang dibagikan semua tenant. Perhatikan bahwa base model tidak pernah dimuat ulang — inilah sumber penghematan VRAM hingga 300% dibandingkan deployment terpisah.
-
-Poin desain yang perlu dicermati adalah bagaimana *lookup* dan *routing* terjadi di lapisan aplikasi, bukan di dalam engine inference. Router di depan vLLM memetakan `user_id` ke nama adapter (misalnya user dari klien hukum → `legal`), lalu meneruskannya sebagai `lora_name` pada request. Engine tidak perlu tahu bisnis Anda; ia hanya perlu tahu adapter mana yang harus diaktifkan. Pemisahan tanggung jawab ini membuat sistem mudah dirawat: daftar adapter dapat bertambah tanpa menyentuh kode engine, dan kebijakan routing (siapa berhak adapter mana) hidup di satu tempat yang bisa diaudit — sama pentingnya untuk keamanan tenant dan untuk pengujian A/B perilaku antar persona.
-
-### Gambar 2: Visualisasi Fusi Bobot LoRA
-
-Bagaimana W' = W + BA bekerja secara visual — bobot frozen yang besar ditambah kontribusi dua matriks ramping yang dapat dilatih:
-
-```mermaid
-flowchart LR
-    W[(W: d x k<br>Frozen, tetap)]--> SUM[W' = W + BA<br>Bobot final]
-    A[Matriks A: r x k<br>Trainable] --> BA[BA: d x k]
-    B[Matriks B: d x r<br>Trainable] --> BA
-    BA --> SUM
-```
-
-Perhatikan dimensinya: W berukuran d×k dengan d dan k yang besar (misalnya 4096×4096), sedangkan A dan B masing-masing berukuran r×k dan d×r dengan r=8-128 — dimensi kecil yang membuatnya berpengaruh pada perilaku model namun murah untuk disimpan, dipindahkan, dan digabungkan. Karena hasil BA berdimensi persis sama dengan W, penjumlahan W' = W + BA menghasilkan model berperilaku seperti hasil fine-tuning penuh dengan biaya komputasi yang identik.
 
 ---
 
-## 9. Praktikum / Hands-On
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Menyiapkan Direktori LoRA Adapters
 
@@ -320,7 +328,8 @@ Langkah 1 adalah *smoke test* kualitas: untuk prompt yang sama, ketiga adapter s
 
 ---
 
-## 10. Studi Kasus: AI Coding Assistant untuk 3 Bahasa Pemrograman
+## 8. Studi Kasus: AI Coding Assistant untuk 3 Bahasa Pemrograman
+
 
 **Skenario.** Sebuah platform coding education ingin menyediakan AI assistant yang memahami idiom spesifik tiga bahasa: Python, Rust, dan JavaScript. Setiap bahasa butuh gaya, pola, dan konvensi penulisan yang berbeda — jawaban Python yang baik tidak sama dengan jawaban Rust yang baik. Tim mereka telah mencoba model generalist, namun hasilnya selalu terasa "dangkal" di ketiga bahasa sekaligus.
 
@@ -336,7 +345,8 @@ Langkah 1 adalah *smoke test* kualitas: untuk prompt yang sama, ketiga adapter s
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

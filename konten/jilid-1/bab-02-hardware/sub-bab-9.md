@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan arsitektur dasar NPU — *Neural Processing Unit* — dan perannya dalam ekosistem AI PC modern
@@ -19,6 +20,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Apa Itu NPU?
 
+
 **NPU** adalah akselerator AI khusus yang tertanam di dalam SoC (*System-on-Chip*) laptop dan PC modern — satu-satunya tugasnya adalah menjalankan komputasi jaringan saraf secara efisien. Berbeda dengan GPU yang merupakan mesin komputasi umum dengan ribuan core fleksibel, NPU dirancang sejak awal untuk satu jenis pekerjaan: *inference* matriks dengan presisi rendah.
 
 Arsitekturnya menggunakan **systolic array** — susunan sel pemroses yang bekerja seperti barisan tentara menyampaikan data dari tangan ke tangan — yang dioptimalkan untuk operasi matriks INT8 dan INT4. Hasilnya adalah efisiensi energi yang mengesankan: **10–20 TOPS per watt**, jauh lebih baik daripada GPU dalam rasio ini untuk beban AI ringan. NPU generasi ini muncul di beberapa platform sekaligus: **Intel Core Ultra** (Meteor Lake dan Lunar Lake), **Snapdragon X Elite** dari Qualcomm, **AMD Ryzen AI** (Strix Point), serta **Apple Neural Engine** di chip M-series.
@@ -31,17 +33,56 @@ Mengapa NPU muncul sekarang, dan bukan satu dekade lalu? Karena tiga kekuatan be
 
 ## 3. Generasi NPU 2024–2026
 
+
 Perlombaan NPU dimulai dengan sungguh-sungguh pada 2024, ketika Intel meluncurkan Meteor Lake dengan NPU **11 TOPS** (dipasarkan sebagai Intel AI Boost) — kemampuan yang cukup untuk efek kamera dan *background blur*, tetapi jauh dari memadai untuk LLM. Titik balik datang pada pertengahan 2024 ketika Microsoft menetapkan standar **Copilot+ PC**: minimal NPU 40 TOPS. Semua vendor berlari mengejar angka itu.
 
 Intel menjawab dengan **Lunar Lake** (Core Ultra 200V) yang NPU-nya melesat ke **40–48 TOPS**. Qualcomm hadir lebih awal dengan Snapdragon X Elite dan **Hexagon NPU 45 TOPS**. AMD menyodorkan **XDNA 2** di Ryzen AI 300 (Strix Point) dengan **50 TOPS** — tertinggi saat ini. Sementara itu, Apple diam-diam menggenjot Neural Engine 16-core di M4 hingga sekitar **38 TOPS**, meskipun tidak mengikuti standar Copilot+ karena berada di ekosistem macOS.
 
-Peta lengkap persaingan generasi ini — lengkap dengan harga laptop pembawanya — bisa dilihat pada Tabel 1 di Seksi 8. Sebagai ringkasan: dari sisi TOPS, AMD memimpin dengan 50, tetapi dari sisi *software stack* dan ekosistem, Intel menikmati kematangan OpenVINO yang jauh lebih besar, sementara Qualcomm membawa efisiensi ARM yang legendaris ke Windows [5][7]. Angka TOPS sendiri baru sebagian dari cerita — seperti akan Anda lihat pada bagian berikutnya, TOPS tinggi tidak otomatis berarti inferensi LLM yang cepat.
+Peta lengkap persaingan generasi ini — lengkap dengan harga laptop pembawanya — bisa dilihat pada Tabel 1 di Seksi 3. Sebagai ringkasan: dari sisi TOPS, AMD memimpin dengan 50, tetapi dari sisi *software stack* dan ekosistem, Intel menikmati kematangan OpenVINO yang jauh lebih besar, sementara Qualcomm membawa efisiensi ARM yang legendaris ke Windows [5][7]. Angka TOPS sendiri baru sebagian dari cerita — seperti akan Anda lihat pada bagian berikutnya, TOPS tinggi tidak otomatis berarti inferensi LLM yang cepat.
 
 Pola yang perlu dicatat dari evolusi ini: setiap generasi tidak hanya menaikkan TOPS, tetapi juga **menurunkan batas masuk**. Meteor Lake 11 TOPS hanya hadir di laptop Rp 12 juta ke atas pada 2024; dua tahun kemudian, Snapdragon X Plus dengan 45 TOPS — empat kali lipat lebih kuat — bisa dibawa pulang mulai Rp 15 juta. Dengan kata lain, kemampuan NPU generasi sebelumnya menjadi standar generasi berikutnya di harga yang lebih rendah. Inilah siklus yang sama yang pernah terjadi pada GPU dan CPU: spesifikasi kelas atas hari ini adalah barang kelas menengah besok. Bagi pembeli, artinya satu hal — kecuali Anda butuh laptop segera, menunggu satu generasi lagi hampir selalu memberi nilai lebih besar per rupiah.
+
+### Tabel 1: Spesifikasi NPU di AI PC (2024–2026)
+
+Tabel berikut memetakan tujuh platform AI PC utama — dari NPU 11 TOPS generasi pertama Meteor Lake hingga XDNA 2 dengan 50 TOPS — lengkap dengan status Copilot+ dan ekosistem perangkat lunaknya.
+
+| Platform | NPU Name | INT8 TOPS | Copilot+? | Arsitektur | Software Stack | Harga Laptop Mulai |
+|:---|:---:|---:|:---:|:---|:---|:---:|
+| **Intel Core Ultra 7 155H** | Intel AI Boost | 11 | Tidak (TPM <40) | Meteor Lake | OpenVINO | ~Rp 12 jt |
+| **Intel Core Ultra 9 288V** | Intel AI Boost | 48 | Ya | Lunar Lake | OpenVINO | ~Rp 25 jt |
+| **Qualcomm Snapdragon X Elite** | Hexagon NPU | 45 | Ya | Custom ARM | QNN / NPE | ~Rp 18 jt |
+| **Qualcomm Snapdragon X Plus** | Hexagon NPU | 45 | Ya | Custom ARM | QNN / NPE | ~Rp 15 jt |
+| **AMD Ryzen AI 9 HX 370** | XDNA 2 | 50 | Ya | Strix Point | Vitis AI / Ryzen AI SW | ~Rp 22 jt |
+| **Apple M4** | Neural Engine 16c | ~38 | Tidak (macOS) | Apple Silicon | CoreML / ANE | ~Rp 18 jt |
+| **Apple M4 Pro** | Neural Engine 16c | ~38 | Tidak (macOS) | Apple Silicon | CoreML / ANE | ~Rp 25 jt |
+
+![Perbandingan INT8 TOPS tujuh platform NPU AI PC dengan garis ambang 40 TOPS dan harga laptop masing-masing](../../assets/images/bab-02-hardware/sub-bab-9/tops-npu-per-platform.png)
+
+*Gambar 2.9-1 — TOPS tinggi tidak berkorelasi dengan harga: Snapdragon X Plus 45 TOPS mulai ~Rp 15 jt, dan hanya tiga platform yang melewati ambang Copilot+ 40 TOPS.*
+
+Tiga pengamatan penting dari tabel ini. Pertama, ambang **40 TOPS** (syarat Copilot+) terlihat jelas membelah pasar: hanya Lunar Lake, Snapdragon, dan Strix Point yang lolos, sementara Meteor Lake dan semua chip Apple tidak — yang terakhir karena macOS memang tidak mengikuti standar Microsoft, bukan karena kalah kemampuan. Kedua, menariknya **TOPS tinggi tidak berkorelasi dengan harga**: Snapdragon X Plus dengan 45 TOPS dijual mulai ~Rp 15 jt, termurah kedua di tabel, karena efisiensi ARM yang tinggi memungkinkan desain termal yang lebih sederhana. Ketiga, kolom *Software Stack* adalah petunjuk pertama bahwa pilihan NPU sebenarnya adalah pilihan ekosistem — topik yang dibahas lebih dalam di Tabel 3 [5][7].
+
+
+### Diagram 2: Evolusi TOPS NPU per Generasi
+
+Untuk melihat seberapa cepat perlombaan ini berjalan, perhatikan garis waktu perkembangan TOPS NPU Intel — dari 11 TOPS yang "cukup untuk blur" hingga prediksi 100+ TOPS pada 2026.
+
+```mermaid
+graph LR
+    A["Meteor Lake<br/>11 TOPS (2023)"] --> B["Lunar Lake<br/>48 TOPS (2024)"]
+    B --> C["Panther Lake<br/>100+ TOPS (2026, Prediksi)"]
+    C --> D["NPU Generasi Berikutnya<br/>Lebih dari 100 TOPS"]
+```
+
+Bacaan garis waktu ini luar biasa: dalam tiga tahun, TOPS NPU tumbuh hampir 10 kali lipat — dari 11 di Meteor Lake menjadi prediksi 100+ di Panther Lake. Bandingkan dengan *hukum Moore* klasik yang menggandakan transistor setiap dua tahun; NPU melaju jauh lebih cepat karena dimulai dari titik nol persaingan. Namun — dan ini penekanan yang perlu diulang — sejarah Tabel 2 mengajarkan bahwa TOPS bukan segalanya: Intel NPU 48 TOPS (Lunar Lake) menjalankan Llama-3-8B hanya pada 0,3 t/s dengan NITRO/OpenVINO, sementara iGPU-nya sendiri mencapai 22 t/s. Setiap titik pada garis waktu ini menaikkan *kapasitas teoretis*, tetapi *software stack* yang menentukan seberapa banyak kapasitas itu bisa dinikmati. Garis waktu ini pula yang menjadi dasar prediksi Seksi 7: pada 2026–2028, kombinasi NPU 100+ TOPS dengan iGPU yang matang akan cukup untuk menjalankan SLM 3B–8B secara nyaman di laptop [1][4][5].
+
+---
+
 
 ---
 
 ## 4. Realitas vs Hype: NPU untuk LLM Inference
+
 
 ### Harapan: TOPS Tinggi, Inferensi Kencang?
 
@@ -68,9 +109,32 @@ Ringkasnya, pembagian kerja yang jujur antara NPU dan GPU dapat disimpulkan seba
 3. **CPU:** logika aplikasi, tokenisasi, dan routing antar unit — plus inferensi low-bit dengan T-MAC yang bahkan mengalahkan NPU.
 4. **Larangan praktis:** jangan jadikan NPU satu-satunya alasan membeli laptop untuk LLM lokal — nilai NPU baru terasa jika *software stack*-nya (OpenVINO/QNN/Vitis AI) mendukung model yang Anda gunakan [1][2][4].
 
+### Tabel 2: Benchmark LLM Inference NPU vs GPU Laptop
+
+Tabel berikut menjawab pertanyaan yang paling sering diajukan: seberapa cepat masing-masing perangkat menjalankan LLM, dan seberapa efisien per watt?
+
+| Device | Framework | Model | Tokens/s | Daya | TOPS | Efisiensi (t/s/W) |
+|:---|---:|---:|---:|---:|---:|---:|
+| **Intel NPU (Meteor Lake)** | NITRO/OpenVINO | Llama-3-8B INT4 | ~0.3 t/s | 15W (NPU) | 11 | 0.02 |
+| **Intel NPU + CPU hybrid** | Agent.xpu | Llama-3-8B W8A16 | ~5 t/s | 28W (total) | 11 | 0.18 |
+| **Intel Arc iGPU (Lunar Lake)** | OpenVINO | Llama-3-8B INT4 | ~22 t/s | 35W (iGPU) | 67 (GPU) | 0.63 |
+| **Snapdragon X Elite NPU** | QNN | Llama-2-7B INT4 | ~10.4 t/s | 12W (NPU) | 45 | 0.87 |
+| **Snapdragon CPU (T-MAC)** | T-MAC (2 core) | Llama-2-7B W4 | ~12.6 t/s | 8W (CPU) | - | 1.58 |
+| **AMD Ryzen AI NPU** | Vitis AI | Llama-3-8B INT4 | ~5 t/s | 20W (NPU) | 50 | 0.25 |
+| **Apple M4 GPU (MLX)** | MLX | Llama-3.1-8B 4bit | ~60 t/s | ~30W (GPU) | - | 2.00 |
+| **RTX 4090 Laptop** | CUDA/llama.cpp | Llama-3.1-8B Q4 | ~80 t/s | ~120W (GPU) | - | 0.67 |
+
+![Efisiensi token per watt delapan perangkat NPU, iGPU, dan GPU laptop pada skala logaritmik](../../assets/images/bab-02-hardware/sub-bab-9/efisiensi-inference-npu-vs-gpu.png)
+
+*Gambar 2.9-2 — Untuk LLM, iGPU/GPU mengungguli NPU: NPU Intel hanya 0,02 t/s/W menjalankan 0,3 t/s, sementara M4 GPU mencapai 2,00 t/s/W dengan 60 t/s — dan CPU T-MAC (1,58) bahkan mengalahkan NPU di chip yang sama.*
+
+Pembacaan tabel ini penuh kejutan. Perhatikan bahwa NPU dengan TOPS tertinggi (AMD 50 TOPS) justru tidak menghasilkan tokens/s tertinggi — Snapdragon X Elite (45 TOPS) menjalankan Llama-2-7B di 10,4 t/s, tiga kali lebih cepat dari AMD. Perhatikan pula baris T-MAC: CPU dengan 8W mengalahkan NPU yang sama-sama ada di dalam chip Snapdragon — bukti bahwa *software* bisa menang melawan *hardware* yang dirancang khusus. Sementara itu, Apple M4 GPU dengan MLX mencapai efisiensi 2,00 t/s/W — tertinggi di tabel — dan RTX 4090 laptop tetap raja kecepatan mentah (80 t/s) dengan konsekuensi daya 120W. Kesimpulan praktisnya: jika Anda ingin menjalankan LLM 7–8B di laptop, targetkan *iGPU* atau *GPU* — NPU adalah pendamping efisien, bukan pelari utama [1][2][3][4][5].
+
+
 ---
 
 ## 5. Arsitektur Heterogen: CPU + GPU + NPU
+
 
 Kesimpulan dari penelitian di atas mengarah ke satu arah: masa depan AI PC bukan "NPU menggantikan segalanya", melainkan **heterogeneous computing** — ketiga unit komputasi (CPU, iGPU, NPU) bekerja sama, masing-masing mengerjakan tugas yang paling cocok. Penelitian **Agent.xpu** (Kim dkk., 2025) menunjukkan konsep ini dalam praktik: scheduler cerdas membagi *workload agentic* antara iGPU dan NPU, mencapai **1,2–2,4x throughput** dibandingkan iGPU-only [3].
 
@@ -95,91 +159,6 @@ Urutan di atas menggambarkan pembagian tugas yang diusulkan riset *hybrid* seper
 
 Konsekuensi menarik dari arsitektur ini: pada laptop AI PC, **"GPU terbaik" belum tentu yang tercepat, melainkan yang paling mudah dijadwalkan bersama NPU**. iGPU yang sepenuhnya terintegrasi (bukan GPU diskret dengan memori terpisah) dapat berbagi *KV cache* langsung dengan NPU tanpa menyalin data melalui PCIe — penghematan yang oleh penelitian llm.npu dihitung mencapai 30,7x energi versus baseline CPU-only [2]. Inilah alasan mengapa integrasi SoC penuh — satu chip yang menampung CPU, iGPU, dan NPU dengan satu kolam memori — adalah arah yang ditempuh semua vendor, dan mengapa laptop diskret-GPU justru tertinggal dalam efisiensi meskipun unggul di kecepatan mentah.
 
----
-
-## 6. Software Stack: Medan Pertempuran Sebenarnya
-
-Jika hardware NPU adalah senjatanya, *software stack* adalah pelatihnya — dan di sinilah ketiga vendor sangat berbeda. Intel membangun **OpenVINO**, toolkit open-source dengan dukungan LLM matang (via optimum-intel) dan *quantization* INT8/INT4. Qualcomm menyodorkan **QNN** (Qualcomm Neural Network SDK), yang mumpuni secara teknis tetapi berlisensi tertutup dan sulit di-setup. AMD membawa **Vitis AI** dan Ryzen AI Software, dengan dukungan LLM yang masih eksperimental. Apple, di kutub lain, menyajikan **CoreML** dengan integrasi mendalam lewat MLX — mudah dipakai meskipun tertutup.
-
-Kemudahan setup bervariasi tajam: memuat model ke NPU Intel cukup dengan satu baris `optimum-cli export openvino`, sementara jalur QNN untuk LLM masih menuntut kompilasi manual yang rumit. Bagi pengguna akhir, pilihan laptop "AI PC" sebenarnya adalah pilihan *software stack*, karena NPU tanpa perangkat lunak yang matang adalah hardware yang menganggur. OpenVINO juga membedakan Intel dengan dukungan *dynamic shapes* — penting untuk LLM yang panjang inputnya bervariasi — sementara QNN dan Vitis AI masih terbatas dalam hal ini.
-
-Kabar baiknya, kondisi ini bergerak cepat. Baku *benchmark* mulai terbentuk — Intel menjadi vendor pertama dengan dukungan NPU penuh di MLPerf Client v0.6, mencatat *first-token latency* 1,09 detik dan *throughput* 18,55 t/s pada Llama-2-7B [5] — dan tolok ukur yang terstandarisasi akan memaksa vendor lain mengejar kematangan perangkat lunaknya. Selama standar itu belum merata, tip praktisnya sederhana: uji dulu platform yang Anda incar dengan model target Anda sendiri, dan jangan percaya angka TOPS tanpa melihat *framework* yang berjalan di atasnya.
-
----
-
-## 7. Masa Depan NPU: Arah dan Batasnya
-
-Ke mana arah perlombaan ini? Standar **Microsoft Copilot+** (minimal 40 TOPS) telah mendorong adopsi massal NPU — hampir semua laptop premium 2025–2026 membawa NPU yang memenuhi syarat. Pada 2026, generasi berikutnya menjanjikan **NPU 100+ TOPS** — Intel dengan Panther Lake, dan AMD dengan penerus Strix Point — yang akan membuka kemampuan baru seperti *on-device translation* dan *vision* real-time.
-
-Namun, penting untuk menahan euforia. Model frontier 2026 — **DeepSeek V4 Pro** (1,6T parameter), **Mistral Large 3** (675B), GPT-5.5, dan Claude Fable 5 — sama sekali **tidak feasible di NPU**. Model sebesar itu membutuhkan GPU dengan HBM atau *unified memory* Apple Silicon dengan *bandwidth* di atas **500 GB/s**; NPU laptop dengan shared memory puluhan GB/s berada di galaksi yang berbeda [6]. Prediksi realistis: dalam 2–3 tahun, kombinasi NPU + iGPU akan cukup untuk menjalankan **SLM 3B–8B** dengan nyaman — cukup untuk asisten lokal di laptop — sementara model besar tetap menjadi wilayah GPU dan *unified memory*.
-
-Bagi calon pembeli laptop di 2026, arah ini memiliki tiga implikasi praktis. Pertama, **jangan membayar ekstra hanya demi angka TOPS**: NPU 45 vs 50 TOPS tidak akan terasa dalam penggunaan sehari-hari; yang terasa adalah kualitas *software stack*-nya — uji dulu apakah model yang Anda butuhkan (misalnya Llama-3.2-3B) berjalan di platform itu sebelum membeli. Kedua, **pastikan laptop memiliki iGPU yang kompeten**: seperti berulang kali ditunjukkan di bab ini, iGPU — bukan NPU — adalah unit yang benar-benar menjalankan LLM di laptop AI PC; tanyakan apakah iGPU-nya bisa dipakai untuk *inference* (OpenVINO GPU di Lunar Lake, misalnya, mencapai 22 t/s untuk Llama-3-8B). Ketiga, **ketahuilah umur pakai dukungan**: NPU adalah hardware yang cepat berganti generasi, tetapi *software stack* yang terus diperbarui (OpenVINO dirilis berkala, MLPerf mulai membakukan benchmark NPU) menentukan berapa lama hardware Anda tetap berguna [5][8]. Beli laptop AI PC untuk masa kini — *background AI* yang hemat daya — dan jangan berharap NPU-nya menjadi mesin LLM masa depan.
-
----
-
-## 8. Tabel Referensi
-
-### Tabel 1: Spesifikasi NPU di AI PC (2024–2026)
-
-Tabel berikut memetakan tujuh platform AI PC utama — dari NPU 11 TOPS generasi pertama Meteor Lake hingga XDNA 2 dengan 50 TOPS — lengkap dengan status Copilot+ dan ekosistem perangkat lunaknya.
-
-| Platform | NPU Name | INT8 TOPS | Copilot+? | Arsitektur | Software Stack | Harga Laptop Mulai |
-|:---|:---:|---:|:---:|:---|:---|:---:|
-| **Intel Core Ultra 7 155H** | Intel AI Boost | 11 | Tidak (TPM <40) | Meteor Lake | OpenVINO | ~Rp 12 jt |
-| **Intel Core Ultra 9 288V** | Intel AI Boost | 48 | Ya | Lunar Lake | OpenVINO | ~Rp 25 jt |
-| **Qualcomm Snapdragon X Elite** | Hexagon NPU | 45 | Ya | Custom ARM | QNN / NPE | ~Rp 18 jt |
-| **Qualcomm Snapdragon X Plus** | Hexagon NPU | 45 | Ya | Custom ARM | QNN / NPE | ~Rp 15 jt |
-| **AMD Ryzen AI 9 HX 370** | XDNA 2 | 50 | Ya | Strix Point | Vitis AI / Ryzen AI SW | ~Rp 22 jt |
-| **Apple M4** | Neural Engine 16c | ~38 | Tidak (macOS) | Apple Silicon | CoreML / ANE | ~Rp 18 jt |
-| **Apple M4 Pro** | Neural Engine 16c | ~38 | Tidak (macOS) | Apple Silicon | CoreML / ANE | ~Rp 25 jt |
-
-![Perbandingan INT8 TOPS tujuh platform NPU AI PC dengan garis ambang 40 TOPS dan harga laptop masing-masing](../../assets/images/bab-02-hardware/sub-bab-9/tops-npu-per-platform.png)
-
-*Gambar 2.9-1 — TOPS tinggi tidak berkorelasi dengan harga: Snapdragon X Plus 45 TOPS mulai ~Rp 15 jt, dan hanya tiga platform yang melewati ambang Copilot+ 40 TOPS.*
-
-Tiga pengamatan penting dari tabel ini. Pertama, ambang **40 TOPS** (syarat Copilot+) terlihat jelas membelah pasar: hanya Lunar Lake, Snapdragon, dan Strix Point yang lolos, sementara Meteor Lake dan semua chip Apple tidak — yang terakhir karena macOS memang tidak mengikuti standar Microsoft, bukan karena kalah kemampuan. Kedua, menariknya **TOPS tinggi tidak berkorelasi dengan harga**: Snapdragon X Plus dengan 45 TOPS dijual mulai ~Rp 15 jt, termurah kedua di tabel, karena efisiensi ARM yang tinggi memungkinkan desain termal yang lebih sederhana. Ketiga, kolom *Software Stack* adalah petunjuk pertama bahwa pilihan NPU sebenarnya adalah pilihan ekosistem — topik yang dibahas lebih dalam di Tabel 3 [5][7].
-
-### Tabel 2: Benchmark LLM Inference NPU vs GPU Laptop
-
-Tabel berikut menjawab pertanyaan yang paling sering diajukan: seberapa cepat masing-masing perangkat menjalankan LLM, dan seberapa efisien per watt?
-
-| Device | Framework | Model | Tokens/s | Daya | TOPS | Efisiensi (t/s/W) |
-|:---|---:|---:|---:|---:|---:|---:|
-| **Intel NPU (Meteor Lake)** | NITRO/OpenVINO | Llama-3-8B INT4 | ~0.3 t/s | 15W (NPU) | 11 | 0.02 |
-| **Intel NPU + CPU hybrid** | Agent.xpu | Llama-3-8B W8A16 | ~5 t/s | 28W (total) | 11 | 0.18 |
-| **Intel Arc iGPU (Lunar Lake)** | OpenVINO | Llama-3-8B INT4 | ~22 t/s | 35W (iGPU) | 67 (GPU) | 0.63 |
-| **Snapdragon X Elite NPU** | QNN | Llama-2-7B INT4 | ~10.4 t/s | 12W (NPU) | 45 | 0.87 |
-| **Snapdragon CPU (T-MAC)** | T-MAC (2 core) | Llama-2-7B W4 | ~12.6 t/s | 8W (CPU) | - | 1.58 |
-| **AMD Ryzen AI NPU** | Vitis AI | Llama-3-8B INT4 | ~5 t/s | 20W (NPU) | 50 | 0.25 |
-| **Apple M4 GPU (MLX)** | MLX | Llama-3.1-8B 4bit | ~60 t/s | ~30W (GPU) | - | 2.00 |
-| **RTX 4090 Laptop** | CUDA/llama.cpp | Llama-3.1-8B Q4 | ~80 t/s | ~120W (GPU) | - | 0.67 |
-
-![Efisiensi token per watt delapan perangkat NPU, iGPU, dan GPU laptop pada skala logaritmik](../../assets/images/bab-02-hardware/sub-bab-9/efisiensi-inference-npu-vs-gpu.png)
-
-*Gambar 2.9-2 — Untuk LLM, iGPU/GPU mengungguli NPU: NPU Intel hanya 0,02 t/s/W menjalankan 0,3 t/s, sementara M4 GPU mencapai 2,00 t/s/W dengan 60 t/s — dan CPU T-MAC (1,58) bahkan mengalahkan NPU di chip yang sama.*
-
-Pembacaan tabel ini penuh kejutan. Perhatikan bahwa NPU dengan TOPS tertinggi (AMD 50 TOPS) justru tidak menghasilkan tokens/s tertinggi — Snapdragon X Elite (45 TOPS) menjalankan Llama-2-7B di 10,4 t/s, tiga kali lebih cepat dari AMD. Perhatikan pula baris T-MAC: CPU dengan 8W mengalahkan NPU yang sama-sama ada di dalam chip Snapdragon — bukti bahwa *software* bisa menang melawan *hardware* yang dirancang khusus. Sementara itu, Apple M4 GPU dengan MLX mencapai efisiensi 2,00 t/s/W — tertinggi di tabel — dan RTX 4090 laptop tetap raja kecepatan mentah (80 t/s) dengan konsekuensi daya 120W. Kesimpulan praktisnya: jika Anda ingin menjalankan LLM 7–8B di laptop, targetkan *iGPU* atau *GPU* — NPU adalah pendamping efisien, bukan pelari utama [1][2][3][4][5].
-
-### Tabel 3: Komparasi Software Stack NPU
-
-Perbandingan empat ekosistem *software* — faktor yang sebenarnya menentukan seberapa mudah NPU digunakan untuk LLM.
-
-| Aspek | Intel OpenVINO | Qualcomm QNN | AMD Vitis AI | Apple CoreML |
-|:---|:---|:---|:---|:---|
-| **Model Format** | IR (Intermediate Rep) | QNN C++/C API | XIR / ONNX | .mlpackage |
-| **LLM Support** | Ya (via optimum-intel) | Terbatas (NITRO) | Eksperimental | Ya (via MLX) |
-| **Kemudahan Setup** | Sedang | Sulit | Sulit | Mudah |
-| **Quantization** | INT8, INT4 | INT8 | INT8, INT4 | FP16, INT8 |
-| **Dynamic Shapes** | Terbatas | Tidak | Tidak | Ya (via ANE) |
-| **Open Source** | Ya | Tidak | Sebagian | Tidak |
-| **Kematangan** | Tinggi (2024.6+) | Rendah | Rendah | Tinggi |
-
-Dari tabel ini, pola persaingan menjadi jelas: Intel dan Apple memimpin dari sisi kematangan — OpenVINO menjadi satu-satunya stack open-source dengan dukungan LLM penuh, sementara CoreML/MLX menawarkan kemudahan setup terbaik di kelasnya. Qualcomm dan AMD unggul di hardware (efisiensi ARM dan TOPS tertinggi) tetapi tertinggal di perangkat lunak, dengan dukungan LLM yang terbatas atau eksperimental. Bagi pembeli laptop, ini berarti: NPU 50 TOPS tanpa stack yang matang sama nilainya dengan NPU 11 TOPS — keduanya tidak bisa menjalankan LLM dengan baik. *Pilih ekosistem, bukan hanya angka TOPS.*
-
----
-
-## 9. Diagram & Visualisasi
-
 ### Diagram 1: Arsitektur Heterogen SoC AI PC
 
 Inilah peta jalan komputasi AI di dalam sebuah SoC AI PC modern — tiga unit komputasi yang berbagi satu kolam memori.
@@ -202,22 +181,52 @@ graph TD
 
 Diagram ini menunjukkan mengapa NPU tidak bisa "sendiri" menjalankan LLM: ketiga unit terhubung ke *shared memory* yang sama, sehingga *bandwidth* menjadi sumber daya yang diperebutkan. Pembagian kerja yang ideal terlihat di bagian bawah: NPU mengambil tugas yang ringan tetapi berjalan terus-menerus (*wake-word detection*, prefill ringan, background agent) yang dalam setahun menghemat puluhan watt-jam; iGPU menangani *decoding* yang berat karena butuh bandwidth penuh; dan CPU menjadi pengatur lalu lintas. Arsitektur ini pula yang menjadi dasar penelitian Agent.xpu — scheduler yang membagi prefill ke NPU dan decode ke iGPU, menghasilkan throughput 1,2–2,4x lebih tinggi dibandingkan iGPU-only [3].
 
-### Diagram 2: Evolusi TOPS NPU per Generasi
-
-Untuk melihat seberapa cepat perlombaan ini berjalan, perhatikan garis waktu perkembangan TOPS NPU Intel — dari 11 TOPS yang "cukup untuk blur" hingga prediksi 100+ TOPS pada 2026.
-
-```mermaid
-graph LR
-    A["Meteor Lake<br/>11 TOPS (2023)"] --> B["Lunar Lake<br/>48 TOPS (2024)"]
-    B --> C["Panther Lake<br/>100+ TOPS (2026, Prediksi)"]
-    C --> D["NPU Generasi Berikutnya<br/>Lebih dari 100 TOPS"]
-```
-
-Bacaan garis waktu ini luar biasa: dalam tiga tahun, TOPS NPU tumbuh hampir 10 kali lipat — dari 11 di Meteor Lake menjadi prediksi 100+ di Panther Lake. Bandingkan dengan *hukum Moore* klasik yang menggandakan transistor setiap dua tahun; NPU melaju jauh lebih cepat karena dimulai dari titik nol persaingan. Namun — dan ini penekanan yang perlu diulang — sejarah Tabel 2 mengajarkan bahwa TOPS bukan segalanya: Intel NPU 48 TOPS (Lunar Lake) menjalankan Llama-3-8B hanya pada 0,3 t/s dengan NITRO/OpenVINO, sementara iGPU-nya sendiri mencapai 22 t/s. Setiap titik pada garis waktu ini menaikkan *kapasitas teoretis*, tetapi *software stack* yang menentukan seberapa banyak kapasitas itu bisa dinikmati. Garis waktu ini pula yang menjadi dasar prediksi Seksi 7: pada 2026–2028, kombinasi NPU 100+ TOPS dengan iGPU yang matang akan cukup untuk menjalankan SLM 3B–8B secara nyaman di laptop [1][4][5].
 
 ---
 
-## 10. Praktikum / Hands-On
+## 6. Software Stack: Medan Pertempuran Sebenarnya
+
+
+Jika hardware NPU adalah senjatanya, *software stack* adalah pelatihnya — dan di sinilah ketiga vendor sangat berbeda. Intel membangun **OpenVINO**, toolkit open-source dengan dukungan LLM matang (via optimum-intel) dan *quantization* INT8/INT4. Qualcomm menyodorkan **QNN** (Qualcomm Neural Network SDK), yang mumpuni secara teknis tetapi berlisensi tertutup dan sulit di-setup. AMD membawa **Vitis AI** dan Ryzen AI Software, dengan dukungan LLM yang masih eksperimental. Apple, di kutub lain, menyajikan **CoreML** dengan integrasi mendalam lewat MLX — mudah dipakai meskipun tertutup.
+
+Kemudahan setup bervariasi tajam: memuat model ke NPU Intel cukup dengan satu baris `optimum-cli export openvino`, sementara jalur QNN untuk LLM masih menuntut kompilasi manual yang rumit. Bagi pengguna akhir, pilihan laptop "AI PC" sebenarnya adalah pilihan *software stack*, karena NPU tanpa perangkat lunak yang matang adalah hardware yang menganggur. OpenVINO juga membedakan Intel dengan dukungan *dynamic shapes* — penting untuk LLM yang panjang inputnya bervariasi — sementara QNN dan Vitis AI masih terbatas dalam hal ini.
+
+Kabar baiknya, kondisi ini bergerak cepat. Baku *benchmark* mulai terbentuk — Intel menjadi vendor pertama dengan dukungan NPU penuh di MLPerf Client v0.6, mencatat *first-token latency* 1,09 detik dan *throughput* 18,55 t/s pada Llama-2-7B [5] — dan tolok ukur yang terstandarisasi akan memaksa vendor lain mengejar kematangan perangkat lunaknya. Selama standar itu belum merata, tip praktisnya sederhana: uji dulu platform yang Anda incar dengan model target Anda sendiri, dan jangan percaya angka TOPS tanpa melihat *framework* yang berjalan di atasnya.
+
+### Tabel 3: Komparasi Software Stack NPU
+
+Perbandingan empat ekosistem *software* — faktor yang sebenarnya menentukan seberapa mudah NPU digunakan untuk LLM.
+
+| Aspek | Intel OpenVINO | Qualcomm QNN | AMD Vitis AI | Apple CoreML |
+|:---|:---|:---|:---|:---|
+| **Model Format** | IR (Intermediate Rep) | QNN C++/C API | XIR / ONNX | .mlpackage |
+| **LLM Support** | Ya (via optimum-intel) | Terbatas (NITRO) | Eksperimental | Ya (via MLX) |
+| **Kemudahan Setup** | Sedang | Sulit | Sulit | Mudah |
+| **Quantization** | INT8, INT4 | INT8 | INT8, INT4 | FP16, INT8 |
+| **Dynamic Shapes** | Terbatas | Tidak | Tidak | Ya (via ANE) |
+| **Open Source** | Ya | Tidak | Sebagian | Tidak |
+| **Kematangan** | Tinggi (2024.6+) | Rendah | Rendah | Tinggi |
+
+Dari tabel ini, pola persaingan menjadi jelas: Intel dan Apple memimpin dari sisi kematangan — OpenVINO menjadi satu-satunya stack open-source dengan dukungan LLM penuh, sementara CoreML/MLX menawarkan kemudahan setup terbaik di kelasnya. Qualcomm dan AMD unggul di hardware (efisiensi ARM dan TOPS tertinggi) tetapi tertinggal di perangkat lunak, dengan dukungan LLM yang terbatas atau eksperimental. Bagi pembeli laptop, ini berarti: NPU 50 TOPS tanpa stack yang matang sama nilainya dengan NPU 11 TOPS — keduanya tidak bisa menjalankan LLM dengan baik. *Pilih ekosistem, bukan hanya angka TOPS.*
+
+---
+
+
+---
+
+## 7. Masa Depan NPU: Arah dan Batasnya
+
+
+Ke mana arah perlombaan ini? Standar **Microsoft Copilot+** (minimal 40 TOPS) telah mendorong adopsi massal NPU — hampir semua laptop premium 2025–2026 membawa NPU yang memenuhi syarat. Pada 2026, generasi berikutnya menjanjikan **NPU 100+ TOPS** — Intel dengan Panther Lake, dan AMD dengan penerus Strix Point — yang akan membuka kemampuan baru seperti *on-device translation* dan *vision* real-time.
+
+Namun, penting untuk menahan euforia. Model frontier 2026 — **DeepSeek V4 Pro** (1,6T parameter), **Mistral Large 3** (675B), GPT-5.5, dan Claude Fable 5 — sama sekali **tidak feasible di NPU**. Model sebesar itu membutuhkan GPU dengan HBM atau *unified memory* Apple Silicon dengan *bandwidth* di atas **500 GB/s**; NPU laptop dengan shared memory puluhan GB/s berada di galaksi yang berbeda [6]. Prediksi realistis: dalam 2–3 tahun, kombinasi NPU + iGPU akan cukup untuk menjalankan **SLM 3B–8B** dengan nyaman — cukup untuk asisten lokal di laptop — sementara model besar tetap menjadi wilayah GPU dan *unified memory*.
+
+Bagi calon pembeli laptop di 2026, arah ini memiliki tiga implikasi praktis. Pertama, **jangan membayar ekstra hanya demi angka TOPS**: NPU 45 vs 50 TOPS tidak akan terasa dalam penggunaan sehari-hari; yang terasa adalah kualitas *software stack*-nya — uji dulu apakah model yang Anda butuhkan (misalnya Llama-3.2-3B) berjalan di platform itu sebelum membeli. Kedua, **pastikan laptop memiliki iGPU yang kompeten**: seperti berulang kali ditunjukkan di bab ini, iGPU — bukan NPU — adalah unit yang benar-benar menjalankan LLM di laptop AI PC; tanyakan apakah iGPU-nya bisa dipakai untuk *inference* (OpenVINO GPU di Lunar Lake, misalnya, mencapai 22 t/s untuk Llama-3-8B). Ketiga, **ketahuilah umur pakai dukungan**: NPU adalah hardware yang cepat berganti generasi, tetapi *software stack* yang terus diperbarui (OpenVINO dirilis berkala, MLPerf mulai membakukan benchmark NPU) menentukan berapa lama hardware Anda tetap berguna [5][8]. Beli laptop AI PC untuk masa kini — *background AI* yang hemat daya — dan jangan berharap NPU-nya menjadi mesin LLM masa depan.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial 1: Jalankan LLM di NPU Intel dengan NITRO
 
@@ -307,7 +316,8 @@ T-MAC mengganti inti perhitungannya: alih-alih menghitung perkalian matriks (yan
 
 ---
 
-## 11. Studi Kasus: Memilih Laptop AI PC untuk LLM Lokal
+## 9. Studi Kasus: Memilih Laptop AI PC untuk LLM Lokal
+
 
 **Skenario.** Seorang mahasiswa AI membutuhkan laptop baru dengan budget **Rp 20–25 juta** untuk menjalankan *coding assistant* lokal berbasis Llama-3.1-8B. Ia tergoda oleh kampanye "AI PC" yang mengklaim NPU 45–50 TOPS akan mempercepat semua pekerjaan AI-nya. Tiga kandidat masuk daftar:
 
@@ -321,7 +331,8 @@ T-MAC mengganti inti perhitungannya: alih-alih menghitung perkalian matriks (yan
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

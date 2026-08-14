@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan tiga strategi paralelisme — *tensor parallelism* (TP), *pipeline parallelism* (PP), dan *sequence parallelism* (SP) — beserta kekuatan dan keterbatasan masing-masing
@@ -16,6 +17,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa Distributed Inference?
+
 
 ### Memory Wall: Dinding yang Tidak Bisa Dilompati
 
@@ -28,78 +30,6 @@ Prinsip *distributed inference* sederhana: model tidak disalin, melainkan **dipe
 Perbedaan mendasar lain yang perlu dipahami sejak awal: *memori* terpecah, tetapi *perilaku* tetap satu model. Setiap GPU hanya memegang potongan bobot, tetapi semua GPU bekerja sama menghasilkan satu respons koheren — bukan enam belas respons parsial. Karena itu, setiap GPU yang mati atau lambat berdampak pada seluruh pipeline, dan *redundancy* bukan bagian dari desain dasar; inilah mengapa lapisan *orchestration* (Ray) dan *monitoring* (NCCL) bukan opsional, melainkan bagian tak terpisahkan dari strategi ini.
 
 Satu pengecualian penting untuk pola "dipecah": **Cloud API**. Model seperti GPT-5.5 tidak pernah dibuka untuk dijalankan sendiri — satu-satunya cara menjangkaunya adalah memanggil API. Bagi sebagian besar tim, pertanyaan nyatanya bukan "bagaimana menjalankan 405B di kluster kami?", melainkan "jalankan sendiri (butuh distributed inference) atau sewa API?" Perhitungan sederhana: jika utilisasi tinggi dan model open-weight, kluster sendiri lebih hemat; jika sporadis atau model eksklusif, API lebih masuk akal. Sub-bab ini akan membekali Anda dengan angka untuk mengambil keputusan itu dengan kepala dingin.
-
----
-
-## 3. Tensor Parallelism: Satu Lapisan, Dua Belah
-
-### Memecah Matriks per Dimensi
-
-**Tensor parallelism (TP)** memecah satu operasi matriks — misalnya proyeksi QKV di lapisan attention — menjadi potongan baris/kolom yang didistribusikan ke beberapa GPU. Jika TP=4 dijalankan, GPU 1 memegang seperempat matriks bobot, GPU 2 seperempat lainnya, dan seterusnya; setiap GPU menghitung bagiannya, lalu hasilnya digabungkan. Pendekatan ini mengadopsi algoritma yang dipopulerkan **Megatron-LM** [3] dan menjadi tulang punggung *model parallelism* di vLLM.
-
-### All-Reduce Setiap Langkah: Harga yang Mahal tapi Layak
-
-Namun ada biaya tersembunyi: setiap *forward pass* — untuk setiap token pada setiap lapisan — membutuhkan **all-reduce**, yaitu operasi menjumlahkan hasil parsial dari semua GPU yang terlibat dalam TP. Frekuensinya brutal: model 70B dengan 80 lapisan dan konteks 4096 token melakukan ribuan all-reduce per respons. Komunikasi antar-GPU ini berjalan di atas **NCCL** — pustaka NVIDIA — yang kinerjanya sangat bergantung pada kecepatan *interconnect*: **NVLink** (cepat, dalam satu node) > **PCIe** (sedang) > **Ethernet** (lambat). Karena itulah TP paling efektif dalam satu *node* yang dihubungkan NVLink; menerapkan TP besar *lintas-node* di jaringan Ethernet akan membuat GPU sibuk menunggu data, bukan menghitung.
-
-Keuntungan TP yang jarang disebut: *bubble overhead*-nya **nol** — tidak ada GPU yang menganggur menunggu GPU lain dalam pola sinkronis, karena semua GPU mengerjakan lapisan yang sama pada waktu yang sama. *Latency* per token pun turun hampir linier terhadap jumlah GPU (sampai komunikasi mulai mendominasi), membuat TP unggul untuk beban kerja yang sensitif latensi seperti chat interaktif. Penghematan memorinya juga adil: setiap GPU hanya menyimpan 1/N bobot model — tidak ada duplikasi — sehingga model 70B yang biasanya 140 GB FP16 hanya butuh 17,5 GB per GPU saat TP=8 (Tabel 3).
-
----
-
-## 4. Pipeline Parallelism: Estafet Lapisan
-
-### Membagi Lapisan Menjadi Stage
-
-Jika TP memecah *dalam* satu lapisan, **pipeline parallelism (PP)** memecah *antar* lapisan: GPU 1 mengerjakan layer 1-16, GPU 2 layer 17-32 — seperti estafet, hanya satu tim yang membawa tongkat pada satu waktu. Komunikasi antar-GPU hanya terjadi di *batas stage* (sekali per batch), bukan setiap token, sehingga kebutuhan *interconnect* jauh lebih rendah: Ethernet antar-node pun masih layak. Ini membuat PP menjadi pilihan alami saat model tersebar di beberapa komputer.
-
-### Bubble Overhead dan Micro-Batching
-
-Harga dari PP adalah **bubble overhead**: GPU di stage belakang menganggur menunggu stage depan selesai memproses batch pertama, dan sebaliknya — GPU di stage depan menganggur di akhir giliran. Idle ini bisa mencapai **10-30%** dari waktu total tergantung jumlah micro-batch. Solusi standarnya adalah **micro-batching**: satu batch besar dipecah menjadi micro-batch kecil, dan skedul **1F1B** (*one forward, one backward* — atau untuk *inference*: satu micro-batch maju, satu micro-batch baru masuk) menjaga semua stage tetap sibuk secara bergiliran. Semakin banyak micro-batch, semakin kecil bubble — tetapi semakin banyak juga sedikit overhead tambahan per *switch*. Pedoman praktis: **PP lebih unggul daripada TP ketika *interconnect* antar-node lambat**; TP lebih unggul dalam satu node ber-NVLink.
-
-Ada dua konsekuensi PP yang sering mengejutkan praktisi. Pertama, *latency* per request justru naik — sebuah request harus melewati semua stage secara berurutan, sehingga pengeluaran respon pertama sedikit lebih lambat dibandingkan TP murni; kompensasinya ada di *throughput* total yang tetap tinggi karena banyak request mengalir bersamaan melalui pipeline. Kedua, memori per GPU tetap terbagi adil (1/N bobot), tetapi *utilisasi* satu GPU tidak selalu penuh — pada detik tertentu ia sedang menunggu. Bagi tim dengan jaringan antar-node terbatas, trade-off ini hampir selalu sepadan: sedikit latensi ekstra demi *throughput* yang hanya mungkin diraih dengan PP.
-
----
-
-## 5. Sequence Parallelism: Membelah Konteks Panjang
-
-Strategi ketiga, **sequence parallelism (SP)** , bekerja pada dimensi yang berbeda: bukan bobot dan bukan lapisan, melainkan **satu *sequence* panjang yang dipecah menjadi beberapa bagian** — setiap GPU memegang potongan token yang berbeda. Idenya: untuk konteks 128K+ token, KV-cache dan komputasi attention sebuah sequence tunggal bisa meledakkan satu GPU; dengan SP, potongan-potongan itu tersebar sehingga masing-masing GPU hanya mengelola sebagian.
-
-Komunikasi dalam SP memakai pola **ring attention**: setiap GPU mengirim hasil parsial attention-nya ke tetangga berikutnya dalam formasi cincin, hingga semua potongan informasi bertemu. Pola ini *point-to-point* (bukan *broadcast* penuh seperti all-reduce), sehingga beban jaringannya lebih ringan — cukup *RDMA* yang baik. SP paling berguna untuk beban kerja *long-context inference* (128K+ token) yang sering muncul di analisis dokumen dan *agent* dengan riwayat percakapan panjang, dan sering dikombinasikan dengan TP agar bobot dan konteks terbagi sekaligus.
-
-Satu catatan kritis: SP tidak mempercepat generasi token secara ajaib — ia *memungkinkan* hal yang sebelumnya mustahil (konteks yang melampaui kapasitas satu GPU) dengan biaya komunikasi cincin yang relatif ringan. Jika model Anda sudah muat dan konteksnya pendek, SP tidak diperlukan; tetapi begitu konteks panjang menjadi kebutuhan bisnis (ringkasan dokumen raksasa, *codebase* besar), SP adalah satu-satunya strategi yang mengubah "tidak muat" menjadi "muat" pada GPU yang sama.
-
-Pendekatan ringkas untuk mengingat ketiga strategi: **TP membagi lebar lapisan, PP membagi kedalaman model, SP membagi panjang konteks.** Ketiganya memperlakukan dimensi yang berbeda, dan karena dimensi itu saling bebas, kombinasi TP+PP+SP sekaligus sah secara teknis — vLLM dan engine modern mendukungnya. Tinggal pertanyaan skala mana yang lebih dulu menjadi *bottleneck* di beban kerja Anda.
-
----
-
-## 6. Ray dan SkyPilot: Manajer Kluster dan Kurir Cloud
-
-Distribusi model hanyalah setengah cerita; yang mengelola GPU-GPU itu — menempatkan *worker*, mendeteksi GPU mati, menambah node saat beban naik — adalah lapisan *orchestration*. **Ray** adalah *distributed runtime* yang paling banyak dipakai untuk ini: ia menjaga daftar GPU di semua node, menangani *fault tolerance* (jika satu node mati, pekerjaan dialihkan), dan mendukung *auto-scaling* (memperbesar/memperkecil jumlah node sesuai beban). vLLM memakai Ray sebagai *backend* eksekusi terdistribusi — perintah `--distributed-executor-backend ray` menyerahkan semua penjadwalan GPU ke Ray.
-
-**SkyPilot**, di sisi lain, adalah lapisan di atasnya: ia mengurus *provisioning* VM dan GPU ke **multi-cloud** (AWS, GCP, Azure), membandingkan harga antar-cloud, dan memilih *region* termurah yang punya kapasitas — lalu menempatkan *Ray cluster* di sana. Bagi tim yang ingin bereksperimen dengan model 400B tanpa menandatangani kontrak server fisik, SkyPilot mengubah *deploy* model raksasa menjadi satu perintah `sky launch`. Ray dan SkyPilot tidak bersaing — mereka bertumpuk: SkyPilot menyediakan mesin, Ray menjalankannya.
-
-Kapan memilih yang mana? Jika GPU sudah dimiliki (server lokal, *on-premise*, atau kontrak sewa jangka panjang), cukup Ray. Jika kebutuhan *burst* — sesekali butuh 16x H100 untuk eksperimen, lalu tidak lagi — SkyPilot lebih masuk akal: bayar per jam, hapus kluster saat selesai, dan hindari modal besar. Faktor pembeda terakhir adalah *fault tolerance* dan otomatisasi: Ray menangani *crash recovery* di dalam kluster; SkyPilot menangani *provisioning* ulang node yang gagal dibuat oleh cloud provider. Tim yang sehat biasanya memiliki keduanya: Ray untuk produksi harian, SkyPilot untuk eksperimen dan *capacity burst*.
-
----
-
-## 7. Tabel Wajib: Data Perbandingan dan Benchmark
-
-### Tabel 1: Perbandingan Strategi Parallelism
-
-Tabel berikut merangkum perbedaan tiga strategi pada delapan dimensi yang menentukan keputusan arsitektur:
-
-| Aspek | Tensor Parallelism (TP) | Pipeline Parallelism (PP) | Sequence Parallelism (SP) |
-|:---|:---:|:---:|:---:|
-| **Granularitas** | Per-layer/operasi | Per-layer group | Per-sequence chunk |
-| **Komunikasi** | All-reduce (setiap step) | Point-to-point (batch boundary) | Ring attention |
-| **Interconnect Need** | Sangat Tinggi (NVLink) | Rendah (Ethernet OK) | Sedang (RDMA baik) |
-| **Bubble Overhead** | 0% | ~10-30% (tergantung micro-batch) | 0% |
-| **Efektif dalam 1 Node** | Ya (NVLink) | Tidak perlu | Ya |
-| **Efektif Multi-Node** | Kurang (bottleneck network) | Ya | Ya |
-| **Memory Reduction** | ~1/N per GPU | ~1/N per GPU | ~1/N untuk KV cache |
-
-Bacaan kunci tabel ini: TP dan PP bekerja pada dimensi yang saling melengkapi, sehingga kombinasi keduanya (TP dalam node + PP antar node) adalah pola paling umum di lapangan. TP memangkas latensi tiap lapisan dengan paralelisme internal tetapi "haus" *bandwidth*; PP memangkas beban jaringan dengan estafet tetapi membayar *bubble*. SP berdiri di dimensi ketiga — tidak mengurangi bobot, hanya membagi KV-cache dan komputasi attention untuk konteks panjang. Tidak ada satu strategi yang menang semua; arsitektur nyata hampir selalu campuran.
-
-Cara membaca cepat tabel ini: periksa dua kolom paling kiri dan paling kanan. Jika *interconnect* Anda NVLink (kiri), condong ke TP (kanan: "Ya"); jika Ethernet, condong ke PP. Jika beban kerja Anda konteks pendek, SP tidak relevan; jika konteks 128K+, SP menjadi persyaratan, bukan pilihan. Kombinasi paling umum di produksi adalah TP + PP; SP ditambahkan hanya ketika dimensi konteks menjadi *bottleneck* utama.
 
 ### Tabel 2: Benchmark Distributed — Llama-3.1-405B
 
@@ -121,6 +51,41 @@ Tidak ada baris dalam tabel ini yang memberikan 8x lipat *throughput* saat GPU d
 
 Bagi perencana, tabel ini berfungsi sebagai *kalkulator cepat*: jika *throughput* target Anda 10.000 token/detik, 32 GPU Ethernet sudah mencukupi (11.500 tok/s), sedangkan 16 GPU NVLink (7.800 tok/s) belum. Selisihnya adalah perbedaan dua kali lipat biaya *hardware* — dan sering kali, jawabannya bukan membeli GPU lebih banyak, melainkan menutup *gap* jaringan dengan InfiniBand atau NVLink antar-node, yang menggeser Anda dari baris 74% ke baris 93%.
 
+
+---
+
+## 3. Tensor Parallelism: Satu Lapisan, Dua Belah
+
+
+### Memecah Matriks per Dimensi
+
+**Tensor parallelism (TP)** memecah satu operasi matriks — misalnya proyeksi QKV di lapisan attention — menjadi potongan baris/kolom yang didistribusikan ke beberapa GPU. Jika TP=4 dijalankan, GPU 1 memegang seperempat matriks bobot, GPU 2 seperempat lainnya, dan seterusnya; setiap GPU menghitung bagiannya, lalu hasilnya digabungkan. Pendekatan ini mengadopsi algoritma yang dipopulerkan **Megatron-LM** [3] dan menjadi tulang punggung *model parallelism* di vLLM.
+
+### All-Reduce Setiap Langkah: Harga yang Mahal tapi Layak
+
+Namun ada biaya tersembunyi: setiap *forward pass* — untuk setiap token pada setiap lapisan — membutuhkan **all-reduce**, yaitu operasi menjumlahkan hasil parsial dari semua GPU yang terlibat dalam TP. Frekuensinya brutal: model 70B dengan 80 lapisan dan konteks 4096 token melakukan ribuan all-reduce per respons. Komunikasi antar-GPU ini berjalan di atas **NCCL** — pustaka NVIDIA — yang kinerjanya sangat bergantung pada kecepatan *interconnect*: **NVLink** (cepat, dalam satu node) > **PCIe** (sedang) > **Ethernet** (lambat). Karena itulah TP paling efektif dalam satu *node* yang dihubungkan NVLink; menerapkan TP besar *lintas-node* di jaringan Ethernet akan membuat GPU sibuk menunggu data, bukan menghitung.
+
+Keuntungan TP yang jarang disebut: *bubble overhead*-nya **nol** — tidak ada GPU yang menganggur menunggu GPU lain dalam pola sinkronis, karena semua GPU mengerjakan lapisan yang sama pada waktu yang sama. *Latency* per token pun turun hampir linier terhadap jumlah GPU (sampai komunikasi mulai mendominasi), membuat TP unggul untuk beban kerja yang sensitif latensi seperti chat interaktif. Penghematan memorinya juga adil: setiap GPU hanya menyimpan 1/N bobot model — tidak ada duplikasi — sehingga model 70B yang biasanya 140 GB FP16 hanya butuh 17,5 GB per GPU saat TP=8 (Tabel 3).
+
+### Tabel 1: Perbandingan Strategi Parallelism
+
+Tabel berikut merangkum perbedaan tiga strategi pada delapan dimensi yang menentukan keputusan arsitektur:
+
+| Aspek | Tensor Parallelism (TP) | Pipeline Parallelism (PP) | Sequence Parallelism (SP) |
+|:---|:---:|:---:|:---:|
+| **Granularitas** | Per-layer/operasi | Per-layer group | Per-sequence chunk |
+| **Komunikasi** | All-reduce (setiap step) | Point-to-point (batch boundary) | Ring attention |
+| **Interconnect Need** | Sangat Tinggi (NVLink) | Rendah (Ethernet OK) | Sedang (RDMA baik) |
+| **Bubble Overhead** | 0% | ~10-30% (tergantung micro-batch) | 0% |
+| **Efektif dalam 1 Node** | Ya (NVLink) | Tidak perlu | Ya |
+| **Efektif Multi-Node** | Kurang (bottleneck network) | Ya | Ya |
+| **Memory Reduction** | ~1/N per GPU | ~1/N per GPU | ~1/N untuk KV cache |
+
+Bacaan kunci tabel ini: TP dan PP bekerja pada dimensi yang saling melengkapi, sehingga kombinasi keduanya (TP dalam node + PP antar node) adalah pola paling umum di lapangan. TP memangkas latensi tiap lapisan dengan paralelisme internal tetapi "haus" *bandwidth*; PP memangkas beban jaringan dengan estafet tetapi membayar *bubble*. SP berdiri di dimensi ketiga — tidak mengurangi bobot, hanya membagi KV-cache dan komputasi attention untuk konteks panjang. Tidak ada satu strategi yang menang semua; arsitektur nyata hampir selalu campuran.
+
+Cara membaca cepat tabel ini: periksa dua kolom paling kiri dan paling kanan. Jika *interconnect* Anda NVLink (kiri), condong ke TP (kanan: "Ya"); jika Ethernet, condong ke PP. Jika beban kerja Anda konteks pendek, SP tidak relevan; jika konteks 128K+, SP menjadi persyaratan, bukan pilihan. Kombinasi paling umum di produksi adalah TP + PP; SP ditambahkan hanya ketika dimensi konteks menjadi *bottleneck* utama.
+
+
 ### Tabel 3: Estimasi VRAM Model Terdistribusi
 
 Tabel terakhir memperlihatkan kebutuhan memori per GPU dari tujuh model dengan konfigurasi berbeda:
@@ -141,7 +106,21 @@ Cara praktis memakai tabel ini: cari baris model Anda, jumlahkan kebutuhan per G
 
 ---
 
-## 8. Diagram & Visualisasi
+
+---
+
+## 4. Pipeline Parallelism: Estafet Lapisan
+
+
+### Membagi Lapisan Menjadi Stage
+
+Jika TP memecah *dalam* satu lapisan, **pipeline parallelism (PP)** memecah *antar* lapisan: GPU 1 mengerjakan layer 1-16, GPU 2 layer 17-32 — seperti estafet, hanya satu tim yang membawa tongkat pada satu waktu. Komunikasi antar-GPU hanya terjadi di *batas stage* (sekali per batch), bukan setiap token, sehingga kebutuhan *interconnect* jauh lebih rendah: Ethernet antar-node pun masih layak. Ini membuat PP menjadi pilihan alami saat model tersebar di beberapa komputer.
+
+### Bubble Overhead dan Micro-Batching
+
+Harga dari PP adalah **bubble overhead**: GPU di stage belakang menganggur menunggu stage depan selesai memproses batch pertama, dan sebaliknya — GPU di stage depan menganggur di akhir giliran. Idle ini bisa mencapai **10-30%** dari waktu total tergantung jumlah micro-batch. Solusi standarnya adalah **micro-batching**: satu batch besar dipecah menjadi micro-batch kecil, dan skedul **1F1B** (*one forward, one backward* — atau untuk *inference*: satu micro-batch maju, satu micro-batch baru masuk) menjaga semua stage tetap sibuk secara bergiliran. Semakin banyak micro-batch, semakin kecil bubble — tetapi semakin banyak juga sedikit overhead tambahan per *switch*. Pedoman praktis: **PP lebih unggul daripada TP ketika *interconnect* antar-node lambat**; TP lebih unggul dalam satu node ber-NVLink.
+
+Ada dua konsekuensi PP yang sering mengejutkan praktisi. Pertama, *latency* per request justru naik — sebuah request harus melewati semua stage secara berurutan, sehingga pengeluaran respon pertama sedikit lebih lambat dibandingkan TP murni; kompensasinya ada di *throughput* total yang tetap tinggi karena banyak request mengalir bersamaan melalui pipeline. Kedua, memori per GPU tetap terbagi adil (1/N bobot), tetapi *utilisasi* satu GPU tidak selalu penuh — pada detik tertentu ia sedang menunggu. Bagi tim dengan jaringan antar-node terbatas, trade-off ini hampir selalu sepadan: sedikit latensi ekstra demi *throughput* yang hanya mungkin diraih dengan PP.
 
 ### Gambar 1: Tensor Parallelism vs Pipeline Parallelism
 
@@ -163,6 +142,31 @@ flowchart LR
 
 Dua sub-bab sebelumnya direpresentasikan di sini sekaligus. Di atas: TP memecah matriks satu lapisan menjadi dua bagian yang dikerjakan paralel, lalu disatukan lewat *all-reduce* (garis putus-putus) setiap *step*. Di bawah: PP membagi *stage* lapisan — GPU 1 selesai mengerjakan layer 1-16, hasilnya dikirim ke GPU 2 untuk layer 17-32, sekali per *batch boundary*, tanpa hiruk-pikuk komunikasi per token. Inilah mengapa TP butuh NVLink (sering bicara), sementara PP cukup Ethernet (jarang bicara).
 
+
+---
+
+## 5. Sequence Parallelism: Membelah Konteks Panjang
+
+
+Strategi ketiga, **sequence parallelism (SP)** , bekerja pada dimensi yang berbeda: bukan bobot dan bukan lapisan, melainkan **satu *sequence* panjang yang dipecah menjadi beberapa bagian** — setiap GPU memegang potongan token yang berbeda. Idenya: untuk konteks 128K+ token, KV-cache dan komputasi attention sebuah sequence tunggal bisa meledakkan satu GPU; dengan SP, potongan-potongan itu tersebar sehingga masing-masing GPU hanya mengelola sebagian.
+
+Komunikasi dalam SP memakai pola **ring attention**: setiap GPU mengirim hasil parsial attention-nya ke tetangga berikutnya dalam formasi cincin, hingga semua potongan informasi bertemu. Pola ini *point-to-point* (bukan *broadcast* penuh seperti all-reduce), sehingga beban jaringannya lebih ringan — cukup *RDMA* yang baik. SP paling berguna untuk beban kerja *long-context inference* (128K+ token) yang sering muncul di analisis dokumen dan *agent* dengan riwayat percakapan panjang, dan sering dikombinasikan dengan TP agar bobot dan konteks terbagi sekaligus.
+
+Satu catatan kritis: SP tidak mempercepat generasi token secara ajaib — ia *memungkinkan* hal yang sebelumnya mustahil (konteks yang melampaui kapasitas satu GPU) dengan biaya komunikasi cincin yang relatif ringan. Jika model Anda sudah muat dan konteksnya pendek, SP tidak diperlukan; tetapi begitu konteks panjang menjadi kebutuhan bisnis (ringkasan dokumen raksasa, *codebase* besar), SP adalah satu-satunya strategi yang mengubah "tidak muat" menjadi "muat" pada GPU yang sama.
+
+Pendekatan ringkas untuk mengingat ketiga strategi: **TP membagi lebar lapisan, PP membagi kedalaman model, SP membagi panjang konteks.** Ketiganya memperlakukan dimensi yang berbeda, dan karena dimensi itu saling bebas, kombinasi TP+PP+SP sekaligus sah secara teknis — vLLM dan engine modern mendukungnya. Tinggal pertanyaan skala mana yang lebih dulu menjadi *bottleneck* di beban kerja Anda.
+
+---
+
+## 6. Ray dan SkyPilot: Manajer Kluster dan Kurir Cloud
+
+
+Distribusi model hanyalah setengah cerita; yang mengelola GPU-GPU itu — menempatkan *worker*, mendeteksi GPU mati, menambah node saat beban naik — adalah lapisan *orchestration*. **Ray** adalah *distributed runtime* yang paling banyak dipakai untuk ini: ia menjaga daftar GPU di semua node, menangani *fault tolerance* (jika satu node mati, pekerjaan dialihkan), dan mendukung *auto-scaling* (memperbesar/memperkecil jumlah node sesuai beban). vLLM memakai Ray sebagai *backend* eksekusi terdistribusi — perintah `--distributed-executor-backend ray` menyerahkan semua penjadwalan GPU ke Ray.
+
+**SkyPilot**, di sisi lain, adalah lapisan di atasnya: ia mengurus *provisioning* VM dan GPU ke **multi-cloud** (AWS, GCP, Azure), membandingkan harga antar-cloud, dan memilih *region* termurah yang punya kapasitas — lalu menempatkan *Ray cluster* di sana. Bagi tim yang ingin bereksperimen dengan model 400B tanpa menandatangani kontrak server fisik, SkyPilot mengubah *deploy* model raksasa menjadi satu perintah `sky launch`. Ray dan SkyPilot tidak bersaing — mereka bertumpuk: SkyPilot menyediakan mesin, Ray menjalankannya.
+
+Kapan memilih yang mana? Jika GPU sudah dimiliki (server lokal, *on-premise*, atau kontrak sewa jangka panjang), cukup Ray. Jika kebutuhan *burst* — sesekali butuh 16x H100 untuk eksperimen, lalu tidak lagi — SkyPilot lebih masuk akal: bayar per jam, hapus kluster saat selesai, dan hindari modal besar. Faktor pembeda terakhir adalah *fault tolerance* dan otomatisasi: Ray menangani *crash recovery* di dalam kluster; SkyPilot menangani *provisioning* ulang node yang gagal dibuat oleh cloud provider. Tim yang sehat biasanya memiliki keduanya: Ray untuk produksi harian, SkyPilot untuk eksperimen dan *capacity burst*.
+
 ### Gambar 2: Arsitektur Ray Cluster untuk vLLM Multi-Node
 
 ```mermaid
@@ -176,6 +180,7 @@ graph TD
 ```
 
 Kepala (*head*) Ray mengelola dua *worker*, masing-masing memegang 8 GPU; vLLM *scheduler* berjalan di *head* dan membagi request ke *worker* sesuai strategi TP/PP. Komunikasi antar-GPU lintas node ditangani NCCL (panah bawah) — jalur yang pantauannya justru paling menentukan (Langkah 3 praktikum). Jika satu *worker* mati, Ray mendeteksi dan mengalihkan beban, sementara vLLM tetap melayani dengan GPU yang tersisa.
+
 
 ### Gambar 3: Efisiensi Scaling — Diminishing Returns
 
@@ -192,7 +197,11 @@ Kesimpulan praktis dari ketiga diagram ini: **pahami dulu jalur komunikasi Anda,
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Multi-Node vLLM dengan Ray
 
@@ -299,7 +308,8 @@ Tiga metrik yang disarankan dicatat di setiap sesi *benchmark*: waktu all-reduce
 
 ---
 
-## 10. Studi Kasus: Research Lab — Menjalankan DeepSeek-V3 di Cluster 4 Node
+## 8. Studi Kasus: Research Lab — Menjalankan DeepSeek-V3 di Cluster 4 Node
+
 
 Dua studi kasus berikut menutup sub-bab ini dari sisi nyata: yang pertama menguji strategi TP/PP klasik di atas model dense generasi sebelumnya (DeepSeek-V3), yang kedua memperlihatkan bagaimana arsitektur baru (DeepSeek V4 Pro, hybrid CSA/HCA) mengubah perhitungan yang sama. Baca keduanya berurutan — perbedaannya justru yang paling instruktif.
 
@@ -313,7 +323,8 @@ Dua studi kasus berikut menutup sub-bab ini dari sisi nyata: yang pertama menguj
 
 ---
 
-## 11. Studi Kasus: Deploy DeepSeek V4 Pro Multi-Node dengan KV-Cache 90% Lebih Hemat
+## 9. Studi Kasus: Deploy DeepSeek V4 Pro Multi-Node dengan KV-Cache 90% Lebih Hemat
+
 
 **Latar belakang.** Sebuah perusahaan ingin melayani DeepSeek V4 Pro (1,6T parameter total / 49B aktif) untuk **konteks 1 juta token** — beban kerja analisis dokumen korporat yang sangat panjang. Dengan model konvensional, konteks 1M membutuhkan KV-cache raksasa (V3.2: ~32 GB untuk 1M token) dan petak besar VRAM.
 
@@ -327,7 +338,8 @@ Dua studi kasus berikut menutup sub-bab ini dari sisi nyata: yang pertama menguj
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

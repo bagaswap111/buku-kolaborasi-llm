@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan perbedaan mendasar antara *static batching* dan *continuous batching* (atau *iteration-level scheduling*) serta mengapa keduanya berbeda drastis dalam hal pemanfaatan GPU
@@ -16,6 +17,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Masalah Static Batching: Antrean Macet di Pintu GPU
+
 
 ### Head-of-Line Blocking: yang Pendek Menunggu yang Panjang
 
@@ -31,9 +33,55 @@ Ukurannya mengejutkan: penelitian Yu et al. (2022) pada paper Orca menunjukkan b
 
 Ada satu fakta lanjutan yang memperparah keadaan: static batching memperbesar *batch* secara membabi buta justru merugikan. *Batch* yang lebih besar berarti waktu tunggu yang lebih lama menunggu request terlambat — *scale* tidak menyelesaikan masalah, hanya memindahkannya ke level yang lebih tinggi. Solusi sejatinya bukan memperbesar *batch*, melainkan mengubah cara *batch* itu dikelola: dari satu kesatuan yang kaku menjadi kumpulan individu yang bergerak bebas.
 
+### Tabel 1: Static vs Continuous Batching (Model 7B, GPU A100 80 GB)
+
+Tabel berikut membandingkan performa kedua pendekatan pada model 7B di satu GPU A100 80 GB, dirangkum dari paper Orca dan benchmark Anyscale [1][3]:
+
+| Metrik | Static Batching | Continuous Batching | Improvement |
+|:---|:---:|:---:|:---:|
+| GPU Utilization | 28% | 85% | 3x |
+| Throughput (req/s) | 4.2 | 28.5 | 6.8x |
+| TTFT P50 (ms) | 180 | 210 | -17% |
+| Latency P99 (ms) | 12.500 | 2.800 | 4.5x lebih baik |
+| Max Batch Size | 8 | 64 | 8x |
+| VRAM Waste | ~50% | ~4% | 12.5x lebih baik |
+
+![Continuous batching menggandakan utilisasi GPU (28% → 85%), throughput hampir 7x (4,2 → 28,5 req/s), dan memangkas latency P99 dari 12,5 detik menjadi 2,8 detik](../../assets/images/bab-05-inference/sub-bab-4/static-vs-continuous-batching.png)
+
+*Gambar 5.4-1 — Continuous batching menukar TTFT yang sedikit lebih lambat (+17%) dengan kemenangan besar di ekor latensi: P99 membaik 4,5x dan utilisasi GPU naik 3x — pola yang justru paling penting untuk pengalaman multi-user.*
+
+Pembacaan tabel ini penuh nuansa. *Throughput* melonjak 6,8x dan utilisasi GPU naik 3x — itu kabar baik utama. Namun perhatikan **TTFT (Time To First Token) P50**: dari 180 ms menjadi 210 ms, lebih lambat 17%. Ini bukan bug, melainkan konsekuensi logis dari berbagi GPU — karena batch lebih penuh, setiap request harus mengantre sedikit lebih lama untuk slot komputasi pertama. Sementara itu, *latency* P99 — ukuran pengalaman user terburuk — membaik 4,5x dari 12,5 detik menjadi 2,8 detik. Di sinilah trade-off *continuous batching*: sedikit pengorbanan di median, kelegaan besar di ekor. Untuk pengalaman multi-user, ekor yang pendek jauh lebih penting daripada median yang super cepat.
+
+Perlu dicatat: efisiensi KV-cache model modern memperbesar keunggulan ini. DeepSeek V4 Pro dengan hybrid CSA/HCA attention hanya membutuhkan **10% KV-cache dibandingkan generasi V3.2** — artinya dalam satu batch yang sama, *continuous batching* bisa memuat jauh lebih banyak request karena ruang cache yang tersedia jauh lebih besar.
+
+
+### Gambar 1: Timeline Static vs Continuous Batching
+
+Diagram berikut membandingkan perjalanan waktu empat request pada kedua pendekatan:
+
+```mermaid
+flowchart LR
+    subgraph STATIC["Static Batching — request menunggu bersama"]
+        S1[Batch 1: Req 1-4 mulai bersamaan]
+        S2[Req 1-3 selesai, menunggu Req 4 yang panjang]
+        S3[Batch 2 baru mulai setelah Req 4 tuntas]
+        S1 --> S2 --> S3
+    end
+    subgraph CONTINUOUS["Continuous Batching — request join dan leave per step"]
+        C1[Step 1: Req 1-4 mendapat 1 token masing-masing]
+        C2[Step 6: Req 1 selesai; Req 5 langsung masuk batch]
+        C3[Step 9: Req 2 & 3 selesai; Req 6 & 7 masuk]
+        C1 --> C2 --> C3
+    end
+```
+
+Bagian atas diagram (STATIC) menunjukkan *batch* yang kaku: request pendek (Req 1-3) terkurung oleh request panjang (Req 4), dan *batch* berikutnya baru dibuka setelah semuanya beres — GPU menganggur di sela-selanya. Bagian bawah (CONTINUOUS) memperlihatkan irama yang hidup: setiap *step* menghasilkan satu token untuk semua request, request yang selesai pergi, request baru langsung mengisi slot kosong. Tidak ada momen GPU kosong — inilah alasan mengapa jumlah *request* yang bisa dilayani per detik melonjak 6-7 kali lipat.
+
+
 ---
 
 ## 3. Iteration-Level Scheduling: Ide Besar dari Orca
+
 
 ### Mengapa Per-Request Tidak Cukup
 
@@ -60,6 +108,7 @@ Ada satu syarat tersembunyi yang membuat mekanisme ini bekerja tanpa menguras me
 
 ## 4. Selective Batching: Batching yang Pilih-pilih
 
+
 ### Dilema Bentuk Tensor yang Berbeda
 
 Ada satu rintangan teknis yang harus dipecahkan Orca sebelum ide iteration-level scheduling bisa dipakai: di dalam satu iterasi, setiap request memiliki panjang *sequence* yang berbeda. Request A sedang di token ke-45, request B di token ke-300, request C di token ke-1.200. Masalahnya, operasi **attention** pada GPU membutuhkan tensor dengan bentuk (shape) yang seragam untuk di-batch. Matriks *attention score* request A berukuran `45 × 45`, request C `1200 × 1200` — dua bentuk yang tidak bisa digabung dalam satu operasi matriks tanpa *padding* boros memori.
@@ -71,111 +120,6 @@ Solusi yang diajukan Orca bernama **selective batching**: bagi operasi model men
 Keputusan ini terdengar boros, tetapi Yu et al. menunjukkan bahwa dampaknya **kecil terhadap efisiensi keseluruhan** [1]. Alasannya: attention bukan lapisan yang memiliki *weight* besar — kuda beban sebenarnya adalah FFN yang menyumbang 60-70% komputasi (lihat Bab 1 Jilid 1). Dengan membatch FFN dan LayerNorm, sebagian besar komputasi tetap berjalan rapat, sementara attention yang "dilintang-lintang" per-request hanya menyumbang sebagian kecil waktu total. Selective batching adalah kompromi elegan untuk membuka pintu bagi *continuous batching* tanpa mengorbankan kecepatan eksekusi matriks.
 
 Perlu diketahui bahwa pendekatan ini bukan tanpa biaya implementasi. Engine harus mampu memisahkan eksekusi operasi berdasarkan jenisnya — sebagian dalam mode *batched*, sebagian dalam mode *per-sequence* — yang berarti *kernel* harus dirancang fleksibel sejak awal. Inilah salah satu alasan mengapa mengimplementasikan *continuous batching* bukan sekadar mengubah satu baris konfigurasi: ia menyentuh lapisan terbawah *runtime* GPU yang mengatur bagaimana operasi dikirim ke perangkat keras.
-
----
-
-## 5. Implementasi Continuous Batching di Berbagai Engine
-
-### vLLM dan PagedAttention
-
-Implementasi paling berpengaruh datang dari **vLLM**, yang sejak versi pertamanya (2023) menggabungkan *continuous batching* dengan **PagedAttention** — teknik manajemen memori KV-cache ala *virtual memory* sistem operasi yang memecah cache menjadi blok-blok kecil (lihat sub-bab 5.2) [2]. Kombinasi keduanya sederhana: *continuous batching* mengisi GPU dengan banyak request, PagedAttention memastikan memori tidak meledak. vLLM juga menambahkan *prefix caching* sehingga prompt berulang (misalnya *system prompt* perusahaan) tidak perlu dikomputasi ulang.
-
-### TGI, TensorRT-LLM, Aphrodite, dan SGLang
-
-Setiap engine besar berlomba mengadopsi ide yang sama dengan nama berbeda. **Text Generation Inference (TGI)** dari Hugging Face menyebutnya *dynamic batching*, dengan tambahan *safety checker* dan *watermarking* untuk deployment produksi. **TensorRT-LLM** dari NVIDIA menamakannya **in-flight batching**, dimaksimalkan dengan kernel FP8 dan *kernel fusion* maksimal. **Aphrodite**, sebuah *fork* vLLM dari komunitas, menambahkan *sampler* kreatif dan dukungan multi-kuantisasi termasuk NVFP4. **SGLang** melangkah lebih jauh dengan **RadixAttention** — cache prefix berbasis pohon (*radix tree*) yang membuat sistemnya rame di beban kerja *multi-turn conversation* [5]. Terlepas dari nama, prinsipnya satu: penjadwalan per-iterasi dengan batch dinamis.
-
-Kesamaan prinsip ini bukan kebetulan — semuanya berpijak pada hasil eksperimen Orca dan analisis berikutnya yang membuktikan bahwa mempertahankan GPU tetap sibuk jauh lebih berharga daripada menyelesaikan satu request secepat mungkin. Perbedaan antar-engine hanya terletak pada *flavor* tambahan di sekitarnya: seberapa agresif *kernel fusion*-nya, seberapa cerdas cache-nya, dan seberapa lengkap dukungan format kuantisasi-nya. Untuk keputusan pemilihan engine, pertimbangkan ekosistem tim Anda dan beban kerja dominan — bukan sekadar nama fiturnya.
-
----
-
-## 6. Dampak pada Pengalaman User
-
-Apa artinya semua ini bagi orang yang benar-benar mengetik pertanyaan? Bayangkan sebuah kantor kecil dengan 10 karyawan yang serentak menekan "Generate" pada AI assistant mereka. Dengan *service* berbasis static batching, request ke-10 harus mengantre di belakang 9 request sebelumnya — dengan total waktu generasi masing-masing beberapa detik, antrean bisa menembus **~50 detik**. Itu adalah pengalaman "AIs-nya hang nih".
-
-Dengan *continuous batching*, *scheduler* langsung menyeret semua 10 request ke dalam GPU pada iterasi pertama. Semua user mulai menerima token pertama dalam waktu **kurang dari 2 detik**, dan token-token berikutnya mengalir bergantian. Trade-off-nya: karena GPU sekarang berbagi beban antara 10 sequence, *latency* rata-rata per-request naik sedikit — tetapi naiknya *predictable* dan proporsional, bukan melompat liar seperti antrean statis. *Throughput* total melonjak drastis: dalam Tabel 2 Anda bisa melihat, dengan 10 user konkuren, *throughput* mencapai 7.200 token/detik, hampir 6 kali lipat dari 1 user. Inilah inti janji *continuous batching*: **melayani banyak orang sekaligus, tanpa ada yang merasa dilambatkan**.
-
-Ada dimensi psikologis yang membuat perbedaan ini semakin terasa. Manusia menilai kelambatan dari dua titik: berapa lama menunggu respons pertama (TTFT) dan seberapa cepat token mengalir setelah itu (*time to next token*). Karena *continuous batching* menjaga antrean tetap pendek, kedua titik ini bergerak bersamaan — semua user "merasa didengar" sejak detik pertama, meskipun ada sedikit jeda antar-token saat GPU bergiliran. Pada static batching, user yang antre di belakang tidak mendengar apa-apa selama puluhan detik — seolah-olah aplikasi mati total. Persepsi inilah yang membuat *continuous batching* begitu bernilai untuk produk yang dipegang banyak orang sekaligus.
-
----
-
-## 7. Tabel Wajib: Data Benchmark
-
-### Tabel 1: Static vs Continuous Batching (Model 7B, GPU A100 80 GB)
-
-Tabel berikut membandingkan performa kedua pendekatan pada model 7B di satu GPU A100 80 GB, dirangkum dari paper Orca dan benchmark Anyscale [1][3]:
-
-| Metrik | Static Batching | Continuous Batching | Improvement |
-|:---|:---:|:---:|:---:|
-| GPU Utilization | 28% | 85% | 3x |
-| Throughput (req/s) | 4.2 | 28.5 | 6.8x |
-| TTFT P50 (ms) | 180 | 210 | -17% |
-| Latency P99 (ms) | 12.500 | 2.800 | 4.5x lebih baik |
-| Max Batch Size | 8 | 64 | 8x |
-| VRAM Waste | ~50% | ~4% | 12.5x lebih baik |
-
-![Continuous batching menggandakan utilisasi GPU (28% → 85%), throughput hampir 7x (4,2 → 28,5 req/s), dan memangkas latency P99 dari 12,5 detik menjadi 2,8 detik](../../assets/images/bab-05-inference/sub-bab-4/static-vs-continuous-batching.png)
-
-*Gambar 5.4-1 — Continuous batching menukar TTFT yang sedikit lebih lambat (+17%) dengan kemenangan besar di ekor latensi: P99 membaik 4,5x dan utilisasi GPU naik 3x — pola yang justru paling penting untuk pengalaman multi-user.*
-
-Pembacaan tabel ini penuh nuansa. *Throughput* melonjak 6,8x dan utilisasi GPU naik 3x — itu kabar baik utama. Namun perhatikan **TTFT (Time To First Token) P50**: dari 180 ms menjadi 210 ms, lebih lambat 17%. Ini bukan bug, melainkan konsekuensi logis dari berbagi GPU — karena batch lebih penuh, setiap request harus mengantre sedikit lebih lama untuk slot komputasi pertama. Sementara itu, *latency* P99 — ukuran pengalaman user terburuk — membaik 4,5x dari 12,5 detik menjadi 2,8 detik. Di sinilah trade-off *continuous batching*: sedikit pengorbanan di median, kelegaan besar di ekor. Untuk pengalaman multi-user, ekor yang pendek jauh lebih penting daripada median yang super cepat.
-
-Perlu dicatat: efisiensi KV-cache model modern memperbesar keunggulan ini. DeepSeek V4 Pro dengan hybrid CSA/HCA attention hanya membutuhkan **10% KV-cache dibandingkan generasi V3.2** — artinya dalam satu batch yang sama, *continuous batching* bisa memuat jauh lebih banyak request karena ruang cache yang tersedia jauh lebih besar.
-
-### Tabel 2: Pengaruh Jumlah User Concurrent (vLLM, Llama-3.1-8B)
-
-Bagaimana performa berubah ketika angka pengguna naik dari 1 menjadi 50? Tabel berikut memotret perilaku vLLM dengan Llama-3.1-8B [6]:
-
-| Concurrent Users | Mean TTFT (ms) | Mean Latency (ms) | Throughput (tok/s) | Queue Time (ms) |
-|:---|:---:|:---:|:---:|:---:|
-| 1 | 85 | 450 | 1.250 | 0 |
-| 5 | 120 | 580 | 4.800 | 35 |
-| 10 | 165 | 720 | 7.200 | 95 |
-| 20 | 250 | 1.100 | 10.500 | 180 |
-| 50 | 480 | 2.400 | 14.200 | 380 |
-
-![Dari 1 hingga 50 user concurrent, throughput vLLM tumbuh 11,4x (1.250 → 14.200 tok/s) sementara TTFT naik perlahan dari 85 ms ke 480 ms](../../assets/images/bab-05-inference/sub-bab-4/pengaruh-user-concurrent.png)
-
-*Gambar 5.4-2 — Trade-off yang "dijual" continuous batching: throughput naik jauh lebih cepat (11,4x) daripada latensi yang naik secara predictable — dari 1,250 token/detik dengan 1 user menjadi 14.200 token/detik dengan 50 user.*
-
-Pola yang terbaca jelas: *throughput* terus naik (1.250 → 14.200 token/detik), tetapi TTFT dan latensi juga naik secara perlahan dan *predictable*. Pada 10 user, TTFT rata-rata hanya 165 ms — tidak terasa. Pada 50 user, TTFT masih 480 ms, setengah detik, masih dalam batas yang bisa diterima untuk chat interaktif. Perhatikan *queue time*: dari 0 ms menjadi 380 ms — ini "harga" dari batch penuh, tetapi tetap jauh lebih kecil dibandingkan antrean request-level pada static batching. Inilah bukti kunci bahwa *continuous batching* "menjual" *latency* yang naik perlahan demi *throughput* yang naik jauh lebih cepat.
-
-### Tabel 3: Dukungan Continuous Batching di Berbagai Engine
-
-| Engine | Nama Internal | Tahun Adopsi | Kelebihan Spesifik |
-|:---|:---|:---:|:---|
-| vLLM | Continuous Batching | 2023 | +PagedAttention, prefix caching |
-| TGI | Dynamic Batching | 2023 | +Safety checker, watermark |
-| TensorRT-LLM | In-flight Batching | 2023 | +FP8, kernel fusions maksimal |
-| Aphrodite | Continuous Batching | 2024 | +Samplers kreatif, multi-quant, NVFP4 |
-| SGLang | RadixAttention + Batching | 2024 | +Prefix caching radix tree |
-
-Ketika memilih engine untuk produksi, pertimbangkan bukan hanya ada-tidaknya *continuous batching* — sekarang semua engine besar memilikinya — tetapi apa yang ditambahkan di atasnya. vLLM unggul di ekosistem dan dukungan distribusi terluas; TensorRT-LLM unggul di kinerja GPU NVIDIA berkat *kernel fusion*; SGLang unggul di beban kerja dengan prompt berulang berkat *radix tree*; Aphrodite menarik untuk komunitas karena dukungan kuantisasi luas termasuk NVFP4. Engine terbaru seperti vLLM ≥ 0.8.0 dan TGI ≥ 2.4.0 juga telah menambahkan dukungan untuk DeepSeek V4 Pro dan Mistral Large 3 — model dengan arsitektur MoE granular yang membutuhkan *scheduling* adaptif karena pola *sparse activation*-nya.
-
----
-
-## 8. Diagram & Visualisasi
-
-### Gambar 1: Timeline Static vs Continuous Batching
-
-Diagram berikut membandingkan perjalanan waktu empat request pada kedua pendekatan:
-
-```mermaid
-flowchart LR
-    subgraph STATIC["Static Batching — request menunggu bersama"]
-        S1[Batch 1: Req 1-4 mulai bersamaan]
-        S2[Req 1-3 selesai, menunggu Req 4 yang panjang]
-        S3[Batch 2 baru mulai setelah Req 4 tuntas]
-        S1 --> S2 --> S3
-    end
-    subgraph CONTINUOUS["Continuous Batching — request join dan leave per step"]
-        C1[Step 1: Req 1-4 mendapat 1 token masing-masing]
-        C2[Step 6: Req 1 selesai; Req 5 langsung masuk batch]
-        C3[Step 9: Req 2 & 3 selesai; Req 6 & 7 masuk]
-        C1 --> C2 --> C3
-    end
-```
-
-Bagian atas diagram (STATIC) menunjukkan *batch* yang kaku: request pendek (Req 1-3) terkurung oleh request panjang (Req 4), dan *batch* berikutnya baru dibuka setelah semuanya beres — GPU menganggur di sela-selanya. Bagian bawah (CONTINUOUS) memperlihatkan irama yang hidup: setiap *step* menghasilkan satu token untuk semua request, request yang selesai pergi, request baru langsung mengisi slot kosong. Tidak ada momen GPU kosong — inilah alasan mengapa jumlah *request* yang bisa dilayani per detik melonjak 6-7 kali lipat.
 
 ### Gambar 2: Selective Batching — FFN Di-Batch, Attention Diproses Per-Request
 
@@ -198,7 +142,71 @@ Tiga request dengan panjang sequence berbeda-beda (300, 120, 45 token) mengerjak
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 5. Implementasi Continuous Batching di Berbagai Engine
+
+
+### vLLM dan PagedAttention
+
+Implementasi paling berpengaruh datang dari **vLLM**, yang sejak versi pertamanya (2023) menggabungkan *continuous batching* dengan **PagedAttention** — teknik manajemen memori KV-cache ala *virtual memory* sistem operasi yang memecah cache menjadi blok-blok kecil (lihat sub-bab 5.2) [2]. Kombinasi keduanya sederhana: *continuous batching* mengisi GPU dengan banyak request, PagedAttention memastikan memori tidak meledak. vLLM juga menambahkan *prefix caching* sehingga prompt berulang (misalnya *system prompt* perusahaan) tidak perlu dikomputasi ulang.
+
+### TGI, TensorRT-LLM, Aphrodite, dan SGLang
+
+Setiap engine besar berlomba mengadopsi ide yang sama dengan nama berbeda. **Text Generation Inference (TGI)** dari Hugging Face menyebutnya *dynamic batching*, dengan tambahan *safety checker* dan *watermarking* untuk deployment produksi. **TensorRT-LLM** dari NVIDIA menamakannya **in-flight batching**, dimaksimalkan dengan kernel FP8 dan *kernel fusion* maksimal. **Aphrodite**, sebuah *fork* vLLM dari komunitas, menambahkan *sampler* kreatif dan dukungan multi-kuantisasi termasuk NVFP4. **SGLang** melangkah lebih jauh dengan **RadixAttention** — cache prefix berbasis pohon (*radix tree*) yang membuat sistemnya rame di beban kerja *multi-turn conversation* [5]. Terlepas dari nama, prinsipnya satu: penjadwalan per-iterasi dengan batch dinamis.
+
+Kesamaan prinsip ini bukan kebetulan — semuanya berpijak pada hasil eksperimen Orca dan analisis berikutnya yang membuktikan bahwa mempertahankan GPU tetap sibuk jauh lebih berharga daripada menyelesaikan satu request secepat mungkin. Perbedaan antar-engine hanya terletak pada *flavor* tambahan di sekitarnya: seberapa agresif *kernel fusion*-nya, seberapa cerdas cache-nya, dan seberapa lengkap dukungan format kuantisasi-nya. Untuk keputusan pemilihan engine, pertimbangkan ekosistem tim Anda dan beban kerja dominan — bukan sekadar nama fiturnya.
+
+### Tabel 3: Dukungan Continuous Batching di Berbagai Engine
+
+| Engine | Nama Internal | Tahun Adopsi | Kelebihan Spesifik |
+|:---|:---|:---:|:---|
+| vLLM | Continuous Batching | 2023 | +PagedAttention, prefix caching |
+| TGI | Dynamic Batching | 2023 | +Safety checker, watermark |
+| TensorRT-LLM | In-flight Batching | 2023 | +FP8, kernel fusions maksimal |
+| Aphrodite | Continuous Batching | 2024 | +Samplers kreatif, multi-quant, NVFP4 |
+| SGLang | RadixAttention + Batching | 2024 | +Prefix caching radix tree |
+
+Ketika memilih engine untuk produksi, pertimbangkan bukan hanya ada-tidaknya *continuous batching* — sekarang semua engine besar memilikinya — tetapi apa yang ditambahkan di atasnya. vLLM unggul di ekosistem dan dukungan distribusi terluas; TensorRT-LLM unggul di kinerja GPU NVIDIA berkat *kernel fusion*; SGLang unggul di beban kerja dengan prompt berulang berkat *radix tree*; Aphrodite menarik untuk komunitas karena dukungan kuantisasi luas termasuk NVFP4. Engine terbaru seperti vLLM ≥ 0.8.0 dan TGI ≥ 2.4.0 juga telah menambahkan dukungan untuk DeepSeek V4 Pro dan Mistral Large 3 — model dengan arsitektur MoE granular yang membutuhkan *scheduling* adaptif karena pola *sparse activation*-nya.
+
+---
+
+
+---
+
+## 6. Dampak pada Pengalaman User
+
+
+Apa artinya semua ini bagi orang yang benar-benar mengetik pertanyaan? Bayangkan sebuah kantor kecil dengan 10 karyawan yang serentak menekan "Generate" pada AI assistant mereka. Dengan *service* berbasis static batching, request ke-10 harus mengantre di belakang 9 request sebelumnya — dengan total waktu generasi masing-masing beberapa detik, antrean bisa menembus **~50 detik**. Itu adalah pengalaman "AIs-nya hang nih".
+
+Dengan *continuous batching*, *scheduler* langsung menyeret semua 10 request ke dalam GPU pada iterasi pertama. Semua user mulai menerima token pertama dalam waktu **kurang dari 2 detik**, dan token-token berikutnya mengalir bergantian. Trade-off-nya: karena GPU sekarang berbagi beban antara 10 sequence, *latency* rata-rata per-request naik sedikit — tetapi naiknya *predictable* dan proporsional, bukan melompat liar seperti antrean statis. *Throughput* total melonjak drastis: dalam Tabel 2 Anda bisa melihat, dengan 10 user konkuren, *throughput* mencapai 7.200 token/detik, hampir 6 kali lipat dari 1 user. Inilah inti janji *continuous batching*: **melayani banyak orang sekaligus, tanpa ada yang merasa dilambatkan**.
+
+Ada dimensi psikologis yang membuat perbedaan ini semakin terasa. Manusia menilai kelambatan dari dua titik: berapa lama menunggu respons pertama (TTFT) dan seberapa cepat token mengalir setelah itu (*time to next token*). Karena *continuous batching* menjaga antrean tetap pendek, kedua titik ini bergerak bersamaan — semua user "merasa didengar" sejak detik pertama, meskipun ada sedikit jeda antar-token saat GPU bergiliran. Pada static batching, user yang antre di belakang tidak mendengar apa-apa selama puluhan detik — seolah-olah aplikasi mati total. Persepsi inilah yang membuat *continuous batching* begitu bernilai untuk produk yang dipegang banyak orang sekaligus.
+
+### Tabel 2: Pengaruh Jumlah User Concurrent (vLLM, Llama-3.1-8B)
+
+Bagaimana performa berubah ketika angka pengguna naik dari 1 menjadi 50? Tabel berikut memotret perilaku vLLM dengan Llama-3.1-8B [6]:
+
+| Concurrent Users | Mean TTFT (ms) | Mean Latency (ms) | Throughput (tok/s) | Queue Time (ms) |
+|:---|:---:|:---:|:---:|:---:|
+| 1 | 85 | 450 | 1.250 | 0 |
+| 5 | 120 | 580 | 4.800 | 35 |
+| 10 | 165 | 720 | 7.200 | 95 |
+| 20 | 250 | 1.100 | 10.500 | 180 |
+| 50 | 480 | 2.400 | 14.200 | 380 |
+
+![Dari 1 hingga 50 user concurrent, throughput vLLM tumbuh 11,4x (1.250 → 14.200 tok/s) sementara TTFT naik perlahan dari 85 ms ke 480 ms](../../assets/images/bab-05-inference/sub-bab-4/pengaruh-user-concurrent.png)
+
+*Gambar 5.4-2 — Trade-off yang "dijual" continuous batching: throughput naik jauh lebih cepat (11,4x) daripada latensi yang naik secara predictable — dari 1,250 token/detik dengan 1 user menjadi 14.200 token/detik dengan 50 user.*
+
+Pola yang terbaca jelas: *throughput* terus naik (1.250 → 14.200 token/detik), tetapi TTFT dan latensi juga naik secara perlahan dan *predictable*. Pada 10 user, TTFT rata-rata hanya 165 ms — tidak terasa. Pada 50 user, TTFT masih 480 ms, setengah detik, masih dalam batas yang bisa diterima untuk chat interaktif. Perhatikan *queue time*: dari 0 ms menjadi 380 ms — ini "harga" dari batch penuh, tetapi tetap jauh lebih kecil dibandingkan antrean request-level pada static batching. Inilah bukti kunci bahwa *continuous batching* "menjual" *latency* yang naik perlahan demi *throughput* yang naik jauh lebih cepat.
+
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Simulasi Continuous Batching dengan Python
 
@@ -318,7 +326,8 @@ Aturan praktis pemilihan parameter: utamakan *chunked prefill* jika rata-rata pr
 
 ---
 
-## 10. Studi Kasus: Kantor dengan 15 Karyawan Menggunakan AI Assistant
+## 8. Studi Kasus: Kantor dengan 15 Karyawan Menggunakan AI Assistant
+
 
 **Skenario.** Sebuah kantor konsultan dengan 15 karyawan mulai menggunakan AI untuk tiga tugas harian: membantu menulis kode, merapikan email, dan riset singkat. Awalnya mereka menjalankan Llama-3.1-8B melalui **Ollama** di satu workstation RTX 4090. Hari pertama terasa menyenangkan — sampai ketiga belas orang itu menggunakannya secara bersamaan.
 
@@ -334,7 +343,8 @@ Aturan praktis pemilihan parameter: utamakan *chunked prefill* jika rata-rata pr
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

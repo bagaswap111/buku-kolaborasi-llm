@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menginstal dan menjalankan KoboldCPP untuk *creative writing* dari *source* maupun *release binary*
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Filosofi KoboldCPP: Mesin yang Dibangun untuk Bercerita
 
+
 ### Pewaris KoboldAI
 
 Sebagian besar *frontend* LLM lahir dari kebutuhan *chat*: jawab pertanyaan, bantu coding. KoboldCPP lahir dari kebutuhan yang berbeda — **narasi interaktif**. Ia adalah turunan dari **KoboldAI**, proyek yang dirintis komunitas untuk menulis cerita dan bermain *roleplay* dengan model bahasa. Perbedaan *genesis* ini tercermin di setiap sudut desainnya: riwayat percakapan disusun seperti bab cerita, bukan seperti log chat; memori lintas sesi dijaga; dan *lore* dunia dikelola sebagai entitas terpisah, bukan diselipkan manual ke *prompt*.
@@ -28,9 +30,32 @@ Teknisnya, KoboldCPP dibangun **di atas llama.cpp** — pustaka inferensi C++ ya
 
 *Open source* dan gratis, KoboldCPP mengejar satu tujuan yang tidak dimiliki pesaingnya: **pengalaman naratif interaktif yang mulus**. Kecepatan generasi, pengelolaan konteks untuk cerita panjang, dan kebebasan memuat *model roleplay* apa pun adalah tiga pilar yang dibangun sejak awal. Bagi penulis atau *roleplayer*, KoboldCPP bukan alat tulis biasa — ia adalah *meja kerja* tempat dunia fiksi dibangun dan dijaga tetap hidup.
 
+### Diagram 1: Alur Context Management KoboldCPP
+
+Diagram ini menunjukkan bagaimana berbagai sumber teks disatukan menjadi konteks untuk model:
+
+```mermaid
+graph TB
+    U[User Input] --> MEM[Memory: Ringkasan Otomatis]
+    U --> WI[World Info: Keyword-based]
+    U --> AN[Author's Note: Hidden Instruction]
+    MEM --> CTX[Context Assembly]
+    WI --> CTX
+    AN --> CTX
+    HIST[(Chat History)] --> CTX
+    CTX --> LLM[LLM Inference]
+    LLM --> OUT[Generated Text]
+    OUT --> DISP[Display in UI]
+    OUT --> UPDATE[Update Memory]
+```
+
+Dua aspek diagram ini penting dipahami. Pertama, *Context Assembly* adalah satu titik pertemuan semua sumber — *memory*, *world info*, *author's note*, dan riwayat chat. Susunan urutan bagian-bagian ini dalam *prompt* menentukan seberapa baik model mengikuti masing-masing. Kedua, ada *loop* kunci di kanan: output yang dihasilkan tidak hanya ditampilkan, tetapi juga **memperbarui Memory** — ringkasan otomatis yang akan dipakai sesi berikutnya. Inilah yang membuat cerita lintas sesi tetap hidup: pengetahuan tidak pernah mulai dari nol.
+
+
 ---
 
 ## 3. Arsitektur dan Fitur Unggulan
+
 
 ### Single Binary C++ yang Portabel
 
@@ -54,6 +79,7 @@ Tiga fitur inilah yang membuat KoboldCPP "berpikir" seperti editor manusia:
 
 ## 4. Parameter Khusus untuk Creative Writing
 
+
 ### Context Shifting dan Dynamic Context
 
 Keterbatasan klasik menulis dengan LLM adalah *context window*: pada 8K token, sebagian besar cerita panjang sudah memenuhi konteks. KoboldCPP menghadapinya dengan **Context Shifting** — mekanisme yang memprioritaskan token penting saat konteks penuh: alih-alih memangkas dari depan secara buta, ia menjaga bagian-bagian yang sedang relevan (adegan aktif, karakter yang muncul) dan menggeser yang lama keluar. Dengan *Context Shifting*, **cerita di atas 8K token tetap bisa dilanjutkan** tanpa kehilangan momen naratif yang tengah berjalan.
@@ -68,9 +94,26 @@ Dua fitur yang paling disukai penulis dan *roleplayer*:
 
 **Quick Continue** adalah tombol "lanjutkan menulis": AI meneruskan teks dari titik terakhir *tanpa prompt baru*. Kombinasi *Quick Continue* + *generate* adalah alur kerja penulis: menulis 300 kata → *Continue* → sunting → *Continue* — tanpa pernah memutus *flow* (lihat Studi Kasus).
 
+### Tabel 1: Fitur KoboldCPP untuk Creative Writing
+
+Berikut fitur-fitur andalan dan manfaatnya bagi penulis:
+
+| Fitur | Deskripsi | Manfaat untuk Penulis |
+|:---|:---|:---|
+| **Memory** | Ringkasan otomatis konteks | Cerita panjang tetap koheren |
+| **Author's Note** | Instruksi diam-diam di konteks | Kontrol tone/style tanpa muncul di output |
+| **World Info** | Lore/karakter knowledge base | Worldbuilding konsisten |
+| **Context Shifting** | Prioritaskan token penting | Cerita > 8K token tetap bisa |
+| **Adventure Mode** | Narasi dengan pilihan interaktif | Gamebook / CYOA |
+| **Quick Continue** | Generate tanpa prompt baru | Aliran menulis tidak terputus |
+
+Analisis: baca tabel ini dari perspektif "di mana setiap fitur menyelesaikan masalah penulis". *Memory* dan *Context Shifting* menyelesaikan masalah kuantitatif — konteks terbatas; *World Info* dan *Author's Note* menyelesaikan masalah kualitatif — konsistensi dan arah; *Quick Continue* dan *Adventure Mode* menyelesaikan masalah *workflow* — alur dan keterlibatan. Kombinasi keempatnya penting diingat: *World Info* tanpa *Context Shifting* akan macet di cerita panjang, dan *Author's Note* tanpa *Memory* akan "lupa" arah di bab berikutnya. Fitur-fitur ini dirancang untuk dipakai bersama.
+
+
 ---
 
 ## 5. KoboldAI Lite vs KoboldCPP
+
 
 ### Dua Wajah, Satu Otak
 
@@ -83,6 +126,7 @@ Perlu dipahami pula bahwa pemisahan *frontend* dan *backend* ini adalah pola yan
 ---
 
 ## 6. Manajemen Character dan World Info
+
 
 ### Character Card
 
@@ -102,9 +146,33 @@ Mekanisme *keyword → inject* ini seperti kamus yang hanya dibuka model saat pe
 
 Saat percakapan panjang, **Memory** meringkas riwayat lama secara otomatis dan menjaganya tetap hadir di konteks. Penulis dapat mengatur frekuensi peringkasan (misalnya setiap 500 token) dan menulis *memory* manual ("Cerita berlatar dunia fantasi abad pertengahan") untuk memandu ringkasan berikutnya. Ini adalah penyelamat koherensi untuk *roleplay* jangka panjang — topik yang juga menjadi fokus riset pada *role-playing language models* jangka panjang [1].
 
+### Diagram 2: Alur Kerja World Info Berbasis Kata Kunci
+
+Perilaku *keyword → inject* World Info dalam satu percakapan:
+
+```mermaid
+sequenceDiagram
+    participant P as Penulis
+    participant K as KoboldCPP
+    participant W as World Info Store
+    participant M as LLM
+    P->>K: "Kael memasuki Aula Tahta Atheria"
+    K->>W: Cari entri: "Atheria", "Kael"
+    W-->>K: 2 entri cocok ditemukan
+    K->>K: Sisipkan konten entri ke konteks
+    K->>M: Kirim prompt + lore + riwayat
+    M-->>P: "Aula Tahta menyala emas, dan Pangeran Kael..."
+```
+
+*Sequence diagram* ini memperlihatkan logika *World Info* yang cerdas: KoboldCPP mencocokkan kata kunci dalam input pengguna terhadap *store* entri; entri yang cocok disisipkan ke konteks *sebelum* prompt dikirim ke LLM. Model tidak pernah diminta mengingat *lore* — ia *diberitahu* tepat saat relevan. Implikasinya: *World Info* adalah *cache* pengetahuan yang hemat konteks dan bekerja tanpa campur tangan penulis di tengah cerita.
+
+---
+
+
 ---
 
 ## 7. Ekosistem Model untuk Roleplay
+
 
 ### Model yang Dilahirkan untuk Bercerita
 
@@ -115,25 +183,6 @@ Mengapa model spesifik lebih baik daripada model generik? Karena pelatihan tamba
 ### Panduan Praktis Memilih
 
 Panduan pemilihan model: mulai dari **Mythomax-L2-13B** (Q4) — *sweet spot* kualitas/kinerja untuk GPU 24 GB; naik ke **Noromaid-20B** untuk karakter yang lebih dalam bila VRAM 48 GB tersedia; turun ke **Mistral-7B-RP** untuk kecepatan tertinggi di GPU kecil; dan jangan abaikan **DeepSeek V4 Flash** — arsitektur *MoE* (284B total, 13B aktif) menawarkan kualitas tinggi dengan kecepatan 15-25 t/s berkat efisiensi *Mixture-of-Experts*.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Fitur KoboldCPP untuk Creative Writing
-
-Berikut fitur-fitur andalan dan manfaatnya bagi penulis:
-
-| Fitur | Deskripsi | Manfaat untuk Penulis |
-|:---|:---|:---|
-| **Memory** | Ringkasan otomatis konteks | Cerita panjang tetap koheren |
-| **Author's Note** | Instruksi diam-diam di konteks | Kontrol tone/style tanpa muncul di output |
-| **World Info** | Lore/karakter knowledge base | Worldbuilding konsisten |
-| **Context Shifting** | Prioritaskan token penting | Cerita > 8K token tetap bisa |
-| **Adventure Mode** | Narasi dengan pilihan interaktif | Gamebook / CYOA |
-| **Quick Continue** | Generate tanpa prompt baru | Aliran menulis tidak terputus |
-
-Analisis: baca tabel ini dari perspektif "di mana setiap fitur menyelesaikan masalah penulis". *Memory* dan *Context Shifting* menyelesaikan masalah kuantitatif — konteks terbatas; *World Info* dan *Author's Note* menyelesaikan masalah kualitatif — konsistensi dan arah; *Quick Continue* dan *Adventure Mode* menyelesaikan masalah *workflow* — alur dan keterlibatan. Kombinasi keempatnya penting diingat: *World Info* tanpa *Context Shifting* akan macet di cerita panjang, dan *Author's Note* tanpa *Memory* akan "lupa" arah di bab berikutnya. Fitur-fitur ini dirancang untuk dipakai bersama.
 
 ### Tabel 2: Perbandingan Model Roleplay-Specific
 
@@ -158,6 +207,7 @@ Peta lanskap model untuk *roleplay*, dengan estimasi kecepatan pada kuantisasi Q
 
 Analisis: pola yang terlihat jelas adalah *trade-off* kualitas versus kecepatan. Mythomax-L2-13B adalah *all-rounder* yang tepat — kualitas *roleplay* dan *writing* sama-sama bintang lima, dan 3–5 t/s masih nyaman untuk membaca *output* sambil menyunting. Noromaid-20B unggul dalam *roleplay* tetapi menuntut 48 GB VRAM — investasi yang hanya masuk akal bagi *power user*. Di ujung lain, Mistral-7B-RP dan DeepSeek V4 Flash menawarkan kecepatan tinggi — penting untuk *roleplay* *real-time* yang responsif — dengan kompromi kualitas. Catatan menarik: DeepSeek V4 Flash, meski bukan model *roleplay*-spesifik, unggul dalam kecepatan berkat *MoE*; untuk pengalaman terbaik, gunakan *preset* parameter *roleplay* (Tabel 3) sebagai kompensasi.
 
+
 ### Tabel 3: Parameter Optimal untuk Roleplay
 
 *Preset* parameter yang direkomendasikan untuk tiga skenario:
@@ -175,52 +225,11 @@ Analisis: tiga skenario ini membentuk spektrum dari paling ketat ke paling longg
 
 ---
 
-## 9. Diagram & Visualisasi
-
-### Diagram 1: Alur Context Management KoboldCPP
-
-Diagram ini menunjukkan bagaimana berbagai sumber teks disatukan menjadi konteks untuk model:
-
-```mermaid
-graph TB
-    U[User Input] --> MEM[Memory: Ringkasan Otomatis]
-    U --> WI[World Info: Keyword-based]
-    U --> AN[Author's Note: Hidden Instruction]
-    MEM --> CTX[Context Assembly]
-    WI --> CTX
-    AN --> CTX
-    HIST[(Chat History)] --> CTX
-    CTX --> LLM[LLM Inference]
-    LLM --> OUT[Generated Text]
-    OUT --> DISP[Display in UI]
-    OUT --> UPDATE[Update Memory]
-```
-
-Dua aspek diagram ini penting dipahami. Pertama, *Context Assembly* adalah satu titik pertemuan semua sumber — *memory*, *world info*, *author's note*, dan riwayat chat. Susunan urutan bagian-bagian ini dalam *prompt* menentukan seberapa baik model mengikuti masing-masing. Kedua, ada *loop* kunci di kanan: output yang dihasilkan tidak hanya ditampilkan, tetapi juga **memperbarui Memory** — ringkasan otomatis yang akan dipakai sesi berikutnya. Inilah yang membuat cerita lintas sesi tetap hidup: pengetahuan tidak pernah mulai dari nol.
-
-### Diagram 2: Alur Kerja World Info Berbasis Kata Kunci
-
-Perilaku *keyword → inject* World Info dalam satu percakapan:
-
-```mermaid
-sequenceDiagram
-    participant P as Penulis
-    participant K as KoboldCPP
-    participant W as World Info Store
-    participant M as LLM
-    P->>K: "Kael memasuki Aula Tahta Atheria"
-    K->>W: Cari entri: "Atheria", "Kael"
-    W-->>K: 2 entri cocok ditemukan
-    K->>K: Sisipkan konten entri ke konteks
-    K->>M: Kirim prompt + lore + riwayat
-    M-->>P: "Aula Tahta menyala emas, dan Pangeran Kael..."
-```
-
-*Sequence diagram* ini memperlihatkan logika *World Info* yang cerdas: KoboldCPP mencocokkan kata kunci dalam input pengguna terhadap *store* entri; entri yang cocok disisipkan ke konteks *sebelum* prompt dikirim ke LLM. Model tidak pernah diminta mengingat *lore* — ia *diberitahu* tepat saat relevan. Implikasinya: *World Info* adalah *cache* pengetahuan yang hemat konteks dan bekerja tanpa campur tangan penulis di tengah cerita.
 
 ---
 
-## 10. Praktikum / Hands-On
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial A: Setup KoboldCPP dan Mulai Menulis
 
@@ -314,7 +323,8 @@ Satu peringatan keamanan: `--host 0.0.0.0` membuat server dapat diakses dari *se
 
 ---
 
-## 11. Studi Kasus: Novel Interaktif dengan World Info
+## 9. Studi Kasus: Novel Interaktif dengan World Info
+
 
 **Skenario.** Seorang penulis ingin menulis novel fantasi epik dengan AI sebagai *co-writer*. Target: bab-bab yang koheren dengan *worldbuilding* yang konsisten, tanpa harus menulis ulang deskripsi dunia setiap bab. Penulis memilih KoboldCPP + **Mythomax-L2-13B Q4_K_M** — kombinasi kualitas *roleplay*/*writing* bintang lima dengan kebutuhan VRAM yang masuk akal (24 GB) [8][9].
 
@@ -330,7 +340,8 @@ Satu peringatan keamanan: `--host 0.0.0.0` membuat server dapat diakses dari *se
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

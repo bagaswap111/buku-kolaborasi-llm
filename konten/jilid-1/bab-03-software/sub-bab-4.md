@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Men-deploy Open WebUI dengan Docker, termasuk opsi *image* `:main`, `:ollama`, dan `:cuda` beserta *volume* persistensi dan *GPU passthrough*
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Open WebUI: Wajah Ramah di Depan Mesin Inferensi
+
 
 ### Dari Terminal ke Antarmuka Bergaya ChatGPT
 
@@ -40,9 +42,26 @@ Open WebUI mendukung banyak mesin inferensi sekaligus, dan Anda dapat berpindah 
 
 *Database* bawaan Open WebUI adalah **SQLite** — cukup untuk penggunaan pribadi hingga tim kecil. Untuk skala yang lebih besar, Open WebUI mendukung **PostgreSQL** sebagai pengganti, yang menangani banyak koneksi bersamaan dengan lebih baik [7].
 
+### Tabel 1: Opsi Deployment Open WebUI
+
+Berikut perbandingan metode *deployment* yang tersedia, dari yang paling sederhana hingga skala *enterprise*:
+
+| Metode | Perintah | GPU Support | Cocok Untuk |
+|:---|:---|:---:|:---|
+| **Docker Standalone** | `docker run ghcr.io/open-webui/open-webui:main` | Via host | Pengguna dengan Ollama terpisah |
+| **Docker + Ollama** | `docker run ghcr.io/open-webui/open-webui:ollama` | --gpus=all | Setup all-in-one termudah |
+| **Docker + CUDA** | `docker run ghcr.io/open-webui/open-webui:cuda` | CUDA native | NVIDIA GPU users |
+| **Docker Compose** | `docker compose up` | Ya | Production deployment |
+| **Kubernetes** | Helm chart / kubectl | Ya | Enterprise scale |
+| **Native (pip)** | `pip install open-webui` | Ya | Development |
+
+Analisis: pilihan metode pada dasarnya adalah *trade-off* antara kemudahan dan kendali. Varian `:ollama` adalah jalan pintas terbaik untuk pengguna rumahan — satu perintah sudah membawa *frontend* dan mesin inferensi sekaligus. Namun, menyatukan Ollama di dalam *container* berarti *upgrade* Ollama harus mengikuti *release* image Open WebUI. Sebaliknya, `:main` dengan Ollama terpisah di host memberi kebebasan *upgrade* independen, dan *standalone* CUDA `:cuda` menjadi pilihan bagi pengguna NVIDIA yang ingin memaksimalkan komputasi GPU. Kubernetes relevan hanya bila Anda sudah memiliki *cluster*; untuk kebanyakan tim, Docker Compose adalah titik manis antara kesederhanaan dan ketahanan.
+
+
 ---
 
 ## 3. Deploy dengan Docker
+
 
 ### Memilih Image yang Tepat
 
@@ -80,6 +99,7 @@ Untuk kebutuhan *production*, cara `docker run` satu baris mulai terasa rapuh. D
 
 ## 4. Anatomi RAG Pipeline
 
+
 ### Alur Retrieval-Augmented Generation
 
 Sekadar mengobrol dengan model lokal mungkin sudah memuaskan, tetapi bagaimana jika Anda ingin model menjawab pertanyaan berdasarkan 200 dokumen PDF perusahaan Anda? Inilah pekerjaan **RAG** (*Retrieval-Augmented Generation*) — arsitektur yang menggabungkan *retrieval* dokumen relevan dengan *generation* jawaban oleh LLM [2]. Open WebUI mengemas seluruh pipeline ini menjadi fitur *Knowledge Base* yang konfigurasinya dapat dilakukan dari *Admin Panel* tanpa menulis kode.
@@ -106,69 +126,6 @@ Saat pengguna bertanya, pertanyaan di-*embed* menjadi vektor, lalu vektor-vektor
 
 Open WebUI memiliki fitur yang jarang dimiliki *frontend* lain: akses *knowledge base* ala *filesystem*. Dengan mengaktifkan variabel lingkungan **ENABLE_KB_EXEC**, model dapat menjalankan perintah seperti `ls`, `grep`, dan `cat` terhadap *knowledge base* melalui Tools — memungkinkan pertanyaan seperti "cari semua dokumen yang menyebut istilah klausul penalti" dijawab dengan cara yang presisi alih-alih mengandalkan *fuzzy search*.
 
----
-
-## 5. Tools, Function Calling, dan MCP
-
-### Builtin Tools
-
-Fitur **Tools** adalah yang membedakan Open WebUI dari sekadar *chat UI*: ia memberi model "tangan" untuk bertindak. Tiga *builtin tools* tersedia sejak awal: **query_knowledge_bases** untuk menelusuri koleksi dokumen, **search_chats** untuk mencari riwayat percakapan, dan **web_search** untuk mencari di internet [7]. Saat pengguna menanyakan sesuatu yang membutuhkan data dari ketiga sumber itu, model dapat memutuskan sendiri tool mana yang dipanggil.
-
-### Custom Tools: Python di dalam Sandbox
-
-Yang lebih menarik adalah *custom tools*: Anda menulis fungsi Python, dan model akan memanggilnya saat relevan — seperti *function calling* di platform komersial, tetapi berjalan sepenuhnya lokal. Fungsi ini dieksekusi di *sandbox* sehingga kode tidak langsung menyentuh sistem host. Tutorial B pada bagian Praktikum memperlihatkan contoh lengkap sebuah *tool* kalkulator.
-
-Open WebUI mendukung dua mode: **native function calling** — model dilatih untuk mengeluarkan panggilan fungsi terstruktur — dan **default mode** yang lebih longgar. *Tools* diaktifkan dalam percakapan dengan mengetik `@nama_tool` atau membiarkan model memanggilnya otomatis.
-
-### Dukungan MCP
-
-Sejak 2025, ekosistem *tool* LLM diramaikan **Model Context Protocol (MCP)** — protokol terbuka yang distandardisasi oleh Anthropic untuk menghubungkan model dengan sumber data eksternal (database, browser, sistem file) melalui server MCP [10]. Open WebUI mengadopsi dukungan MCP, sehingga Anda dapat menautkan *server* MCP yang sudah ada ke antarmuka ini tanpa menulis integrasi khusus — sebuah investasi yang membuat Open WebUI kompatibel dengan ekosistem yang terus bertumbuh.
-
----
-
-## 6. Fitur Lanjutan
-
-### Multi-User dengan Role
-
-Open WebUI bukan sekadar aplikasi pengguna tunggal. Ia mendukung **multi-user** dengan tiga peran: **admin** (kontrol penuh, akses pengaturan), **user** (menggunakan chat, dokumen, dan Tools), serta **pending** (akun yang menunggu disetujui admin). Alur pendaftarannya sederhana: pengguna pertama yang registrasi otomatis menjadi admin, dan admin dapat mengatur siapa yang boleh bergabung. Ini menjadikan Open WebUI cocok untuk keluarga, sekolah, hingga kantor kecil — topik yang dibahas lebih dalam di Jilid 2 Bab 7.
-
-### Web Search dan Image Generation
-
-Untuk informasi *real-time*, Open WebUI mendukung integrasi **web search** dari 15+ penyedia — mulai dari mesin pencari mandiri seperti **SearXNG** yang di-*self-host* (pilihan terbaik untuk privasi) hingga penyedia komersial seperti **Brave Search**. Model akan mencari → mengambil → meringkas, persis seperti asisten AI modern.
-
-Open WebUI juga terintegrasi dengan *image generation*: **DALL-E, Stable Diffusion, hingga Flux**. Ini berarti satu antarmuka untuk teks dan gambar — berguna untuk membuat ilustrasi cerita atau materi presentasi.
-
-### Manajemen Model
-
-Pengguna dapat **berpindah model di tengah percakapan** — mulai dengan model kecil untuk respons cepat, lalu lanjut ke model besar saat pertanyaan menuntut *reasoning* mendalam. Open WebUI juga memungkinkan **penyesuaian bobot model** (berat antar model) dan parameter *sampling* per sesi, tanpa perlu menyentuh konfigurasi mesin inferensi.
-
----
-
-## 7. Keamanan dan Performa
-
-Deployment yang baik adalah deployment yang aman. Open WebUI menyediakan **RBAC** (*Role-Based Access Control*) lengkap: *admin panel*, manajemen pengguna, dan manajemen **API key** untuk integrasi programatik. Untuk melindungi layanan dari penyalahgunaan, tersedia **rate limiting** dan **request logging** — mencatat siapa meminta apa dan kapan, sehingga perilaku aneh dapat dideteksi.
-
-Untuk pengiriman melalui jaringan luas, praktik standar adalah menempatkan **reverse proxy** (Caddy atau Nginx) di depan Open WebUI. Proxy ini mengelola sertifikat **HTTPS** secara otomatis, menyembunyikan detail internal, dan menangani *connection pooling*. Kombinasi Open WebUI + reverse proxy + *restart policy* Docker adalah fondasi *production deployment* yang murah namun andal — sejalan dengan prinsip sistem *serving* yang memisahkan *control plane* dan *data plane* agar mudah di-*scale* [4][5].
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Opsi Deployment Open WebUI
-
-Berikut perbandingan metode *deployment* yang tersedia, dari yang paling sederhana hingga skala *enterprise*:
-
-| Metode | Perintah | GPU Support | Cocok Untuk |
-|:---|:---|:---:|:---|
-| **Docker Standalone** | `docker run ghcr.io/open-webui/open-webui:main` | Via host | Pengguna dengan Ollama terpisah |
-| **Docker + Ollama** | `docker run ghcr.io/open-webui/open-webui:ollama` | --gpus=all | Setup all-in-one termudah |
-| **Docker + CUDA** | `docker run ghcr.io/open-webui/open-webui:cuda` | CUDA native | NVIDIA GPU users |
-| **Docker Compose** | `docker compose up` | Ya | Production deployment |
-| **Kubernetes** | Helm chart / kubectl | Ya | Enterprise scale |
-| **Native (pip)** | `pip install open-webui` | Ya | Development |
-
-Analisis: pilihan metode pada dasarnya adalah *trade-off* antara kemudahan dan kendali. Varian `:ollama` adalah jalan pintas terbaik untuk pengguna rumahan — satu perintah sudah membawa *frontend* dan mesin inferensi sekaligus. Namun, menyatukan Ollama di dalam *container* berarti *upgrade* Ollama harus mengikuti *release* image Open WebUI. Sebaliknya, `:main` dengan Ollama terpisah di host memberi kebebasan *upgrade* independen, dan *standalone* CUDA `:cuda` menjadi pilihan bagi pengguna NVIDIA yang ingin memaksimalkan komputasi GPU. Kubernetes relevan hanya bila Anda sudah memiliki *cluster*; untuk kebanyakan tim, Docker Compose adalah titik manis antara kesederhanaan dan ketahanan.
-
 ### Tabel 2: Perbandingan Dukungan Vector Database
 
 Pilihan *vector database* menentukan seberapa jauh RAG Anda bisa berkembang:
@@ -188,6 +145,76 @@ Gambar berikut memetakan kolom skalabilitas tabel ini ke skala logaritmik.
 *Gambar 3.4-1 — ChromaDB cukup untuk koleksi di bawah 10 ribu dokumen, sementara Milvus melayani 10 juta+ — selisih tiga orde magnitudo; label "Besar" pada Elasticsearch dan Qdrant dipetakan ke ~1 juta dokumen sesuai keterangan tabel.*
 
 Analisis: tidak ada jawaban tunggal yang benar — semuanya bergantung pada jumlah dokumen. ChromaDB adalah pilihan default yang tepat: nol *infrastruktur* tambahan karena berjalan *embedded* di dalam proses, cukup untuk perpustakaan dokumen pribadi hingga ribuan *chunk*. Ketika koleksi melewati batas 10 ribu dokumen atau mulai melayani banyak pengguna bersamaan, PGVector menawarkan jalur halus karena cukup menambahkan ekstensi pada PostgreSQL yang mungkin sudah ada. Pada skala jutaan dokumen, Qdrant dan Milvus yang berdiri sendiri (*standalone/distributed*) memberi *control* penuh atas *sharding* dan *replication* — tetapi juga berarti layanan tambahan yang harus dirawat. Aturan praktis: mulai dengan ChromaDB, dan pindah hanya ketika ada bukti pengukuran bahwa ChromaDB sudah menjadi *bottleneck*.
+
+
+### Diagram 1: Arsitektur RAG Pipeline Open WebUI
+
+Berikut alur lengkap dokumen dan pertanyaan dalam RAG pipeline Open WebUI — dua jalur yang bertemu di tahap penyusunan konteks:
+
+```mermaid
+graph TB
+    U[User Uploads Document] --> P[Parser: Tika/Docling/OCR]
+    P --> C[Chunking: 300-1500 tokens]
+    C --> E[Embedding Model: nomic-embed-text]
+    E --> VDB[(Vector DB: ChromaDB)]
+    Q[User Query] --> QE[Query Embedding]
+    QE --> VS[Vector Search: Cosine Similarity]
+    VDB --> VS
+    VS --> RR[Reranking: CrossEncoder]
+    RR --> CTX[Context Assembly]
+    CTX --> LLM[LLM: Ollama/OpenAI]
+    LLM --> RESP[Response]
+```
+
+Perhatikan dua jalur dalam diagram ini. Jalur atas (dokumen) berjalan *offline* saat unggahan: dokumen diurai, di-*chunk*, di-*embed*, dan disimpan di ChromaDB — pekerjaan satu kali yang membangun indeks. Jalur bawah (pertanyaan) berjalan *online* setiap kali pengguna bertanya: pertanyaan di-*embed*, diambil dari vektor terdekat, di-*rerank*, lalu disusun menjadi konteks bagi LLM. Pemisahan ini penting dipahami karena biaya utamanya berbeda: *indexing* memakan waktu sekali per dokumen, sedangkan *query time* menentukan latensi setiap jawaban.
+
+
+---
+
+## 5. Tools, Function Calling, dan MCP
+
+
+### Builtin Tools
+
+Fitur **Tools** adalah yang membedakan Open WebUI dari sekadar *chat UI*: ia memberi model "tangan" untuk bertindak. Tiga *builtin tools* tersedia sejak awal: **query_knowledge_bases** untuk menelusuri koleksi dokumen, **search_chats** untuk mencari riwayat percakapan, dan **web_search** untuk mencari di internet [7]. Saat pengguna menanyakan sesuatu yang membutuhkan data dari ketiga sumber itu, model dapat memutuskan sendiri tool mana yang dipanggil.
+
+### Custom Tools: Python di dalam Sandbox
+
+Yang lebih menarik adalah *custom tools*: Anda menulis fungsi Python, dan model akan memanggilnya saat relevan — seperti *function calling* di platform komersial, tetapi berjalan sepenuhnya lokal. Fungsi ini dieksekusi di *sandbox* sehingga kode tidak langsung menyentuh sistem host. Tutorial B pada bagian Praktikum memperlihatkan contoh lengkap sebuah *tool* kalkulator.
+
+Open WebUI mendukung dua mode: **native function calling** — model dilatih untuk mengeluarkan panggilan fungsi terstruktur — dan **default mode** yang lebih longgar. *Tools* diaktifkan dalam percakapan dengan mengetik `@nama_tool` atau membiarkan model memanggilnya otomatis.
+
+### Dukungan MCP
+
+Sejak 2025, ekosistem *tool* LLM diramaikan **Model Context Protocol (MCP)** — protokol terbuka yang distandardisasi oleh Anthropic untuk menghubungkan model dengan sumber data eksternal (database, browser, sistem file) melalui server MCP [10]. Open WebUI mengadopsi dukungan MCP, sehingga Anda dapat menautkan *server* MCP yang sudah ada ke antarmuka ini tanpa menulis integrasi khusus — sebuah investasi yang membuat Open WebUI kompatibel dengan ekosistem yang terus bertumbuh.
+
+---
+
+## 6. Fitur Lanjutan
+
+
+### Multi-User dengan Role
+
+Open WebUI bukan sekadar aplikasi pengguna tunggal. Ia mendukung **multi-user** dengan tiga peran: **admin** (kontrol penuh, akses pengaturan), **user** (menggunakan chat, dokumen, dan Tools), serta **pending** (akun yang menunggu disetujui admin). Alur pendaftarannya sederhana: pengguna pertama yang registrasi otomatis menjadi admin, dan admin dapat mengatur siapa yang boleh bergabung. Ini menjadikan Open WebUI cocok untuk keluarga, sekolah, hingga kantor kecil — topik yang dibahas lebih dalam di Jilid 2 Bab 7.
+
+### Web Search dan Image Generation
+
+Untuk informasi *real-time*, Open WebUI mendukung integrasi **web search** dari 15+ penyedia — mulai dari mesin pencari mandiri seperti **SearXNG** yang di-*self-host* (pilihan terbaik untuk privasi) hingga penyedia komersial seperti **Brave Search**. Model akan mencari → mengambil → meringkas, persis seperti asisten AI modern.
+
+Open WebUI juga terintegrasi dengan *image generation*: **DALL-E, Stable Diffusion, hingga Flux**. Ini berarti satu antarmuka untuk teks dan gambar — berguna untuk membuat ilustrasi cerita atau materi presentasi.
+
+### Manajemen Model
+
+Pengguna dapat **berpindah model di tengah percakapan** — mulai dengan model kecil untuk respons cepat, lalu lanjut ke model besar saat pertanyaan menuntut *reasoning* mendalam. Open WebUI juga memungkinkan **penyesuaian bobot model** (berat antar model) dan parameter *sampling* per sesi, tanpa perlu menyentuh konfigurasi mesin inferensi.
+
+---
+
+## 7. Keamanan dan Performa
+
+
+Deployment yang baik adalah deployment yang aman. Open WebUI menyediakan **RBAC** (*Role-Based Access Control*) lengkap: *admin panel*, manajemen pengguna, dan manajemen **API key** untuk integrasi programatik. Untuk melindungi layanan dari penyalahgunaan, tersedia **rate limiting** dan **request logging** — mencatat siapa meminta apa dan kapan, sehingga perilaku aneh dapat dideteksi.
+
+Untuk pengiriman melalui jaringan luas, praktik standar adalah menempatkan **reverse proxy** (Caddy atau Nginx) di depan Open WebUI. Proxy ini mengelola sertifikat **HTTPS** secara otomatis, menyembunyikan detail internal, dan menangani *connection pooling*. Kombinasi Open WebUI + reverse proxy + *restart policy* Docker adalah fondasi *production deployment* yang murah namun andal — sejalan dengan prinsip sistem *serving* yang memisahkan *control plane* dan *data plane* agar mudah di-*scale* [4][5].
 
 ### Tabel 3: Perbandingan Frontend LLM
 
@@ -212,28 +239,6 @@ Analisis: dari tabel ini terlihat mengapa Open WebUI disebut *all-in-one* — ia
 
 ---
 
-## 9. Diagram & Visualisasi
-
-### Diagram 1: Arsitektur RAG Pipeline Open WebUI
-
-Berikut alur lengkap dokumen dan pertanyaan dalam RAG pipeline Open WebUI — dua jalur yang bertemu di tahap penyusunan konteks:
-
-```mermaid
-graph TB
-    U[User Uploads Document] --> P[Parser: Tika/Docling/OCR]
-    P --> C[Chunking: 300-1500 tokens]
-    C --> E[Embedding Model: nomic-embed-text]
-    E --> VDB[(Vector DB: ChromaDB)]
-    Q[User Query] --> QE[Query Embedding]
-    QE --> VS[Vector Search: Cosine Similarity]
-    VDB --> VS
-    VS --> RR[Reranking: CrossEncoder]
-    RR --> CTX[Context Assembly]
-    CTX --> LLM[LLM: Ollama/OpenAI]
-    LLM --> RESP[Response]
-```
-
-Perhatikan dua jalur dalam diagram ini. Jalur atas (dokumen) berjalan *offline* saat unggahan: dokumen diurai, di-*chunk*, di-*embed*, dan disimpan di ChromaDB — pekerjaan satu kali yang membangun indeks. Jalur bawah (pertanyaan) berjalan *online* setiap kali pengguna bertanya: pertanyaan di-*embed*, diambil dari vektor terdekat, di-*rerank*, lalu disusun menjadi konteks bagi LLM. Pemisahan ini penting dipahami karena biaya utamanya berbeda: *indexing* memakan waktu sekali per dokumen, sedangkan *query time* menentukan latensi setiap jawaban.
 
 ### Diagram 2: Topologi Deployment
 
@@ -253,7 +258,11 @@ Topologi ini menggambarkan fleksibilitas *multi-engine*: Open WebUI menjadi satu
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial A: Deployment Docker + RAG Setup
 
@@ -366,7 +375,8 @@ Untuk privasi maksimal, *self-host* SearXNG sebagai penyedia: *search* berjalan 
 
 ---
 
-## 11. Studi Kasus: Perpustakaan Digital SMK dengan Open WebUI
+## 9. Studi Kasus: Perpustakaan Digital SMK dengan Open WebUI
+
 
 **Skenario.** Sebuah SMK dengan 500 siswa memiliki perpustakaan berisi ratusan buku pelajaran digital, tetapi siswa kesulitan mencari materi — halaman demi halaman PDF harus dibuka manual. Sekolah memiliki server lokal bekas: Xeon E5, 64 GB RAM, dan RTX 3060 12 GB. Kepala sekolah ingin siswa dapat bertanya dalam bahasa sehari-hari: "Bagaimana rumus usaha dalam fisika?" dan langsung mendapat jawaban beserta sumbernya.
 
@@ -380,7 +390,8 @@ Untuk privasi maksimal, *self-host* SearXNG sebagai penyedia: *search* berjalan 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

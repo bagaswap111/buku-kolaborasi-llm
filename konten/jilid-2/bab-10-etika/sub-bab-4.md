@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menganalisis trade-off biaya, privasi, latency, dan kualitas antara *local*, *cloud*, dan *hybrid* deployment LLM
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Tiga Pilar Deployment LLM
+
 
 ### Model Lokal (On-premise): Kontrol Penuh, Biaya Di Muka
 
@@ -34,9 +36,26 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 Keputusan deployment di Indonesia memiliki karakteristik khusus. Biaya listrik berada di kisaran **Rp 1.500-2.500/kWh**, cukup rendah untuk membuat server lokal ekonomis bila dimanfaatkan penuh, tetapi bandwidth internet yang bervariasi antar wilayah menambah latency cloud secara tidak merata. Regulatori menjadi penentu: **UU PDP** (Undang-Undang Pelindungan Data Pribadi, UU No. 27 Tahun 2022) — khususnya pasal-pasal terkait perlindungan data — mewajibkan pengendali data menjaga kerahasiaan dan keamanan data pribadi, sehingga data sensitif umumnya *wajib* diproses lokal atau dengan mekanisme yang terdokumentasi (misalnya *Data Processing Agreement*/DPA) bila memakai pihak ketiga.
 
+### Tabel A1: Model Open-Weight Terbaru untuk Deployment Lokal
+
+Argumen "model lokal kualitasnya jadul" sudah gugur. Tabel berikut membandingkan enam model *open-weight* terdepan yang mengubah kalkulasi *local deployment* di tahun 2026.
+
+| Model | Parameter (Aktif) | Context | VRAM (Q4) | SWE-bench | Lisensi | Keunggulan |
+|:---|:---:|:---:|:---:|:---:|:---:|:---|
+| **DeepSeek V4 Pro** | 49B (1.6T total) | 1M | ~32 GB | **80.6%** | MIT | Open-weight terkuat, agentic |
+| **DeepSeek V4 Flash** | 13B (284B total) | 1M | ~10 GB | — | MIT | Efisien, context besar |
+| **Mistral Large 3** | 41B (675B total) | 256K | ~28 GB | — | Apache 2.0 | Multimodal, granular MoE |
+| **Qwen3.7-Max** | ~40B (MoE) | 1M | ~28 GB | — | Proprietary | Agent-centric, tool calling |
+| **Ministral 3 (8B)** | 8B (dense) | 128K | ~6 GB | — | Apache 2.0 | Edge-friendly, Cascade Distillation |
+| **Llama 4 Scout** | 17B (109B total) | 10M | ~35 GB | — | Llama Community | Context terbesar (10M) |
+
+Dua hal penting dari Tabel A1. Pertama, **DeepSeek V4 Pro** dengan VRAM Q4 hanya ~32 GB — muat di satu RTX 4090 — sekaligus membawa context 1M dan SWE-bench 80.6%: kombinasi yang secara langsung menantang dominasi cloud untuk beban kerja *agentic coding*. Kedua, spektrum ukuran sangat lebar: dari **Ministral 3** yang hanya butuh ~6 GB (komputer laptop sekalipun) hingga **Llama 4 Scout** dengan context 10 juta token. Dengan lisensi permisif (MIT/Apache 2.0), tidak ada lagi alasan regulasi yang menghambat adopsi lokal.
+
+
 ---
 
 ## 3. Faktor Keputusan: Analisis Multi-Dimensi
+
 
 ### Privasi & Kepatuhan
 
@@ -66,6 +85,7 @@ Keandalan mengikuti pola simetris. Lokal menggantungkan diri pada hardware sendi
 
 ## 4. Analisis Biaya: CAPEX vs OPEX
 
+
 ### Menghitung Biaya Lokal
 
 Biaya lokal bukan sekadar harga GPU. Komponen lengkapnya: **hardware** (GPU/server), **listrik** (di Indonesia sekitar Rp 1.500-2.500/kWh), **pendingin** ruangan server, **maintenance** (tim internal atau kontrak vendor), dan **depresiasi** hardware 3-5 tahun. Sebuah server mini dengan Mac Mini M4 Pro 48GB + Ollama bisa dimulai dari puluhan juta rupiah; konfigurasi 2x RTX 4090 NVLink untuk skala menengah-besar sekitar Rp 90 juta; dan klaster enterprise 4x A100 80GB bisa menyentuh miliaran rupiah. Kuncinya adalah meng-amortisasi seluruh CAPEX ke biaya bulanan, lalu membaginya dengan volume token — barulah terlihat biaya lokal per 1 juta token yang bisa sangat rendah: dari kisaran Rp 200-1.200 per juta token tergantung skala.
@@ -76,95 +96,7 @@ Biaya cloud lebih mudah dihitung karena transparan: **harga per-token** dari API
 
 ### Konsep Break-even
 
-**Break-even point** adalah volume token bulanan di mana kurva biaya kumulatif lokal (CAPEX ter-amortisasi + OPEX) menyilang kurva cloud (OPEX murni). Di bawah titik itu, cloud lebih murah; di atasnya, lokal menang — dan selisihnya melebar seiring waktu karena biaya marginal lokal terus menurun. Estimasi umum model dan hardware berbagai kelas: **5-20 juta token/bulan**. Contoh konkret: Mac Mini M4 Pro 48GB + Ollama melawan API GPT-4o mini memiliki *break-even* sekitar **8 juta token/bulan** — volume yang cukup masuk akal untuk tim 10-20 orang yang aktif memakai LLM setiap hari kerja. Tabel B di Seksi 8 merinci perhitungan ini untuk lima profil ukuran organisasi.
-
----
-
-## 5. Arsitektur Hybrid Optimal
-
-### Routing Logic
-
-Jantung arsitektur hybrid adalah **routing logic** — aturan yang menentukan ke mana setiap permintaan dikirim. Dua dimensi utama: *sensitivitas data* (jika mengandung PII atau data rahasia → lokal) dan *kompleksitas tugas* (jika menuntut *reasoning* mendalam → cloud). Aturan ini bisa sederhana — daftar kata kunci seperti "saldo", "diagnosis", "NIK" — atau berbasis *classifier* yang dilatih khusus, seperti pendekatan unified routing yang diusulkan Wang et al. [5]. Local-first adalah pola default paling aman: kirim ke lokal dulu, dan hanya jika lokal ragu (skor *confidence* rendah), tugas diteruskan ke cloud.
-
-### Local-First Approach
-
-Prinsip **local-first** menjawab pertanyaan "kapan pindah ke cloud?" — bukan "kapan pakai lokal?". Semua permintaan berangkat dari model lokal; model cloud adalah *escalation path*. Keuntungannya ganda: mayoritas permintaan (estimasi 80%+) terlayani tanpa biaya token, dan data sensitif hampir tidak pernah keluar jaringan karena sistem "default aman". Model lokal modern cukup mampu memberi *confidence score* untuk memutuskan kapan harus *escalate* — misalnya saat jawaban mengandung permintaan klarifikasi, atau saat token yang dihasilkan berputar tanpa arah.
-
-### Framework Hybrid
-
-Membangun router sendiri dari nol bisa mahal; gunakan *framework* yang sudah matang. **LiteLLM** menyediakan *proxy* dengan routing dan *fallback* antar ratusan model — lokal dan cloud dalam satu antarmuka OpenAI-compatible. **OpenRouter** adalah agregator API yang memungkinkan *fallback strategy* antar *provider cloud* secara virtual. Keduanya bisa dikombinasikan: LiteLLM di depan (mengelola lokal + cloud), OpenRouter sebagai lapisan cadangan antar *provider*. Tutorial A di Seksi 10 memperlihatkan implementasi nyatanya.
-
-### Teknik Offloading dari Riset
-
-Riset 2024-2025 memperkaya pola hybrid dengan mekanisme *offloading* adaptif. **TMO** [1] memperkenalkan *offloading* inference lokal-cloud untuk setting *multi-modal, multi-task, multi-dialogue* — cocok untuk asisten yang menangani teks, gambar, dan percakapan bergantian. **MINIONS** [2] membangun kolaborasi hemat-biaya antara model *on-device* dan cloud melalui *task decomposition*: model kecil menyelesaikan subtask yang murah, dan hanya subtask sulit yang didelegasikan ke cloud. **ADASWITCH** [3] menggunakan agen adaptif untuk memutuskan *switching* lokal-cloud berdasarkan kondisi runtime — tepat untuk beban kerja yang berubah-ubah. Sementara itu, **HERA** [4] menunjukkan bahwa dengan *scheduler* edge-cloud yang cerdas, 45,67% subtask dapat diselesaikan di sisi lokal — penghematan biaya yang langsung terasa.
-
-### Sinkronisasi Cache Respons
-
-Satu trik yang sering dilupakan: **cache respons**. Pertanyaan yang identik atau serupa — "Bagaimana cara reset password?", prosedur refund, penjelasan kebijakan — sering diulang pengguna. Dengan men-cache respons cloud di penyimpanan lokal (keyed by hash prompt), permintaan berulang tidak perlu lagi mengeluarkan biaya token maupun latency jaringan. Pada sistem dengan 30-40% pertanyaan berulang, *response cache* saja bisa memangkas tagihan cloud hingga sepertiga.
-
----
-
-## 6. Keamanan Data di Skenario Hybrid
-
-### Klasifikasi Sensitivitas Data Berjenjang
-
-Keamanan hybrid dimulai dari **klasifikasi data tiga tier**. *Tier 1*: data wajib lokal — PII, data medis, data transaksi finansial, rahasia dagang; tidak boleh keluar jaringan, apa pun alasannya. *Tier 2*: data yang boleh hybrid dengan *masking* — dapat dikirim ke cloud setelah PII di-*scrub*, hasilnya di-*re-identify* kembali di sisi lokal. *Tier 3*: data aman untuk cloud — pertanyaan produk, konten publik, edukasi. Klasifikasi ini harus tertanam di *router* (lihat Tutorial A), bukan sekadar kebijakan di kertas.
-
-### Anonymization
-
-Untuk tier 2, **anonymization** menjadi proses wajib: sebelum request dikirim ke cloud, seluruh PII — NIK, nomor telepon, email, nama — direduksi menjadi *placeholder* (misalnya `[NIK]`), dan setelah respons kembali, *placeholder* dipetakan ulang ke nilai asli. Teknik ini dikenal sebagai *scrub & re-identify*. Penting ditekankan: anonymization bukan pengganti menjaga data, melainkan lapisan pengaman tambahan — jika pun data bocor di sisi cloud, nilai yang bocor sudah tidak bermakna. Tutorial C memberikan implementasi lengkapnya.
-
-### Enkripsi dan Zero-Trust
-
-Koneksi antara lokal dan cloud wajib **TLS in-transit** dalam arsitektur *zero-trust*: setiap *request* diautentikasi dan diautorisasi secara eksplisit, tidak ada kepercayaan implisit terhadap jaringan internal. API key disimpan di *secret manager*, bukan di kode. Bagi organisasi yang lebih ketat, pertimbangkan *private endpoint* atau *VPC peering* ke region cloud tertentu agar lalu lintas tidak melintas internet publik sama sekali.
-
-### Audit Log
-
-Setiap *request* ke cloud **wajib tercatat** dalam *audit log*: *timestamp*, model yang dipakai, jumlah token input/output, klasifikasi tier data, dan hasil *anonymization*. Log ini bukan birokrasi — ia adalah bukti kepatuhan saat regulator atau auditor UU PDP datang. Dengan *audit log* yang rapi, organisasi bisa menunjukkan secara konkret: "data sensitif tidak pernah keluar; yang keluar hanya representasi yang sudah dianonimkan, sebanyak X juta token, pada jangka waktu berikut."
-
----
-
-## 7. Rekomendasi per Profil Bisnis
-
-Setiap profil organisasi memiliki titik keseimbangan yang berbeda. *Startup* kecil dengan satu-dua developer dan volume rendah memulai dari cloud murah (GPT-4o mini) karena CAPEX nol dan risiko teknis minimal. *UKM* dengan 5-20 pengguna rutin mulai menarik manfaat dari satu mesin lokal (RTX 4090) untuk beban rutin, dengan cloud sebagai *fallback* kualitas. *Perusahaan menengah* dengan puluhan hingga ratusan pengguna adalah kandidat kuat arsitektur hybrid penuh: lokal untuk volume + PII, cloud untuk kualitas + *spike*. *Enterprise* dengan >100 pengguna dan kebutuhan kepatuhan tinggi (bank, rumah sakit) berjalan hampir sepenuhnya lokal dengan klaster GPU kelas A100, menggunakan cloud hanya untuk tugas yang benar-benar membutuhkan model frontier. Matriks lengkapnya — termasuk delapan skenario spesifik dari chatbot medis hingga perangkat *edge* — dapat dilihat pada **Tabel C** di Seksi 8.
-
----
-
-## 8. Tabel Perbandingan
-
-### Tabel A: Perbandingan Local vs Cloud vs Hybrid
-
-Tabel ini merangkum kontras tiga pilihan deployment dari sepuluh aspek yang dibahas di seksi sebelumnya — perhatikan bagaimana setiap kolom memiliki "harga" yang harus dibayar di kolom lainnya.
-
-| Aspek | Local (On-premise) | Cloud API | Hybrid |
-|:---|:---:|:---:|:---:|
-| **Biaya Awal (CAPEX)** | Rp 30-250jt | Rp 0 | Rp 15-150jt |
-| **Biaya Bulanan (OPEX)** | Rp 1-5jt (listrik) | Rp 5-100jt (token) | Rp 1-30jt |
-| **Privasi Data** | Sangat Tinggi | Tergantung provider | Tinggi |
-| **Kualitas Model** | Meningkat drastis (DS V4 Pro, Mistral Large 3) | Tertinggi (GPT-5.5, Fable 5) | Optimal |
-| **Latency** | 50-500ms (lokal) | 500-3000ms (network) | 50-2000ms |
-| **Skalabilitas** | Terbatas hardware | Unlimited | Sedang |
-| **Maintenance** | Tinggi (tim internal) | None (provider) | Sedang |
-| **Compliance (UU PDP)** | Mudah | Perlu DPA | Perlu DPA parsial |
-| **Best For** | Data sensitif, traffic tetap | Startup, traffic spike | Perusahaan menengah-besar |
-| **Model Open-Weight Unggulan** | DS V4 Pro (49B, 1M ctx), Mistral Large 3 (41B, 256K), Qwen3.7-Max | GPT-5.5, Claude Fable 5, Gemini 2.5 Pro | Kombinasi optimal |
-
-Tabel A membuktikan bahwa tidak ada kolom yang menang mutlak. Cloud unggul di CAPEX, skalabilitas, dan kualitas; lokal unggul di privasi, latency, dan kepatuhan; hybrid mengambil tengah secara selektif — "Tinggi" untuk privasi, "Sedang" untuk skalabilitas — karena memang dirancang untuk meminimalkan kelemahan kedua sisi. Perhatikan juga baris *Best For*: pilihan deployment bukan soal mana yang "lebih canggih", melainkan mana yang sesuai profil *traffic* dan sensitivitas data Anda.
-
-### Tabel A1: Model Open-Weight Terbaru untuk Deployment Lokal
-
-Argumen "model lokal kualitasnya jadul" sudah gugur. Tabel berikut membandingkan enam model *open-weight* terdepan yang mengubah kalkulasi *local deployment* di tahun 2026.
-
-| Model | Parameter (Aktif) | Context | VRAM (Q4) | SWE-bench | Lisensi | Keunggulan |
-|:---|:---:|:---:|:---:|:---:|:---:|:---|
-| **DeepSeek V4 Pro** | 49B (1.6T total) | 1M | ~32 GB | **80.6%** | MIT | Open-weight terkuat, agentic |
-| **DeepSeek V4 Flash** | 13B (284B total) | 1M | ~10 GB | — | MIT | Efisien, context besar |
-| **Mistral Large 3** | 41B (675B total) | 256K | ~28 GB | — | Apache 2.0 | Multimodal, granular MoE |
-| **Qwen3.7-Max** | ~40B (MoE) | 1M | ~28 GB | — | Proprietary | Agent-centric, tool calling |
-| **Ministral 3 (8B)** | 8B (dense) | 128K | ~6 GB | — | Apache 2.0 | Edge-friendly, Cascade Distillation |
-| **Llama 4 Scout** | 17B (109B total) | 10M | ~35 GB | — | Llama Community | Context terbesar (10M) |
-
-Dua hal penting dari Tabel A1. Pertama, **DeepSeek V4 Pro** dengan VRAM Q4 hanya ~32 GB — muat di satu RTX 4090 — sekaligus membawa context 1M dan SWE-bench 80.6%: kombinasi yang secara langsung menantang dominasi cloud untuk beban kerja *agentic coding*. Kedua, spektrum ukuran sangat lebar: dari **Ministral 3** yang hanya butuh ~6 GB (komputer laptop sekalipun) hingga **Llama 4 Scout** dengan context 10 juta token. Dengan lisensi permisif (MIT/Apache 2.0), tidak ada lagi alasan regulasi yang menghambat adopsi lokal.
+**Break-even point** adalah volume token bulanan di mana kurva biaya kumulatif lokal (CAPEX ter-amortisasi + OPEX) menyilang kurva cloud (OPEX murni). Di bawah titik itu, cloud lebih murah; di atasnya, lokal menang — dan selisihnya melebar seiring waktu karena biaya marginal lokal terus menurun. Estimasi umum model dan hardware berbagai kelas: **5-20 juta token/bulan**. Contoh konkret: Mac Mini M4 Pro 48GB + Ollama melawan API GPT-4o mini memiliki *break-even* sekitar **8 juta token/bulan** — volume yang cukup masuk akal untuk tim 10-20 orang yang aktif memakai LLM setiap hari kerja. Tabel B di Seksi 5 merinci perhitungan ini untuk lima profil ukuran organisasi.
 
 ### Tabel B: Break-even Analysis — Local vs Cloud dengan Model Terbaru
 
@@ -185,26 +117,67 @@ Inilah inti matematis keputusan deployment. Tabel ini membandingkan biaya lokal 
 
 Perhatikan dua *insight* kunci. Pertama, **volume menentukan pemenang**: satu tim kecil dengan 200 ribu token/bulan (sekitar 10 ribu percakapan) tidak akan pernah *break-even* — cloud tetap menang; tetapi organisasi besar yang memproses 50 juta token/bulan *harus* beralih ke lokal, karena penghematannya mencapai puluhan juta rupiah per bulan. Kedua, **jarak harga per token menentukan kecepatan *break-even***: maskot yang paling cepat balik modal adalah konfigurasi enterprise (volume tinggi + biaya lokal per token yang sangat rendah Rp 200 vs cloud Rp 60.000) — gap 300x yang membuat *break-even* tercapai hanya dalam hitungan ribuan token per bulan. Angka-angka ini sensitif terhadap asumsi — harga listrik, harga GPU, dan harga API berubah seiring waktu — sehingga sebelum keputusan besar, jalankan ulang kalkulator *break-even* di Tutorial B dengan harga pasar terkini.
 
-### Tabel C: Matriks Keputusan per Skenario
 
-Matriks berikut menerjemahkan semua faktor di atas menjadi rekomendasi langsung untuk delapan skenario bisnis yang umum ditemui.
+### Gambar 2: Dinamika Break-even
 
-| Skenario | Privasi | Latency | Budget | Kualitas | Rekomendasi | Rasional |
-|:---|:---:|:---:|:---:|:---:|:---|:---|
-| **Chatbot medis (data pasien)** | Wajib | <2s | Sedang | Tinggi | **Lokal** (Llama 3 70B Q4) | UU PDP + kerahasiaan pasien |
-| **CS ritel (non-PII)** | Rendah | <5s | Rendah | Sedang | **Cloud** (GPT-4o mini) | Biaya lebih murah, quality cukup |
-| **Dokumen legal (kontrak)** | Tinggi | <10s | Tinggi | Sangat Tinggi | **Hybrid** (lokal + cloud review) | Data sensitif, tapi butuh quality |
-| **Internal knowledge base** | Sedang | <3s | Sedang | Sedang | **Lokal** (Qwen 2.5 14B) | Cukup untuk dokumentasi internal |
-| **AI coding assistant** | Rendah | <1s | Sedang | Sangat Tinggi | **Hybrid** (lokal DS V4 Pro + cloud Fable 5) | DS V4 Pro (SWE-bench 80.6%) kuat untuk coding lokal |
-| **Multimodal (image analysis)** | Sedang | <5s | Tinggi | Tinggi | **Hybrid** (lokal Mistral Large 3 + cloud Gemini 2.5) | Mistral Large 3 multimodal native |
-| **Agentic workflow multi-step** | Sedang | <5s | Sedang | Sangat Tinggi | **Lokal** (DS V4 Pro 1M context) | 1M context + agentic benchmark tertinggi open-source |
-| **Edge/IoT device** | Sedang | <1s | Rendah | Sedang | **Lokal** (Ministral 3 8B) | Cascade Distillation, 6GB VRAM cukup |
+Grafik *break-even* sesungguhnya adalah dua garis pada sumbu yang sama — x adalah volume token/bulan (skala log), y adalah biaya kumulatif dalam rupiah — di mana garis lokal (CAPEX + OPEX, dimulai tinggi karena investasi awal) dan garis cloud (OPEX murni, dimulai dari nol tetapi curam) berpotongan di titik *break-even*. Diagram konseptual berikut menangkap arah kedua kurva tersebut.
 
-Pola yang muncul konsisten: semakin tinggi kolom *Privasi* dan semakin ketat *Latency*, semakin kuat arah ke **Lokal**; semakin rendah *Budget* dan semakin tinggi *Kualitas* yang dituntut, semakin besar godaan **Cloud** — dan **Hybrid** adalah jawaban ketika dua sumbu itu bertabrakan (legal, coding, multimodal). Perhatikan juga bahwa "lokal" tidak lagi identik dengan model kecil: *agentic workflow* multi-step direkomendasikan berjalan sepenuhnya di DeepSeek V4 Pro dengan context 1M — kelas yang lima tahun lalu mustahil dibayangkan *on-premise*.
+```mermaid
+graph LR
+    V[Volume token per bulan] --> BE{Break-even point}
+    BE -->|Di bawah break-even| C[Cloud API lebih murah<br/>OPEX murni, tanpa CAPEX]
+    BE -->|Di atas break-even| L[Lokal lebih murah<br/>CAPEX ter-amortisasi 3-5 tahun]
+    C --> S[Skala naik: auto-scale instan]
+    L --> E[Biaya marginal makin turun<br/>per token]
+```
+
+Inti dari gambar ini: *break-even* bukan satu titik statis, melainkan **keadaan yang bergeser** seiring depresiasi (semakin tua hardware, semakin murah biaya lokal per bulan, sehingga garis lokal turun dan *break-even* maju ke kiri) dan seiring skala (semakin besar volume bulanan, semakin jauh Anda berada di kanan titik potong — wilayah keunggulan lokal). Untuk volume di kiri titik potong, cloud tetap rasional meskipun kualitas lokal sudah setara: membayar mahal untuk infrastruktur yang menganggur adalah pemborosan yang sama buruknya dengan membayar token berlebih.
+
 
 ---
 
-## 9. Diagram & Visualisasi
+## 5. Arsitektur Hybrid Optimal
+
+
+### Routing Logic
+
+Jantung arsitektur hybrid adalah **routing logic** — aturan yang menentukan ke mana setiap permintaan dikirim. Dua dimensi utama: *sensitivitas data* (jika mengandung PII atau data rahasia → lokal) dan *kompleksitas tugas* (jika menuntut *reasoning* mendalam → cloud). Aturan ini bisa sederhana — daftar kata kunci seperti "saldo", "diagnosis", "NIK" — atau berbasis *classifier* yang dilatih khusus, seperti pendekatan unified routing yang diusulkan Wang et al. [5]. Local-first adalah pola default paling aman: kirim ke lokal dulu, dan hanya jika lokal ragu (skor *confidence* rendah), tugas diteruskan ke cloud.
+
+### Local-First Approach
+
+Prinsip **local-first** menjawab pertanyaan "kapan pindah ke cloud?" — bukan "kapan pakai lokal?". Semua permintaan berangkat dari model lokal; model cloud adalah *escalation path*. Keuntungannya ganda: mayoritas permintaan (estimasi 80%+) terlayani tanpa biaya token, dan data sensitif hampir tidak pernah keluar jaringan karena sistem "default aman". Model lokal modern cukup mampu memberi *confidence score* untuk memutuskan kapan harus *escalate* — misalnya saat jawaban mengandung permintaan klarifikasi, atau saat token yang dihasilkan berputar tanpa arah.
+
+### Framework Hybrid
+
+Membangun router sendiri dari nol bisa mahal; gunakan *framework* yang sudah matang. **LiteLLM** menyediakan *proxy* dengan routing dan *fallback* antar ratusan model — lokal dan cloud dalam satu antarmuka OpenAI-compatible. **OpenRouter** adalah agregator API yang memungkinkan *fallback strategy* antar *provider cloud* secara virtual. Keduanya bisa dikombinasikan: LiteLLM di depan (mengelola lokal + cloud), OpenRouter sebagai lapisan cadangan antar *provider*. Tutorial A di Seksi 8 memperlihatkan implementasi nyatanya.
+
+### Teknik Offloading dari Riset
+
+Riset 2024-2025 memperkaya pola hybrid dengan mekanisme *offloading* adaptif. **TMO** [1] memperkenalkan *offloading* inference lokal-cloud untuk setting *multi-modal, multi-task, multi-dialogue* — cocok untuk asisten yang menangani teks, gambar, dan percakapan bergantian. **MINIONS** [2] membangun kolaborasi hemat-biaya antara model *on-device* dan cloud melalui *task decomposition*: model kecil menyelesaikan subtask yang murah, dan hanya subtask sulit yang didelegasikan ke cloud. **ADASWITCH** [3] menggunakan agen adaptif untuk memutuskan *switching* lokal-cloud berdasarkan kondisi runtime — tepat untuk beban kerja yang berubah-ubah. Sementara itu, **HERA** [4] menunjukkan bahwa dengan *scheduler* edge-cloud yang cerdas, 45,67% subtask dapat diselesaikan di sisi lokal — penghematan biaya yang langsung terasa.
+
+### Sinkronisasi Cache Respons
+
+Satu trik yang sering dilupakan: **cache respons**. Pertanyaan yang identik atau serupa — "Bagaimana cara reset password?", prosedur refund, penjelasan kebijakan — sering diulang pengguna. Dengan men-cache respons cloud di penyimpanan lokal (keyed by hash prompt), permintaan berulang tidak perlu lagi mengeluarkan biaya token maupun latency jaringan. Pada sistem dengan 30-40% pertanyaan berulang, *response cache* saja bisa memangkas tagihan cloud hingga sepertiga.
+
+### Tabel A: Perbandingan Local vs Cloud vs Hybrid
+
+Tabel ini merangkum kontras tiga pilihan deployment dari sepuluh aspek yang dibahas di seksi sebelumnya — perhatikan bagaimana setiap kolom memiliki "harga" yang harus dibayar di kolom lainnya.
+
+| Aspek | Local (On-premise) | Cloud API | Hybrid |
+|:---|:---:|:---:|:---:|
+| **Biaya Awal (CAPEX)** | Rp 30-250jt | Rp 0 | Rp 15-150jt |
+| **Biaya Bulanan (OPEX)** | Rp 1-5jt (listrik) | Rp 5-100jt (token) | Rp 1-30jt |
+| **Privasi Data** | Sangat Tinggi | Tergantung provider | Tinggi |
+| **Kualitas Model** | Meningkat drastis (DS V4 Pro, Mistral Large 3) | Tertinggi (GPT-5.5, Fable 5) | Optimal |
+| **Latency** | 50-500ms (lokal) | 500-3000ms (network) | 50-2000ms |
+| **Skalabilitas** | Terbatas hardware | Unlimited | Sedang |
+| **Maintenance** | Tinggi (tim internal) | None (provider) | Sedang |
+| **Compliance (UU PDP)** | Mudah | Perlu DPA | Perlu DPA parsial |
+| **Best For** | Data sensitif, traffic tetap | Startup, traffic spike | Perusahaan menengah-besar |
+| **Model Open-Weight Unggulan** | DS V4 Pro (49B, 1M ctx), Mistral Large 3 (41B, 256K), Qwen3.7-Max | GPT-5.5, Claude Fable 5, Gemini 2.5 Pro | Kombinasi optimal |
+
+Tabel A membuktikan bahwa tidak ada kolom yang menang mutlak. Cloud unggul di CAPEX, skalabilitas, dan kualitas; lokal unggul di privasi, latency, dan kepatuhan; hybrid mengambil tengah secara selektif — "Tinggi" untuk privasi, "Sedang" untuk skalabilitas — karena memang dirancang untuk meminimalkan kelemahan kedua sisi. Perhatikan juga baris *Best For*: pilihan deployment bukan soal mana yang "lebih canggih", melainkan mana yang sesuai profil *traffic* dan sensitivitas data Anda.
+
 
 ### Gambar 1: Arsitektur Hybrid Local-Cloud
 
@@ -228,20 +201,54 @@ graph TB
 
 Perhatikan *Decision Logic* di dalam *subgraph*: ini adalah tiga aturan yang sebenarnya menentukan perilaku sistem. *PII Detected* memaksa lalu lintas ke lokal apa pun kompleksitasnya — kepatuhan mengalahkan efisiensi. *Low Confidence* adalah *escalation path* yang mengizinkan lokal menyerah kepada cloud saat ragu. Dan *Cache Hit* memotong seluruh rantai komputasi untuk permintaan yang sudah pernah dijawab. Dengan ketiga aturan ini, sistem secara otomatis menjaga privasi (lokal menangani PII), kualitas (cloud menangkap kasus sulit), dan biaya (cache menekan volume token cloud).
 
-### Gambar 2: Dinamika Break-even
 
-Grafik *break-even* sesungguhnya adalah dua garis pada sumbu yang sama — x adalah volume token/bulan (skala log), y adalah biaya kumulatif dalam rupiah — di mana garis lokal (CAPEX + OPEX, dimulai tinggi karena investasi awal) dan garis cloud (OPEX murni, dimulai dari nol tetapi curam) berpotongan di titik *break-even*. Diagram konseptual berikut menangkap arah kedua kurva tersebut.
+---
 
-```mermaid
-graph LR
-    V[Volume token per bulan] --> BE{Break-even point}
-    BE -->|Di bawah break-even| C[Cloud API lebih murah<br/>OPEX murni, tanpa CAPEX]
-    BE -->|Di atas break-even| L[Lokal lebih murah<br/>CAPEX ter-amortisasi 3-5 tahun]
-    C --> S[Skala naik: auto-scale instan]
-    L --> E[Biaya marginal makin turun<br/>per token]
-```
+## 6. Keamanan Data di Skenario Hybrid
 
-Inti dari gambar ini: *break-even* bukan satu titik statis, melainkan **keadaan yang bergeser** seiring depresiasi (semakin tua hardware, semakin murah biaya lokal per bulan, sehingga garis lokal turun dan *break-even* maju ke kiri) dan seiring skala (semakin besar volume bulanan, semakin jauh Anda berada di kanan titik potong — wilayah keunggulan lokal). Untuk volume di kiri titik potong, cloud tetap rasional meskipun kualitas lokal sudah setara: membayar mahal untuk infrastruktur yang menganggur adalah pemborosan yang sama buruknya dengan membayar token berlebih.
+
+### Klasifikasi Sensitivitas Data Berjenjang
+
+Keamanan hybrid dimulai dari **klasifikasi data tiga tier**. *Tier 1*: data wajib lokal — PII, data medis, data transaksi finansial, rahasia dagang; tidak boleh keluar jaringan, apa pun alasannya. *Tier 2*: data yang boleh hybrid dengan *masking* — dapat dikirim ke cloud setelah PII di-*scrub*, hasilnya di-*re-identify* kembali di sisi lokal. *Tier 3*: data aman untuk cloud — pertanyaan produk, konten publik, edukasi. Klasifikasi ini harus tertanam di *router* (lihat Tutorial A), bukan sekadar kebijakan di kertas.
+
+### Anonymization
+
+Untuk tier 2, **anonymization** menjadi proses wajib: sebelum request dikirim ke cloud, seluruh PII — NIK, nomor telepon, email, nama — direduksi menjadi *placeholder* (misalnya `[NIK]`), dan setelah respons kembali, *placeholder* dipetakan ulang ke nilai asli. Teknik ini dikenal sebagai *scrub & re-identify*. Penting ditekankan: anonymization bukan pengganti menjaga data, melainkan lapisan pengaman tambahan — jika pun data bocor di sisi cloud, nilai yang bocor sudah tidak bermakna. Tutorial C memberikan implementasi lengkapnya.
+
+### Enkripsi dan Zero-Trust
+
+Koneksi antara lokal dan cloud wajib **TLS in-transit** dalam arsitektur *zero-trust*: setiap *request* diautentikasi dan diautorisasi secara eksplisit, tidak ada kepercayaan implisit terhadap jaringan internal. API key disimpan di *secret manager*, bukan di kode. Bagi organisasi yang lebih ketat, pertimbangkan *private endpoint* atau *VPC peering* ke region cloud tertentu agar lalu lintas tidak melintas internet publik sama sekali.
+
+### Audit Log
+
+Setiap *request* ke cloud **wajib tercatat** dalam *audit log*: *timestamp*, model yang dipakai, jumlah token input/output, klasifikasi tier data, dan hasil *anonymization*. Log ini bukan birokrasi — ia adalah bukti kepatuhan saat regulator atau auditor UU PDP datang. Dengan *audit log* yang rapi, organisasi bisa menunjukkan secara konkret: "data sensitif tidak pernah keluar; yang keluar hanya representasi yang sudah dianonimkan, sebanyak X juta token, pada jangka waktu berikut."
+
+### Tabel C: Matriks Keputusan per Skenario
+
+Matriks berikut menerjemahkan semua faktor di atas menjadi rekomendasi langsung untuk delapan skenario bisnis yang umum ditemui.
+
+| Skenario | Privasi | Latency | Budget | Kualitas | Rekomendasi | Rasional |
+|:---|:---:|:---:|:---:|:---:|:---|:---|
+| **Chatbot medis (data pasien)** | Wajib | <2s | Sedang | Tinggi | **Lokal** (Llama 3 70B Q4) | UU PDP + kerahasiaan pasien |
+| **CS ritel (non-PII)** | Rendah | <5s | Rendah | Sedang | **Cloud** (GPT-4o mini) | Biaya lebih murah, quality cukup |
+| **Dokumen legal (kontrak)** | Tinggi | <10s | Tinggi | Sangat Tinggi | **Hybrid** (lokal + cloud review) | Data sensitif, tapi butuh quality |
+| **Internal knowledge base** | Sedang | <3s | Sedang | Sedang | **Lokal** (Qwen 2.5 14B) | Cukup untuk dokumentasi internal |
+| **AI coding assistant** | Rendah | <1s | Sedang | Sangat Tinggi | **Hybrid** (lokal DS V4 Pro + cloud Fable 5) | DS V4 Pro (SWE-bench 80.6%) kuat untuk coding lokal |
+| **Multimodal (image analysis)** | Sedang | <5s | Tinggi | Tinggi | **Hybrid** (lokal Mistral Large 3 + cloud Gemini 2.5) | Mistral Large 3 multimodal native |
+| **Agentic workflow multi-step** | Sedang | <5s | Sedang | Sangat Tinggi | **Lokal** (DS V4 Pro 1M context) | 1M context + agentic benchmark tertinggi open-source |
+| **Edge/IoT device** | Sedang | <1s | Rendah | Sedang | **Lokal** (Ministral 3 8B) | Cascade Distillation, 6GB VRAM cukup |
+
+Pola yang muncul konsisten: semakin tinggi kolom *Privasi* dan semakin ketat *Latency*, semakin kuat arah ke **Lokal**; semakin rendah *Budget* dan semakin tinggi *Kualitas* yang dituntut, semakin besar godaan **Cloud** — dan **Hybrid** adalah jawaban ketika dua sumbu itu bertabrakan (legal, coding, multimodal). Perhatikan juga bahwa "lokal" tidak lagi identik dengan model kecil: *agentic workflow* multi-step direkomendasikan berjalan sepenuhnya di DeepSeek V4 Pro dengan context 1M — kelas yang lima tahun lalu mustahil dibayangkan *on-premise*.
+
+---
+
+
+---
+
+## 7. Rekomendasi per Profil Bisnis
+
+
+Setiap profil organisasi memiliki titik keseimbangan yang berbeda. *Startup* kecil dengan satu-dua developer dan volume rendah memulai dari cloud murah (GPT-4o mini) karena CAPEX nol dan risiko teknis minimal. *UKM* dengan 5-20 pengguna rutin mulai menarik manfaat dari satu mesin lokal (RTX 4090) untuk beban rutin, dengan cloud sebagai *fallback* kualitas. *Perusahaan menengah* dengan puluhan hingga ratusan pengguna adalah kandidat kuat arsitektur hybrid penuh: lokal untuk volume + PII, cloud untuk kualitas + *spike*. *Enterprise* dengan >100 pengguna dan kebutuhan kepatuhan tinggi (bank, rumah sakit) berjalan hampir sepenuhnya lokal dengan klaster GPU kelas A100, menggunakan cloud hanya untuk tugas yang benar-benar membutuhkan model frontier. Matriks lengkapnya — termasuk delapan skenario spesifik dari chatbot medis hingga perangkat *edge* — dapat dilihat pada **Tabel C** di Seksi 5.
 
 ### Gambar 3: Decision Tree Pemilihan Deployment
 
@@ -259,7 +266,11 @@ Dua pertanyaan, tiga jawaban. Pertanyaan pertama menegakkan kepatuhan — data s
 
 ---
 
-## 10. Praktikum: Membangun Router Hybrid
+
+---
+
+## 8. Praktikum: Membangun Router Hybrid
+
 
 ### Langkah 1: Setup Hybrid Router dengan LiteLLM
 
@@ -414,7 +425,8 @@ Versi sederhana ini cukup untuk memahami pola; untuk produksi, lengkapi dengan p
 
 ---
 
-## 11. Studi Kasus: Bank Digital — Hybrid Deployment untuk Customer Service
+## 9. Studi Kasus: Bank Digital — Hybrid Deployment untuk Customer Service
+
 
 **Skenario.** Sebuah bank digital dengan 1 juta nasabah ingin menghadirkan asisten AI untuk *customer service* 24/7. Tiga persyaratan mengikat: (1) semua data transaksi *wajib* diproses lokal sesuai UU PDP, (2) pertanyaan umum boleh berjalan hybrid, dan (3) latency rata-rata harus di bawah 2 detik. Dengan 1 juta nasabah, perkiraan lalu lintas awal adalah puluhan ribu pertanyaan per hari — terlalu mahal jika semuanya dilempar ke cloud *frontier*.
 
@@ -433,7 +445,8 @@ Versi sederhana ini cukup untuk memahami pola; untuk produksi, lengkapi dengan p
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

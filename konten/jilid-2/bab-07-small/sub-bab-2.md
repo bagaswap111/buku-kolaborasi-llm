@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Memilih konfigurasi multi-GPU yang tepat untuk 9-20 user di kantor kecil, berdasarkan model yang ingin dijalankan
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa Multi-GPU?
+
 
 ### Masalah Satu Kartu yang Kurang
 
@@ -39,81 +41,6 @@ Menjalankan model di dua GPU menuntut strategi pembagian kerja. Ada dua pendekat
 
 Analogi *dapur* paling pas di sini: *tensor parallelism* seperti tiga juru masak mengolah satu hidangan bersama-sama di tiga meja yang saling terhubung konveyor; *pipeline parallelism* seperti tiga rantai produksi di mana hidangan berpindah meja secara berurutan. Yang pertama lebih cepat untuk satu hidangan, tetapi menuntut dapur terhubung rapat. Dua babak ini menentukan pilihan hardware — dan di sanalah NVLink berperan.
 
----
-
-## 3. Interconnect: NVLink vs PCIe Gen 5
-
-### NVLink: Jalur Cepat Khusus GPU
-
-**NVLink 3.0** di RTX 3090 adalah jembatan khusus GPU-ke-GPU dengan *bandwidth* **112,5 GB/s bidirectional** dan latensi sangat rendah, dihubungkan lewat *bridge* fisik berharga sekitar $80-120. Untuk *tensor parallelism*, NVLink memberikan *scaling* **1,6-1,7x** terhadap performa satu GPU. Penting dan sedikit menyedihkan: **RTX 3090 adalah GPU consumer terakhir yang mendukung NVLink** — RTX 4090 dan RTX 5090 tidak memilikinya sama sekali. Jika Anda membeli kartu generasi terbaru, jalur cepat ini hilang.
-
-### PCIe: Jalan Umum yang Semakin Lebar
-
-Tanpa NVLink, kedua GPU berkomunikasi melalui jalur PCIe yang ikut melewati CPU. **PCIe Gen 5** dengan konfigurasi x8/x8 menawarkan **64 GB/s bidirectional**; dengan motherboard kelas workstation (TRX50/W790) yang memberi x16/x16, bandwidth naik ke **128 GB/s** — hampir menyentuh kapasitas jembatan NVLink, meski latensinya tetap lebih tinggi karena rute melewati CPU.
-
-Dampaknya pada praktik: untuk *tensor parallelism*, NVLink unggul **40-60%** dibanding PCIe. Namun untuk *pipeline parallelism*, **PCIe Gen 5 sudah mencukupi** dengan *penalty* hanya 5-10%. Artinya pemilik RTX 4090/5090 dapat tidur tenang selama memilih strategi paralelisme yang tepat: tensor di PCIe boleh-boleh saja, pipeline di PCIe justru optimal.
-
-### Keputusan yang Paling Penting
-
-Ringkasnya, hierarki keputusan untuk kantor kecil:
-
-1. Jika memakai **RTX 3090 bekas** — beli *NVLink bridge* bekas (~$80), gunakan tensor parallelism, dapatkan *scaling* terbaik.
-2. Jika memakai **RTX 4090/5090** — tidak ada NVLink; gunakan tensor parallelism lewat PCIe 5.0 x16/x16 (motherboard TRX50/W790) atau, bila hanya x8/x8, pertimbangkan pipeline parallelism agar *penalty* tetap kecil.
-3. Selalu verifikasi dengan pengukuran NCCL *benchmark* — bukan dengan perasaan — apakah konfigurasi Anda benar-benar memberikan *scaling* yang diharapkan (Tutorial A).
-
----
-
-## 4. Kompatibilitas Motherboard
-
-### Jalur PCIe: x8/x8 vs x16/x16
-
-Motherboard menentukan berapa banyak jalur PCIe yang tersedia untuk kartu-kartu Anda. Board *consumer* seperti **Z790/X670E** menawarkan 16+4 lane; dua GPU memaksa split menjadi **x8/x8** — ada *penalty bandwidth* yang nyata untuk tensor parallelism. Board *workstation* seperti **TRX50/W790** membuka 64+ lane sehingga dua GPU mendapat **x16/x16 penuh** — ini rekomendasi untuk *production*, karena komunikasi antar GPU tidak berebut dengan NVMe dan kartu jaringan.
-
-### BIOS: Dua Saklar yang Wajib
-
-Ada dua pengaturan BIOS yang sering dilupakan dan menyebabkan performa aneh: **Above 4G Decoding** dan **Resizable BAR**. Keduanya wajib diaktifkan sebelum membuat server. Resizable BAR membiarkan CPU mengakses seluruh VRAM kartu sekaligus alih-alih potongan 256MB — dampaknya pada *inference* kecil tetapi nyata, dan banyak *firmware* vLLM mengasumsikannya aktif. Gagal mengaktifkan ini adalah alasan paling umum "kenapa dual GPU saya lebih lambat dari single GPU".
-
----
-
-## 5. PSU dan Cooling
-
-### Tenaga: Jangan Pelit di Sini
-
-Dua RTX 3090/4090 berarti total **TDP 700-900W** hanya untuk kartu. Tambahkan CPU yang *boost* hingga 200W dan komponen lain, dan Anda berada di kisaran 1.000W nyata. Aturan praktis: **PSU 1200W+ dengan sertifikasi Gold atau Platinum** — bukan Bronze yang toleransi voltasenya longgar. Studi kasus di akhir bab ini menceritakan tim yang hampir gagal karena PSU 1200W yang "cukup" ternyata nyaris tidak cukup *di atas kertas*; pelajaran keduanya adalah selalu sisakan *headroom* 30%.
-
-### Dingin: Musuh Nomor Satu
-
-*Thermal throttling* adalah musuh terbesar *uptime*. Dua kartu 350W dalam satu *chassis* adalah dua kompor menyala di satu dapur — dan dapur harus dirancang untuk itu. Rekomendasi: *airflow case* besar seperti Fractal Meshify atau Lian Li dengan keseimbangan *intake* dan *exhaust* yang jelas (panas naik dan keluar, bukan berputar di dalam), atau *custom water cooling* bagi yang serius mengejar senyap dan suhu stabil. Monitor temperatur setiap GPU dengan skrip pada Tutorial C — jika kartu kedua lebih panas 10°C dari kartu pertama, aliran udara sedang salah.
-
-### Kabel, Slot, dan Detail yang Menggagalkan Build
-
-Dua kesalahan yang paling sering menggagalkan *build* bukan terletak pada GPU. **Keduanya soal fisik**: (1) posisi slot — pastikan kedua kartu duduk di slot x16 *fisik* (slot panjang penuh), bukan slot x4 yang terlihat sama; simbol kecil di PCB motherboard menyelamatkan Anda dari bandwidth 8x lipat lebih lambat. (2) *Cable management* — kabel daya 8-pin dan 16-pin yang menekan kipas kartu mengurangi aliran udara dan menaikkan suhu tanpa alasan yang terlihat. Dan pada kartu *blower-style* bekas, bersihkan *heatsink* dan ganti *thermal paste* sebelum dipasang — kartu bekas 3 tahun yang *idle* 60°C bukan kartu yang rusak, hanya kartu yang haus perawatan. Detail-detail inilah yang membedakan *build* yang bertahan lima tahun dari *build* yang masuk vendor setiap kuartal.
-
-### Penempatan Fisik: Server Itu Tinggal di Ruang Server
-
-Workstation 900W bukan perabot meja kerja: ia adalah penduduk ruang server. Suhu ruangan, bukan sekadar suhu *case*, menentukan *frame throttling* di tengah summer. Jika ruang server kantor kecil tidak ber-AC, pertimbangkan *undervolting* GPU — menurunkan *power limit* menjadi 85% dengan konsekuensi kecepatan ~5-10% yang sangat bisa diterima, atau *fan curve* agresif untuk malam hari setelah jam pulang. Keputusan ini ditulis di sini karena mudah dilupakan: **anggaran pendinginan ruangan** (AC 1 PK tambahan) sering lebih kecil daripada salah beli *case* mewah.
-
----
-
-## 6. Model yang Dapat Dijalankan
-
-Pilihan model akhirnya dibatasi satu variabel: VRAM. Berikut peta yang menjadi dasar Tabel 3.
-
-- **Dengan 2x 24GB VRAM (48 GB):** Llama-3.1-70B Q4_K_M, Qwen-3-32B Q8_0, DeepSeek-Coder-67B Q4_K_M, dan Qwen3.6-27B Q8.
-- **Dengan 2x 32GB VRAM (64 GB):** model MoE kelas server terbuka — **DeepSeek V4 Flash** (284B total / 13B aktif) dalam Q4_K_M dan **Mistral Large 3** (675B / 41B aktif) dalam Q3_K_M [12][13].
-- **Dengan 1x 24GB saja:** Ministral 3 14B Q4_K_M, Qwen-2.5-Coder-14B Q8, dengan *fallback* API bila perlu.
-- **Dengan CPU offload:** Mixtral-8x22B Q4_K_M dan Command-R+ Q3_K_M — model besar yang melewati batas VRAM tetapi masih berjalan dengan *penalty* kecepatan.
-
-Dua baris teratas tabel ini menandai pergeseran menarik: di 64 GB, model MoE besar seperti DeepSeek V4 Flash menjalankan *quality* kelas frontier hanya dengan 13B parameter aktif per token — komputasi sebanding model kecil, pengetahuan sebanding model besar, dan konteks mencapai 1 juta token [12]. Untuk kantor 20 user, inilah pilihan "server-class open" di Tabel 2 Bab 7.1.
-
-### Menghitung Kebutuhan KV Cache untuk Concurrency
-
-Memilih model hanya dengan VRAM *weight* adalah cara berpikir generasi lalu. Perhitungan jujur harus menyertakan **KV cache** — memori yang tumbuh seiring konteks dan *concurrency*: lebih banyak sesi paralel berarti lebih banyak KV cache yang menempel. Model 70B Q4_K_M yang menghabiskan ~40 GB *weight* menyisakan ~8 GB dari 48 GB untuk KV cache — cukup untuk beberapa sesi konteks 8K, tetapi sempit untuk percakapan 32K. Inilah alasan strategis memilih MoE berparameter kecil-aktif seperti DeepSeek V4 Flash (Q4: ~150 GB di 64 GB VRAM justru tidak muat — perhatikan Tabel C hanya menjalankannya di konfigurasi 64 GB): saat VRAM sempit, pilih model dengan *weight* yang pas dan sisakan ruang KV cache yang jelas. Teknik ZeRO dari DeepSeek, yang memindahkan sebagian state ke CPU saat VRAM habis, adalah *last resort* — berfungsi, tetapi latensi naik [3].
-
----
-
-## 7. Tabel Wajib
-
 ### Tabel 1: Perbandingan Interconnect GPU
 
 Sebelum merakit, kita harus menguasai tabel berikut — ini adalah *mata uang* perbandingan antar teknologi interkoneksi.
@@ -126,6 +53,7 @@ Sebelum merakit, kita harus menguasai tabel berikut — ini adalah *mata uang* p
 | **PCIe 5.0 x16/x16** | 128 GB/s | Rendah | Gratis | 1.5-1.6x | TRX50/W790 |
 
 Analisis jujurnya: NVLink menawarkan *scaling* terbaik tetapi tersandera pada kartu 2020. PCIe 5.0 x16/x16 nyaris menyamai *scaling* NVLink (1.5-1.6x vs 1.6-1.7x) dan gratis — hanya saja sulit ditemukan di papan consumer. Untuk kantor dengan anggaran ketat, pilihan paling rasional adalah salah satu dari dua: RTX 3090 bekas + bridge (efisiensi maksimal) atau RTX 4090 + board workstation (jalan modern tanpa jembatan). PCIe 4.0 x8/x8 sebaiknya dihindari untuk tensor parallelism — *scaling*-nya turun ke 1.3-1.4x, dan untuk itu lebih baik beralih ke pipeline parallelism sama sekali.
+
 
 ### Tabel 2: Rekomendasi Build Small Office
 
@@ -144,6 +72,7 @@ Tabel berikut adalah tiga paket belanja utuh untuk tim IT — dari *budget* hing
 | **Estimasi Total** | ~Rp 55-65jt | ~Rp 85-95jt | ~Rp 110-130jt |
 
 Klik mental tabel ini: paket *Budget* — X670E x8/x8 tanpa NVLink — sebaiknya dipasang pada *pipeline parallelism* (ingat pelajaran Seksi 3), bukan *tensor*. Paket *Medium* adalah titik manis kantor 12-20 user: Threadripper memberi 128 jalur PCIe 5.0, dua RTX 4090 mendapat x16/x16 penuh, dan RAM 128GB menyisakan ruang untuk *CPU offload* dan *KV cache* besar. Paket *Optimal* — WRX90, 256GB ECC, RTX 5090 — baru masuk akal jika kantor sudah menargetkan setengah dari *budget* Bab 7.8.
+
 
 ### Tabel 3: Benchmark Multi-GPU LLM Inference
 
@@ -171,7 +100,6 @@ Perhatikan juga apa yang *tidak* ada di tabel: angka untuk 2x RTX 5090 (64 GB). 
 
 ---
 
-## 8. Diagram & Visualisasi
 
 ### Gambar 1: Topologi Multi-GPU NVLink vs PCIe
 
@@ -190,6 +118,7 @@ graph LR
 
 Diagram ini menangkap perbedaan fundamental kedua topologi. Di atas: GPU 0 dan GPU 1 terhubung langsung oleh jalur NVLink 112,5 GB/s — operasi *AllReduce* tensor parallelism terjadi *peer-to-peer* tanpa perantara. Di bawah: setiap pertukaran data harus singgah di CPU — jalur PCIe 64 GB/s dua arah, latensi bertambah, dan baris *AllReduce* digambar putus-putus karena bergantung pada jalur yang sama. Itulah mengapa untuk tensor parallelism NVLink unggul 40-60%, sementara untuk pipeline parallelism kedua topologi hampir identik.
 
+
 ### Gambar 2: Grafik Scaling Multi-GPU per Model
 
 ```mermaid
@@ -205,7 +134,86 @@ Implikasi praktis dari grafik ini untuk kantor kecil: **selalu mulai dari satu G
 
 ---
 
-## 9. Tutorial / Hands-On
+
+---
+
+## 3. Interconnect: NVLink vs PCIe Gen 5
+
+
+### NVLink: Jalur Cepat Khusus GPU
+
+**NVLink 3.0** di RTX 3090 adalah jembatan khusus GPU-ke-GPU dengan *bandwidth* **112,5 GB/s bidirectional** dan latensi sangat rendah, dihubungkan lewat *bridge* fisik berharga sekitar $80-120. Untuk *tensor parallelism*, NVLink memberikan *scaling* **1,6-1,7x** terhadap performa satu GPU. Penting dan sedikit menyedihkan: **RTX 3090 adalah GPU consumer terakhir yang mendukung NVLink** — RTX 4090 dan RTX 5090 tidak memilikinya sama sekali. Jika Anda membeli kartu generasi terbaru, jalur cepat ini hilang.
+
+### PCIe: Jalan Umum yang Semakin Lebar
+
+Tanpa NVLink, kedua GPU berkomunikasi melalui jalur PCIe yang ikut melewati CPU. **PCIe Gen 5** dengan konfigurasi x8/x8 menawarkan **64 GB/s bidirectional**; dengan motherboard kelas workstation (TRX50/W790) yang memberi x16/x16, bandwidth naik ke **128 GB/s** — hampir menyentuh kapasitas jembatan NVLink, meski latensinya tetap lebih tinggi karena rute melewati CPU.
+
+Dampaknya pada praktik: untuk *tensor parallelism*, NVLink unggul **40-60%** dibanding PCIe. Namun untuk *pipeline parallelism*, **PCIe Gen 5 sudah mencukupi** dengan *penalty* hanya 5-10%. Artinya pemilik RTX 4090/5090 dapat tidur tenang selama memilih strategi paralelisme yang tepat: tensor di PCIe boleh-boleh saja, pipeline di PCIe justru optimal.
+
+### Keputusan yang Paling Penting
+
+Ringkasnya, hierarki keputusan untuk kantor kecil:
+
+1. Jika memakai **RTX 3090 bekas** — beli *NVLink bridge* bekas (~$80), gunakan tensor parallelism, dapatkan *scaling* terbaik.
+2. Jika memakai **RTX 4090/5090** — tidak ada NVLink; gunakan tensor parallelism lewat PCIe 5.0 x16/x16 (motherboard TRX50/W790) atau, bila hanya x8/x8, pertimbangkan pipeline parallelism agar *penalty* tetap kecil.
+3. Selalu verifikasi dengan pengukuran NCCL *benchmark* — bukan dengan perasaan — apakah konfigurasi Anda benar-benar memberikan *scaling* yang diharapkan (Tutorial A).
+
+---
+
+## 4. Kompatibilitas Motherboard
+
+
+### Jalur PCIe: x8/x8 vs x16/x16
+
+Motherboard menentukan berapa banyak jalur PCIe yang tersedia untuk kartu-kartu Anda. Board *consumer* seperti **Z790/X670E** menawarkan 16+4 lane; dua GPU memaksa split menjadi **x8/x8** — ada *penalty bandwidth* yang nyata untuk tensor parallelism. Board *workstation* seperti **TRX50/W790** membuka 64+ lane sehingga dua GPU mendapat **x16/x16 penuh** — ini rekomendasi untuk *production*, karena komunikasi antar GPU tidak berebut dengan NVMe dan kartu jaringan.
+
+### BIOS: Dua Saklar yang Wajib
+
+Ada dua pengaturan BIOS yang sering dilupakan dan menyebabkan performa aneh: **Above 4G Decoding** dan **Resizable BAR**. Keduanya wajib diaktifkan sebelum membuat server. Resizable BAR membiarkan CPU mengakses seluruh VRAM kartu sekaligus alih-alih potongan 256MB — dampaknya pada *inference* kecil tetapi nyata, dan banyak *firmware* vLLM mengasumsikannya aktif. Gagal mengaktifkan ini adalah alasan paling umum "kenapa dual GPU saya lebih lambat dari single GPU".
+
+---
+
+## 5. PSU dan Cooling
+
+
+### Tenaga: Jangan Pelit di Sini
+
+Dua RTX 3090/4090 berarti total **TDP 700-900W** hanya untuk kartu. Tambahkan CPU yang *boost* hingga 200W dan komponen lain, dan Anda berada di kisaran 1.000W nyata. Aturan praktis: **PSU 1200W+ dengan sertifikasi Gold atau Platinum** — bukan Bronze yang toleransi voltasenya longgar. Studi kasus di akhir bab ini menceritakan tim yang hampir gagal karena PSU 1200W yang "cukup" ternyata nyaris tidak cukup *di atas kertas*; pelajaran keduanya adalah selalu sisakan *headroom* 30%.
+
+### Dingin: Musuh Nomor Satu
+
+*Thermal throttling* adalah musuh terbesar *uptime*. Dua kartu 350W dalam satu *chassis* adalah dua kompor menyala di satu dapur — dan dapur harus dirancang untuk itu. Rekomendasi: *airflow case* besar seperti Fractal Meshify atau Lian Li dengan keseimbangan *intake* dan *exhaust* yang jelas (panas naik dan keluar, bukan berputar di dalam), atau *custom water cooling* bagi yang serius mengejar senyap dan suhu stabil. Monitor temperatur setiap GPU dengan skrip pada Tutorial C — jika kartu kedua lebih panas 10°C dari kartu pertama, aliran udara sedang salah.
+
+### Kabel, Slot, dan Detail yang Menggagalkan Build
+
+Dua kesalahan yang paling sering menggagalkan *build* bukan terletak pada GPU. **Keduanya soal fisik**: (1) posisi slot — pastikan kedua kartu duduk di slot x16 *fisik* (slot panjang penuh), bukan slot x4 yang terlihat sama; simbol kecil di PCB motherboard menyelamatkan Anda dari bandwidth 8x lipat lebih lambat. (2) *Cable management* — kabel daya 8-pin dan 16-pin yang menekan kipas kartu mengurangi aliran udara dan menaikkan suhu tanpa alasan yang terlihat. Dan pada kartu *blower-style* bekas, bersihkan *heatsink* dan ganti *thermal paste* sebelum dipasang — kartu bekas 3 tahun yang *idle* 60°C bukan kartu yang rusak, hanya kartu yang haus perawatan. Detail-detail inilah yang membedakan *build* yang bertahan lima tahun dari *build* yang masuk vendor setiap kuartal.
+
+### Penempatan Fisik: Server Itu Tinggal di Ruang Server
+
+Workstation 900W bukan perabot meja kerja: ia adalah penduduk ruang server. Suhu ruangan, bukan sekadar suhu *case*, menentukan *frame throttling* di tengah summer. Jika ruang server kantor kecil tidak ber-AC, pertimbangkan *undervolting* GPU — menurunkan *power limit* menjadi 85% dengan konsekuensi kecepatan ~5-10% yang sangat bisa diterima, atau *fan curve* agresif untuk malam hari setelah jam pulang. Keputusan ini ditulis di sini karena mudah dilupakan: **anggaran pendinginan ruangan** (AC 1 PK tambahan) sering lebih kecil daripada salah beli *case* mewah.
+
+---
+
+## 6. Model yang Dapat Dijalankan
+
+
+Pilihan model akhirnya dibatasi satu variabel: VRAM. Berikut peta yang menjadi dasar Tabel 3.
+
+- **Dengan 2x 24GB VRAM (48 GB):** Llama-3.1-70B Q4_K_M, Qwen-3-32B Q8_0, DeepSeek-Coder-67B Q4_K_M, dan Qwen3.6-27B Q8.
+- **Dengan 2x 32GB VRAM (64 GB):** model MoE kelas server terbuka — **DeepSeek V4 Flash** (284B total / 13B aktif) dalam Q4_K_M dan **Mistral Large 3** (675B / 41B aktif) dalam Q3_K_M [12][13].
+- **Dengan 1x 24GB saja:** Ministral 3 14B Q4_K_M, Qwen-2.5-Coder-14B Q8, dengan *fallback* API bila perlu.
+- **Dengan CPU offload:** Mixtral-8x22B Q4_K_M dan Command-R+ Q3_K_M — model besar yang melewati batas VRAM tetapi masih berjalan dengan *penalty* kecepatan.
+
+Dua baris teratas tabel ini menandai pergeseran menarik: di 64 GB, model MoE besar seperti DeepSeek V4 Flash menjalankan *quality* kelas frontier hanya dengan 13B parameter aktif per token — komputasi sebanding model kecil, pengetahuan sebanding model besar, dan konteks mencapai 1 juta token [12]. Untuk kantor 20 user, inilah pilihan "server-class open" di Tabel 2 Bab 7.1.
+
+### Menghitung Kebutuhan KV Cache untuk Concurrency
+
+Memilih model hanya dengan VRAM *weight* adalah cara berpikir generasi lalu. Perhitungan jujur harus menyertakan **KV cache** — memori yang tumbuh seiring konteks dan *concurrency*: lebih banyak sesi paralel berarti lebih banyak KV cache yang menempel. Model 70B Q4_K_M yang menghabiskan ~40 GB *weight* menyisakan ~8 GB dari 48 GB untuk KV cache — cukup untuk beberapa sesi konteks 8K, tetapi sempit untuk percakapan 32K. Inilah alasan strategis memilih MoE berparameter kecil-aktif seperti DeepSeek V4 Flash (Q4: ~150 GB di 64 GB VRAM justru tidak muat — perhatikan Tabel C hanya menjalankannya di konfigurasi 64 GB): saat VRAM sempit, pilih model dengan *weight* yang pas dan sisakan ruang KV cache yang jelas. Teknik ZeRO dari DeepSeek, yang memindahkan sebagian state ke CPU saat VRAM habis, adalah *last resort* — berfungsi, tetapi latensi naik [3].
+
+---
+
+## 7. Tutorial / Hands-On
+
 
 ### Tutorial A: Verifikasi NVLink dan PCIe di Linux
 
@@ -310,7 +318,8 @@ Skrip ini adalah inti dari *thermal policy* kantor Anda: jika suhu kartu konsist
 
 ---
 
-## 10. Studi Kasus: Build Dual RTX 3090 untuk Kantor Hukum Teknologi
+## 8. Studi Kasus: Build Dual RTX 3090 untuk Kantor Hukum Teknologi
+
 
 Sebuah firma hukum teknologi dengan 15 pengacara dan 5 paralegal menghadapi masalah menarik: *knowledge base* 50 GB dokumen hukum (kontrak, *judicial review*, regulasi) yang harus dijawab model tanpa satu potong pun keluar kantor, dan *drafting* kontrak berbahasa Indonesia yang harus berjalan real-time. Kandidat model: Llama-3.1-70B Q4_K_M — akurat, tetapi butuh 48 GB.
 
@@ -324,7 +333,8 @@ Pelajaran kedua datang dari sisi operasional: firma ini menjalankan dua model se
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menghitung metrik Token per Watt (TPJ) dan memaknai hasilnya antar platform
@@ -19,6 +20,7 @@ Bab ini juga menjadi penutup seluruh seri Bab 2 — dan karena itu, ia mengikat 
 ---
 
 ## 2. Mengapa Efisiensi Energi Penting?
+
 
 Selama tiga bab terakhir kita menghabiskan banyak uang — untuk SSD, CPU, dan GPU. Bab ini adalah bab di mana semua pengeluaran itu mulai *dipungut balas*: bukan sekali lewat, melainkan setiap bulan selama mesin menyala. Jika Anda mengikuti Bab 2.4 hingga 2.6, Anda kini memiliki mesin yang mampu menjalankan model yang Anda inginkan. Pertanyaan yang tersisa — dan sama pentingnya — adalah: *berapa biaya untuk menjaganya tetap hidup?* Efisiensi energi adalah jawabannya, dan bab ini menutup seri hardware dengan menghitungnya sampai ke rupiah terakhir.
 
@@ -34,6 +36,7 @@ Ada dua rincian yang membuat angka ini semakin pribadi bagi pembaca di Indonesia
 
 ## 3. Karakteristik Daya Inferensi LLM
 
+
 ### Dua Fase, Dua Kepribadian Daya
 
 Inferensi LLM tidak mengonsumsi daya secara merata — ia memiliki dua fase dengan karakter yang bertolak belakang. Fase **prefill** memproses seluruh prompt yang masuk sekaligus: ribuan token dihitung berbondong-bondong, GPU melonjak ke beban komputasi penuh dan sering melebihi TDP nominalnya. Fase **decode** menghasilkan token satu per satu, didominasi pembacaan memori, dan dayanya lebih rendah serta stabil.
@@ -48,9 +51,29 @@ Jangan lupakan juga fase ketiga yang pendiam tapi mahal: **idle**. Banyak mesin 
 
 Penelitian di bidang *energy-efficient serving* menemukan tuas yang lebih halus daripada sekadar membatasi daya: **DVFS** (*Dynamic Voltage Frequency Scaling*) — menurunkan frekuensi GPU pada saat permintaan rendah, dan menaikkannya hanya saat *Service Level Objective* (SLO) terancam. **GreenLLM** [3] melaporkan penghematan energi hingga **34% di A100 dengan kurang dari 3,5% SLO violation** [3]. Studi lain bahkan mencatat **42% penghematan energi pada penurunan 180 MHz dengan hanya 1-3% peningkatan latency** [1]. Sementara itu, **throttLL'eM** [4] memprediksi beban dan melakukan *GPU throttling* proaktif, meningkatkan metrik TPJ hingga **1,78x** [4]. Pesan utamanya: menghemat energi tidak harus berarti memperlambat pengalaman — cukup memperlambat pada saat yang tepat.
 
+### Tabel 2: Biaya Listrik per Skenario Pemakaian
+
+Berikut perbandingan biaya untuk skenario pemakaian yang berbeda pada platform populer — dari pengguna santai malam hari hingga server 24/7.
+
+| Skenario | GPU | Daya Sistem | Jam/hari | kWh/bulan | Biaya/bulan (Rp) | Biaya/tahun (Rp) |
+|:---|:---|---:|---:|---:|---:|---:|
+| **Casual (evening)** | RTX 4090 | 500W | 4 | 60 | ~96 rb | ~1.15 jt |
+| **Semi-pro (8 jam)** | RTX 4090 | 500W | 8 | 120 | ~192 rb | ~2.30 jt |
+| **24/7 Server** | RTX 4090 | 500W | 24 | 360 | ~576 rb | ~6.91 jt |
+| **24/7 Server (undervolt)** | RTX 4090 @250W | 400W | 24 | 288 | ~461 rb | ~5.53 jt |
+| **24/7 Mac Studio** | M2 Ultra | 120W | 24 | 86 | ~138 rb | ~1.66 jt |
+| **24/7 Mac Mini** | M4 Pro | 60W | 24 | 43 | ~69 rb | ~0.83 jt |
+| **Cloud API (via OpenAI)** | - | - | 8 | - | ~1.5 jt | ~18 jt |
+
+Pelajaran paling tajam: **mode pemakaian mengubah biaya secara eksponensial**. RTX 4090 yang dipakai 4 jam sehari hanya makan ~96 ribu rupiah per bulan; dipakai 24/7 melonjak ke ~576 ribu — enam kali lipat. Namun *undervolt* adalah sahabat terbaik server rumahan: membatasi daya sistem ke 400W menghemat ~115 ribu rupiah per bulan tanpa perubahan yang terasa pada pengalaman (`~90%` performa). Yang lebih mengejutkan: **cloud API lebih mahal daripada listrik 24/7 di rumah**. OpenAI dengan pemakaian 8 jam per hari menghabiskan ~1,5 juta rupiah per bulan — pembanding yang membuat investasi hardware lokal hampir selalu lunas dalam beberapa bulan bagi pemakai rutin.
+
+Satu catatan penting saat membaca baris *Cloud API*: biaya tersebut mengasumsikan pemakaian cloud yang *setara* dengan mesin lokal — jika beban kerja Anda hanya 2-3 jam per hari, perbandingannya berubah drastis dan cloud bisa jadi lebih murah (tidak ada investasi awal, tidak ada perawatan). Karena itu, jangan pernah membuat keputusan "lokal versus cloud" tanpa menghitung *pola pemakaian pribadi* terlebih dahulu. Rumus sederhananya: hitung *jam aktif harian Anda × tarif per jam cloud*, lalu bandingkan dengan *amortisasi hardware + listrik* mesin lokal. Titik impasnya biasanya jatuh di antara 4-8 jam pemakaian harian — di bawah itu cloud menang, di atas itu lokal menang — dan angka ini akan Anda hitung sendiri di studi kasus seksi 7.
+
+
 ---
 
 ## 4. Token/Watt Berbagai GPU
+
 
 ### Metrik TPJ: Satu Angka, Semua Jawaban
 
@@ -59,28 +82,6 @@ Cara paling jujur membandingkan efisiensi adalah menghitung berapa token yang di
 Satu hal yang perlu dipahami tentang TPJ: ia adalah metrik *saat bekerja*, bukan metrik *akumulasi*. TPJ 0,37 untuk RTX 4090 diukur selama *generation* aktif — jika GPU menganggur setengah hari, angka efektif harian Anda jauh lebih rendah. Karena itu ketika membandingkan platform, selalu tanyakan dua hal: *berapa TPJ saat bekerja*, dan *berapa watt saat menganggur*. Apple Silicon unggul di keduanya (TPJ tinggi dan *idle sleep* nyaris nol), sedangkan GPU besar unggul di TPJ tapi kalah telak di *idle* — kecuali Anda menerapkan *power limit* dan *sleep* yang disiplin. Kombinasi itulah yang membuat perbandingan "M4 Max 1,56 TPJ versus RTX 4090 0,37 TPJ" menjadi adil: kedua angka diukur dalam kondisi kerja aktif, dan cerita lengkapnya baru selesai setelah *idle* dihitung.
 
 Yang lebih mengejutkan muncul di kubu Apple: **M4 Max menghasilkan 70 t/s hanya dengan 45W — 1,56 TPJ**, sekitar 4x lebih efisien daripada RTX 4090 [5]. Di ujung lain spektrum, **Xeon 4th Gen (CPU-only) mencatat 15 t/s pada 150W — 0,10 TPJ**, yang paling boros per token di antara platform umum [1]. Angka-angka ini bukan sekadar trivia: mereka menerjemahkan langsung ke dalam rupiah pada tagihan listrik bulanan.
-
----
-
-## 5. Underclocking dan Undervolting
-
-### Tuas Ajaib yang Nyata
-
-Sebelum mengganti hardware, ada satu trik yang mengubah segalanya tanpa mengeluarkan uang: **membatasi daya GPU**. RTX 3090 yang dibatasi ke **220W** (dari 350W default) kehilangan performa hanya sekitar **5%** tetapi menghemat **37% konsumsi daya** — dan bahkan spesifikasinya terdengar luar biasa: turun dari ~85 t/s ke ~80 t/s untuk model 7B Q4. RTX 4090 yang dibatasi ke **250W** mempertahankan sekitar **90% performa pada 71% daya** [5].
-
-Dari mana datangnya "keajaiban" matematika ini? Kurva efisiensi GPU tidak linear: pada *clock* tinggi, setiap MHz tambahan membutuhkan voltase (dan daya) yang jauh lebih besar daripada MHz sebelumnya — wilayah yang disebut *voltage wall*. Di bawah *wall* ini, penurunan *clock* kecil menghasilkan penghematan daya yang besar; di atasnya, penambahan daya besar hanya membeli sedikit performa. Dengan memotong daya di titik *wall*, Anda secara efektif berhenti membeli "performa dengan harga premium" dan hanya mempertahankan bagian kurva yang paling hemat — persis logika yang sama yang dipakai *undervolting* CPU pada Bab 2.5, dan yang akan kita ukur langsung di praktikum.
-
-Mengapa ini bekerja? Karena GPU modern menggunakan daya secara boros di bagian kurva frekuensi yang paling tidak efisien. Satu langkah kecil di atas titik puncak efisiensi memberikan performa hampir penuh dengan panas yang jauh lebih rendah — dan panas yang lebih rendah berarti *fans* lebih pelan, umur kartu lebih panjang, serta ruangan yang tidak memanaskan. Nilai ganda yang membuat *undervolt* menjadi kebiasaan pertama yang diajarkan bab ini.
-
-Manfaat yang paling sering dirasakan pengguna bukanlah angka rupiah, melainkan **kenyamanan fisik**. GPU yang di-*undervolt* mengeluarkan panas jauh lebih sedikit, *fans* tidak lagi melolong saat *prefill*, dan ruang kerja tidak berubah menjadi sauna — persis masalah yang kita temui di Bab 2.6 saat dua RTX 3090 menyala bersamaan. Ada juga efek jangka panjang yang jarang dihitung orang: *thermal stress* adalah salah satu penyebab utama bobroknya kartu bekas, dan menurunkan temperatur operasi 10-15 derajat dapat memperpanjang umur kartu secara bermakna. Efek-efek lunak ini tidak muncul di kolom Tabel 1, tetapi terbukti nyata bagi siapa pun yang pernah tinggal serumah dengan workstation 700W.
-
-### Rekomendasi Praktis untuk Setiap Profil Pengguna
-
-Setelah seluruh angka terhitung, mari kunci rekomendasinya dalam tiga profil. **Pertama**, pengguna yang mesinnya menyala 24/7 — asisten pribadi, server rumah, atau agen yang selalu siaga: **Apple Silicon (M-series)** adalah pilihan paling efisien; biaya listriknya sepersepuluh GPU gaming, dan *unified memory*-nya menampung model yang lebih besar. **Kedua**, pengguna yang mengejar performa maksimal dengan mesin menyala saat dibutuhkan: **RTX 4090 dengan power limit 250W** — TPJ terbaik di kelas GPU diskrit (0,40) dan kecepatan 99 t/s yang hampir tidak berkurang. **Ketiga**, pengguna *budget* yang tetap menginginkan performa: **RTX 3090 bekas dengan undervolt 220W** — 80 t/s, TPJ 0,36, dan biaya hardware separuh dari RTX 4090. Di semua profil, lengkapi dengan alat ukur yang tepat: `nvidia-smi` untuk daya/watt sesaat, `nvtop` untuk *dashboard* real-time, `powerstat` untuk tren daya sistem, dan **CodeCarbon** [7] bila Anda ingin mencatat jejak emisi per tugas — konten yang akan kembali diuraikan pada Bab 10 tentang Green AI.
-
----
-
-## 6. Tabel Perbandingan Biaya dan Efisiensi
 
 ### Tabel 1: Efisiensi Token/Watt Berbagai GPU
 
@@ -116,23 +117,6 @@ Kisah tabel ini berada di tiga sorotan. Pertama, **efek power limit pada RTX 409
 
 Perhatikan juga pola menarik di jajaran NVIDIA: **efisiensi tidak selalu sejalan dengan kelas**. RTX 4070 (0,28) dan RTX 4080 Super (0,27) berada di atas RTX 4060 Ti (0,24) — dan RTX 4060 (0,26) kalah dari RTX 4070 meskipun watt-nya jauh lebih kecil. Sebabnya adalah *time-to-completion*: kartu yang lebih cepat menyelesaikan pekerjaan lalu beristirahat, sementara kartu kecil yang "irit per jam" justru bekerja lebih lama untuk menghasilkan token yang sama. Ini mengingatkan kita pada diskusi Bab 2.5 — kadang "yang lebih besar lebih efisien" — dan menegaskan kembali bahwa TPJ harus dihitung dengan model dan konfigurasi nyata Anda, bukan dari *spec sheet*.
 
-### Tabel 2: Biaya Listrik per Skenario Pemakaian
-
-Berikut perbandingan biaya untuk skenario pemakaian yang berbeda pada platform populer — dari pengguna santai malam hari hingga server 24/7.
-
-| Skenario | GPU | Daya Sistem | Jam/hari | kWh/bulan | Biaya/bulan (Rp) | Biaya/tahun (Rp) |
-|:---|:---|---:|---:|---:|---:|---:|
-| **Casual (evening)** | RTX 4090 | 500W | 4 | 60 | ~96 rb | ~1.15 jt |
-| **Semi-pro (8 jam)** | RTX 4090 | 500W | 8 | 120 | ~192 rb | ~2.30 jt |
-| **24/7 Server** | RTX 4090 | 500W | 24 | 360 | ~576 rb | ~6.91 jt |
-| **24/7 Server (undervolt)** | RTX 4090 @250W | 400W | 24 | 288 | ~461 rb | ~5.53 jt |
-| **24/7 Mac Studio** | M2 Ultra | 120W | 24 | 86 | ~138 rb | ~1.66 jt |
-| **24/7 Mac Mini** | M4 Pro | 60W | 24 | 43 | ~69 rb | ~0.83 jt |
-| **Cloud API (via OpenAI)** | - | - | 8 | - | ~1.5 jt | ~18 jt |
-
-Pelajaran paling tajam: **mode pemakaian mengubah biaya secara eksponensial**. RTX 4090 yang dipakai 4 jam sehari hanya makan ~96 ribu rupiah per bulan; dipakai 24/7 melonjak ke ~576 ribu — enam kali lipat. Namun *undervolt* adalah sahabat terbaik server rumahan: membatasi daya sistem ke 400W menghemat ~115 ribu rupiah per bulan tanpa perubahan yang terasa pada pengalaman (`~90%` performa). Yang lebih mengejutkan: **cloud API lebih mahal daripada listrik 24/7 di rumah**. OpenAI dengan pemakaian 8 jam per hari menghabiskan ~1,5 juta rupiah per bulan — pembanding yang membuat investasi hardware lokal hampir selalu lunas dalam beberapa bulan bagi pemakai rutin.
-
-Satu catatan penting saat membaca baris *Cloud API*: biaya tersebut mengasumsikan pemakaian cloud yang *setara* dengan mesin lokal — jika beban kerja Anda hanya 2-3 jam per hari, perbandingannya berubah drastis dan cloud bisa jadi lebih murah (tidak ada investasi awal, tidak ada perawatan). Karena itu, jangan pernah membuat keputusan "lokal versus cloud" tanpa menghitung *pola pemakaian pribadi* terlebih dahulu. Rumus sederhananya: hitung *jam aktif harian Anda × tarif per jam cloud*, lalu bandingkan dengan *amortisasi hardware + listrik* mesin lokal. Titik impasnya biasanya jatuh di antara 4-8 jam pemakaian harian — di bawah itu cloud menang, di atas itu lokal menang — dan angka ini akan Anda hitung sendiri di studi kasus seksi 9.
 
 ### Tabel 3: Biaya per Juta Token
 
@@ -163,7 +147,25 @@ Ada satu pertanyaan yang pantas diajukan sebelum menutup tabel-tabel ini: *apaka
 
 ---
 
-## 7. Diagram & Visualisasi
+
+---
+
+## 5. Underclocking dan Undervolting
+
+
+### Tuas Ajaib yang Nyata
+
+Sebelum mengganti hardware, ada satu trik yang mengubah segalanya tanpa mengeluarkan uang: **membatasi daya GPU**. RTX 3090 yang dibatasi ke **220W** (dari 350W default) kehilangan performa hanya sekitar **5%** tetapi menghemat **37% konsumsi daya** — dan bahkan spesifikasinya terdengar luar biasa: turun dari ~85 t/s ke ~80 t/s untuk model 7B Q4. RTX 4090 yang dibatasi ke **250W** mempertahankan sekitar **90% performa pada 71% daya** [5].
+
+Dari mana datangnya "keajaiban" matematika ini? Kurva efisiensi GPU tidak linear: pada *clock* tinggi, setiap MHz tambahan membutuhkan voltase (dan daya) yang jauh lebih besar daripada MHz sebelumnya — wilayah yang disebut *voltage wall*. Di bawah *wall* ini, penurunan *clock* kecil menghasilkan penghematan daya yang besar; di atasnya, penambahan daya besar hanya membeli sedikit performa. Dengan memotong daya di titik *wall*, Anda secara efektif berhenti membeli "performa dengan harga premium" dan hanya mempertahankan bagian kurva yang paling hemat — persis logika yang sama yang dipakai *undervolting* CPU pada Bab 2.5, dan yang akan kita ukur langsung di praktikum.
+
+Mengapa ini bekerja? Karena GPU modern menggunakan daya secara boros di bagian kurva frekuensi yang paling tidak efisien. Satu langkah kecil di atas titik puncak efisiensi memberikan performa hampir penuh dengan panas yang jauh lebih rendah — dan panas yang lebih rendah berarti *fans* lebih pelan, umur kartu lebih panjang, serta ruangan yang tidak memanaskan. Nilai ganda yang membuat *undervolt* menjadi kebiasaan pertama yang diajarkan bab ini.
+
+Manfaat yang paling sering dirasakan pengguna bukanlah angka rupiah, melainkan **kenyamanan fisik**. GPU yang di-*undervolt* mengeluarkan panas jauh lebih sedikit, *fans* tidak lagi melolong saat *prefill*, dan ruang kerja tidak berubah menjadi sauna — persis masalah yang kita temui di Bab 2.6 saat dua RTX 3090 menyala bersamaan. Ada juga efek jangka panjang yang jarang dihitung orang: *thermal stress* adalah salah satu penyebab utama bobroknya kartu bekas, dan menurunkan temperatur operasi 10-15 derajat dapat memperpanjang umur kartu secara bermakna. Efek-efek lunak ini tidak muncul di kolom Tabel 1, tetapi terbukti nyata bagi siapa pun yang pernah tinggal serumah dengan workstation 700W.
+
+### Rekomendasi Praktis untuk Setiap Profil Pengguna
+
+Setelah seluruh angka terhitung, mari kunci rekomendasinya dalam tiga profil. **Pertama**, pengguna yang mesinnya menyala 24/7 — asisten pribadi, server rumah, atau agen yang selalu siaga: **Apple Silicon (M-series)** adalah pilihan paling efisien; biaya listriknya sepersepuluh GPU gaming, dan *unified memory*-nya menampung model yang lebih besar. **Kedua**, pengguna yang mengejar performa maksimal dengan mesin menyala saat dibutuhkan: **RTX 4090 dengan power limit 250W** — TPJ terbaik di kelas GPU diskrit (0,40) dan kecepatan 99 t/s yang hampir tidak berkurang. **Ketiga**, pengguna *budget* yang tetap menginginkan performa: **RTX 3090 bekas dengan undervolt 220W** — 80 t/s, TPJ 0,36, dan biaya hardware separuh dari RTX 4090. Di semua profil, lengkapi dengan alat ukur yang tepat: `nvidia-smi` untuk daya/watt sesaat, `nvtop` untuk *dashboard* real-time, `powerstat` untuk tren daya sistem, dan **CodeCarbon** [7] bila Anda ingin mencatat jejak emisi per tugas — konten yang akan kembali diuraikan pada Bab 10 tentang Green AI.
 
 ### Gambar 1: Perbandingan TPJ Antarplatform
 
@@ -188,7 +190,11 @@ Perlu kejujuran visual: pie chart ini menormalkan nilai ke dalam proporsi relati
 
 ---
 
-## 8. Praktikum: Mengukur dan Mengoptimalkan Daya
+
+---
+
+## 6. Praktikum: Mengukur dan Mengoptimalkan Daya
+
 
 Tiga langkah berikut membentuk satu siklus utuh: **ukur → ubah → ukur lagi**. Jangan lewatkan satupun — kebiasaan mengukur sebelum dan sesudah perubahan adalah pembeda antara orang yang "merasa" mesinnya hemat dan orang yang *mengetahui* mesinnya hemat dengan data. Siapkan terminal, `llama-bench` dari Bab 2.5, dan kesabaran untuk menjalankan setiap benchmark hingga selesai sebelum mengubah variabel berikutnya.
 
@@ -312,7 +318,8 @@ Dengan selesainya ketiga langkah praktikum ini, Anda kini memiliki tiga alat yan
 
 ---
 
-## 9. Studi Kasus: Memilih antara Mac Mini M4 Pro dan PC RTX 4090 untuk 24/7
+## 7. Studi Kasus: Memilih antara Mac Mini M4 Pro dan PC RTX 4090 untuk 24/7
+
 
 **Skenario.** Seorang developer di Surabaya ingin menjalankan asisten AI pribadi 24/7 di rumah: *summarization* email, pencarian lokal, dan *chatbot* pribadi yang selalu siap. Dua kandidat di meja: **Mac Mini M4 Pro 24 GB** atau **PC dengan RTX 4090 24 GB** — dan karena mesin akan menyala terus, biaya listrik menjadi pertimbangan utama, bukan sekadar performa puncak. Ini adalah pertanyaan klasik yang pernah dialami hampir semua pembaca buku ini: momen ketika dua pilihan sama-sama "bisa" — tetapi hanya satu yang layak dibayar selama tiga tahun ke depan.
 
@@ -334,7 +341,8 @@ Dan dengan ini, perjalanan kita menembus dunia hardware Bab 2 selesai: dari stor
 
 ---
 
-## 10. Referensi
+## 8. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

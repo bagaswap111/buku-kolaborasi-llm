@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Mengimplementasikan *content filtering* pada LLM agar aman untuk anak usia 6-17 tahun
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Threat Model: Apa yang Harus Ditakutkan
+
 
 ### Beda Search Engine, Beda Bahaya
 
@@ -34,6 +36,7 @@ Setidaknya empat kategori ancaman perlu dimasukkan ke *threat model* keluarga: *
 
 ## 3. Arsitektur Filtering Multi-Layer
 
+
 ### Empat Lapis Pertahanan
 
 Sistem keamanan yang baik tidak pernah mengandalkan satu garis pertahanan. Arsitektur *multi-layer* untuk LLM keluarga bekerja dalam empat lapis:
@@ -48,126 +51,6 @@ Empat lapis ini saling menutup kelemahan. Input filter menangkap serangan yang d
 ### Perlindungan Berlapis vs Perlindungan Tunggal
 
 Mengapa tidak cukup satu lapis? Karena setiap lapis memiliki titik buta. *Keyword filter* bisa dikelabui dengan eufemisme ("cara membuat bunga api raksasa di rumah"); model *safety-aligned* bisa ditembus dengan *jailbreak prompt* yang canggih; output guardrail berbasis aturan bisa kelewatan pada konten yang tidak pernah terdaftar. Dengan empat lapis, kegagalan satu lapis tertangkap lapis berikutnya — dan kegagalan seluruhnya tetap direkam di log. Pola pertahanan berlapis ini diadopsi langsung dari arsitektur *input-output-retrieval rails* pada **NVIDIA NeMo Guardrails** [1].
-
----
-
-## 4. Implementasi Guardrails Lokal
-
-### NeMo Guardrails: "Lampu Lalu Lintas" untuk LLM
-
-**NVIDIA NeMo Guardrails** adalah *framework* open-source yang dirancang khusus untuk *content filtering* pada aplikasi LLM [1]. Prinsipnya mirip *traffic light*: di *input*, *rails* memeriksa apakah pertanyaan boleh masuk; di *output*, *rails* memeriksa apakah jawaban boleh keluar. Konfigurasi ditulis dalam YAML bergaya *Colang* — bahasa yang mendeskripsikan percakapan yang diizinkan dan dilarang — sehingga aturan keluarga bisa ditulis sebagai daftar topik yang diblokir per kelompok usia.
-
-### Aturan YAML: Block Topik per Kelompok Usia
-
-Aturan ditulis sederhana, misalnya: blokir topik **kekerasan, seksual, dan judi online** untuk semua kelompok; tambahkan blokir **politik sensitif** untuk anak SD; longgarkan menjadi *filter sedang* untuk anak SMA. Kelebihan NeMo Guardrails dibanding filter sederhana: ia mendukung *flow* berurutan — misalnya, pertama cek kata kunci terlarang, lalu cek *prompt injection*, baru izinkan *request* masuk ke model (lihat Tutorial A dan Tabel 3). Alternatif ringan bila ingin menghindari dependensi tambahan: **llama.cpp** dengan *safety tokenizer* atau filter **regex** sederhana — cocok untuk keluarga yang hanya butuh lapis dasar.
-
-### Filter Output Juga Menangkap Halusinasi
-
-Guardrail output tidak hanya menyaring konten berbahaya, tetapi juga dapat mengecek **akurasi faktual**. *Self-check facts* membandingkan klaim model dengan pengetahuan umum dan menandai jawaban yang meragukan — relevan untuk melindungi anak dari halusinasi yang menyesatkan, baik soal PR maupun kesehatan. Teknik yang lebih maju, seperti *R²-Guard*, menggunakan *logical reasoning* untuk menilai konsistensi jawaban — lebih *robust* daripada sekadar pencocokan kata kunci [2].
-
----
-
-## 5. Manajemen Akun Multi-Level
-
-### Open WebUI: Admin (Orang Tua) vs User (Anak)
-
-**Open WebUI** mendukung *multi-user* dengan dua peran utama: *admin* (orang tua) dan *user* (anak). Peran anak dibatasi: tidak bisa mengakses *settings*, tidak bisa menghapus *history* (agar jejak percakapan selalu tersedia untuk direview), dan tidak bisa mengganti model. Orang tua memegang akses penuh — termasuk *logs* chat, manajemen pengguna, dan kemampuan *override* blokir saat dibutuhkan. Pembatasan model ini penting: anak yang bisa memilih model sendiri akan melewati filter yang ditempelkan pada model tertentu.
-
-### Batas Waktu: 60 Menit per Hari
-
-Durasi pemakaian diatur lewat *script* eksternal — misalnya *cron job* yang menonaktifkan akun anak pada jam tertentu (lihat Tutorial B). Pola khas keluarga Indonesia: aktif 07:00-13:00 di hari sekolah, 09:00-11:00 di akhir pekan, dan mati total setelah 20:00 — waktunya PR dikerjakan dengan pikiran sendiri, bukan dengan AI. Catatan penting: pembatasan waktu ini tidak tersedia bawaan di NeMo Guardrails maupun Open WebUI — keduanya butuh *script* eksternal untuk menegakkannya (lihat Tabel 2).
-
----
-
-## 6. Topik yang Diblokir per Kelompok Usia
-
-### Prinsip: Meningkat Bersama Usia
-
-Filter tidak boleh statis — ia harus mengikuti perkembangan kognitif dan kebutuhan anak. Anak SD belum punya kerangka moral untuk memproses kekerasan dan konten seksual, jadi semua diblokir. Anak SMP mulai berdebat tentang politik, tetapi belum cukup dewasa untuk menyaring informasi sensitif, jadi aturan tambahan melindungi mereka. Anak SMA sudah bisa diajak diskusi — blokir dikurangi menjadi *peringatan* dan *verifikasi*, tetapi yang ilegal tetap diblokir. Matriks lengkapnya ada di Tabel 1.
-
----
-
-## 7. Transparansi dan Edukasi
-
-### Monitor dengan Sepengetahuan Anak
-
-Filter yang dilakukan diam-diam adalah bom waktu: anak suatu saat akan menemukannya, dan respons pertamanya adalah mencari cara menembus. Sebaliknya, **transparansi** — orang tua memberi tahu bahwa chat dimonitor dan blokir ada untuk melindungi — mengubah sistem keamanan menjadi **alat edukasi**. Momen *review* chat bersama mingguan bisa menjadi sesi literasi AI: mengapa jawaban ini diblokir, bagaimana model bisa berhalusinasi, apa itu *prompt injection*, dan mengapa ada pertanyaan yang sebaiknya ditanyakan ke orang tua — bukan ke mesin.
-
-### Jalur Resmi untuk Membuka Blokir
-
-Anak yang ingin bertanya topik yang diblokir seharusnya punya satu pintu: **meminta orang tua membuka blokir** — bukan mencari jalan *bypass*. Pola ini mengajarkan dua hal sekaligus: bahwa aturan bisa dinegosiasikan secara sehat, dan bahwa *bypass* adalah pelanggaran. Keluarga Hartono dalam studi kasus Seksi 11 mempraktikkan ini dengan sukses: insiden filter mistis justru menjadi diskusi keluarga yang mempererat, bukan konflik.
-
----
-
-## 8. Tabel Referensi
-
-### Tabel 1: Level Filtering per Kelompok Usia
-
-Matriks berikut menjadi acuan utama konfigurasi *guardrails* — satu baris per kategori topik, satu kolom per jenjang pendidikan.
-
-| Kategori | SD (6-9 thn) | SMP (10-13 thn) | SMA (14-17 thn) |
-|:---|:---:|:---:|:---:|
-| **Kekerasan & Senjata** | Blokir | Blokir | Blokir |
-| **Konten Seksual** | Blokir | Blokir | Peringatan |
-| **Informasi Medis** | Blokir | Filter ketat | Dengan verifikasi |
-| **Politik/SARA** | Blokir | Blokir | Filter sedang |
-| **Judi/Investasi** | Blokir | Blokir | Blokir |
-| **Resep Obat/Zat Kimia** | Blokir | Blokir | Filter ketat |
-| **Bantuan PR** | Diizinkan | Diizinkan | Diizinkan |
-| **Kreatif (cerita, puisi)** | Diizinkan | Diizinkan | Diizinkan |
-| **Maks Screen Time/hari** | 30 menit | 60 menit | 90 menit |
-
-![Grafik berikut menunjukkan batas waktu layar harian yang naik bertahap seiring bertambahnya usia anak.](../../assets/images/bab-06-home/sub-bab-6/batas-screen-time-harian.png)
-
-*Gambar 6.6-1 — Batas screen time naik dari 30 menit (SD) ke 90 menit (SMA) — terlihat bahwa topik safety tetap ketat, tetapi waktu pemakaian justru dilonggarkan bertahap.*
-
-Analisis: perhatikan pola tiga kolom kanan — kategori yang berdampak langsung pada keselamatan fisik (kekerasan, judi, zat kimia) tetap diblokir di semua usia, sementara kategori kognitif (medis, politik) bertransisi bertahap dari "Blokir" ke "Peringatan/verifikasi". Ini mencerminkan prinsip: *safety* tidak pernah dilonggarkan, tetapi *agency* bertambah seiring usia. Baris paling bawah adalah *screen time* — ingat, filter topik tidak melindungi anak dari kecanduan layar, sehingga batas waktu perlu ditegakkan terpisah melalui *script* (Tutorial B).
-
-### Tabel 2: Perbandingan Tools Parental Control untuk LLM
-
-Empat kelas solusi dibandingkan berdasarkan tujuh kriteria fungsional.
-
-| Fitur | NeMo Guardrails | Open WebUI RBAC | Custom Proxy | llama.cpp Filter |
-|:---|:---|:---|:---|:---|
-| **Input Filtering** | Ya | Tidak | Manual | Regex |
-| **Output Filtering** | Ya | Tidak | Manual | Tidak |
-| **Multi-Role** | Tidak | Ya | Manual | Tidak |
-| **Session Logging** | Ya | Ya | Ya | Tidak |
-| **Screen Time Limit** | Tidak | Tidak | Script eksternal | Tidak |
-| **Setup Complexity** | Sedang | Mudah | Sulit | Mudah |
-| **Rekomendasi** | **Terbaik** | Kombinasi + Guardrails | Power user | Minimalis |
-
-Analisis: tidak ada satu pun tool yang lengkap sendiri. NeMo Guardrails unggul di *filtering* dua arah (input+output) dan *logging*, tetapi tidak punya konsep peran pengguna; Open WebUI unggul di *multi-role* tetapi tidak memfilter konten sama sekali. Rekomendasi paling praktis: gunakan **Open WebUI untuk manajemen akun dan logging**, lalu pasang **NeMo Guardrails sebagai proxy di depannya** — kombinasi yang menutupi kelemahan satu sama lain. Solusi *custom proxy* hanya untuk pengguna tingkat lanjut yang nyaman menulis *middleware* sendiri; filter *regex* llama.cpp hanya cocok sebagai lapis darurat.
-
-### Tabel 3: Contoh Rules NeMo Guardrails untuk Anak
-
-Ini adalah *blueprint* awal konfigurasi guardrails — simpan sebagai `config/guardrails.yaml`:
-
-```yaml
-# config/guardrails.yaml — aturan filtering untuk akun anak
-rails:
-  input:
-    flows:
-      - check_blocked_topics    # Cek prompt sebelum ke LLM
-      - check_prompt_injection  # Cek jailbreak attempt
-
-  output:
-    flows:
-      - check_safety_response   # Cek response sebelum ke anak
-      - check_factual_accuracy  # Cek halusinasi berbahaya
-
-  dialogues:
-    - user: "cara membuat bom"
-      response: "Maaf, saya tidak bisa membantu pertanyaan itu."
-    - user: "situs judi online"
-      response: "Maaf, topik itu tidak diperbolehkan."
-```
-
-Analisis: dua blok menunjukkan *dual-mode filtering* NeMo Guardrails. *Flows* bekerja sebagai prosedur — urutan pemeriksaan yang dijalankan setiap *request*; *dialogues* bekerja sebagai kamus — pasangan prompt-respons tetap yang langsung dipakai tanpa meneruskan ke model. Untuk keluarga, mulailah dari *dialogues* (mudah ditulis, mudah dipahami anak), lalu tambahkan *flows* untuk cakupan yang lebih luas. Respons blokir sengaja ditulis netral tanpa moralisasi — anak tetap merasa aman bertanya, hanya saja jawabannya datang dari aturan keluarga, bukan dari model.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Alur Filtering Multi-Layer
 
@@ -203,7 +86,132 @@ Diagram ini menunjukkan tiga titik keputusan: input filter yang menyaring sebelu
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 4. Implementasi Guardrails Lokal
+
+
+### NeMo Guardrails: "Lampu Lalu Lintas" untuk LLM
+
+**NVIDIA NeMo Guardrails** adalah *framework* open-source yang dirancang khusus untuk *content filtering* pada aplikasi LLM [1]. Prinsipnya mirip *traffic light*: di *input*, *rails* memeriksa apakah pertanyaan boleh masuk; di *output*, *rails* memeriksa apakah jawaban boleh keluar. Konfigurasi ditulis dalam YAML bergaya *Colang* — bahasa yang mendeskripsikan percakapan yang diizinkan dan dilarang — sehingga aturan keluarga bisa ditulis sebagai daftar topik yang diblokir per kelompok usia.
+
+### Aturan YAML: Block Topik per Kelompok Usia
+
+Aturan ditulis sederhana, misalnya: blokir topik **kekerasan, seksual, dan judi online** untuk semua kelompok; tambahkan blokir **politik sensitif** untuk anak SD; longgarkan menjadi *filter sedang* untuk anak SMA. Kelebihan NeMo Guardrails dibanding filter sederhana: ia mendukung *flow* berurutan — misalnya, pertama cek kata kunci terlarang, lalu cek *prompt injection*, baru izinkan *request* masuk ke model (lihat Tutorial A dan Tabel 3). Alternatif ringan bila ingin menghindari dependensi tambahan: **llama.cpp** dengan *safety tokenizer* atau filter **regex** sederhana — cocok untuk keluarga yang hanya butuh lapis dasar.
+
+### Filter Output Juga Menangkap Halusinasi
+
+Guardrail output tidak hanya menyaring konten berbahaya, tetapi juga dapat mengecek **akurasi faktual**. *Self-check facts* membandingkan klaim model dengan pengetahuan umum dan menandai jawaban yang meragukan — relevan untuk melindungi anak dari halusinasi yang menyesatkan, baik soal PR maupun kesehatan. Teknik yang lebih maju, seperti *R²-Guard*, menggunakan *logical reasoning* untuk menilai konsistensi jawaban — lebih *robust* daripada sekadar pencocokan kata kunci [2].
+
+### Tabel 3: Contoh Rules NeMo Guardrails untuk Anak
+
+Ini adalah *blueprint* awal konfigurasi guardrails — simpan sebagai `config/guardrails.yaml`:
+
+```yaml
+# config/guardrails.yaml — aturan filtering untuk akun anak
+rails:
+  input:
+    flows:
+      - check_blocked_topics    # Cek prompt sebelum ke LLM
+      - check_prompt_injection  # Cek jailbreak attempt
+
+  output:
+    flows:
+      - check_safety_response   # Cek response sebelum ke anak
+      - check_factual_accuracy  # Cek halusinasi berbahaya
+
+  dialogues:
+    - user: "cara membuat bom"
+      response: "Maaf, saya tidak bisa membantu pertanyaan itu."
+    - user: "situs judi online"
+      response: "Maaf, topik itu tidak diperbolehkan."
+```
+
+Analisis: dua blok menunjukkan *dual-mode filtering* NeMo Guardrails. *Flows* bekerja sebagai prosedur — urutan pemeriksaan yang dijalankan setiap *request*; *dialogues* bekerja sebagai kamus — pasangan prompt-respons tetap yang langsung dipakai tanpa meneruskan ke model. Untuk keluarga, mulailah dari *dialogues* (mudah ditulis, mudah dipahami anak), lalu tambahkan *flows* untuk cakupan yang lebih luas. Respons blokir sengaja ditulis netral tanpa moralisasi — anak tetap merasa aman bertanya, hanya saja jawabannya datang dari aturan keluarga, bukan dari model.
+
+---
+
+
+---
+
+## 5. Manajemen Akun Multi-Level
+
+
+### Open WebUI: Admin (Orang Tua) vs User (Anak)
+
+**Open WebUI** mendukung *multi-user* dengan dua peran utama: *admin* (orang tua) dan *user* (anak). Peran anak dibatasi: tidak bisa mengakses *settings*, tidak bisa menghapus *history* (agar jejak percakapan selalu tersedia untuk direview), dan tidak bisa mengganti model. Orang tua memegang akses penuh — termasuk *logs* chat, manajemen pengguna, dan kemampuan *override* blokir saat dibutuhkan. Pembatasan model ini penting: anak yang bisa memilih model sendiri akan melewati filter yang ditempelkan pada model tertentu.
+
+### Batas Waktu: 60 Menit per Hari
+
+Durasi pemakaian diatur lewat *script* eksternal — misalnya *cron job* yang menonaktifkan akun anak pada jam tertentu (lihat Tutorial B). Pola khas keluarga Indonesia: aktif 07:00-13:00 di hari sekolah, 09:00-11:00 di akhir pekan, dan mati total setelah 20:00 — waktunya PR dikerjakan dengan pikiran sendiri, bukan dengan AI. Catatan penting: pembatasan waktu ini tidak tersedia bawaan di NeMo Guardrails maupun Open WebUI — keduanya butuh *script* eksternal untuk menegakkannya (lihat Tabel 2).
+
+### Tabel 2: Perbandingan Tools Parental Control untuk LLM
+
+Empat kelas solusi dibandingkan berdasarkan tujuh kriteria fungsional.
+
+| Fitur | NeMo Guardrails | Open WebUI RBAC | Custom Proxy | llama.cpp Filter |
+|:---|:---|:---|:---|:---|
+| **Input Filtering** | Ya | Tidak | Manual | Regex |
+| **Output Filtering** | Ya | Tidak | Manual | Tidak |
+| **Multi-Role** | Tidak | Ya | Manual | Tidak |
+| **Session Logging** | Ya | Ya | Ya | Tidak |
+| **Screen Time Limit** | Tidak | Tidak | Script eksternal | Tidak |
+| **Setup Complexity** | Sedang | Mudah | Sulit | Mudah |
+| **Rekomendasi** | **Terbaik** | Kombinasi + Guardrails | Power user | Minimalis |
+
+Analisis: tidak ada satu pun tool yang lengkap sendiri. NeMo Guardrails unggul di *filtering* dua arah (input+output) dan *logging*, tetapi tidak punya konsep peran pengguna; Open WebUI unggul di *multi-role* tetapi tidak memfilter konten sama sekali. Rekomendasi paling praktis: gunakan **Open WebUI untuk manajemen akun dan logging**, lalu pasang **NeMo Guardrails sebagai proxy di depannya** — kombinasi yang menutupi kelemahan satu sama lain. Solusi *custom proxy* hanya untuk pengguna tingkat lanjut yang nyaman menulis *middleware* sendiri; filter *regex* llama.cpp hanya cocok sebagai lapis darurat.
+
+
+---
+
+## 6. Topik yang Diblokir per Kelompok Usia
+
+
+### Prinsip: Meningkat Bersama Usia
+
+Filter tidak boleh statis — ia harus mengikuti perkembangan kognitif dan kebutuhan anak. Anak SD belum punya kerangka moral untuk memproses kekerasan dan konten seksual, jadi semua diblokir. Anak SMP mulai berdebat tentang politik, tetapi belum cukup dewasa untuk menyaring informasi sensitif, jadi aturan tambahan melindungi mereka. Anak SMA sudah bisa diajak diskusi — blokir dikurangi menjadi *peringatan* dan *verifikasi*, tetapi yang ilegal tetap diblokir. Matriks lengkapnya ada di Tabel 1.
+
+### Tabel 1: Level Filtering per Kelompok Usia
+
+Matriks berikut menjadi acuan utama konfigurasi *guardrails* — satu baris per kategori topik, satu kolom per jenjang pendidikan.
+
+| Kategori | SD (6-9 thn) | SMP (10-13 thn) | SMA (14-17 thn) |
+|:---|:---:|:---:|:---:|
+| **Kekerasan & Senjata** | Blokir | Blokir | Blokir |
+| **Konten Seksual** | Blokir | Blokir | Peringatan |
+| **Informasi Medis** | Blokir | Filter ketat | Dengan verifikasi |
+| **Politik/SARA** | Blokir | Blokir | Filter sedang |
+| **Judi/Investasi** | Blokir | Blokir | Blokir |
+| **Resep Obat/Zat Kimia** | Blokir | Blokir | Filter ketat |
+| **Bantuan PR** | Diizinkan | Diizinkan | Diizinkan |
+| **Kreatif (cerita, puisi)** | Diizinkan | Diizinkan | Diizinkan |
+| **Maks Screen Time/hari** | 30 menit | 60 menit | 90 menit |
+
+![Grafik berikut menunjukkan batas waktu layar harian yang naik bertahap seiring bertambahnya usia anak.](../../assets/images/bab-06-home/sub-bab-6/batas-screen-time-harian.png)
+
+*Gambar 6.6-1 — Batas screen time naik dari 30 menit (SD) ke 90 menit (SMA) — terlihat bahwa topik safety tetap ketat, tetapi waktu pemakaian justru dilonggarkan bertahap.*
+
+Analisis: perhatikan pola tiga kolom kanan — kategori yang berdampak langsung pada keselamatan fisik (kekerasan, judi, zat kimia) tetap diblokir di semua usia, sementara kategori kognitif (medis, politik) bertransisi bertahap dari "Blokir" ke "Peringatan/verifikasi". Ini mencerminkan prinsip: *safety* tidak pernah dilonggarkan, tetapi *agency* bertambah seiring usia. Baris paling bawah adalah *screen time* — ingat, filter topik tidak melindungi anak dari kecanduan layar, sehingga batas waktu perlu ditegakkan terpisah melalui *script* (Tutorial B).
+
+
+---
+
+## 7. Transparansi dan Edukasi
+
+
+### Monitor dengan Sepengetahuan Anak
+
+Filter yang dilakukan diam-diam adalah bom waktu: anak suatu saat akan menemukannya, dan respons pertamanya adalah mencari cara menembus. Sebaliknya, **transparansi** — orang tua memberi tahu bahwa chat dimonitor dan blokir ada untuk melindungi — mengubah sistem keamanan menjadi **alat edukasi**. Momen *review* chat bersama mingguan bisa menjadi sesi literasi AI: mengapa jawaban ini diblokir, bagaimana model bisa berhalusinasi, apa itu *prompt injection*, dan mengapa ada pertanyaan yang sebaiknya ditanyakan ke orang tua — bukan ke mesin.
+
+### Jalur Resmi untuk Membuka Blokir
+
+Anak yang ingin bertanya topik yang diblokir seharusnya punya satu pintu: **meminta orang tua membuka blokir** — bukan mencari jalan *bypass*. Pola ini mengajarkan dua hal sekaligus: bahwa aturan bisa dinegosiasikan secara sehat, dan bahwa *bypass* adalah pelanggaran. Keluarga Hartono dalam studi kasus Seksi 9 mempraktikkan ini dengan sukses: insiden filter mistis justru menjadi diskusi keluarga yang mempererat, bukan konflik.
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Setup NeMo Guardrails untuk Filtering Output
 
@@ -362,7 +370,8 @@ Pada *deployment* nyata, ganti `print` pada `send_email_report` dengan sesi SMTP
 
 ---
 
-## 11. Studi Kasus: Keluarga Hartono — 3 Anak Usia 7, 11, 15 Tahun
+## 9. Studi Kasus: Keluarga Hartono — 3 Anak Usia 7, 11, 15 Tahun
+
 
 **Latar:** Keluarga Hartono memiliki tiga anak: Dita (SD kelas 2), Raka (SMP kelas 1), dan Bima (SMA kelas 2). Ketiganya sama-sama haus teknologi, tetapi memiliki kebutuhan dan tingkat kematangan yang sangat berbeda. Orang tuanya khawatir bukan karena anak-anak itu "nakal", tetapi karena LLM generatif bisa menjawab apa saja — termasuk pertanyaan yang belum seharusnya anak-anak itu dengar.
 
@@ -374,7 +383,8 @@ Pada *deployment* nyata, ganti `print` pada `send_email_report` dengan sesi SMTP
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

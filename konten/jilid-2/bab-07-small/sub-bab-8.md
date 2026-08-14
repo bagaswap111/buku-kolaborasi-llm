@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menyusun anggaran lengkap untuk deployment LLM small office (9-20 pengguna) dari komponen terkecil hingga biaya tak terduga
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Komponen Biaya: Membaca Struktur Sebelum Memutuskan
 
+
 ### Capex dan Opex: Dua Dompet Berbeda
 
 Setiap investasi AI small office terbagi menjadi dua dompet yang tidak boleh tercampur. **Capex** (*Capital Expenditure*) adalah pengeluaran sekali — hardware: GPU, CPU, RAM, *storage*, *networking*, rack dan casing — yang menjadi aset perusahaan, dapat disusutkan, dan bisa dihitung *resale value*-nya. **Opex** (*Operational Expenditure*) adalah pengeluaran berulang bulanan — listrik, internet, hosting cloud jika ada, dan *maintenance*. Kesalahan paling umum di proposal internal adalah hanya menampilkan Capex dan menutup mata pada Opex; kesalahan kedua adalah membandingkan "Capex 100 juta" dengan "langganan 6 juta/bulan" tanpa menyetarakan periodenya. TCO (setara 3 tahun) menjawab keduanya sekaligus.
@@ -25,54 +27,6 @@ Setiap investasi AI small office terbagi menjadi dua dompet yang tidak boleh ter
 ### Software Gratis, Tenaga Kerja Tidak
 
 Kabar baik yang jarang disadari: seluruh *software stack* dalam buku ini — **Ollama, vLLM, Open WebUI, Qdrant, Tabby** — adalah **open source** dengan biaya lisensi nol. Inilah keunggulan struktural self-hosting yang tidak bisa ditandingi model bisnis subscription. Namun ada satu "lisensi" yang tidak gratis: **tenaga kerja**. Setup awal memakan **1-2 minggu waktu DevOps** — bagian tersulit adalah integrasi OAuth (Bab 7.6), tata kelola GPU (Bab 7.7), dan pembiasaan tim. Setelah berjalan, *maintenance* berkala **2-4 jam per minggu** cukup untuk update model, rotasi token, dan inspeksi dashboard. Masukkan keduanya sebagai Opex — tenaga kerja yang "sudah ada" tetap punya biaya kesempatan.
-
----
-
-## 3. Tiga Tier Budget: Memilih Berdasarkan Jumlah Pengguna
-
-### Budget (~Rp 60jt): Dua RTX 3090 Sahabat Tim Kecil
-
-Tier pertama menyasar tim **9-12 pengguna**: **2× RTX 3090 used** — kartu bekas pakai yang harganya jauh lebih bersahabat dan tetap bertenaga 24 GB per kartu — dipasang di CPU kelas konsumen (Ryzen) dengan motherboard konsumen dan 64 GB RAM. Nilainya: 48 GB VRAM total, cukup untuk model 70B dalam Q4 atau model 32B dalam kualitas Q8. Tabel 4 akan menunjukkan bahwa tier ini sudah mampu memberi kualitas "Sangat Baik" untuk 10 pengguna. Trade-off-nya: garansi GPU *used* terbatas, dan daya tahan jangka panjang perlu dimonitor via *thermal* (Bab 7.7).
-
-### Medium (~Rp 90jt): RTX 4090 untuk Tim Bertumbuh
-
-Tier menengah untuk tim **12-16 pengguna** memasang **2× RTX 4090** di platform Threadripper dengan 128 GB RAM. Lompatan terbesarnya bukan pada VRAM (sama-sama 48 GB total), melainkan pada bandwidth dan keandalan: RTX 4090 memindahkan data dua kali lebih cepat dan tidak bergantung pada kondisi kartu bekas. Hasilnya di Tabel 4: *concurrency* lebih tinggi, *latency* lebih rendah, dan ruang untuk model *granular MoE* seperti Mistral Large 3 mulai terbuka. Tier ini adalah pilihan paling seimbang bagi tim yang sudah menindaklanjuti Bab 7.7 dengan serius.
-
-### Optimal (~Rp 120jt): RTX 5090 untuk 16-20 Pengguna
-
-Tier tertinggi memasang **2× RTX 5090** di platform Threadripper Pro dengan 256 GB ECC RAM. Kartu generasi terbaru membuka 64 GB VRAM — *headroom* untuk DeepSeek V4 Flash Q4 melayani ~15 pengguna bersamaan, atau model 70B dalam Q8. Ilusinya sederhana: ini bukan membeli GPU tambahan, melainkan membeli **waktu tenang selama 3-5 tahun** — tidak perlu upgrade di tengah jalan ketika tim dan model tumbuh. Perhatikan bahwa label tier ("~Rp 120jt") sedikit berbeda dari jumlah rincian komponen di Tabel 1 (~Rp 160jt) — wajar, karena harga GPU generasi baru bergejolak; jadikan rincian komponen sebagai pegangan anggaran yang lebih jujur.
-
----
-
-## 4. Self-Hosted vs Cloud API: Pertarungan TCO
-
-### Menghitung Lawan dari Awan
-
-Untuk membandingkan secara adil, pertama-tama hitung tagihan cloud yang sedang (atau akan) Anda bayar. Skenario standar 15 pengguna: **OpenAI ChatGPT Team** $25/pengguna/bulan dan **GitHub Copilot** $19/pengguna/bulan — total $44/pengguna/bulan, atau untuk 15 pengguna: $660/bulan ≈ **Rp 10,5 juta/bulan**. Sebelum lanjut, sadari ini hanya "paket dasar" — *usage limit* per pengguna masih ada, dan tagihan *API* tambahan menyusul saat tim mulai membangun otomatisasi.
-
-### Saat Garis-Garis Bersilangan
-
-Melawan angka itu, self-hosted menawarkan **Rp 60-120 juta sekali** ditambah **Rp 1-3 juta/bulan** untuk listrik dan maintenance (rincian di Tabel 2). Kurva keduanya saling berpotongan: cloud mulai lebih murah (nol modal), tetapi garisnya naik tak pernah berhenti; self-hosted menanjak di awal, lalu mendatar. Titik persilangan itulah **break-even point** — sekitar **6-12 bulan** untuk tier Budget, bergantung jumlah pengguna dan intensitas pemakaian. Pada akhir tahun ketiga (Tabel 3), selisihnya bukan kecil-kecilan: self-hosted Budget menghemat **±Rp 153 juta** dibanding cloud.
-
----
-
-## 5. Biaya Tersembunyi: Musuh dalam Selimut
-
-Anggaran yang matang selalu menganggarkan hal-hal yang tidak menyenangkan. Lima *hidden cost* yang paling sering terlupakan: **listrik** — GPU yang menyala 24/7 memakan Rp 1-3 juta per bulan tergantung tarif dan TDP, jangan hitung berdasarkan pemakaian 8 jam kerja; **cooling** — AC tambahan untuk ruang server, wajib di Indonesia; **internet** — *static IP* atau VPN server $10-20/bulan agar tim bisa mengakses dari luar kantor (otentikasi dari Bab 7.6 tidak berguna jika servernya tak bisa dijangkau); **backup** — storage cadangan untuk model dan database; dan **downtime** — *opportunity cost* saat server mati, jarang terjadi tetapi perlu dianggarkan psikologisnya.
-
-Praktik keuangan yang bijak: sisihkan **buffer biaya tak terduga 5-10%** dari total Capex — untuk GPU pengganti saat kartu *used* mati, kabel power rusak, atau upgrade PSU mendadak. Tabel 1 memasukkannya sebagai baris tersendiri, dan ini bukan pemborosan: ini premi asuransi untuk proyek yang menggerakkan produktivitas seluruh perusahaan.
-
----
-
-## 6. ROI Projection: Mengapa Investasi Ini Layak
-
-ROI *hardware* tidak bisa dihitung semanis startup valuation, tetapi tiga sumber pengembaliannya nyata. **Pertama, penghematan substitusi**: Rp 10,5 juta/bulan langganan cloud (ChatGPT Team + Copilot) berhenti seketika — angka yang konkret dan bisa ditagih ke finance. **Kedua, produktivitas developer**: peningkatan 25-40% — sulit diukur langsung, tetapi nyata: PR lebih cepat selesai, *onboarding* anggota baru turun dari 2 minggu menjadi **3 hari** berkat RAG internal dari Bab 7.4 yang memuat dokumen on-boarding. **Ketiga, knowledge retention**: RAG menyimpan pengetahuan yang selama ini menguap di kepala karyawan — aset yang bertambah setiap bulan tanpa langganan tambahan.
-
-Cara paling jujur menyajikan ROI ke pemilik usaha adalah dua angka: *break-even* (berapa bulan sampai investasi kembali) dan *settlement* 3 tahun (berapa juta yang dihemat selama 3 tahun dibanding tetap di cloud). Keduanya ada di Tabel 3 dan kalkulator di Langkah 1. Jika satu angka itu sudah meyakinkan, sisanya hanya formalitas teknis.
-
----
-
-## 7. Tabel Anggaran dan Perbandingan
 
 ### Tabel 1: Rincian Biaya per Tier
 
@@ -96,42 +50,23 @@ Berikut cetak biru anggaran lengkap untuk tiga tier — dari GPU hingga biaya ta
 
 Bacaan penting tabel ini bukan sekadar total, melainkan **struktur dominannya**: GPU selalu menyumbang 40-50% anggaran, disusul CPU+motherboard. Perhatikan pula bahwa *Setup + Install* (Rp 10jt) konstan di semua tier — tenaga kerja DevOps tidak menjadi lebih mahal hanya karena kartunya lebih besar, dan biaya tak terduga naik seiring mahalnya komponen yang harus diganti. Bila total rincian dijumlahkan, Medium mencapai ±Rp 110jt dan Optimal ±Rp 160jt — angka label tier di header adalah *target* anggaran, sedangkan rincian komponen adalah *realita* pasar yang lebih jujur untuk diajukan ke finance.
 
-### Tabel 2: Biaya Operasional Bulanan
 
-Setelah server berdiri, inilah tagihan bulanan yang akan menemani Anda terus-menerus:
+---
 
-| Komponen | Budget | Medium | Optimal |
-|:---|:---:|:---:|:---:|
-| **Listrik (24/7, Rp 1.500/kWh)** | Rp 1.500.000 | Rp 2.000.000 | Rp 3.000.000 |
-| **Internet (static IP/business)** | Rp 500.000 | Rp 500.000 | Rp 500.000 |
-| **VPN/Proxy** | Rp 200.000 | Rp 200.000 | Rp 200.000 |
-| **Cloud Backup** | Rp 200.000 | Rp 500.000 | Rp 1.000.000 |
-| **Maintenance (DevOps)** | Rp 500.000 | Rp 500.000 | Rp 500.000 |
-| **Penyusutan (3 tahun)** | Rp 1.670.000 | Rp 3.060.000 | Rp 4.440.000 |
-| **Total Opex Bulanan** | **~Rp 4.6jt** | **~Rp 6.8jt** | **~Rp 9.6jt** |
+## 3. Tiga Tier Budget: Memilih Berdasarkan Jumlah Pengguna
 
-Dua baris layak ditegaskan. **Listrik** adalah biaya terbesar dan paling stabil — dihitung dengan tarif PLN Rp 1.500/kWh untuk operasi 24/7; GPU idle pun tetap menyala. **Penyusutan** membagi Capex ke 36 bulan — baris yang menormalkan beban di laporan laba-rugi, sekaligus mengingatkan bahwa aset ini "habis" seiring waktu. Total Opex bahkan di tier Optimal (±Rp 9,6 juta) masih lebih murah daripada tagihan cloud satu bulan (±Rp 10,5 juta) — kesimpulan yang terasa ironis tetapi matematis: **server termahal kantor Anda masih lebih murah daripada langganan terkecilnya**.
 
-### Tabel 3: Perbandingan Self-Hosted vs Cloud (TCO 3 Tahun)
+### Budget (~Rp 60jt): Dua RTX 3090 Sahabat Tim Kecil
 
-Inilah tabel yang paling sering difotokopi untuk rapat anggaran:
+Tier pertama menyasar tim **9-12 pengguna**: **2× RTX 3090 used** — kartu bekas pakai yang harganya jauh lebih bersahabat dan tetap bertenaga 24 GB per kartu — dipasang di CPU kelas konsumen (Ryzen) dengan motherboard konsumen dan 64 GB RAM. Nilainya: 48 GB VRAM total, cukup untuk model 70B dalam Q4 atau model 32B dalam kualitas Q8. Tabel 4 akan menunjukkan bahwa tier ini sudah mampu memberi kualitas "Sangat Baik" untuk 10 pengguna. Trade-off-nya: garansi GPU *used* terbatas, dan daya tahan jangka panjang perlu dimonitor via *thermal* (Bab 7.7).
 
-| Metrik | Cloud API | Budget Self-Hosted | Medium Self-Hosted |
-|:---|:---:|:---:|:---:|
-| **Biaya Awal** | Rp 0 | Rp 60jt | Rp 110jt |
-| **Biaya Bulanan** | Rp 10.5jt | Rp 4.6jt | Rp 6.8jt |
-| **Total 1 Tahun** | Rp 126jt | Rp 115jt | Rp 192jt |
-| **Total 3 Tahun** | Rp 378jt | Rp 225jt | Rp 354jt |
-| **Penghematan 3 Tahun** | - | **Rp 153jt** | **Rp 24jt** |
-| **Break-even** | - | **~6 bulan** | **~11 bulan** |
+### Medium (~Rp 90jt): RTX 4090 untuk Tim Bertumbuh
 
-> Asumsi: 15 user, masing-masing pakai ChatGPT Team + GitHub Copilot (Rp 700rb/user/bulan).
+Tier menengah untuk tim **12-16 pengguna** memasang **2× RTX 4090** di platform Threadripper dengan 128 GB RAM. Lompatan terbesarnya bukan pada VRAM (sama-sama 48 GB total), melainkan pada bandwidth dan keandalan: RTX 4090 memindahkan data dua kali lebih cepat dan tidak bergantung pada kondisi kartu bekas. Hasilnya di Tabel 4: *concurrency* lebih tinggi, *latency* lebih rendah, dan ruang untuk model *granular MoE* seperti Mistral Large 3 mulai terbuka. Tier ini adalah pilihan paling seimbang bagi tim yang sudah menindaklanjuti Bab 7.7 dengan serius.
 
-Perhatikan bagaimana cerita berubah seiring waktu. Di tahun pertama, cloud "hanya" Rp 126 juta dan seolah unggul dari Medium (Rp 192 juta) — inilah mengapa proposal cloud selalu menang di slide pertama. Tetapi di tahun ketiga, kurvanya bersilangan telak: Budget menghemat **Rp 153 juta**, dan bahkan Medium yang lebih mahal tetap menghemat Rp 24 juta *plus* menyisakan aset hardware bernilai jual. Cloud tidak pernah berhenti menagih; server lokal berhenti setelah lunas. *Break-even* ±6 bulan (Budget) membuat keputusan ini bukan lagi soal "mampukah menunggu", melainkan soal disiplin menjalankan setup.
+### Optimal (~Rp 120jt): RTX 5090 untuk 16-20 Pengguna
 
-![Kurva TCO akumulatif tiga tahun: cloud API naik tanpa henti, self-hosted menanjak di awal lalu mendatar](../../assets/images/bab-07-small/sub-bab-8/tco-cloud-vs-self-hosted.png)
-
-*Gambar 7.8-1 — Cloud API (Rp 126jt → Rp 378jt dalam tiga tahun) selalu lebih murah hanya di tahun pertama; Budget self-hosted memotong garis cloud di bulan ke-6 dan menghemat Rp 153jt di akhir tahun ketiga, sementara Medium baru menyusul di bulan ke-11.*
+Tier tertinggi memasang **2× RTX 5090** di platform Threadripper Pro dengan 256 GB ECC RAM. Kartu generasi terbaru membuka 64 GB VRAM — *headroom* untuk DeepSeek V4 Flash Q4 melayani ~15 pengguna bersamaan, atau model 70B dalam Q8. Ilusinya sederhana: ini bukan membeli GPU tambahan, melainkan membeli **waktu tenang selama 3-5 tahun** — tidak perlu upgrade di tengah jalan ketika tim dan model tumbuh. Perhatikan bahwa label tier ("~Rp 120jt") sedikit berbeda dari jumlah rincian komponen di Tabel 1 (~Rp 160jt) — wajar, karena harga GPU generasi baru bergejolak; jadikan rincian komponen sebagai pegangan anggaran yang lebih jujur.
 
 ### Tabel 4: Perbandingan Model Berdasarkan Budget VRAM
 
@@ -149,7 +84,6 @@ Tabel ini mematahkan mitos "semakin mahal semakin baik" dengan dua temuan. **Per
 
 ---
 
-## 8. Diagram & Visualisasi
 
 ### Diagram 1: Decision Tree Budget
 
@@ -169,6 +103,7 @@ graph TD
 ```
 
 Pohon ini mengajarkan satu pola kunci: **jumlah pengguna menentukan tier, kebutuhan model menentukan kartu**. Menariknya, cabang-cabangnya sering menyimpang dari intuisi — tim 9-12 pengguna yang membutuhkan model 70B justru melompat ke 2× RTX 3090 (48 GB via NVLink) daripada membeli satu RTX 4090, karena Tabel 4 menunjukkan 48 GB adalah ambang bagi 70B Q4. Selalu tanya dua pertanyaan ini dalam urutan yang sama, dan keputusan hardware menjadi hampir deterministik.
+
 
 ### Diagram 2: Komponen Biaya Tier Budget (Pie Chart)
 
@@ -193,7 +128,81 @@ Pie chart ini menunjukkan isi perut anggaran: hampir **setengah dana (42%)** men
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 4. Self-Hosted vs Cloud API: Pertarungan TCO
+
+
+### Menghitung Lawan dari Awan
+
+Untuk membandingkan secara adil, pertama-tama hitung tagihan cloud yang sedang (atau akan) Anda bayar. Skenario standar 15 pengguna: **OpenAI ChatGPT Team** $25/pengguna/bulan dan **GitHub Copilot** $19/pengguna/bulan — total $44/pengguna/bulan, atau untuk 15 pengguna: $660/bulan ≈ **Rp 10,5 juta/bulan**. Sebelum lanjut, sadari ini hanya "paket dasar" — *usage limit* per pengguna masih ada, dan tagihan *API* tambahan menyusul saat tim mulai membangun otomatisasi.
+
+### Saat Garis-Garis Bersilangan
+
+Melawan angka itu, self-hosted menawarkan **Rp 60-120 juta sekali** ditambah **Rp 1-3 juta/bulan** untuk listrik dan maintenance (rincian di Tabel 2). Kurva keduanya saling berpotongan: cloud mulai lebih murah (nol modal), tetapi garisnya naik tak pernah berhenti; self-hosted menanjak di awal, lalu mendatar. Titik persilangan itulah **break-even point** — sekitar **6-12 bulan** untuk tier Budget, bergantung jumlah pengguna dan intensitas pemakaian. Pada akhir tahun ketiga (Tabel 3), selisihnya bukan kecil-kecilan: self-hosted Budget menghemat **±Rp 153 juta** dibanding cloud.
+
+### Tabel 3: Perbandingan Self-Hosted vs Cloud (TCO 3 Tahun)
+
+Inilah tabel yang paling sering difotokopi untuk rapat anggaran:
+
+| Metrik | Cloud API | Budget Self-Hosted | Medium Self-Hosted |
+|:---|:---:|:---:|:---:|
+| **Biaya Awal** | Rp 0 | Rp 60jt | Rp 110jt |
+| **Biaya Bulanan** | Rp 10.5jt | Rp 4.6jt | Rp 6.8jt |
+| **Total 1 Tahun** | Rp 126jt | Rp 115jt | Rp 192jt |
+| **Total 3 Tahun** | Rp 378jt | Rp 225jt | Rp 354jt |
+| **Penghematan 3 Tahun** | - | **Rp 153jt** | **Rp 24jt** |
+| **Break-even** | - | **~6 bulan** | **~11 bulan** |
+
+> Asumsi: 15 user, masing-masing pakai ChatGPT Team + GitHub Copilot (Rp 700rb/user/bulan).
+
+Perhatikan bagaimana cerita berubah seiring waktu. Di tahun pertama, cloud "hanya" Rp 126 juta dan seolah unggul dari Medium (Rp 192 juta) — inilah mengapa proposal cloud selalu menang di slide pertama. Tetapi di tahun ketiga, kurvanya bersilangan telak: Budget menghemat **Rp 153 juta**, dan bahkan Medium yang lebih mahal tetap menghemat Rp 24 juta *plus* menyisakan aset hardware bernilai jual. Cloud tidak pernah berhenti menagih; server lokal berhenti setelah lunas. *Break-even* ±6 bulan (Budget) membuat keputusan ini bukan lagi soal "mampukah menunggu", melainkan soal disiplin menjalankan setup.
+
+![Kurva TCO akumulatif tiga tahun: cloud API naik tanpa henti, self-hosted menanjak di awal lalu mendatar](../../assets/images/bab-07-small/sub-bab-8/tco-cloud-vs-self-hosted.png)
+
+*Gambar 7.8-1 — Cloud API (Rp 126jt → Rp 378jt dalam tiga tahun) selalu lebih murah hanya di tahun pertama; Budget self-hosted memotong garis cloud di bulan ke-6 dan menghemat Rp 153jt di akhir tahun ketiga, sementara Medium baru menyusul di bulan ke-11.*
+
+
+---
+
+## 5. Biaya Tersembunyi: Musuh dalam Selimut
+
+
+Anggaran yang matang selalu menganggarkan hal-hal yang tidak menyenangkan. Lima *hidden cost* yang paling sering terlupakan: **listrik** — GPU yang menyala 24/7 memakan Rp 1-3 juta per bulan tergantung tarif dan TDP, jangan hitung berdasarkan pemakaian 8 jam kerja; **cooling** — AC tambahan untuk ruang server, wajib di Indonesia; **internet** — *static IP* atau VPN server $10-20/bulan agar tim bisa mengakses dari luar kantor (otentikasi dari Bab 7.6 tidak berguna jika servernya tak bisa dijangkau); **backup** — storage cadangan untuk model dan database; dan **downtime** — *opportunity cost* saat server mati, jarang terjadi tetapi perlu dianggarkan psikologisnya.
+
+Praktik keuangan yang bijak: sisihkan **buffer biaya tak terduga 5-10%** dari total Capex — untuk GPU pengganti saat kartu *used* mati, kabel power rusak, atau upgrade PSU mendadak. Tabel 1 memasukkannya sebagai baris tersendiri, dan ini bukan pemborosan: ini premi asuransi untuk proyek yang menggerakkan produktivitas seluruh perusahaan.
+
+### Tabel 2: Biaya Operasional Bulanan
+
+Setelah server berdiri, inilah tagihan bulanan yang akan menemani Anda terus-menerus:
+
+| Komponen | Budget | Medium | Optimal |
+|:---|:---:|:---:|:---:|
+| **Listrik (24/7, Rp 1.500/kWh)** | Rp 1.500.000 | Rp 2.000.000 | Rp 3.000.000 |
+| **Internet (static IP/business)** | Rp 500.000 | Rp 500.000 | Rp 500.000 |
+| **VPN/Proxy** | Rp 200.000 | Rp 200.000 | Rp 200.000 |
+| **Cloud Backup** | Rp 200.000 | Rp 500.000 | Rp 1.000.000 |
+| **Maintenance (DevOps)** | Rp 500.000 | Rp 500.000 | Rp 500.000 |
+| **Penyusutan (3 tahun)** | Rp 1.670.000 | Rp 3.060.000 | Rp 4.440.000 |
+| **Total Opex Bulanan** | **~Rp 4.6jt** | **~Rp 6.8jt** | **~Rp 9.6jt** |
+
+Dua baris layak ditegaskan. **Listrik** adalah biaya terbesar dan paling stabil — dihitung dengan tarif PLN Rp 1.500/kWh untuk operasi 24/7; GPU idle pun tetap menyala. **Penyusutan** membagi Capex ke 36 bulan — baris yang menormalkan beban di laporan laba-rugi, sekaligus mengingatkan bahwa aset ini "habis" seiring waktu. Total Opex bahkan di tier Optimal (±Rp 9,6 juta) masih lebih murah daripada tagihan cloud satu bulan (±Rp 10,5 juta) — kesimpulan yang terasa ironis tetapi matematis: **server termahal kantor Anda masih lebih murah daripada langganan terkecilnya**.
+
+
+---
+
+## 6. ROI Projection: Mengapa Investasi Ini Layak
+
+
+ROI *hardware* tidak bisa dihitung semanis startup valuation, tetapi tiga sumber pengembaliannya nyata. **Pertama, penghematan substitusi**: Rp 10,5 juta/bulan langganan cloud (ChatGPT Team + Copilot) berhenti seketika — angka yang konkret dan bisa ditagih ke finance. **Kedua, produktivitas developer**: peningkatan 25-40% — sulit diukur langsung, tetapi nyata: PR lebih cepat selesai, *onboarding* anggota baru turun dari 2 minggu menjadi **3 hari** berkat RAG internal dari Bab 7.4 yang memuat dokumen on-boarding. **Ketiga, knowledge retention**: RAG menyimpan pengetahuan yang selama ini menguap di kepala karyawan — aset yang bertambah setiap bulan tanpa langganan tambahan.
+
+Cara paling jujur menyajikan ROI ke pemilik usaha adalah dua angka: *break-even* (berapa bulan sampai investasi kembali) dan *settlement* 3 tahun (berapa juta yang dihemat selama 3 tahun dibanding tetap di cloud). Keduanya ada di Tabel 3 dan kalkulator di Langkah 1. Jika satu angka itu sudah meyakinkan, sisanya hanya formalitas teknis.
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Kalkulator TCO Self-Hosted vs Cloud
 
@@ -239,7 +248,7 @@ def calculate_tco():
 # Cloud: 700rb/user/bulan
 ```
 
-Uji skenario Anda di sini sebelum membuka rapat. Contoh bawaan (15 pengguna, Capex 90jt, Opex 6,8jt/bulan, cloud Rp 700rb/pengguna) akan menampilkan *break-even* ±8,5 bulan — konsisten dengan studi kasus Perusahaan B pada seksi 10. Kalkulator ini juga jujur menampilkan *loss* di bulan-bulan awal: menjalankannya bersama pemilik usaha lebih meyakinkan daripada sekadar menunjukkan angka final.
+Uji skenario Anda di sini sebelum membuka rapat. Contoh bawaan (15 pengguna, Capex 90jt, Opex 6,8jt/bulan, cloud Rp 700rb/pengguna) akan menampilkan *break-even* ±8,5 bulan — konsisten dengan studi kasus Perusahaan B pada seksi 8. Kalkulator ini juga jujur menampilkan *loss* di bulan-bulan awal: menjalankannya bersama pemilik usaha lebih meyakinkan daripada sekadar menunjukkan angka final.
 
 ### Langkah 2: Template Purchase Request untuk Manajemen
 
@@ -313,7 +322,8 @@ Skrip ini mengubah klaim "listrik ±Rp 2 juta/bulan" menjadi fakta terukur: daya
 
 ---
 
-## 10. Studi Kasus: TCO Tiga Perusahaan dan Keputusan Startup
+## 8. Studi Kasus: TCO Tiga Perusahaan dan Keputusan Startup
+
 
 ### Perusahaan A, B, C: Tiga Tier, Tiga Waktu Balik Modal
 
@@ -329,7 +339,8 @@ Rangkuman filosofis dari kedua studi kasus: dalam rentang 2 tahun, biaya cloud d
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper/Artikel Jurnal & Industri
 

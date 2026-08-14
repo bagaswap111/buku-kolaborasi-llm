@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa **K3s**, bukan Kubernetes (K8s) penuh, adalah pilihan tepat untuk general office 21-50 user — dari ukuran *binary*, cara kerja, hingga kesiapan produksi di *on-premise*
@@ -19,73 +20,12 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Mengapa K3s untuk General Office?
 
+
 Halaman dokumentasi K3s membuka diri dengan kalimat yang langsung membungkam perdebatan: *"Lightweight Kubernetes — easy to install, half the memory, all in a binary of less than 100 MB"*. Untuk general office, kalimat terakhir itulah yang paling penting. **Binary K3s kurang dari 100 MB**, sementara Kubernetes penuh membutuhkan *binary* sekitar 1 GB dan rangkaian komponen yang jauh lebih rumit: kube-apiserver, etcd, controller-manager, scheduler, kubelet, kube-proxy, plus *add-ons* yang dipasang terpisah. K3s mengemas semuanya — termasuk **etcd built-in** dan **cert-manager terintegrasi** — ke dalam satu biner yang bisa dijalankan dengan satu perintah *curl*. Untuk klaster berukuran 2-5 node di ruang server kantor, inilah *keseimbangan sempurna* antara kekuatan Kubernetes dan kemudahan operasi.
 
 Perbandingannya bukan sekadar soal ukuran toko. K3s memang dibangun untuk *edge* dan *on-premise* kecil: ia menggantikan sebagian komponen default-nya dengan implementasi ringan (misalnya kubelet *tuned* dan Traefik sebagai ingress built-in), sementara *API surface*-nya 100% kompatibel dengan Kubernetes — *manifest* YAML yang Anda tulis untuk K8s penuh berjalan apa adanya di K3s. Yang sering tidak disadari calon pengguna: **cluster upgrade** K3s cukup satu perintah (`k3s upgrade`), sertifikat diperbarui otomatis, dan *backup etcd* didukung langsung ke S3 — tiga pekerjaan yang di K8s penuh biasanya memakan hari kerja DevOps.
 
 Terakhir — dan ini paling relevan bagi skala kita — **dukungan GPU K3s bersifat *mature***: NVIDIA GPU Operator (dibahas di seksi 5) dipasang di atas klaster mana pun secara seragam. Kombinasi *lightweight core* + kompatibilitas penuh + dukungan GPU dewasa membuat K3s menjadi jawaban "orchestrator mana?" untuk 21-50 user; K8s penuh baru masuk akal ketika klaster melampaui belasan node atau perusahaan sudah memiliki tim *platform engineering* khusus — dan Docker Swarm atau Nomad (Tabel 1) hanya menjadi alternatif di kasus-kasus yang sangat spesifik.
-
----
-
-## 3. Arsitektur K3s Cluster untuk LLM
-
-### Control Plane dan Worker Pool
-
-Arsitektur referensi untuk general office terdiri dari **1 node control plane** — cukup 4 core CPU, 16 GB RAM, SSD — dan **2-3 node worker** yang berpemandangan GPU: masing-masing **16+ core, 256 GB RAM**, dan minimal satu kartu GPU kelas enterprise. Control plane adalah "otak" klaster: ia hanya menjalankan *control loop* (scheduler, API server, controller) dan *tidak boleh* menerima workload inference — taruh GPU di worker, bukan di otak. Karena beban orchestration K3s sangat ringan, control plane dengan spesifikasi di atas bahkan menyisakan ruang untuk *monitoring stack* (Prometheus + Grafana) sebagai *colocation* yang praktis.
-
-Satu keputusan yang membedakan arsitektur general office dari *homelab*: **storage**. Bobot model berukuran 20-300 GB per model (Tabel 2), Qdrant menahan *embeddings* dalam ratusan GB, dan PostgreSQL menyimpan metadata serta audit log — semuanya harus hidup di atas **persistent volume**. Praktik terbaik K3s adalah memasang **Longhorn** (storage *distributed* buatan Rancher — sama-sama rumah K3s) atau **OpenEBS** sebagai *storage class* default. Dengan Longhorn, volume data direplikasi lintas node — sebuah model yang tersimpan di worker 1 tetap bisa dipasang di worker 2 ketika worker 1 mati, persis seperti pilar redundansi Bab 8.1.
-
-### Ingress dan Routing
-
-Lalu lintas dari LiteLLM (*gateway*) menuju pod vLLM bisa diarahkan lewat **Traefik (ingress built-in K3s)** atau **NGINX Ingress Controller** yang dipasang manual. Untuk general office, Traefik bawaan sudah lebih dari cukup: ia menangani TLS, *routing* per-*host*, dan *rate limiting* dasar. NGINX dipilih jika tim sudah terlatih dengannya atau membutuhkan fitur lanjutan (misalnya *canary release* per replica). Yang lebih penting daripada pilihan *ingress* adalah pola *service* di dalam klaster: setiap model inferensi sebaiknya diekspos sebagai *Service* sendiri (misalnya `vllm-70b` di port 8000), dan LiteLLM-lah yang menjadi *single entry point* ke dunia luar — bukan pod vLLM individual. Arsitektur penuh divisualisasikan pada Gambar 1.
-
----
-
-## 4. Auto-scaling Strategy
-
-Inilah jantung *orchestration* untuk LLM: **kemampuan sistem menyesuaikan jumlah pod secara otomatis**. Empat mekanisme bekerja berdampingan:
-
-**Horizontal Pod Autoscaler (HPA)** — mekanisme utama. HPA memantau metrik *request/limit* pada pod (CPU, memori, atau *custom metrics*) dan menambah/mengurangi jumlah *replica* secara periodik. Untuk LLM, metrik GPU yang diekspos vLLM — **`gpu_cache_usage`**, **`num_requests_running`** atau **`num_requests_waiting`** (kedalaman antrean), dan **`avg_time_per_token`** — adalah sinyal yang jauh lebih akurat daripada CPU: sebuah pod vLLM bisa memiliki CPU rendah tetapi GPU penuh. HPA dengan *custom metrics* membaca sinyal-sinyal ini melalui *custom metrics adapter* (Prometheus Adapter) dan menambah pod ketika antrean mengular — Tabel 3 merangkum ambang batasnya.
-
-**Vertical Pod Autoscaler (VPA)** — pasangan HPA yang bekerja pada sumbu *y*: ia mengoptimalkan *resource request/limit* tiap pod. Untuk beban *inference* yang volumenya fluktuatif, VPA berguna di fase awal untuk menemukan "ukuran sepatu" yang tepat (misalnya 8 core / 32 GB untuk pod DeepSeek V4 Flash), lalu biasanya dipatikan agar tidak berkonflik dengan HPA.
-
-**Cluster Autoscaler** — menambah/mengurangi *node fisik*. Di *on-premise*, kemampuannya terbatas: menambah node berarti membeli server. Karena itu, untuk general office, *Cluster Autoscaler* lebih relevan sebagai konsep cadangan (*capacity buffer* manual) daripada mekanisme harian — perannya dominan di *cloud*, yang menjadi bahan perbandingan di seksi 5 buku ini.
-
-**Custom Metrics** adalah bahan bakar ketiganya. vLLM mengekspos endpoint metrik Prometheus dengan nama seperti `vllm_num_requests_waiting`, `vllm_gpu_cache_usage`, dan `avg_time_per_token`; Prometheus mengumpulkannya, dan *Prometheus Adapter* menerjemahkannya menjadi metrik yang dapat dibaca HPA. Rantai inilah yang membuat auto-scaling LLM menjadi *data-driven* — bukan tebakan operator — dan menjadi dasar tutorial B di seksi 9.
-
----
-
-## 5. GPU Scheduling
-
-GPU bukan CPU: ia tidak bisa dibagi begitu saja oleh *scheduler* default Kubernetes. Di sinilah **NVIDIA GPU Operator** memainkan peran segitiga: ia men-deploy (1) **device plugin** yang mendaftarkan tiap GPU sebagai sumber daya `nvidia.com/gpu`, (2) **runtime** (nvidia-container-toolkit) yang membuat container melihat GPU, dan (3) **DCGM exporter** untuk metrik pemantauan. Setelah operator terpasang, *scheduler* tahu berapa GPU yang tersedia di tiap node, dan pod yang meminta `nvidia.com/gpu: 1` akan ditempatkan hanya di node yang punya kartu kosong.
-
-Kontrol *penempatan* dilakukan dengan dua alat standar. **NodeSelector** paling sederhana: pod hanya boleh mendarat di node berlabel tertentu (misalnya `accelerator=nvidia-gpu`), cocok untuk memisahkan worker GPU dari control plane. **Affinity rules** lebih ekspresif — misalnya *pod affinity* yang memaksa replica model besar dan model kecil berada di node berbeda untuk mencegah *GPU contention*, atau *anti-affinity* agar dua replica model yang sama tidak pernah menumpuk di satu kartu *dan* satu node. Aturan praktis: gunakan *nodeSelector* untuk isolasi kelas (GPU vs non-GPU), dan *affinity rules* untuk keadilan antar-workload (GPU vs GPU).
-
-Ketika sebuah GPU ingin dibagi oleh banyak workload ringan — misalnya dua pod 8B berbagi satu L40S — dua teknologi muncul sebagai kandidat: **time-slicing** membagi GPU secara *waktu* (tiap pod mendapat giliran memakai seluruh kartu, sederhana tetapi tidak ada isolasi memori dan *latency* bisa saling mengganggu), sedangkan **MIG (Multi-Instance GPU)** membagi GPU secara *fisik* menjadi beberapa *instance* terisolasi dengan memori dan *compute* terpisah — tetapi MIG hanya didukung A100/H100, tidak oleh L40S, dan memerlukan perencanaan partisi yang lebih teliti. Rekomendasi untuk general office: mulai dengan satu pod per GPU (isolasi paling sederhana dan kinerja paling terprediksi), jadikan *time-slicing* sebagai opsi saat kartu mulai langka, dan baru pertimbangkan MIG untuk kasus H100 yang bebannya benar-benar ringan [2].
-
----
-
-## 6. Persistent Storage StatefulSet
-
-Tidak semua beban LLM bersifat *stateless*. Tiga komponen menuntut penyimpanan persisten, dan masing-masing punya pola *deployment* yang benar:
-
-- **Model storage** — bobot model (20-300 GB per model) sebaiknya disimpan di **MinIO** (objek store) atau **NFS**, lalu dipasang ke pod vLLM sebagai volume baca-saja. Pola ini memungkinkan banyak replica membaca model yang sama tanpa *duplikasi storage*, dan berperan penting pada *failover*: pod baru di node lain langsung mencolok volume yang sama.
-- **Vector DB** — **Qdrant** (atau Milvus) sebagai **StatefulSet** dengan *persistent volume claim* (PVC). Qdrant membawa *replication factor* 3 (Bab 8.1), dan *headless service* bernama (`qdrant-0`, `qdrant-1`, dan seterusnya) memastikan setiap *replica* menancap pada volume pribadinya.
-- **Database** — **PostgreSQL** dengan **Patroni** (cluster HA) untuk metadata dan audit log; Patroni mengelola *streaming replication*, *failover* otomatis, dan *slot* yang dipasang pada PVC per *replica*.
-
-Mengapa *StatefulSet* dan bukan *Deployment* untuk ketiganya? Karena *Deployment* menganggap semua *replica* identik dan bisa dihapus-tanam kapan saja (pod baru mendapat identitas baru), sedangkan *StatefulSet* memberi setiap *replica* identitas stabil (`qdrant-0`, `postgres-0`) yang melekat pada volume dan alamat *network*-nya — persyaratan mutlak untuk *replication*, *leader election*, dan *streaming*.
-
----
-
-## 7. Networking & Security
-
-Klaster yang sehat juga klaster yang tertutup. **NetworkPolicy** menjadi alat isolasi pertama: secara default, semua pod di Kubernetes bisa saling berbicara — sesuatu yang tidak kamu inginkan ketika pod analisis dokumen HR berdampingan dengan pod *engineering*. Dengan *NetworkPolicy*, kita menetapkan aturan *allowlist* per-*namespace*: hanya pod `litellm` yang boleh menjangkau `vllm-*`, hanya `vllm-*` yang boleh menjangkau `qdrant` dan `postgres`, dan tidak ada pod *training* yang boleh menyentuh apa pun di luar *namespace*-nya sendiri.
-
-Di atas isolasi, **mTLS** menyandikan komunikasi antar-pod sehingga data yang lewat antar-layanan — termasuk *prompt* yang dikirim dari LiteLLM ke vLLM — tidak bisa disadap di dalam jaringan klaster. Penerapan paling sederhana adalah **Linkerd** atau **Istio** dengan *injection* otomatis: sertifikat dibuat oleh cert-manager (sudah terintegrasi di K3s), diperbarui otomatis, dan *policy* didefinisikan per-*workload*. Untuk general office, Linkerd cukup — *service mesh* Istio lebih berat dan nilainya baru terasa pada klaster berskala besar. Catatan jujur: *service mesh* bersifat **opsional**; jika tim belum siap mengoperasikannya, *NetworkPolicy* + TLS pada *ingress* (haproxy/Traefik) sudah menutup 90% permukaan serangan — dan bisa dilakukan penambahan *mesh* di kemudian hari tanpa *rewrite* aplikasi.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: Perbandingan Orchestration Options
 
@@ -99,6 +39,22 @@ Di atas isolasi, **mTLS** menyandikan komunikasi antar-pod sehingga data yang le
 | **Best For** | On-prem, edge, small-medium | Cloud, large-scale | Simple deploy | Multi-workload |
 
 Tabel ini menjawab pertanyaan "mengapa bukan yang lain?" dalam satu pandang. **Docker Swarm** menang di kemudahan tetapi kalah telak di *auto-scaling* (manual) dan dukungan GPU (terbatas) — untuk general office yang menjadikan HPA sebagai jantung kapasitas, Swarm gugur lebih dulu. **Nomad** menarik untuk *multi-workload* (mencampur batch job dan layanan), tetapi HPA Kubernetes jauh lebih dikenal, dan ekosistem *LLM serving* (vLLM, GPU Operator, Prometheus Adapter) tumbuh paling pesat di atas Kubernetes. **K8s Full** menang di *cloud* dan *large-scale* — justru wilayah yang bukan medan general office. Posisi K3s paling kuat pada titik temu "kuat seperti K8s, sederhana seperti Swarm" — dan faktor *binary* 100 MB vs 1 GB tidak hanya soal ruang disk, melainkan soal *surface area* yang harus diamankan dan di-update tim IT kantor yang kecil.
+
+
+---
+
+## 3. Arsitektur K3s Cluster untuk LLM
+
+
+### Control Plane dan Worker Pool
+
+Arsitektur referensi untuk general office terdiri dari **1 node control plane** — cukup 4 core CPU, 16 GB RAM, SSD — dan **2-3 node worker** yang berpemandangan GPU: masing-masing **16+ core, 256 GB RAM**, dan minimal satu kartu GPU kelas enterprise. Control plane adalah "otak" klaster: ia hanya menjalankan *control loop* (scheduler, API server, controller) dan *tidak boleh* menerima workload inference — taruh GPU di worker, bukan di otak. Karena beban orchestration K3s sangat ringan, control plane dengan spesifikasi di atas bahkan menyisakan ruang untuk *monitoring stack* (Prometheus + Grafana) sebagai *colocation* yang praktis.
+
+Satu keputusan yang membedakan arsitektur general office dari *homelab*: **storage**. Bobot model berukuran 20-300 GB per model (Tabel 2), Qdrant menahan *embeddings* dalam ratusan GB, dan PostgreSQL menyimpan metadata serta audit log — semuanya harus hidup di atas **persistent volume**. Praktik terbaik K3s adalah memasang **Longhorn** (storage *distributed* buatan Rancher — sama-sama rumah K3s) atau **OpenEBS** sebagai *storage class* default. Dengan Longhorn, volume data direplikasi lintas node — sebuah model yang tersimpan di worker 1 tetap bisa dipasang di worker 2 ketika worker 1 mati, persis seperti pilar redundansi Bab 8.1.
+
+### Ingress dan Routing
+
+Lalu lintas dari LiteLLM (*gateway*) menuju pod vLLM bisa diarahkan lewat **Traefik (ingress built-in K3s)** atau **NGINX Ingress Controller** yang dipasang manual. Untuk general office, Traefik bawaan sudah lebih dari cukup: ia menangani TLS, *routing* per-*host*, dan *rate limiting* dasar. NGINX dipilih jika tim sudah terlatih dengannya atau membutuhkan fitur lanjutan (misalnya *canary release* per replica). Yang lebih penting daripada pilihan *ingress* adalah pola *service* di dalam klaster: setiap model inferensi sebaiknya diekspos sebagai *Service* sendiri (misalnya `vllm-70b` di port 8000), dan LiteLLM-lah yang menjadi *single entry point* ke dunia luar — bukan pod vLLM individual. Arsitektur penuh divisualisasikan pada Gambar 1.
 
 ### Tabel 2: Resource Allocation per Pod
 
@@ -119,20 +75,6 @@ Tiga bacaan penting dari tabel alokasi ini. Pertama, **GPU bukan satu-satunya su
 
 *Gambar 8.3-1 — Pod vLLM Mistral Large 3 menuntut paling banyak CPU/RAM (12 core/48 GB) di antara semua workload, sementara MinIO (500 GB) mendominasi storage; storage log tidak lain wujud pilar redundansi: semua komponen non-GPU berreplica 2-3.*
 
-### Tabel 3: HPA Auto-scaling Rules
-
-| Metric | Target | Scale Up | Scale Down | Cool Down |
-|:---|:---:|:---:|:---:|:---:|
-| **GPU Utilization** | > 80% | +1 pod | < 40% (5 menit) | 3 menit |
-| **Queue Depth (vLLM)** | > 10 requests | +1 pod | < 3 (5 menit) | 3 menit |
-| **Avg TTFT** | > 2 detik | +1 pod | < 1 detik (5 menit) | 5 menit |
-| **Memory Usage** | > 85% | +1 pod | < 60% (10 menit) | 5 menit |
-
-Tabel HPA ini adalah *konstitusi* kapasitas klaster — dan asimetrisnya angka *scale up* vs *scale down* adalah kebijakan tersirat: **naik cepat, turun lambat**. *Scale up* hanya butuh jendela singkat (+1 pod, *cool down* 3 menit) agar lonjakan 25 user di jam rapat tidak menciptakan antrean; *scale down* mensyaratkan metrik bertahan rendah selama 5-10 menit dan *cool down* lebih panjang (5 menit), mencegah *flapping* — pod naik-turun seperti yoyo ketika beban berosilasi. Perhatikan sinyal per metrik: *Queue Depth* menangkap *backlog* secara langsung (lebih dari 10 *request* menunggu = tambah pod), *GPU Utilization* menangkap *kejenuhan* (di atas 80%), TTFT menangkap *persepsi pengguna*, dan *Memory* menjaga *KV cache* tidak mendekati *throttling* [1][3]. Dalam praktik, gunakan minimal dua metrik bersamaan (misalnya *Queue Depth* + *Memory Usage*) — otak HPA akan mempertimbangkan rata-rata keduanya, dan hasilnya lebih stabil daripada satu metrik tunggal.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur K3s Cluster untuk LLM
 
@@ -177,6 +119,36 @@ graph TB
 
 Diagram ini merangkum seluruh bab dalam satu gambar. **Control plane** mengatur dua **worker GPU**; pada worker 1 hidup pod vLLM 70B (tugas berat) dan *replica 1* vLLM 8B, pada worker 2 hunian *replica 2* vLLM 8B — pola *anti-affinity* yang memastikan replica model cepat tidak pernah menumpuk di satu node. Ketiga lapisan storage menampung semua pod; perhatikan bahwa LiteLLM (kotak *Pods*) tidak memegang panah ke storage — ia murni *router*, dan *bottle neck* jaringan justru harus dijaga di sini: setiap *request* yang lewat LiteLLM harus tiba di vLLM dalam hitungan milidetik, jadi *pod* LiteLLM sebaiknya di-*co-locate* pada node yang sama dengan *halaman* vLLM-nya (topologi ini tidak digambar untuk menjaga diagram tetap sederhana, tetapi diingat saat *scheduling*).
 
+
+---
+
+## 4. Auto-scaling Strategy
+
+
+Inilah jantung *orchestration* untuk LLM: **kemampuan sistem menyesuaikan jumlah pod secara otomatis**. Empat mekanisme bekerja berdampingan:
+
+**Horizontal Pod Autoscaler (HPA)** — mekanisme utama. HPA memantau metrik *request/limit* pada pod (CPU, memori, atau *custom metrics*) dan menambah/mengurangi jumlah *replica* secara periodik. Untuk LLM, metrik GPU yang diekspos vLLM — **`gpu_cache_usage`**, **`num_requests_running`** atau **`num_requests_waiting`** (kedalaman antrean), dan **`avg_time_per_token`** — adalah sinyal yang jauh lebih akurat daripada CPU: sebuah pod vLLM bisa memiliki CPU rendah tetapi GPU penuh. HPA dengan *custom metrics* membaca sinyal-sinyal ini melalui *custom metrics adapter* (Prometheus Adapter) dan menambah pod ketika antrean mengular — Tabel 3 merangkum ambang batasnya.
+
+**Vertical Pod Autoscaler (VPA)** — pasangan HPA yang bekerja pada sumbu *y*: ia mengoptimalkan *resource request/limit* tiap pod. Untuk beban *inference* yang volumenya fluktuatif, VPA berguna di fase awal untuk menemukan "ukuran sepatu" yang tepat (misalnya 8 core / 32 GB untuk pod DeepSeek V4 Flash), lalu biasanya dipatikan agar tidak berkonflik dengan HPA.
+
+**Cluster Autoscaler** — menambah/mengurangi *node fisik*. Di *on-premise*, kemampuannya terbatas: menambah node berarti membeli server. Karena itu, untuk general office, *Cluster Autoscaler* lebih relevan sebagai konsep cadangan (*capacity buffer* manual) daripada mekanisme harian — perannya dominan di *cloud*, yang menjadi bahan perbandingan di seksi 5 buku ini.
+
+**Custom Metrics** adalah bahan bakar ketiganya. vLLM mengekspos endpoint metrik Prometheus dengan nama seperti `vllm_num_requests_waiting`, `vllm_gpu_cache_usage`, dan `avg_time_per_token`; Prometheus mengumpulkannya, dan *Prometheus Adapter* menerjemahkannya menjadi metrik yang dapat dibaca HPA. Rantai inilah yang membuat auto-scaling LLM menjadi *data-driven* — bukan tebakan operator — dan menjadi dasar tutorial B di seksi 9.
+
+### Tabel 3: HPA Auto-scaling Rules
+
+| Metric | Target | Scale Up | Scale Down | Cool Down |
+|:---|:---:|:---:|:---:|:---:|
+| **GPU Utilization** | > 80% | +1 pod | < 40% (5 menit) | 3 menit |
+| **Queue Depth (vLLM)** | > 10 requests | +1 pod | < 3 (5 menit) | 3 menit |
+| **Avg TTFT** | > 2 detik | +1 pod | < 1 detik (5 menit) | 5 menit |
+| **Memory Usage** | > 85% | +1 pod | < 60% (10 menit) | 5 menit |
+
+Tabel HPA ini adalah *konstitusi* kapasitas klaster — dan asimetrisnya angka *scale up* vs *scale down* adalah kebijakan tersirat: **naik cepat, turun lambat**. *Scale up* hanya butuh jendela singkat (+1 pod, *cool down* 3 menit) agar lonjakan 25 user di jam rapat tidak menciptakan antrean; *scale down* mensyaratkan metrik bertahan rendah selama 5-10 menit dan *cool down* lebih panjang (5 menit), mencegah *flapping* — pod naik-turun seperti yoyo ketika beban berosilasi. Perhatikan sinyal per metrik: *Queue Depth* menangkap *backlog* secara langsung (lebih dari 10 *request* menunggu = tambah pod), *GPU Utilization* menangkap *kejenuhan* (di atas 80%), TTFT menangkap *persepsi pengguna*, dan *Memory* menjaga *KV cache* tidak mendekati *throttling* [1][3]. Dalam praktik, gunakan minimal dua metrik bersamaan (misalnya *Queue Depth* + *Memory Usage*) — otak HPA akan mempertimbangkan rata-rata keduanya, dan hasilnya lebih stabil daripada satu metrik tunggal.
+
+---
+
+
 ### Gambar 2: Dashboard Grafana Auto-scaling Metrics
 
 Dashboard menampilkan empat panel yang menjadi *cockpit* operator: **GPU utilization** (kapan kartu mulai jenuh), **queue depth** (berapa *request* mengantre), **pod replica count** (aksi HPA yang sedang berlangsung), dan **TTFT** (persepsi pengguna). Kunci membaca dashboard ini adalah *kausalitas*: TTFT naik → beberapa menit kemudian queue depth naik → HPA menambah pod → replica count naik → GPU utilization turun → TTFT turun. Urutan itu adalah siklus auto-scaling yang sehat; jika urutannya patah (misalnya queue naik tetapi replica tidak), operator tahu masalahnya ada di *metric pipeline* — bukan di model. Alur kausalitasnya:
@@ -190,6 +162,7 @@ flowchart LR
     E --> F[TTFT turun]
     F -. ulangi .-> A
 ```
+
 
 ### Gambar 3: Diagram Siklus Auto-scaling (Flowchart)
 
@@ -207,7 +180,44 @@ flowchart TD
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 5. GPU Scheduling
+
+
+GPU bukan CPU: ia tidak bisa dibagi begitu saja oleh *scheduler* default Kubernetes. Di sinilah **NVIDIA GPU Operator** memainkan peran segitiga: ia men-deploy (1) **device plugin** yang mendaftarkan tiap GPU sebagai sumber daya `nvidia.com/gpu`, (2) **runtime** (nvidia-container-toolkit) yang membuat container melihat GPU, dan (3) **DCGM exporter** untuk metrik pemantauan. Setelah operator terpasang, *scheduler* tahu berapa GPU yang tersedia di tiap node, dan pod yang meminta `nvidia.com/gpu: 1` akan ditempatkan hanya di node yang punya kartu kosong.
+
+Kontrol *penempatan* dilakukan dengan dua alat standar. **NodeSelector** paling sederhana: pod hanya boleh mendarat di node berlabel tertentu (misalnya `accelerator=nvidia-gpu`), cocok untuk memisahkan worker GPU dari control plane. **Affinity rules** lebih ekspresif — misalnya *pod affinity* yang memaksa replica model besar dan model kecil berada di node berbeda untuk mencegah *GPU contention*, atau *anti-affinity* agar dua replica model yang sama tidak pernah menumpuk di satu kartu *dan* satu node. Aturan praktis: gunakan *nodeSelector* untuk isolasi kelas (GPU vs non-GPU), dan *affinity rules* untuk keadilan antar-workload (GPU vs GPU).
+
+Ketika sebuah GPU ingin dibagi oleh banyak workload ringan — misalnya dua pod 8B berbagi satu L40S — dua teknologi muncul sebagai kandidat: **time-slicing** membagi GPU secara *waktu* (tiap pod mendapat giliran memakai seluruh kartu, sederhana tetapi tidak ada isolasi memori dan *latency* bisa saling mengganggu), sedangkan **MIG (Multi-Instance GPU)** membagi GPU secara *fisik* menjadi beberapa *instance* terisolasi dengan memori dan *compute* terpisah — tetapi MIG hanya didukung A100/H100, tidak oleh L40S, dan memerlukan perencanaan partisi yang lebih teliti. Rekomendasi untuk general office: mulai dengan satu pod per GPU (isolasi paling sederhana dan kinerja paling terprediksi), jadikan *time-slicing* sebagai opsi saat kartu mulai langka, dan baru pertimbangkan MIG untuk kasus H100 yang bebannya benar-benar ringan [2].
+
+---
+
+## 6. Persistent Storage StatefulSet
+
+
+Tidak semua beban LLM bersifat *stateless*. Tiga komponen menuntut penyimpanan persisten, dan masing-masing punya pola *deployment* yang benar:
+
+- **Model storage** — bobot model (20-300 GB per model) sebaiknya disimpan di **MinIO** (objek store) atau **NFS**, lalu dipasang ke pod vLLM sebagai volume baca-saja. Pola ini memungkinkan banyak replica membaca model yang sama tanpa *duplikasi storage*, dan berperan penting pada *failover*: pod baru di node lain langsung mencolok volume yang sama.
+- **Vector DB** — **Qdrant** (atau Milvus) sebagai **StatefulSet** dengan *persistent volume claim* (PVC). Qdrant membawa *replication factor* 3 (Bab 8.1), dan *headless service* bernama (`qdrant-0`, `qdrant-1`, dan seterusnya) memastikan setiap *replica* menancap pada volume pribadinya.
+- **Database** — **PostgreSQL** dengan **Patroni** (cluster HA) untuk metadata dan audit log; Patroni mengelola *streaming replication*, *failover* otomatis, dan *slot* yang dipasang pada PVC per *replica*.
+
+Mengapa *StatefulSet* dan bukan *Deployment* untuk ketiganya? Karena *Deployment* menganggap semua *replica* identik dan bisa dihapus-tanam kapan saja (pod baru mendapat identitas baru), sedangkan *StatefulSet* memberi setiap *replica* identitas stabil (`qdrant-0`, `postgres-0`) yang melekat pada volume dan alamat *network*-nya — persyaratan mutlak untuk *replication*, *leader election*, dan *streaming*.
+
+---
+
+## 7. Networking & Security
+
+
+Klaster yang sehat juga klaster yang tertutup. **NetworkPolicy** menjadi alat isolasi pertama: secara default, semua pod di Kubernetes bisa saling berbicara — sesuatu yang tidak kamu inginkan ketika pod analisis dokumen HR berdampingan dengan pod *engineering*. Dengan *NetworkPolicy*, kita menetapkan aturan *allowlist* per-*namespace*: hanya pod `litellm` yang boleh menjangkau `vllm-*`, hanya `vllm-*` yang boleh menjangkau `qdrant` dan `postgres`, dan tidak ada pod *training* yang boleh menyentuh apa pun di luar *namespace*-nya sendiri.
+
+Di atas isolasi, **mTLS** menyandikan komunikasi antar-pod sehingga data yang lewat antar-layanan — termasuk *prompt* yang dikirim dari LiteLLM ke vLLM — tidak bisa disadap di dalam jaringan klaster. Penerapan paling sederhana adalah **Linkerd** atau **Istio** dengan *injection* otomatis: sertifikat dibuat oleh cert-manager (sudah terintegrasi di K3s), diperbarui otomatis, dan *policy* didefinisikan per-*workload*. Untuk general office, Linkerd cukup — *service mesh* Istio lebih berat dan nilainya baru terasa pada klaster berskala besar. Catatan jujur: *service mesh* bersifat **opsional**; jika tim belum siap mengoperasikannya, *NetworkPolicy* + TLS pada *ingress* (haproxy/Traefik) sudah menutup 90% permukaan serangan — dan bisa dilakukan penambahan *mesh* di kemudian hari tanpa *rewrite* aplikasi.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Deploy K3s Cluster dengan GPU Support
 
@@ -350,7 +360,8 @@ Dua replica `vllm-8b` (keduanya meminta satu GPU) adalah wujud HPA dari Langkah 
 
 ---
 
-## 11. Studi Kasus: Deploy K3s General Office 35 User di PT Maju Teknologi
+## 9. Studi Kasus: Deploy K3s General Office 35 User di PT Maju Teknologi
+
 
 **Profil.** PT Maju Teknologi adalah perusahaan software dengan **35 karyawan** yang tersebar di tiga tim. Permintaan manajemen tegas: semua data — termasuk kode internal dan dokumen klien — **tidak boleh keluar perimeter perusahaan** karena klausul kerahasiaan di kontrak klien. Solusi SaaS cloud gugur sejak awal; jawabannya adalah *on-premise* dengan *orchestration* yang matang.
 
@@ -364,7 +375,8 @@ Dua replica `vllm-8b` (keduanya meminta satu GPU) adalah wujud HPA dari Langkah 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

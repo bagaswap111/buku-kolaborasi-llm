@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa inferensi LLM di CPU lambat, dan kapan ia tetap menjadi pilihan rasional
@@ -17,6 +18,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa CPU Inference Lambat — Tetapi Layak
+
 
 ### Ribuan Core versus Puluhan Core
 
@@ -33,100 +35,6 @@ Sebagaimana diukur komunitas, inferensi CPU-only memberikan sekitar **5-20 token
 Penting juga menetapkan ekspektasi yang jujur sejak awal. Pada kecepatan 5-10 t/s, percakapan terasa seperti *chatting* yang "berpikir lama" sebelum menjawab — masih nyaman untuk asisten yang menjawab paragraf pendek, tetapi kurang ideal untuk *code completion* real-time atau *autocomplete* yang menuntut respons di bawah satu detik. Pada 15-20 t/s (Xeon generasi baru dengan AMX), pengalaman sudah mendekati GPU kelas menengah untuk model 7-8B. Dan di kecepatan 1-3 t/s untuk model 70B, yang realistis hanyalah *offline processing* — biarkan berjalan semalaman untuk meringkas dokumen, bukan berdialog. Menetapkan ekspektasi di awal akan menyelamatkan Anda dari kekecewaan, dan membantu memilih orientasi mesin: *interactive* atau *batch*.
 
 Apa saja beban kerja nyata yang cocok untuk CPU-only? Tiga contoh paling umum: **asisten pribadi ringan** di laptop kantor — menjawab pertanyaan, meringkas email, menulis draf — di mana 8-12 t/s sudah lebih dari cukup untuk satu pengguna; **server batch malam hari** yang menjalankan RAG, *data extraction*, atau *evaluation* ribuan dokumen saat semua orang tidur; dan **uji coba model** — para pengembang yang ingin menguji beberapa arsitektur sebelum memutuskan membeli GPU. Ketiganya berbagi satu sifat: toleran terhadap *latency* tinggi, tetapi sensitif terhadap harga. Di sinilah CPU menunjukkan keunggulan sejatinya: bukan soal siapa tercepat, melainkan siapa yang bisa membawa pulang pekerjaan dengan biaya paling rendah.
-
----
-
-## 3. AVX-512 dan AMX: Akselerasi Matriks di CPU
-
-### AVX-512: Satu Instruksi, Banyak Data
-
-Kunci membuat CPU "tidak sepenuhnya lambat" adalah **instruksi vektor**. AVX-512 (*Advanced Vector Extensions 512-bit*) adalah perpanjangan set instruksi Intel yang memproses 512-bit data dalam satu instruksi — setara **16 operasi FP32 per instruksi**, dibandingkan 4 pada generasi SSE lama. Prinsip ini disebut SIMD (*Single Instruction, Multiple Data*): satu perintah, banyak data sekaligus. Dengan AVX-512, perkalian matriks dalam *attention layer* dipecah menjadi baris demi baris yang diproses paralel, mempercepat bagian komputasi paling dominan dalam inferensi [3].
-
-AVX-512 hadir sejak Skylake-X dan matang di generasi Ice Lake hingga Sapphire Rapids. Ada keluarga kecil di dalamnya yang khusus untuk *inference*: **VNNI** (*Vector Neural Network Instructions*) memperkenalkan *fused multiply-add* untuk INT8 — perkalian dan penjumlahan dalam satu instruksi untuk data 8-bit. Karena *inference* yang terkuantisasi bekerja pada INT8, VNNI secara praktis melipatgandakan kecepatan pemrosesan bilangan bulat [3]. Di CPU modern, memastikan optimasi VNNI aktif adalah "menginjak pedal gas" pertama Anda.
-
-Satu detail penting yang sering membuat orang bingung: **keberadaan AVX-512 di CPU tidak otomatis berarti framework menggunakannya**. Runtime seperti llama.cpp melakukan *dispatch* saat startup — memeriksa set instruksi yang didukung prosesor, lalu memilih kernel yang sesuai (jadi ada kernel AVX2, kernel AVX-512, hingga kernel AMX yang terpisah). Jika build Anda dikompilasi tanpa dukungan AVX-512, CPU yang sehebat apa pun akan tetap berjalan dengan kernel AVX2 yang lebih lambat. Inilah alasan langkah verifikasi `--verbose` di praktikum seksi 10 tidak boleh dilewati: memastikan kode yang benar-benar berjalan adalah kode yang sesuai dengan petunjuk saya — bukan sekadar keyakinan bahwa CPU "mendukungnya".
-
-### AMX: Alat Berat Khusus Matriks
-
-Jika AVX-512 adalah mobil sport, **AMX** (*Advanced Matrix Extensions*) adalah truk pengangkut berton-ton. AMX menambahkan unit matriks *dedicated* di dalam core — beroperasi pada *tile* 8x8 — dan dapat mengeksekusi hingga **2.048 operasi INT8 per siklus** [9]. Untuk *matmul*, inti komputasi semua LLM, AMX dilaporkan hingga **8x lebih cepat daripada AVX-512** di *microarchitecture* Sapphire Rapids [4]. Dialah alasan utama mengapa Xeon generasi ke-4 dan ke-5 menjadi GPU diskrit paling murah yang pernah ada: mereka bukan GPU, tetapi membawa akselerator matriks bawaan.
-
-Membedakan generasi menjadi mudah dengan lensa ini: Ice Lake dan pendahulunya hanya memiliki AVX-512; Sapphire Rapids (Xeon 4th Gen) dan Emerald Rapids (Xeon 5th Gen) menambahkan AMX. Perbedaan inilah yang Anda lihat pada data benchmark — Xeon 4th Gen mencapai sekitar 15 t/s untuk 7B Q4, dan Xeon 5th Gen naik ke sekitar 20 t/s, sementara CPU generasi sebelumnya bertengger di angka yang lebih rendah [1].
-
-Perlu dicatat bahwa AMX bukan fitur *software* yang bisa ditambahkan lewat *update* — ia adalah sirkuit fisik di dalam silikon. CPU generasi lama tidak akan pernah mendapatkan AMX, sehebat apa pun *firmware*-nya. Ini berarti keputusan membeli CPU adalah keputusan satu arah: membeli Xeon Ice Lake hari ini berarti mengunci diri tanpa AMX untuk bertahun-tahun, sedangkan Sapphire Rapids membuka jalan menuju optimasi *inference* yang terus berkembang. Bagi pengguna yang sedang menimbang CPU bekas server, ini adalah pertanyaan pertama yang harus diajukan: *"apakah prosesor ini mendukung AMX?"* — sebelum melihat jumlah core atau harga.
-
----
-
-## 4. DDR5 vs DDR4: Bandwidth Adalah Segalanya
-
-### Mengapa Memory-Bound?
-
-Inferensi LLM di CPU memiliki karakter unik: ia **memory-bound**, bukan compute-bound. Model harus mengalirkan seluruh weights dari RAM ke core untuk setiap token — dan aliran inilah yang menjadi kemacetan, bukan kemampuan core menghitung. Bandwidth RAM karena itu adalah metrik penentu: menggandakan bandwidth cenderung menggandakan token/s.
-
-Untuk memahami intuisi ini, bayangkan seorang juru masak yang harus mengambil bahan dari lemari es di ujung dapur: sehebat apa pun keterampilannya mengolah, kecepatan hidangannya dibatasi oleh seberapa cepat ia bolak-balik membawa bahan. Di LLM, core adalah juru masak, RAM adalah lemari es, dan *bandwidth* adalah lebar pintu dapurnya. Menambah core tidak akan mempercepat hidangan jika pintunya tetap sama — dan inilah mengapa seluruh pembahasan bab ini bermuara pada satu angka: berapa GB/s yang bisa dialirkan mesin Anda.
-
-DDR5 menawarkan **4800-6400 MT/s**, dan konfigurasi dual channel standar menghasilkan sekitar **100 GB/s**. Pendahulunya, DDR4, bertahan di **3200 MT/s** dengan sekitar **50 GB/s** untuk dual channel — setengahnya. Dalam bahasa token: konfigurasi dual channel DDR5 kurang-lebih menggandakan kecepatan inferensi dibanding DDR4 dengan CPU yang sama [2]. Di kelas workstation, *quad channel* — seperti DDR5-6000 pada Xeon workstation — menawarkan sekitar **192 GB/s**, angka yang sudah menyentuh wilayah GPU kelas entry [4].
-
-Ada perangkap kecil yang layak diwaspadai saat membangun untuk inferensi: **perbedaan antara kapasitas dan bandwidth**. Kapasitas menentukan model apa yang *muat*; bandwidth menentukan seberapa cepat ia *berjalan*. 128 GB DDR5 single *channel* akan memuat model 70B dengan nyaman, tetapi hanya menikmati setengah bandwidth dari konfigurasi 64 GB dual *channel* — dan token/s-nya akan menyedihkan. Urutan prioritas yang benar: *channel* penuh dulu, kecepatan kedua, baru kapasitas. Aturan jempol ini juga menjelaskan mengapa banyak pengguna CPU-only "kecewa" setelah upgrade RAM besar-besaran: mereka menambah kapasitas, bukan lebar jalur — dan token/s tidak bergerak sedikit pun.
-
-Peringatan terakhir untuk penggemar model MoE: **CPU hanya mampu membawa model kecil**. Model MoE raksasa baru — DeepSeek V4 Flash (284B) atau Mistral Large 3 (675B) — membutuhkan *bandwidth* di atas **500 GB/s** hanya untuk menjaga parameter aktifnya tetap mengalir; angka ini jauh melampaui ~250 GB/s Xeon kelas atas sekalipun. Di CPU, model-model itu akan berjalan di kecepatan yang tidak dapat dipakai, atau bahkan gagal berjalan sama sekali. Hal yang sama berlaku untuk model dense 70B+: secara teknis muat di RAM besar, tetapi kecepatan 1-3 t/s membuatnya hanya berguna untuk *batch*. Di sinilah batas jujur teknologi ini — dan pengingat bahwa untuk model raksasa, GPU dengan HBM atau Apple Silicon dengan *unified memory* adalah satu-satunya tuan rumah yang layak.
-
-### Membaca Tabel: Bukan Semua Core Sama
-
-Ada perangkap menarik yang harus diwaspadai: tidak semua CPU "banyak core" itu cepat. Ryzen 9 7950X dengan 16 core hanya mencapai sekitar 5 t/s untuk 7B Q4, sementara i7-14700K dengan 20 core mencapai sekitar 6 t/s — keduanya kalah dari Xeon dengan AMX yang "hanya" 4 t/s lebih banyak jalur bus memori. Core yang banyak pun tetap menganggur jika RAM tidak bisa menyuplai data. Inilah yang akan tampak dengan sangat jelas di tabel scaling core pada seksi 8: menambah core dari 32 ke 48 hanya menaikkan throughput dari 25 ke 27 t/s — *diminishing returns* yang murni disebabkan bottleneck bandwidth.
-
-Saat membandingkan angka-angka ini, perhatikan juga bahwa *bandwidth* yang dikutip tabel adalah angka teoretis maksimum; DDR5 di dunia nyata memberikan sekitar 80-90% dari angka tersebut tergantung *timing* dan *platform*. Dua sistem dengan spesifikasi RAM identik di atas kertas bisa berbeda nyata jika satu menggunakan profil XMP/EXPO dan satunya lagi berjalan di *default* JEDEC — perbedaan yang sering setara 10-20% token/s. Karena itu, jangan pernah mempercayai klaim "saya sudah DDR5" tanpa mengukur; STREAM di praktikum seksi 10 akan menjadi wasit yang adil.
-
----
-
-## 5. Framework CPU Inference
-
-### llama.cpp: Sang Universal
-
-Saat berbicara CPU-only, nama pertama yang muncul adalah **llama.cpp** — framework yang membawa LLM ke perangkat tanpa GPU. Ia mendukung *backend* CPU dengan AVX2, AVX-512, dan AMX, memanfaatkan *BLAS* (OpenBLAS atau MKL), serta membaca model melalui *mmap* langsung dari disk. Semua format GGUF populer jalan di sini, dari Llama-3.1-8B hingga model MoE seperti DeepSeek V4 Flash — meskipun kecepatannya untuk model raksasa akan kita bahas dengan jujur di studi kasus. [8]
-
-### IPEX dan xFasterTransformer: Rute Intel
-
-Bagi pengguna ekosistem PyTorch, **Intel Extension for PyTorch (IPEX)** [6] adalah jalur resmi: ia mengoptimalkan operasi matriks untuk CPU Intel, mendukung teknik *INT4 weight-only quantization*, dan cukup dengan `ipex.optimize(model)` untuk mengaktifkan seluruh optimasi — seperti yang akan kita praktikkan di seksi 10. Sementara itu, **xFasterTransformer** [7] melangkah lebih jauh ke arah *distributed inference*: ia dirancang untuk menjalankan LLM di *cluster* CPU Intel, membagi model lintas banyak mesin. Keduanya menjawab kebutuhan berbeda: satu pengguna individu, satu organisasi.
-
-### Sandwich: Serving Engine Baru
-
-Penelitian terbaru di EuroSys 2025 membawa harapan baru: **Sandwich** [5], sebuah *CPU serving engine* yang melakukan *hardware-centric tuning* — membangun ulang tumpukan *serving* dari bawah dengan memahami karakteristik perangkat keras. Hasilnya dilaporkan mencapai **2,01x throughput** dibanding *baseline*, dievaluasi pada AVX-512 dan ARM NEON [5]. Ini bukti bahwa ruang optimasi CPU masih luas, dan lambatnya CPU hari ini bukanlah takdir permanen.
-
-Yang menarik dari Sandwich dan karya-karya sejenisnya: mereka memperlakukan CPU bukan sebagai "GPU yang gagal", melainkan sebagai perangkat dengan kekuatan uniknya sendiri — *hardware-centric* berarti menyesuaikan *software* dengan karakter CPU, bukan memaksakan pola GPU. Evaluasi pada ARM NEON sekaligus menandakan bahwa masa depan CPU *inference* tidak hanya milik Intel: Apple Silicon, dan prosesor ARM server, membangun jalur optimasi mereka sendiri. Bagi pembaca buku ini, keberadaan riset ini adalah jaminan: investasi pada CPU untuk LLM tidak akan membeku, melainkan terus mendapat suntikan dari dunia riset sistem.
-
-### Memilih Framework: Petunjuk Praktis
-
-Lantas, framework mana yang harus Anda pilih? Jawabannya tergantung pada satu pertanyaan sederhana: *apa yang Anda jalankan, dan untuk siapa?* Jika Anda memakai model GGUF di mesin tunggal — skenario paling umum bagi pembaca buku ini — **llama.cpp** adalah pilihan utama: paling matang, paling cepat untuk ukuran model 7-14B, dan mendukung *mmap* yang berpadu baik dengan pembahasan storage di Bab 2.4. Jika Anda bekerja dengan pipeline PyTorch dan membutuhkan *fine-tuning* ringan atau integrasi dengan ekosistem Hugging Face, **IPEX** menawarkan kenyamanan *one-liner optimization* dengan biaya sedikit fleksibilitas. Dan jika tujuannya adalah melayani banyak pengguna di *cluster* beberapa mesin — kasus yang jarang bagi pengguna rumahan — **xFasterTransformer** adalah arah yang lebih tepat daripada memaksakan llama.cpp pada *multi-node* yang tidak dirancang untuk itu. Pilihan framework adalah bagian dari "sistem" yang Anda bangun; mengubahnya di tengah perjalanan selalu lebih mahal daripada memilih dengan benar sejak awal.
-
----
-
-## 6. Benchmark CPU Inference per Generasi
-
-Pola antar generasi dapat dibaca dari data benchmark [1][4]: Skylake (generasi AVX-512 awal) menjadi dasar, Ice Lake memperbaiki eksekusi vektor dan menambah VNNI, Sapphire Rapids menambahkan AMX dengan lonjakan ~8x pada *matmul*, dan Emerald Rapids memoles segalanya dengan lebih banyak core serta bandwidth DDR5-5600 quad channel. Kuantisasi adalah pengali penting di semua generasi: teknik *INT4 weight-only* dapat meningkatkan *throughput* **3-4x** dibanding FP32** tanpa penurunan kualitas yang berarti [1].
-
-Membaca laju antar generasi tidak ubahnya membaca tangga: Skylake adalah anak tangga pertama, Ice Lake anak tangga kedua yang meyakinkan, Sapphire Rapids justru lompatan besar (AMX mengubah cara matriks dikalikan, bukan sekadar lebih cepat), dan Emerald Rapids adalah pijakan terhalus sejauh ini. Yang menarik, lompatan ini tidak selalu bergantung pada *clock* — generasi baru Xeon bahkan sering ber-*clock* lebih rendah demi efisiensi — melainkan pada kemampuan mengeksekusi lebih banyak operasi per siklus dan menyuplai lebih banyak data per detik. Inilah alasan mengapa membeli CPU "tahun lalu" untuk inferensi bisa terasa seperti membeli jalan tol yang belum jadi: spesifikasi inti hampir sama, tetapi akselerator dan *bandwidth* yang berbeda membuat perbedaan besar pada token/s.
-
-Intinya, benchmark memperlihatkan bahwa untuk CPU *inference*, **generasi lebih penting daripada kelas**. Xeon 4th Gen kelas *entry* dengan AMX bisa mengalahkan CPU konsumen kelas atas generasi sebelumnya yang tanpa AMX — yang pada gilirannya menyarankan strategi belanja yang mungkin terbalik dari kebiasaan: untuk workload LLM, membeli CPU satu-dua generasi tertinggal di kelas *workstation* sering lebih masuk akal daripada membeli CPU konsumen terbaru di kelas teratas.
-
-Di sisi konsumen, i5-13400 (10 core, AVX2 saja) menghasilkan sekitar 4 t/s; i7-14700K (20 core, AVX-512) sekitar 6 t/s; dan Ryzen 9 7950X (16 core, AVX-512) sekitar 5 t/s. Di kelas workstation, Xeon 4th Gen mencatat sekitar 15 t/s dan Xeon 5th Gen sekitar 20 t/s untuk 7B Q4 [1]. Angka ini menjadi jangkar ketika Anda membaca tabel perbandingan di seksi 8 — dan ketika memutuskan CPU mana yang layak dibeli.
-
-Perhatikan bagaimana angka-angka ini bercerita tentang *efisiensi per core*. i7-14700K menghasilkan ~6 t/s dari 20 core — sekitar 0,3 t/s per core; Xeon 4th Gen menghasilkan ~15 t/s dari 32 core — sekitar 0,47 t/s per core. Xeon hampir 60% lebih efisien per core, bukan karena core-nya lebih cepat, melainkan karena AMX menggandakan kerja *matmul* per siklus. Ukuran "token per core" semacam ini adalah lensa yang lebih adil untuk membandingkan CPU dari generasi berbeda daripada sekadar melihat *clock* atau jumlah core — dan menjawab mengapa dua CPU dengan harga serupa bisa memiliki performa LLM yang sangat berbeda.
-
----
-
-## 7. Panduan Memilih CPU untuk Inference
-
-Jika Anda berencana membangun mesin CPU-only untuk LLM, urutkan prioritas berikut. **Pertama**, dukungan AMX — utamakan Intel Sapphire Rapids (Xeon 4th Gen) ke atas; inilah pembeda 2-3x di kelas mainstream-to-workstation. **Kedua**, jumlah core di kisaran **16-32 core** — ini adalah *sweet spot*; melampauinya tidak menambah banyak jika bandwidth RAM sudah jenuh, seperti yang ditunjukkan tabel scaling. **Ketiga**, RAM DDR5 **dual atau quad channel** dengan minimal **64 GB** untuk model 7-14B — dan ingat, bandwidth lebih penting daripada kapasitas untuk kecepatan token. **Alternatif** bagi yang menyukai AMD: **Threadripper** menawarkan banyak *PCIe lanes* dan dukungan *quad channel* DDR5, meskipun tanpa AMX; M4 Pro dari Apple adalah kasus spesial yang akan kita bandingkan di tabel — ARM dengan bandwidth luar biasa (~270 GB/s) yang mencapai sekitar 30 t/s untuk 7B Q4 [1].
-
-Terakhir, satu pertimbangan yang sering dilupakan: **profil beban Anda menentukan kategori CPU yang tepat**. Server yang menjalankan satu model untuk banyak pengguna akan lebih diuntungkan oleh Xeon dengan AMX walau mahal— karena *throughput* agregatlah yang dijual. Laptop atau desktop pribadi yang hanya membutuhkan satu percakapan pada satu waktu cukup ditopang i7 kelas menengah dengan AVX-512 — tidak perlu *workstation* yang boros. Keputusan ini pun berinteraksi dengan Bab 2.7: konsumsi daya CPU yang lebih kecil (misalnya 150W berbanding 350W GPU) berarti biaya listrik bulanan yang jauh lebih ringan, membuat CPU inference makin menarik untuk server yang menyala terus-menerus.
-
-Bagi pengguna laptop — dan ini mungkin mayoritas pembaca — ada satu kabar penenang: hampir semua laptop modern dengan CPU Intel 12th Gen ke atas atau AMD Zen 4 mendukung AVX-512 atau setidaknya AVX2 yang memadai untuk menjalankan model 3-8B di atas RAM 16-32 GB. Kecepatannya mungkin 3-6 t/s — cukup untuk *drafting*, ringkasan, dan percakapan santai di sela perjalanan. Jika laptop Anda Apple Silicon, bab ini tetap berlaku untuk memahami inti teknologinya, tetapi angka token/s Anda akan jauh lebih baik daripada tabel x86 — M4 Pro bahkan menembus 30 t/s untuk 7B Q4 [1], dengan *bandwidth* LPDDR5 yang luar biasa sebagai rahasianya.
-
-Satu saran belanja penutup yang sangat relevan untuk pembaca di Indonesia: pasar **Xeon refurbished** dari server bekas merupakan celah harga yang menarik — server bekas lengkap dengan Xeon 4th Gen dan RAM besar sering ditemukan di kisaran Rp 15 juta, jauh di bawah harga komponen barunya. Sebelum membeli, pastikan tiga hal: prosesor benar-benar generasi Sapphire Rapids (bukan versi lama dengan nama mirip), jumlah modul RAM memastikan semua *channel* terisi, dan *BIOS* mendukung fitur yang dibutuhkan. Server bekas adalah jalan pintas penghematan yang sah — selama Anda membeli dengan mata terbuka, bukan sekadar mengejar label "Xeon".
-
----
-
-## 8. Tabel Perbandingan CPU Inference
 
 Sebelum membaca tiga tabel berikut, ada baiknya menyegarkan satu kerangka: **tabel pertama membandingkan "siapa pelakunya" (CPU), tabel kedua "bagaimana pelakunya bekerja" (kuantisasi), dan tabel ketiga "berapa banyak pelaku yang berguna" (scaling core)**. Ketiganya saling melengkapi — dan temuan dari satu tabel sering menjelaskan keanehan di tabel lain, seperti yang akan kita lihat pada analisis setelah masing-masing tabel.
 
@@ -148,6 +56,74 @@ Baca tabel ini dengan dua poros. Poros pertama: **AMX adalah pembeda utama** —
 
 Tabel ini juga mengajarkan cara membaca *spec sheet* dengan skeptis. Lihat Ryzen 9 7950X: 16 core, *clock* tinggi, mendukung AVX-512 — di atas kertas terlihat seperti pilihan terbaik di kelasnya, tetapi kapasitas *bandwidth* ~83 GB/s membuatnya "lapar data". Sementara itu i7-14700K dengan bandwidth ~90 GB/s dan AVX-512 unggul tipis dalam token/s. Bagi pembaca yang sedang memilih CPU bekas di pasaran lokal, urutan yang disarankan: **cari AMX dulu, bandwidth kedua, core ketiga** — aturan yang jarang diungkapkan pada ulasan CPU konsumen yang masih berfokus pada FPS game, bukan token/s.
 
+
+---
+
+## 3. AVX-512 dan AMX: Akselerasi Matriks di CPU
+
+
+### AVX-512: Satu Instruksi, Banyak Data
+
+Kunci membuat CPU "tidak sepenuhnya lambat" adalah **instruksi vektor**. AVX-512 (*Advanced Vector Extensions 512-bit*) adalah perpanjangan set instruksi Intel yang memproses 512-bit data dalam satu instruksi — setara **16 operasi FP32 per instruksi**, dibandingkan 4 pada generasi SSE lama. Prinsip ini disebut SIMD (*Single Instruction, Multiple Data*): satu perintah, banyak data sekaligus. Dengan AVX-512, perkalian matriks dalam *attention layer* dipecah menjadi baris demi baris yang diproses paralel, mempercepat bagian komputasi paling dominan dalam inferensi [3].
+
+AVX-512 hadir sejak Skylake-X dan matang di generasi Ice Lake hingga Sapphire Rapids. Ada keluarga kecil di dalamnya yang khusus untuk *inference*: **VNNI** (*Vector Neural Network Instructions*) memperkenalkan *fused multiply-add* untuk INT8 — perkalian dan penjumlahan dalam satu instruksi untuk data 8-bit. Karena *inference* yang terkuantisasi bekerja pada INT8, VNNI secara praktis melipatgandakan kecepatan pemrosesan bilangan bulat [3]. Di CPU modern, memastikan optimasi VNNI aktif adalah "menginjak pedal gas" pertama Anda.
+
+Satu detail penting yang sering membuat orang bingung: **keberadaan AVX-512 di CPU tidak otomatis berarti framework menggunakannya**. Runtime seperti llama.cpp melakukan *dispatch* saat startup — memeriksa set instruksi yang didukung prosesor, lalu memilih kernel yang sesuai (jadi ada kernel AVX2, kernel AVX-512, hingga kernel AMX yang terpisah). Jika build Anda dikompilasi tanpa dukungan AVX-512, CPU yang sehebat apa pun akan tetap berjalan dengan kernel AVX2 yang lebih lambat. Inilah alasan langkah verifikasi `--verbose` di praktikum seksi 8 tidak boleh dilewati: memastikan kode yang benar-benar berjalan adalah kode yang sesuai dengan petunjuk saya — bukan sekadar keyakinan bahwa CPU "mendukungnya".
+
+### AMX: Alat Berat Khusus Matriks
+
+Jika AVX-512 adalah mobil sport, **AMX** (*Advanced Matrix Extensions*) adalah truk pengangkut berton-ton. AMX menambahkan unit matriks *dedicated* di dalam core — beroperasi pada *tile* 8x8 — dan dapat mengeksekusi hingga **2.048 operasi INT8 per siklus** [9]. Untuk *matmul*, inti komputasi semua LLM, AMX dilaporkan hingga **8x lebih cepat daripada AVX-512** di *microarchitecture* Sapphire Rapids [4]. Dialah alasan utama mengapa Xeon generasi ke-4 dan ke-5 menjadi GPU diskrit paling murah yang pernah ada: mereka bukan GPU, tetapi membawa akselerator matriks bawaan.
+
+Membedakan generasi menjadi mudah dengan lensa ini: Ice Lake dan pendahulunya hanya memiliki AVX-512; Sapphire Rapids (Xeon 4th Gen) dan Emerald Rapids (Xeon 5th Gen) menambahkan AMX. Perbedaan inilah yang Anda lihat pada data benchmark — Xeon 4th Gen mencapai sekitar 15 t/s untuk 7B Q4, dan Xeon 5th Gen naik ke sekitar 20 t/s, sementara CPU generasi sebelumnya bertengger di angka yang lebih rendah [1].
+
+Perlu dicatat bahwa AMX bukan fitur *software* yang bisa ditambahkan lewat *update* — ia adalah sirkuit fisik di dalam silikon. CPU generasi lama tidak akan pernah mendapatkan AMX, sehebat apa pun *firmware*-nya. Ini berarti keputusan membeli CPU adalah keputusan satu arah: membeli Xeon Ice Lake hari ini berarti mengunci diri tanpa AMX untuk bertahun-tahun, sedangkan Sapphire Rapids membuka jalan menuju optimasi *inference* yang terus berkembang. Bagi pengguna yang sedang menimbang CPU bekas server, ini adalah pertanyaan pertama yang harus diajukan: *"apakah prosesor ini mendukung AMX?"* — sebelum melihat jumlah core atau harga.
+
+---
+
+## 4. DDR5 vs DDR4: Bandwidth Adalah Segalanya
+
+
+### Mengapa Memory-Bound?
+
+Inferensi LLM di CPU memiliki karakter unik: ia **memory-bound**, bukan compute-bound. Model harus mengalirkan seluruh weights dari RAM ke core untuk setiap token — dan aliran inilah yang menjadi kemacetan, bukan kemampuan core menghitung. Bandwidth RAM karena itu adalah metrik penentu: menggandakan bandwidth cenderung menggandakan token/s.
+
+Untuk memahami intuisi ini, bayangkan seorang juru masak yang harus mengambil bahan dari lemari es di ujung dapur: sehebat apa pun keterampilannya mengolah, kecepatan hidangannya dibatasi oleh seberapa cepat ia bolak-balik membawa bahan. Di LLM, core adalah juru masak, RAM adalah lemari es, dan *bandwidth* adalah lebar pintu dapurnya. Menambah core tidak akan mempercepat hidangan jika pintunya tetap sama — dan inilah mengapa seluruh pembahasan bab ini bermuara pada satu angka: berapa GB/s yang bisa dialirkan mesin Anda.
+
+DDR5 menawarkan **4800-6400 MT/s**, dan konfigurasi dual channel standar menghasilkan sekitar **100 GB/s**. Pendahulunya, DDR4, bertahan di **3200 MT/s** dengan sekitar **50 GB/s** untuk dual channel — setengahnya. Dalam bahasa token: konfigurasi dual channel DDR5 kurang-lebih menggandakan kecepatan inferensi dibanding DDR4 dengan CPU yang sama [2]. Di kelas workstation, *quad channel* — seperti DDR5-6000 pada Xeon workstation — menawarkan sekitar **192 GB/s**, angka yang sudah menyentuh wilayah GPU kelas entry [4].
+
+Ada perangkap kecil yang layak diwaspadai saat membangun untuk inferensi: **perbedaan antara kapasitas dan bandwidth**. Kapasitas menentukan model apa yang *muat*; bandwidth menentukan seberapa cepat ia *berjalan*. 128 GB DDR5 single *channel* akan memuat model 70B dengan nyaman, tetapi hanya menikmati setengah bandwidth dari konfigurasi 64 GB dual *channel* — dan token/s-nya akan menyedihkan. Urutan prioritas yang benar: *channel* penuh dulu, kecepatan kedua, baru kapasitas. Aturan jempol ini juga menjelaskan mengapa banyak pengguna CPU-only "kecewa" setelah upgrade RAM besar-besaran: mereka menambah kapasitas, bukan lebar jalur — dan token/s tidak bergerak sedikit pun.
+
+Peringatan terakhir untuk penggemar model MoE: **CPU hanya mampu membawa model kecil**. Model MoE raksasa baru — DeepSeek V4 Flash (284B) atau Mistral Large 3 (675B) — membutuhkan *bandwidth* di atas **500 GB/s** hanya untuk menjaga parameter aktifnya tetap mengalir; angka ini jauh melampaui ~250 GB/s Xeon kelas atas sekalipun. Di CPU, model-model itu akan berjalan di kecepatan yang tidak dapat dipakai, atau bahkan gagal berjalan sama sekali. Hal yang sama berlaku untuk model dense 70B+: secara teknis muat di RAM besar, tetapi kecepatan 1-3 t/s membuatnya hanya berguna untuk *batch*. Di sinilah batas jujur teknologi ini — dan pengingat bahwa untuk model raksasa, GPU dengan HBM atau Apple Silicon dengan *unified memory* adalah satu-satunya tuan rumah yang layak.
+
+### Membaca Tabel: Bukan Semua Core Sama
+
+Ada perangkap menarik yang harus diwaspadai: tidak semua CPU "banyak core" itu cepat. Ryzen 9 7950X dengan 16 core hanya mencapai sekitar 5 t/s untuk 7B Q4, sementara i7-14700K dengan 20 core mencapai sekitar 6 t/s — keduanya kalah dari Xeon dengan AMX yang "hanya" 4 t/s lebih banyak jalur bus memori. Core yang banyak pun tetap menganggur jika RAM tidak bisa menyuplai data. Inilah yang akan tampak dengan sangat jelas di tabel scaling core pada seksi 2: menambah core dari 32 ke 48 hanya menaikkan throughput dari 25 ke 27 t/s — *diminishing returns* yang murni disebabkan bottleneck bandwidth.
+
+Saat membandingkan angka-angka ini, perhatikan juga bahwa *bandwidth* yang dikutip tabel adalah angka teoretis maksimum; DDR5 di dunia nyata memberikan sekitar 80-90% dari angka tersebut tergantung *timing* dan *platform*. Dua sistem dengan spesifikasi RAM identik di atas kertas bisa berbeda nyata jika satu menggunakan profil XMP/EXPO dan satunya lagi berjalan di *default* JEDEC — perbedaan yang sering setara 10-20% token/s. Karena itu, jangan pernah mempercayai klaim "saya sudah DDR5" tanpa mengukur; STREAM di praktikum seksi 8 akan menjadi wasit yang adil.
+
+---
+
+## 5. Framework CPU Inference
+
+
+### llama.cpp: Sang Universal
+
+Saat berbicara CPU-only, nama pertama yang muncul adalah **llama.cpp** — framework yang membawa LLM ke perangkat tanpa GPU. Ia mendukung *backend* CPU dengan AVX2, AVX-512, dan AMX, memanfaatkan *BLAS* (OpenBLAS atau MKL), serta membaca model melalui *mmap* langsung dari disk. Semua format GGUF populer jalan di sini, dari Llama-3.1-8B hingga model MoE seperti DeepSeek V4 Flash — meskipun kecepatannya untuk model raksasa akan kita bahas dengan jujur di studi kasus. [8]
+
+### IPEX dan xFasterTransformer: Rute Intel
+
+Bagi pengguna ekosistem PyTorch, **Intel Extension for PyTorch (IPEX)** [6] adalah jalur resmi: ia mengoptimalkan operasi matriks untuk CPU Intel, mendukung teknik *INT4 weight-only quantization*, dan cukup dengan `ipex.optimize(model)` untuk mengaktifkan seluruh optimasi — seperti yang akan kita praktikkan di seksi 8. Sementara itu, **xFasterTransformer** [7] melangkah lebih jauh ke arah *distributed inference*: ia dirancang untuk menjalankan LLM di *cluster* CPU Intel, membagi model lintas banyak mesin. Keduanya menjawab kebutuhan berbeda: satu pengguna individu, satu organisasi.
+
+### Sandwich: Serving Engine Baru
+
+Penelitian terbaru di EuroSys 2025 membawa harapan baru: **Sandwich** [5], sebuah *CPU serving engine* yang melakukan *hardware-centric tuning* — membangun ulang tumpukan *serving* dari bawah dengan memahami karakteristik perangkat keras. Hasilnya dilaporkan mencapai **2,01x throughput** dibanding *baseline*, dievaluasi pada AVX-512 dan ARM NEON [5]. Ini bukti bahwa ruang optimasi CPU masih luas, dan lambatnya CPU hari ini bukanlah takdir permanen.
+
+Yang menarik dari Sandwich dan karya-karya sejenisnya: mereka memperlakukan CPU bukan sebagai "GPU yang gagal", melainkan sebagai perangkat dengan kekuatan uniknya sendiri — *hardware-centric* berarti menyesuaikan *software* dengan karakter CPU, bukan memaksakan pola GPU. Evaluasi pada ARM NEON sekaligus menandakan bahwa masa depan CPU *inference* tidak hanya milik Intel: Apple Silicon, dan prosesor ARM server, membangun jalur optimasi mereka sendiri. Bagi pembaca buku ini, keberadaan riset ini adalah jaminan: investasi pada CPU untuk LLM tidak akan membeku, melainkan terus mendapat suntikan dari dunia riset sistem.
+
+### Memilih Framework: Petunjuk Praktis
+
+Lantas, framework mana yang harus Anda pilih? Jawabannya tergantung pada satu pertanyaan sederhana: *apa yang Anda jalankan, dan untuk siapa?* Jika Anda memakai model GGUF di mesin tunggal — skenario paling umum bagi pembaca buku ini — **llama.cpp** adalah pilihan utama: paling matang, paling cepat untuk ukuran model 7-14B, dan mendukung *mmap* yang berpadu baik dengan pembahasan storage di Bab 2.4. Jika Anda bekerja dengan pipeline PyTorch dan membutuhkan *fine-tuning* ringan atau integrasi dengan ekosistem Hugging Face, **IPEX** menawarkan kenyamanan *one-liner optimization* dengan biaya sedikit fleksibilitas. Dan jika tujuannya adalah melayani banyak pengguna di *cluster* beberapa mesin — kasus yang jarang bagi pengguna rumahan — **xFasterTransformer** adalah arah yang lebih tepat daripada memaksakan llama.cpp pada *multi-node* yang tidak dirancang untuk itu. Pilihan framework adalah bagian dari "sistem" yang Anda bangun; mengubahnya di tengah perjalanan selalu lebih mahal daripada memilih dengan benar sejak awal.
+
 ### Tabel 2: Pengaruh Kuantisasi pada CPU Inference
 
 Tabel ini mengukur efek kuantisasi pada Llama-3.1-8B yang dijalankan di Xeon 4th Gen — model yang sama, hanya presisinya yang berubah.
@@ -163,6 +139,35 @@ Tabel ini mengukur efek kuantisasi pada Llama-3.1-8B yang dijalankan di Xeon 4th
 Tabel ini adalah argumen paling kuat untuk kuantisasi. Dari FP32 ke INT4, *throughput* naik 4,5x (4 → 18 t/s) sementara *perplexity loss* hanya ~0,2 — penurunan kualitas yang hampir tak terasa secara subjektif [1]. Mengaktifkan AMX di atasnya menaikkan lagi ke 25 t/s. Di sisi lain: ukuran model menyusut drastis dari 32 GB ke 4 GB, berarti model yang tadinya butuh 32 GB kini muat di RAM yang lebih kecil — data lengkap yang saling menguatkan. Perlu ditegaskan bahwa *perplexity loss* adalah metrik kualitas global; pada tugas percakapan sehari-hari, perbedaan 0,2 poin praktis tidak terdengar, dan inilah mengapa INT4 menjadi *default* hampir semua pengguna CPU-only.
 
 Perhatikan pola yang lebih halus di balik angka: setiap langkah kuantisasi memberikan lonjakan *throughput* yang semakin mengecil — FP32 ke FP16 menaikkan ~1,75x, FP16 ke INT8 ~1,7x, INT8 ke INT4 ~1,5x — sementara *perplexity loss* semakin membesar. Bentuk kurva ini adalah garis *diminishing returns* khas kuantisasi: keuntungan terbesar justru datang dari langkah yang paling tidak merusak (FP32 → FP16 → INT8), dan langkah terakhir ke INT4 adalah keputusan yang menukar sedikit kualitas untuk kecepatan. Bila model Anda sudah di INT4 dan masih lambat, jalan selanjutnya bukan INT2 yang lebih ekstrem, melainkan *hardware* — atau menerima kenyataan bahwa model itu memang di luar kemampuan mesin Anda.
+
+
+---
+
+## 6. Benchmark CPU Inference per Generasi
+
+
+Pola antar generasi dapat dibaca dari data benchmark [1][4]: Skylake (generasi AVX-512 awal) menjadi dasar, Ice Lake memperbaiki eksekusi vektor dan menambah VNNI, Sapphire Rapids menambahkan AMX dengan lonjakan ~8x pada *matmul*, dan Emerald Rapids memoles segalanya dengan lebih banyak core serta bandwidth DDR5-5600 quad channel. Kuantisasi adalah pengali penting di semua generasi: teknik *INT4 weight-only* dapat meningkatkan *throughput* **3-4x** dibanding FP32** tanpa penurunan kualitas yang berarti [1].
+
+Membaca laju antar generasi tidak ubahnya membaca tangga: Skylake adalah anak tangga pertama, Ice Lake anak tangga kedua yang meyakinkan, Sapphire Rapids justru lompatan besar (AMX mengubah cara matriks dikalikan, bukan sekadar lebih cepat), dan Emerald Rapids adalah pijakan terhalus sejauh ini. Yang menarik, lompatan ini tidak selalu bergantung pada *clock* — generasi baru Xeon bahkan sering ber-*clock* lebih rendah demi efisiensi — melainkan pada kemampuan mengeksekusi lebih banyak operasi per siklus dan menyuplai lebih banyak data per detik. Inilah alasan mengapa membeli CPU "tahun lalu" untuk inferensi bisa terasa seperti membeli jalan tol yang belum jadi: spesifikasi inti hampir sama, tetapi akselerator dan *bandwidth* yang berbeda membuat perbedaan besar pada token/s.
+
+Intinya, benchmark memperlihatkan bahwa untuk CPU *inference*, **generasi lebih penting daripada kelas**. Xeon 4th Gen kelas *entry* dengan AMX bisa mengalahkan CPU konsumen kelas atas generasi sebelumnya yang tanpa AMX — yang pada gilirannya menyarankan strategi belanja yang mungkin terbalik dari kebiasaan: untuk workload LLM, membeli CPU satu-dua generasi tertinggal di kelas *workstation* sering lebih masuk akal daripada membeli CPU konsumen terbaru di kelas teratas.
+
+Di sisi konsumen, i5-13400 (10 core, AVX2 saja) menghasilkan sekitar 4 t/s; i7-14700K (20 core, AVX-512) sekitar 6 t/s; dan Ryzen 9 7950X (16 core, AVX-512) sekitar 5 t/s. Di kelas workstation, Xeon 4th Gen mencatat sekitar 15 t/s dan Xeon 5th Gen sekitar 20 t/s untuk 7B Q4 [1]. Angka ini menjadi jangkar ketika Anda membaca tabel perbandingan di seksi 2 — dan ketika memutuskan CPU mana yang layak dibeli.
+
+Perhatikan bagaimana angka-angka ini bercerita tentang *efisiensi per core*. i7-14700K menghasilkan ~6 t/s dari 20 core — sekitar 0,3 t/s per core; Xeon 4th Gen menghasilkan ~15 t/s dari 32 core — sekitar 0,47 t/s per core. Xeon hampir 60% lebih efisien per core, bukan karena core-nya lebih cepat, melainkan karena AMX menggandakan kerja *matmul* per siklus. Ukuran "token per core" semacam ini adalah lensa yang lebih adil untuk membandingkan CPU dari generasi berbeda daripada sekadar melihat *clock* atau jumlah core — dan menjawab mengapa dua CPU dengan harga serupa bisa memiliki performa LLM yang sangat berbeda.
+
+---
+
+## 7. Panduan Memilih CPU untuk Inference
+
+
+Jika Anda berencana membangun mesin CPU-only untuk LLM, urutkan prioritas berikut. **Pertama**, dukungan AMX — utamakan Intel Sapphire Rapids (Xeon 4th Gen) ke atas; inilah pembeda 2-3x di kelas mainstream-to-workstation. **Kedua**, jumlah core di kisaran **16-32 core** — ini adalah *sweet spot*; melampauinya tidak menambah banyak jika bandwidth RAM sudah jenuh, seperti yang ditunjukkan tabel scaling. **Ketiga**, RAM DDR5 **dual atau quad channel** dengan minimal **64 GB** untuk model 7-14B — dan ingat, bandwidth lebih penting daripada kapasitas untuk kecepatan token. **Alternatif** bagi yang menyukai AMD: **Threadripper** menawarkan banyak *PCIe lanes* dan dukungan *quad channel* DDR5, meskipun tanpa AMX; M4 Pro dari Apple adalah kasus spesial yang akan kita bandingkan di tabel — ARM dengan bandwidth luar biasa (~270 GB/s) yang mencapai sekitar 30 t/s untuk 7B Q4 [1].
+
+Terakhir, satu pertimbangan yang sering dilupakan: **profil beban Anda menentukan kategori CPU yang tepat**. Server yang menjalankan satu model untuk banyak pengguna akan lebih diuntungkan oleh Xeon dengan AMX walau mahal— karena *throughput* agregatlah yang dijual. Laptop atau desktop pribadi yang hanya membutuhkan satu percakapan pada satu waktu cukup ditopang i7 kelas menengah dengan AVX-512 — tidak perlu *workstation* yang boros. Keputusan ini pun berinteraksi dengan Bab 2.7: konsumsi daya CPU yang lebih kecil (misalnya 150W berbanding 350W GPU) berarti biaya listrik bulanan yang jauh lebih ringan, membuat CPU inference makin menarik untuk server yang menyala terus-menerus.
+
+Bagi pengguna laptop — dan ini mungkin mayoritas pembaca — ada satu kabar penenang: hampir semua laptop modern dengan CPU Intel 12th Gen ke atas atau AMD Zen 4 mendukung AVX-512 atau setidaknya AVX2 yang memadai untuk menjalankan model 3-8B di atas RAM 16-32 GB. Kecepatannya mungkin 3-6 t/s — cukup untuk *drafting*, ringkasan, dan percakapan santai di sela perjalanan. Jika laptop Anda Apple Silicon, bab ini tetap berlaku untuk memahami inti teknologinya, tetapi angka token/s Anda akan jauh lebih baik daripada tabel x86 — M4 Pro bahkan menembus 30 t/s untuk 7B Q4 [1], dengan *bandwidth* LPDDR5 yang luar biasa sebagai rahasianya.
+
+Satu saran belanja penutup yang sangat relevan untuk pembaca di Indonesia: pasar **Xeon refurbished** dari server bekas merupakan celah harga yang menarik — server bekas lengkap dengan Xeon 4th Gen dan RAM besar sering ditemukan di kisaran Rp 15 juta, jauh di bawah harga komponen barunya. Sebelum membeli, pastikan tiga hal: prosesor benar-benar generasi Sapphire Rapids (bukan versi lama dengan nama mirip), jumlah modul RAM memastikan semua *channel* terisi, dan *BIOS* mendukung fitur yang dibutuhkan. Server bekas adalah jalan pintas penghematan yang sah — selama Anda membeli dengan mata terbuka, bukan sekadar mengejar label "Xeon".
 
 ### Tabel 3: Scaling Core Count vs Tokens/s
 
@@ -186,7 +191,6 @@ Tabel ini sekaligus menyediakan jawaban bagi pertanyaan klasik forum: *"kalau du
 
 ---
 
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur SIMD vs Matrix Unit
 
@@ -213,7 +217,11 @@ Bagi pembaca yang terbiasa dengan arsitektur GPU, diagram ini menawarkan paralel
 
 ---
 
-## 10. Praktikum: Membangun dan Mengukur Mesin CPU-Only
+
+---
+
+## 8. Praktikum: Membangun dan Mengukur Mesin CPU-Only
+
 
 ### Langkah 1: Install dan Benchmark llama.cpp CPU-only
 
@@ -243,7 +251,7 @@ huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
 ./build/bin/llama-bench --verbose 2>&1 | grep -i "avx\|amx\|f16c\|sse"
 ```
 
-Pada langkah 6, perintah `grep` membuka "kartu identitas" build Anda: jika muncul `AVX512` dan CPU Anda Xeon 4th Gen ke atas, Anda sudah berada di jalur tercepat. Bandingkan output `-ngl 0` (semua di CPU) dengan tabel benchmark seksi 8 — Llama-3.1-8B Q4_K_M di i7-14700K seharusnya mendekati ~6 t/s, dan di Xeon dengan AMX mendekati ~15-20 t/s. Jika angka Anda jauh lebih rendah, cek suhu CPU dan *throttling* sebelum menyalahkan skrip.
+Pada langkah 6, perintah `grep` membuka "kartu identitas" build Anda: jika muncul `AVX512` dan CPU Anda Xeon 4th Gen ke atas, Anda sudah berada di jalur tercepat. Bandingkan output `-ngl 0` (semua di CPU) dengan tabel benchmark seksi 2 — Llama-3.1-8B Q4_K_M di i7-14700K seharusnya mendekati ~6 t/s, dan di Xeon dengan AMX mendekati ~15-20 t/s. Jika angka Anda jauh lebih rendah, cek suhu CPU dan *throttling* sebelum menyalahkan skrip.
 
 Dua pilihan konfigurasi perlu dipahami sebelum menjalankan baris di atas. Pertama, `-ngl 0` menandakan *zero GPU layers* — semua lapisan dijalankan di CPU; jika nanti Anda menambahkan GPU, ganti dengan `-ngl 99` agar seluruh lapisan berpindah ke GPU dan pengukuran menjadi ukuran GPU, bukan CPU. Kedua, `llama-bench` membedakan *prompt processing* (prefill) dan *generation* (decode) dalam outputnya; pada CPU, angka yang paling relevan untuk pengalaman interaktif adalah *generation* — karena itulah denyut percakapan Anda. Jangan bingung bila bilangan prompt/s jauh lebih tinggi: itu mengukur fase prefill yang bersifat *batch*, bukan kecepatan token bergulir yang Anda rasakan.
 
@@ -306,7 +314,8 @@ Perlu dicatat bahwa STREAM mengukur *raw bandwidth*, bukan *end-to-end* inferens
 
 ---
 
-## 11. Studi Kasus: Server Inferensi CPU-only untuk Kantor Kecil
+## 9. Studi Kasus: Server Inferensi CPU-only untuk Kantor Kecil
+
 
 **Skenario.** Sebuah startup di Bandung ingin membangun *coding assistant* internal berbasis LLM untuk 15 orang developer, tetapi anggaran mereka hanya cukup untuk satu investasi hardware. GPU kelas atas seperti RTX 4090 berada di luar jangkauan (sekitar Rp 35 juta untuk satu PC lengkap), dan kebutuhan utama adalah model Qwen-2.5-14B yang baik untuk konteks kode berbahasa campuran.
 
@@ -316,7 +325,7 @@ Mengapa bukan i7-14700K yang lebih murah (sekitar Rp 5 juta untuk CPU-nya saja)?
 
 **Konfigurasi dan performa.** Dengan llama.cpp CPU-only — INT4 quantization, AVX-512 + AMX aktif — server mencapai **sekitar 12 t/s untuk Qwen-2.5-14B**: cukup untuk *single-user real-time* dan nyaman bagi dua-tiga developer yang bergantian. Konsumsi dayanya **~150W** dalam beban penuh, berbanding ~350W untuk PC GPU setara — angka yang akan membuktikan nilainya di Bab 2.7. Biaya listrik tahunannya jauh lebih rendah, dan di ruang server kecil, beban termal 150W juga jauh lebih mudah ditangani tanpa pendinginan khusus.
 
-Seting *software* mereka juga mengikuti pelajaran bab ini: model dimuat dalam Q4_K_M (INT4), `-t` dibatasi 16 *thread* sesuai core fisik, dan *power management* OS dibiarkan default *balanced* — karena memaksa *performance mode* tidak menambah apa-apa pada workload yang sudah *memory-bound*. Perbedaan halus namun penting: dengan `--tensor-split` seperti di Bab 2.6 tidak diperlukan di sini (satu CPU), tetapi RAM *quad channel* dimanfaatkan penuh dengan memastikan keempat *stick* terpasang pada slot yang benar — pemeriksaan 5 menit yang seringkali dilupakan orang, dan bisa diamati lewat STREAM seperti praktikum seksi 10.
+Seting *software* mereka juga mengikuti pelajaran bab ini: model dimuat dalam Q4_K_M (INT4), `-t` dibatasi 16 *thread* sesuai core fisik, dan *power management* OS dibiarkan default *balanced* — karena memaksa *performance mode* tidak menambah apa-apa pada workload yang sudah *memory-bound*. Perbedaan halus namun penting: dengan `--tensor-split` seperti di Bab 2.6 tidak diperlukan di sini (satu CPU), tetapi RAM *quad channel* dimanfaatkan penuh dengan memastikan keempat *stick* terpasang pada slot yang benar — pemeriksaan 5 menit yang seringkali dilupakan orang, dan bisa diamati lewat STREAM seperti praktikum seksi 8.
 
 **Hasil dan keterbatasan.** Dalam tiga bulan pertama, server ini stabil melayani *code completion*, ringkasan PR, dan Q&A internal. Akan tetapi, tim dengan cepat menemukan batasnya: model di atas 70B — apalagi MoE raksasa seperti DeepSeek V4 Flash (284B) atau Mistral Large 3 (675B) — berada jauh di luar kemampuannya. Model-model itu membutuhkan bandwidth di atas 500 GB/s yang hanya dimiliki GPU dengan HBM atau Apple Silicon dengan *unified memory*; di CPU Xeon sekelas ini, kecepatannya jatuh di bawah 5 t/s yang tidak lagi dapat dipakai interaktif.
 
@@ -330,7 +339,8 @@ Yang juga tidak kalah penting: mereka menjadwalkan pekerjaan *batch* di luar jam
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

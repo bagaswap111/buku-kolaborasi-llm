@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan arsitektur **Home Assistant + LLM**: Home Assistant sebagai otak perangkat, LLM sebagai antarmuka bahasa alami — bukan pengganti, melainkan *frontend*
@@ -19,59 +20,12 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Arsitektur Home Assistant + LLM
 
+
 Rumah pintar tradisional dikuasai *juga* oleh aturan YAML yang kaku: "jika sensor suhu di atas 28 derajat, nyalakan AC". Itu bekerja, tetapi tidak *berbicara*. Peran **Home Assistant** adalah otak IoT — mengelola lampu, *climate*, dan sensor; peran **LLM** adalah membuat otak itu bisa diajak bicara. Ini pembagian kerja yang harus ditegaskan sejak awal: **LLM bukan pengganti automasi, melainkan *frontend*-nya**.
 
 Alurnya berbentuk rantai satu arah: **User → Wake Word → Whisper (STT) → Ollama (Intent) → HA API → Action → Piper (TTS)**. Ucapan keluarga menjadi teks oleh Whisper, teks menjadi maksud oleh LLM, maksud menjadi perintah nyata oleh Home Assistant, dan tanggapan menjadi suara oleh Piper. Setiap mata rantai bisa diperbaharui secara terpisah — inilah arsitektur modular yang dianjurkan *Harmony* [3] dan dipraktikkan langsung oleh keluarga di lapangan [2].
 
 Konsekuensi pentingnya: model LLM di sini tidak dituntut menjadi *supergenius* — ia cukup pandai memahami maksud kalimat rumah tangga dan menerjemahkannya ke *service call*. Justru itulah alasan model kecil seperti Ministral 3 atau Qwen-2.5-7B lebih disukai daripada model raksasa: lebih cepat, lebih hemat daya, dan tugasnya memang sederhana [1].
-
----
-
-## 3. Native Ollama Integration di HA 2024.4+
-
-Sejak versi **2024.4**, Home Assistant memiliki integrasi **Ollama** bawaan — tidak perlu *custom component*. Langkahnya sesederhana membuka **Settings → Devices & Services → Add Ollama**, lalu mengisi URL (default `http://192.168.1.100:11434`), memilih model, dan menyesuaikan parameter.
-
-Dua keputusan penting menyusul. Pertama, **ekspos entity** — tentukan perangkat mana yang boleh dikontrol LLM melalui *Assist*; jangan pernah mengekspos semua entity, karena itu berarti memberi pembantu rumah tangga kunci semua kamar. Kedua, **pilih model dengan *function calling* yang stabil** — rekomendasi utama adalah **Qwen-2.5-7B** (paling stabil untuk *function calling*) dan **Llama-3.1-8B** (serba guna). *Function calling* adalah bahasa yang membuat LLM mampu menyebut nama *service* dan *entity* secara terstruktur — tanpa itu, jawaban model hanya akan menjadi cerita, bukan tindakan.
-
----
-
-## 4. Custom Prompt dan Context Engineering
-
-LLM tidak lahir mengenal rumah Anda. Ia perlu "diberi tahu" — dan cara pemberi tahuannya disebut *context engineering*. Sebuah *system prompt* yang baik untuk asisten rumah berisi tiga hal: **denah dan konteks rumah** (kamar mana di lantai mana), **daftar perangkat** yang dirujuk dengan nama persis entity-nya (bukan "lampu itu" melainkan `light.living_room`), dan **batas kewenangan** ("kamu hanya boleh menjalankan perintah yang aman").
-
-Teknik pendukungnya adalah **expose_entities** — mekanisme resmi untuk membatasi daftar perangkat yang terlihat oleh LLM, sehingga ia tidak hanya dibatasi *oleh* prompt tetapi juga *oleh* sistem. Contoh nyata: template *prompt* untuk deteksi maksud berubah dari frasa umum "nyalakan lampu ruang tamu" menjadi panggilan layanan terstruktur `light.turn_on` pada entity `light.living_room`. Struktur *prompt* yang rapi seperti inilah yang membuat model kecil sekalipun mampu mengeksekusi dengan presisi [3].
-
----
-
-## 5. Wyoming Voice Pipeline
-
-Antarmuka paling alami bagi keluarga bukan keyboard, melainkan suara. **Wyoming protocol** adalah standar terbuka yang menghubungkan empat komponen *voice*: **openWakeWord** mendeteksi frasa pemicu ("Hei Rumah"), **Whisper** mengubah ucapan menjadi teks, **Ollama** memproses maksud, dan **Piper** menghasilkan *text-to-speech* — termasuk dukungan suara bahasa Indonesia.
-
-Keunggulan desain Wyoming adalah kemerdekaan setiap komponen: masing-masing berjalan sebagai *container* terpisah dengan port sendiri (10300 untuk Whisper, 10200 untuk Piper), sehingga bisa di-*upgrade* atau diganti tanpa menyentuh komponen lain. Ini adalah contoh nyata dari prinsip *modular agent architecture* yang diadaptasi dari struktur Harmony [3]: satu rantai, banyak bagian yang bisa diganti.
-
-Dengan **Ministral 3 3B** sebagai LLM agent, seluruh pipeline dapat mencapai **< 2 detik end-to-end** (wake → aksi → TTS) — jauh di bawah batas kenyamanan manusia, dan menjadi fondasi pengalaman smart home yang benar-benar responsif [11].
-
----
-
-## 6. Automasi Cerdas dengan LLM
-
-Ini bagian yang paling sering disalahpahami: **LLM tidak perlu untuk semua trigger**. Sensor suhu naik → nyalakan AC tetap paling baik dijalankan automasi YAML klasik yang deterministik dan *instant*. Melibatkan LLM di sini hanya menambah latensi dan satu titik kegagalan.
-
-Gunakan LLM justru untuk tiga kasus yang memang lemah di YAML. Pertama, **perintah ambigu** — "suasana santai" yang membutuhkan interpretasi (lampu redup, AC 24 derajat, playlist jazz). Kedua, **multiple intent** — "matikan lampu dan nyalakan TV" yang harus dipecah menjadi dua aksi. Ketiga, **integrasi konteks eksternal** — "jadwalkan AC menyala 30 menit sebelum saya pulang", yang menuntut kalender dan *timer logic*.
-
-Studi *GreenIFTTT* [4] menemukan temuan yang mengejutkan: pengguna non-teknis justru lebih mudah merancang rutinitas rumah pintar melalui percakapan dengan *chatbot* LLM daripada melalui editor aturan visual. Artinya, LLM bukan sekadar "kemewahan" — bagi sebagian keluarga, ia adalah satu-satunya jembatan menuju otomasi yang selama ini terasa terlalu teknis.
-
----
-
-## 7. Kinerja dan SLA
-
-Terakhir, tetapkan janji kinerja. Target latensi untuk pengalaman natural: **wake → TTS kurang dari 5 detik**. Jika keluarga memiliki GPU, target di bawah **3 detik** tercapai (Whisper + LLM berjalan paralel di GPU). Dengan CPU-only, latensi 6-12 detik masih dapat diterima untuk smart home — cukup cepat untuk perintah, cukup lambat untuk membuat anak bosan jika Anda tidak sabar.
-
-Angka-angka ini selaras dengan studi *On-Device LLM for Home Assistant* [1], yang membuktikan bahwa LLM 8-bit di perangkat CPU-only sekalipun mampu menangani *intent detection* dengan latensi yang dapat diterima untuk otomasi rumah. Di sisi lain, studi *Optimizing LLM for Smart Home at the Edge* [5] menunjukkan bahwa optimasi model secara agresif dapat memangkas *response time* hingga 82% (dari 45 detik menjadi 7,9 detik) — bukti bahwa untuk tugas rumah tangga, model kecil yang dioptimasi mengalahkan model besar yang lambat.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: Perbandingan Model untuk Home Assistant
 
@@ -94,6 +48,36 @@ Kesenjangan latensi GPU versus CPU hanya bisa dirasakan ketika digambar — semu
 
 Ministral 3 (Apache 2.0, Desember 2025) adalah pilihan terbaik untuk Home Assistant karena *edge-optimized* dengan *function calling* yang baik. **Ministral 3 3B** berjalan di CPU dengan latensi hanya 2 detik — ideal untuk perangkat tanpa GPU. Untuk keluarga dengan GPU, **Ministral 3 8B** menawarkan keseimbangan terbaik antara akurasi dan kecepatan. Pola penting dari tabel ini: perbedaan latensi GPU hanya beberapa detik, tetapi selisih CPU bisa 3-8 kali lipat — bagi rumah tanpa GPU, pilihan model adalah segalanya.
 
+
+---
+
+## 3. Native Ollama Integration di HA 2024.4+
+
+
+Sejak versi **2024.4**, Home Assistant memiliki integrasi **Ollama** bawaan — tidak perlu *custom component*. Langkahnya sesederhana membuka **Settings → Devices & Services → Add Ollama**, lalu mengisi URL (default `http://192.168.1.100:11434`), memilih model, dan menyesuaikan parameter.
+
+Dua keputusan penting menyusul. Pertama, **ekspos entity** — tentukan perangkat mana yang boleh dikontrol LLM melalui *Assist*; jangan pernah mengekspos semua entity, karena itu berarti memberi pembantu rumah tangga kunci semua kamar. Kedua, **pilih model dengan *function calling* yang stabil** — rekomendasi utama adalah **Qwen-2.5-7B** (paling stabil untuk *function calling*) dan **Llama-3.1-8B** (serba guna). *Function calling* adalah bahasa yang membuat LLM mampu menyebut nama *service* dan *entity* secara terstruktur — tanpa itu, jawaban model hanya akan menjadi cerita, bukan tindakan.
+
+---
+
+## 4. Custom Prompt dan Context Engineering
+
+
+LLM tidak lahir mengenal rumah Anda. Ia perlu "diberi tahu" — dan cara pemberi tahuannya disebut *context engineering*. Sebuah *system prompt* yang baik untuk asisten rumah berisi tiga hal: **denah dan konteks rumah** (kamar mana di lantai mana), **daftar perangkat** yang dirujuk dengan nama persis entity-nya (bukan "lampu itu" melainkan `light.living_room`), dan **batas kewenangan** ("kamu hanya boleh menjalankan perintah yang aman").
+
+Teknik pendukungnya adalah **expose_entities** — mekanisme resmi untuk membatasi daftar perangkat yang terlihat oleh LLM, sehingga ia tidak hanya dibatasi *oleh* prompt tetapi juga *oleh* sistem. Contoh nyata: template *prompt* untuk deteksi maksud berubah dari frasa umum "nyalakan lampu ruang tamu" menjadi panggilan layanan terstruktur `light.turn_on` pada entity `light.living_room`. Struktur *prompt* yang rapi seperti inilah yang membuat model kecil sekalipun mampu mengeksekusi dengan presisi [3].
+
+---
+
+## 5. Wyoming Voice Pipeline
+
+
+Antarmuka paling alami bagi keluarga bukan keyboard, melainkan suara. **Wyoming protocol** adalah standar terbuka yang menghubungkan empat komponen *voice*: **openWakeWord** mendeteksi frasa pemicu ("Hei Rumah"), **Whisper** mengubah ucapan menjadi teks, **Ollama** memproses maksud, dan **Piper** menghasilkan *text-to-speech* — termasuk dukungan suara bahasa Indonesia.
+
+Keunggulan desain Wyoming adalah kemerdekaan setiap komponen: masing-masing berjalan sebagai *container* terpisah dengan port sendiri (10300 untuk Whisper, 10200 untuk Piper), sehingga bisa di-*upgrade* atau diganti tanpa menyentuh komponen lain. Ini adalah contoh nyata dari prinsip *modular agent architecture* yang diadaptasi dari struktur Harmony [3]: satu rantai, banyak bagian yang bisa diganti.
+
+Dengan **Ministral 3 3B** sebagai LLM agent, seluruh pipeline dapat mencapai **< 2 detik end-to-end** (wake → aksi → TTS) — jauh di bawah batas kenyamanan manusia, dan menjadi fondasi pengalaman smart home yang benar-benar responsif [11].
+
 ### Tabel 2: Komponen Voice Pipeline Wyoming
 
 Sekarang bedah rantai suara komponen per komponen — perhatikan betapa ringannya kebutuhan setiap mata rantai.
@@ -107,22 +91,6 @@ Sekarang bedah rantai suara komponen per komponen — perhatikan betapa ringanny
 
 Dengan **Ministral 3 3B** sebagai LLM agent, total pipeline *voice* mencapai **< 2 detik end-to-end** (wake → action → TTS) — angka yang sangat responsif untuk smart home. Kesimpulan praktisnya: seluruh rantai suara hanya membutuhkan ~3,6-8,6 GB RAM dan latensi GPU di bawah 3 detik — artinya, pipeline ini bahkan bisa ditaruh di Mini PC *home server* yang sama dengan Home Assistant, tanpa menuntut rig GPU khusus.
 
-### Tabel 3: Contoh Automasi dengan vs Tanpa LLM
-
-Terakhir, perbandingan nyata antara dua dunia: YAML klasik versus bahasa alami.
-
-| Skenario | Tanpa LLM (YAML) | Dengan LLM |
-|:---|:---|:---|
-| "Suasana santai" | Butuh script kompleks, 15 baris YAML | Satu kalimat natural |
-| "Matikan lampu kamar dan nyalakan AC" | 2 automasi terpisah | Multiple intent otomatis |
-| "Berapa suhu di luar?" | Butuh template sensor | Query database otomatis |
-| "Hidupkan lampu 10 menit lagi" | Timer manual | LLM parse "10 menit" |
-
-Bacaan yang jujur: kolom tanpa LLM bukan musuh — ia deterministik, cepat, dan gratis. Tetapi untuk empat kategori di atas, biaya *engineering*-nya nyata: 15 baris YAML hanya untuk satu suasana, dua automasi terpisah untuk satu kalimat majemuk, dan template rumit untuk pertanyaan sederhana. LLM mentransfer biaya itu dari *pemrogram* ke *bahasa sehari-hari* — dan bagi keluarga yang tidak memiliki pemrogram di dalamnya, itu adalah perbedaan antara "bisa" dan "tidak pernah mencoba" [4].
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur Voice Pipeline
 
@@ -159,6 +127,43 @@ graph LR
 
 Diagram ini menunjukkan pembagian kerja yang bersih: semua pemrosesan bahasa terjadi di dalam *Home Server*, sementara *Smart Home* hanya menerima aksi. Dua busur penting: `LLM →|Intent| HA` adalah jembatan antara pemahaman dan tindakan, dan `HA →|Response| LLM` adalah putaran balik yang membuat asisten bisa *menjawab* setelah *bertindak*. Dengan latensi per-node yang kita ukur di Tabel 2, rantai ini menutup pengalaman suara di bawah 3 detik di GPU, dan di bawah 6 detik di CPU [1].
 
+
+---
+
+## 6. Automasi Cerdas dengan LLM
+
+
+Ini bagian yang paling sering disalahpahami: **LLM tidak perlu untuk semua trigger**. Sensor suhu naik → nyalakan AC tetap paling baik dijalankan automasi YAML klasik yang deterministik dan *instant*. Melibatkan LLM di sini hanya menambah latensi dan satu titik kegagalan.
+
+Gunakan LLM justru untuk tiga kasus yang memang lemah di YAML. Pertama, **perintah ambigu** — "suasana santai" yang membutuhkan interpretasi (lampu redup, AC 24 derajat, playlist jazz). Kedua, **multiple intent** — "matikan lampu dan nyalakan TV" yang harus dipecah menjadi dua aksi. Ketiga, **integrasi konteks eksternal** — "jadwalkan AC menyala 30 menit sebelum saya pulang", yang menuntut kalender dan *timer logic*.
+
+Studi *GreenIFTTT* [4] menemukan temuan yang mengejutkan: pengguna non-teknis justru lebih mudah merancang rutinitas rumah pintar melalui percakapan dengan *chatbot* LLM daripada melalui editor aturan visual. Artinya, LLM bukan sekadar "kemewahan" — bagi sebagian keluarga, ia adalah satu-satunya jembatan menuju otomasi yang selama ini terasa terlalu teknis.
+
+### Tabel 3: Contoh Automasi dengan vs Tanpa LLM
+
+Terakhir, perbandingan nyata antara dua dunia: YAML klasik versus bahasa alami.
+
+| Skenario | Tanpa LLM (YAML) | Dengan LLM |
+|:---|:---|:---|
+| "Suasana santai" | Butuh script kompleks, 15 baris YAML | Satu kalimat natural |
+| "Matikan lampu kamar dan nyalakan AC" | 2 automasi terpisah | Multiple intent otomatis |
+| "Berapa suhu di luar?" | Butuh template sensor | Query database otomatis |
+| "Hidupkan lampu 10 menit lagi" | Timer manual | LLM parse "10 menit" |
+
+Bacaan yang jujur: kolom tanpa LLM bukan musuh — ia deterministik, cepat, dan gratis. Tetapi untuk empat kategori di atas, biaya *engineering*-nya nyata: 15 baris YAML hanya untuk satu suasana, dua automasi terpisah untuk satu kalimat majemuk, dan template rumit untuk pertanyaan sederhana. LLM mentransfer biaya itu dari *pemrogram* ke *bahasa sehari-hari* — dan bagi keluarga yang tidak memiliki pemrogram di dalamnya, itu adalah perbedaan antara "bisa" dan "tidak pernah mencoba" [4].
+
+---
+
+
+---
+
+## 7. Kinerja dan SLA
+
+
+Terakhir, tetapkan janji kinerja. Target latensi untuk pengalaman natural: **wake → TTS kurang dari 5 detik**. Jika keluarga memiliki GPU, target di bawah **3 detik** tercapai (Whisper + LLM berjalan paralel di GPU). Dengan CPU-only, latensi 6-12 detik masih dapat diterima untuk smart home — cukup cepat untuk perintah, cukup lambat untuk membuat anak bosan jika Anda tidak sabar.
+
+Angka-angka ini selaras dengan studi *On-Device LLM for Home Assistant* [1], yang membuktikan bahwa LLM 8-bit di perangkat CPU-only sekalipun mampu menangani *intent detection* dengan latensi yang dapat diterima untuk otomasi rumah. Di sisi lain, studi *Optimizing LLM for Smart Home at the Edge* [5] menunjukkan bahwa optimasi model secara agresif dapat memangkas *response time* hingga 82% (dari 45 detik menjadi 7,9 detik) — bukti bahwa untuk tugas rumah tangga, model kecil yang dioptimasi mengalahkan model besar yang lambat.
+
 ### Gambar 2: Alur Eksekusi Multiple Intent
 
 Saat keluarga mengucapkan perintah majemuk, LLM bertindak sebagai juru tulis yang rapi.
@@ -178,7 +183,11 @@ Inilah ratusan baris YAML yang "disulap" menjadi satu kalimat: LLM memecah perin
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Integrasi Ollama dengan Home Assistant via Docker Compose
 
@@ -316,7 +325,8 @@ Ganti `your-long-lived-token` dengan token yang dibuat dari profil pengguna Anda
 
 ---
 
-## 11. Studi Kasus: Rumah Pintar Keluarga Santoso (6 Anggota)
+## 9. Studi Kasus: Rumah Pintar Keluarga Santoso (6 Anggota)
+
 
 **Setup.** Rumah pintar keluarga Santoso: Home Assistant di Mini PC, Ollama, dan Wyoming Whisper/Piper sebagai rantai suara.
 
@@ -337,7 +347,8 @@ Ganti `your-long-lived-token` dengan token yang dibuat dari profil pengguna Anda
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -12,6 +12,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan arsitektur **Unified Memory** Apple Silicon dan mengapa ia menghapus
@@ -30,6 +31,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Unified Memory Architecture
+
 
 ### Satu Kolam untuk Semua
 
@@ -69,9 +71,42 @@ PC yang bisa membeli DIMM murah. Meski begitu, untuk kasus-kasus tertentu (model
 yang dimiliki satu Mac Studio 192GB — Anda tidak bisa membeli "192 GB VRAM" di toko
 PC mana pun di Indonesia, berapa pun uang yang Anda bawa.
 
+### Gambar 1: Unified Memory vs VRAM Architecture
+
+```mermaid
+flowchart LR
+    subgraph UM[Apple Silicon - Unified Memory]
+        CPU1[CPU] --> POOL[Memory Pool 192 GB]
+        GPU1[GPU] --> POOL
+        NPU1[NPU] --> POOL
+    end
+    subgraph PC[PC Konvensional]
+        CPU2[CPU] --> RAM[DRAM 64 GB]
+        CPU2 --> PCIE[PCIe Bus]
+        PCIE --> V1[GPU VRAM 24 GB]
+        GPU2[GPU] --> V1
+    end
+    POOL --> M1["Model 70B+: dimuat utuh, zero-copy"]
+    V1 --> M2["Model >24 GB: tidak muat, butuh multi-GPU"]
+```
+
+Diagram ini merangkum seluruh argumen bab ini dalam satu gambar. Di kiri, **Apple
+Silicon**: CPU, GPU, dan NPU berada dalam satu lingkaran memori — tidak ada panah
+keluar, tidak ada *transfer*; model besar dimuat utuh (`zero-copy`) karena kolamnya
+bisa mencapai 192 GB. Di kanan, **PC konvensional**: CPU dan GPU hidup di dua dunia
+yang dihubungkan **PCIe** — koridor sempit tempat data bolak-balik; VRAM 24 GB menjadi
+dinding yang membatasi ukuran model, mendorong pemilik PC ke arsitektur multi-GPU yang
+rumit. Kesimpulan visualnya sama dengan kesimpulan angka: *efisiensi arsitektur Apple
+bukan tentang komponen yang lebih cepat — melainkan tentang satu langkah perjalanan
+yang lebih sedikit*.
+
+---
+
+
 ---
 
 ## 3. Bandwidth M-series dari M1 ke M4
+
 
 Peta jalan bandwidth Apple bercerita tentang strategi yang konsisten: setiap generasi
 hampir menggandakan aliran data. **M1** memulai dengan ~70 GB/s, **M2** ~100 GB/s,
@@ -92,6 +127,7 @@ adalah alat yang sah — asalkan Anda tahu beban yang sedang Anda bawa.
 ---
 
 ## 4. Performa LLM Inference di Apple Silicon
+
 
 ### MLX: Framework yang Membangkitkan Potensi
 
@@ -132,103 +168,6 @@ Anda memilih konfigurasi memori berdasarkan model terbesar yang ingin dijalankan
 pengguna PC yang selalu memburu kuantisasi paling agresif untuk memuatkan lebih banyak
 model — di Mac, model besar memakai kapasitas, dan kapasitas menentukan semuanya.
 
----
-
-## 5. Apple Silicon vs NVIDIA — Analisis Head-to-Head
-
-Kapan satu unggul? Bandingkan tiga kelas model secara berurutan:
-
-**Model 7B.** RTX 4090 melaju ~110 t/s melawan M4 Max ~70 t/s dengan MLX — **NVIDIA
-unggul 1,5x**. Model kecil adalah medan perang *bandwidth*, dan di sini RTX 4090 tidak
-ada lawan.
-
-**Model 70B.** M2 Ultra 192GB berjalan ~15 t/s; RTX 4090 24GB **bahkan tidak bisa
-memuatnya** — **Apple unggul karena kapasitas**. Untuk kelas ini, "versus" bahkan
-tidak terjadi: PC butuh dua RTX 3090 atau lebih untuk sekadar memulai.
-
-**Model 405B.** Hanya **Apple Silicon 192GB** atau sistem multi-GPU kelas berat yang
-bisa menjalankannya; di M2 Ultra dengan kuantisasi agresif (Q3_K_M) kecepatannya
-~3 t/s — pelan, tetapi *ada*.
-
-**Model MoE raksasa.** DeepSeek V4 Flash (284B, 13B aktif) dan Mistral Large 3
-(675B, 41B aktif) membuka babak baru: **Apple Silicon 192GB bisa menjalankan
-keduanya** — V4 Flash dalam Q4_K_M (~150 GB) dan Mistral Large 3 dengan kuantisasi
-agresif — berkat sifat *sparse* MoE yang hanya mengaktifkan sebagian kecil *expert*
-per token dan *offload* yang cerdas. Kecepatannya terbatas — sekitar **3-8 t/s** —
-karena bandwidth Unified Memory lebih rendah daripada sistem multi-GPU, tetapi bagi
-banyak pekerjaan analitik dan percakapan panjang, 6 t/s yang tenang dan senyap lebih
-berharga daripada 20 t/s yang menggetarkan ruangan.
-
----
-
-## 6. Software Ecosystem
-
-Pendukung setia Apple Silicon adalah perangkat lunaknya yang ternyata lengkap. **MLX**
-memimpin dari segi performa murni; **llama.cpp** dengan backend **Metal** dan **Ollama**
-memberi pengalaman *drag-and-drop* yang paling mudah; **MLC-LLM** unggul untuk
-*time-to-first-token* rendah. Di kancah server, **vllm-mlx** menyajikan API yang
-kompatibel dengan OpenAI lengkap dengan *prefix caching* untuk beban *multimodal* —
-Anda bisa mengarahkan aplikasi klien yang sama ke Mac atau ke GPU cloud tanpa mengubah
-satu baris pun.
-
-Namun ekosistem ini punya dinding yang harus diakui. **PyTorch MPS backend masih
-terbatas** — banyak operasi berjalan di *fallback* CPU — dan **training skala besar
-praktis tidak didukung** di Apple Silicon; kekuatan Apple adalah *inference*, bukan
-*pre-training*. Framework *bleeding-edge* seperti ExLlamaV2 dan TRT-LLM tidak memiliki
-versi untuk Mac. Bagi peneliti yang ingin mencoba kernel terbaru minggu ini juga, Mac
-akan terus membuat mereka menunggu; bagi praktisi yang menginginkan model stabil
-berjalan dalam diam, Mac hampir tidak punya saingan.
-
----
-
-## 7. Kapan Pilih Mac vs PC — Matriks Keputusan
-
-Rumus keputusannya sesungguhnya sederhana dan bisa diringkas dalam dua pertanyaan.
-**Pilih Mac** jika prioritas Anda: VRAM (baca: Unified Memory) besar untuk harganya,
-mesin *silent*, daya rendah, *form factor* kecil yang muat di atas meja tanpa pembangkit
-listrik. **Pilih PC** jika prioritas Anda: performa mentah untuk model kecil-menengah,
-sistem multi-GPU yang bisa diperluas, dan akses *first-hand* ke framework terbaru
-seperti ExLlamaV2 dan TRT-LLM. *Silent* tidak bisa di-*upgrade*; begitu pula
-*bandwidth*.
-
-Ada satu sudut pandang tambahan yang sering dilupakan: **ekosistem kerja**. Jika Anda
-sudah berada di dalam dunia macOS — misalnya pengembang iOS, desainer, atau peneliti
-yang bekerja dengan Xcode dan Final Cut — biaya *switching* ke PC menambah ongkos
-tersembunyi ratusan jam belajar dan ribuan dolar perangkat. Bagi mereka, Mac Studio
-192GB bukan pilihan performa, melainkan *perpanjangan logis dari alat kerja yang sudah
-ada*. Sebaliknya, praktisi AI yang seluruh *toolchain*-nya (CUDA, Docker, driver)
-sudah terbiasa di Linux sebaiknya berpikir dua kali sebelum pindah ke *platform* yang
-mendukungnya lebih sedikit.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Spesifikasi Apple Silicon M-series vs NVIDIA
-
-Berikut peta arsitektur lengkap kedua kubu — perhatikan dengan saksama baris *memory
-max* dan *bandwidth*, dua angka yang menentukan segalanya.
-
-| Aspek | M1 Max | M2 Ultra | M3 Max | M4 Pro | M4 Max | RTX 4090 | RTX 3090 |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Memory Max** | 64 GB | 192 GB | 128 GB | 48 GB | 128 GB | 24 GB | 24 GB |
-| **Bandwidth** | ~400 GB/s | ~800 GB/s | ~400 GB/s | ~270 GB/s | ~500 GB/s | 1008 GB/s | 936 GB/s |
-| **GPU Cores** | 32 | 76 | 40 | 20 | 40 | 16384 CUDA | 10496 CUDA |
-| **FP16 TFLOPS** | ~10 | ~27 | ~14 | ~8 | ~18 | 82,6 | 35,6 |
-| **Daya (load)** | ~60W | ~120W | ~70W | ~45W | ~90W | ~350W | ~350W |
-| **Harga Mulai** | ~Rp 40 jt | ~Rp 70 jt | ~Rp 45 jt | ~Rp 25 jt | ~Rp 55 jt | ~Rp 30 jt | ~Rp 12 jt |
-| **Form Factor** | Laptop | Desktop | Laptop | Mini PC | Laptop | Desktop | Desktop |
-
-Tabel ini adalah cermin dari dua filosofi. Di baris *Memory Max*, Apple menang mutlak:
-M2 Ultra membuka 192 GB — delapan kali lipat RTX 4090 — sementara *bandwidth*-nya
-hanya ~800 GB/s melawan 1.008 GB/s. Di baris *FP16 TFLOPS*, NVIDIA membalik keadaan:
-82,6 TFLOPS RTX 4090 hampir tiga kali M2 Ultra (~27) — untuk beban *compute-bound*,
-NVIDIA akan menyapu lantai; untuk beban *memory-bound* yang mendominasi inferensi LLM,
-kedua kubu berbagi medan dengan cara berbeda. Perhatikan juga *Daya (load)*: M4 Pro
-hanya ~45W vs ~350W RTX 4090 — hampir 8x lebih hemat. Setiap Watt yang Anda hemat
-adalah rupiah yang tersisa di rekening listrik bulanan, dan desibel yang tidak pernah
-mengganggu sesi kerja malam.
-
 ### Tabel 2: Benchmark LLM Inference — Apple Silicon vs NVIDIA
 
 Inilah medan perang yang sesungguhnya: model yang sama, perangkat yang berbeda, angka
@@ -259,6 +198,104 @@ melakukannya *dalam satu mesin senyap*. Dan baris-baris terakhir menceritakan ma
 depan: DeepSeek V4 Flash di ~6 t/s dan Mistral Large 3 di ~4 t/s — model frontier yang
 hidup di sebuah kotak kecil di ruang tamu. Pertanyaannya bukan "mana yang lebih cepat",
 melainkan "mana yang lebih *pantas* untuk beban Anda".
+
+
+---
+
+## 5. Apple Silicon vs NVIDIA — Analisis Head-to-Head
+
+
+Kapan satu unggul? Bandingkan tiga kelas model secara berurutan:
+
+**Model 7B.** RTX 4090 melaju ~110 t/s melawan M4 Max ~70 t/s dengan MLX — **NVIDIA
+unggul 1,5x**. Model kecil adalah medan perang *bandwidth*, dan di sini RTX 4090 tidak
+ada lawan.
+
+**Model 70B.** M2 Ultra 192GB berjalan ~15 t/s; RTX 4090 24GB **bahkan tidak bisa
+memuatnya** — **Apple unggul karena kapasitas**. Untuk kelas ini, "versus" bahkan
+tidak terjadi: PC butuh dua RTX 3090 atau lebih untuk sekadar memulai.
+
+**Model 405B.** Hanya **Apple Silicon 192GB** atau sistem multi-GPU kelas berat yang
+bisa menjalankannya; di M2 Ultra dengan kuantisasi agresif (Q3_K_M) kecepatannya
+~3 t/s — pelan, tetapi *ada*.
+
+**Model MoE raksasa.** DeepSeek V4 Flash (284B, 13B aktif) dan Mistral Large 3
+(675B, 41B aktif) membuka babak baru: **Apple Silicon 192GB bisa menjalankan
+keduanya** — V4 Flash dalam Q4_K_M (~150 GB) dan Mistral Large 3 dengan kuantisasi
+agresif — berkat sifat *sparse* MoE yang hanya mengaktifkan sebagian kecil *expert*
+per token dan *offload* yang cerdas. Kecepatannya terbatas — sekitar **3-8 t/s** —
+karena bandwidth Unified Memory lebih rendah daripada sistem multi-GPU, tetapi bagi
+banyak pekerjaan analitik dan percakapan panjang, 6 t/s yang tenang dan senyap lebih
+berharga daripada 20 t/s yang menggetarkan ruangan.
+
+### Tabel 1: Spesifikasi Apple Silicon M-series vs NVIDIA
+
+Berikut peta arsitektur lengkap kedua kubu — perhatikan dengan saksama baris *memory
+max* dan *bandwidth*, dua angka yang menentukan segalanya.
+
+| Aspek | M1 Max | M2 Ultra | M3 Max | M4 Pro | M4 Max | RTX 4090 | RTX 3090 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Memory Max** | 64 GB | 192 GB | 128 GB | 48 GB | 128 GB | 24 GB | 24 GB |
+| **Bandwidth** | ~400 GB/s | ~800 GB/s | ~400 GB/s | ~270 GB/s | ~500 GB/s | 1008 GB/s | 936 GB/s |
+| **GPU Cores** | 32 | 76 | 40 | 20 | 40 | 16384 CUDA | 10496 CUDA |
+| **FP16 TFLOPS** | ~10 | ~27 | ~14 | ~8 | ~18 | 82,6 | 35,6 |
+| **Daya (load)** | ~60W | ~120W | ~70W | ~45W | ~90W | ~350W | ~350W |
+| **Harga Mulai** | ~Rp 40 jt | ~Rp 70 jt | ~Rp 45 jt | ~Rp 25 jt | ~Rp 55 jt | ~Rp 30 jt | ~Rp 12 jt |
+| **Form Factor** | Laptop | Desktop | Laptop | Mini PC | Laptop | Desktop | Desktop |
+
+Tabel ini adalah cermin dari dua filosofi. Di baris *Memory Max*, Apple menang mutlak:
+M2 Ultra membuka 192 GB — delapan kali lipat RTX 4090 — sementara *bandwidth*-nya
+hanya ~800 GB/s melawan 1.008 GB/s. Di baris *FP16 TFLOPS*, NVIDIA membalik keadaan:
+82,6 TFLOPS RTX 4090 hampir tiga kali M2 Ultra (~27) — untuk beban *compute-bound*,
+NVIDIA akan menyapu lantai; untuk beban *memory-bound* yang mendominasi inferensi LLM,
+kedua kubu berbagi medan dengan cara berbeda. Perhatikan juga *Daya (load)*: M4 Pro
+hanya ~45W vs ~350W RTX 4090 — hampir 8x lebih hemat. Setiap Watt yang Anda hemat
+adalah rupiah yang tersisa di rekening listrik bulanan, dan desibel yang tidak pernah
+mengganggu sesi kerja malam.
+
+
+---
+
+## 6. Software Ecosystem
+
+
+Pendukung setia Apple Silicon adalah perangkat lunaknya yang ternyata lengkap. **MLX**
+memimpin dari segi performa murni; **llama.cpp** dengan backend **Metal** dan **Ollama**
+memberi pengalaman *drag-and-drop* yang paling mudah; **MLC-LLM** unggul untuk
+*time-to-first-token* rendah. Di kancah server, **vllm-mlx** menyajikan API yang
+kompatibel dengan OpenAI lengkap dengan *prefix caching* untuk beban *multimodal* —
+Anda bisa mengarahkan aplikasi klien yang sama ke Mac atau ke GPU cloud tanpa mengubah
+satu baris pun.
+
+Namun ekosistem ini punya dinding yang harus diakui. **PyTorch MPS backend masih
+terbatas** — banyak operasi berjalan di *fallback* CPU — dan **training skala besar
+praktis tidak didukung** di Apple Silicon; kekuatan Apple adalah *inference*, bukan
+*pre-training*. Framework *bleeding-edge* seperti ExLlamaV2 dan TRT-LLM tidak memiliki
+versi untuk Mac. Bagi peneliti yang ingin mencoba kernel terbaru minggu ini juga, Mac
+akan terus membuat mereka menunggu; bagi praktisi yang menginginkan model stabil
+berjalan dalam diam, Mac hampir tidak punya saingan.
+
+---
+
+## 7. Kapan Pilih Mac vs PC — Matriks Keputusan
+
+
+Rumus keputusannya sesungguhnya sederhana dan bisa diringkas dalam dua pertanyaan.
+**Pilih Mac** jika prioritas Anda: VRAM (baca: Unified Memory) besar untuk harganya,
+mesin *silent*, daya rendah, *form factor* kecil yang muat di atas meja tanpa pembangkit
+listrik. **Pilih PC** jika prioritas Anda: performa mentah untuk model kecil-menengah,
+sistem multi-GPU yang bisa diperluas, dan akses *first-hand* ke framework terbaru
+seperti ExLlamaV2 dan TRT-LLM. *Silent* tidak bisa di-*upgrade*; begitu pula
+*bandwidth*.
+
+Ada satu sudut pandang tambahan yang sering dilupakan: **ekosistem kerja**. Jika Anda
+sudah berada di dalam dunia macOS — misalnya pengembang iOS, desainer, atau peneliti
+yang bekerja dengan Xcode dan Final Cut — biaya *switching* ke PC menambah ongkos
+tersembunyi ratusan jam belajar dan ribuan dolar perangkat. Bagi mereka, Mac Studio
+192GB bukan pilihan performa, melainkan *perpanjangan logis dari alat kerja yang sudah
+ada*. Sebaliknya, praktisi AI yang seluruh *toolchain*-nya (CUDA, Docker, driver)
+sudah terbiasa di Linux sebaiknya berpikir dua kali sebelum pindah ke *platform* yang
+mendukungnya lebih sedikit.
 
 ### Tabel 3: Biaya per GB Unified/VRAM
 
@@ -291,40 +328,11 @@ sisanya adalah pajak atas performa murni.
 
 ---
 
-## 9. Diagram & Visualisasi
-
-### Gambar 1: Unified Memory vs VRAM Architecture
-
-```mermaid
-flowchart LR
-    subgraph UM[Apple Silicon - Unified Memory]
-        CPU1[CPU] --> POOL[Memory Pool 192 GB]
-        GPU1[GPU] --> POOL
-        NPU1[NPU] --> POOL
-    end
-    subgraph PC[PC Konvensional]
-        CPU2[CPU] --> RAM[DRAM 64 GB]
-        CPU2 --> PCIE[PCIe Bus]
-        PCIE --> V1[GPU VRAM 24 GB]
-        GPU2[GPU] --> V1
-    end
-    POOL --> M1["Model 70B+: dimuat utuh, zero-copy"]
-    V1 --> M2["Model >24 GB: tidak muat, butuh multi-GPU"]
-```
-
-Diagram ini merangkum seluruh argumen bab ini dalam satu gambar. Di kiri, **Apple
-Silicon**: CPU, GPU, dan NPU berada dalam satu lingkaran memori — tidak ada panah
-keluar, tidak ada *transfer*; model besar dimuat utuh (`zero-copy`) karena kolamnya
-bisa mencapai 192 GB. Di kanan, **PC konvensional**: CPU dan GPU hidup di dua dunia
-yang dihubungkan **PCIe** — koridor sempit tempat data bolak-balik; VRAM 24 GB menjadi
-dinding yang membatasi ukuran model, mendorong pemilik PC ke arsitektur multi-GPU yang
-rumit. Kesimpulan visualnya sama dengan kesimpulan angka: *efisiensi arsitektur Apple
-bukan tentang komponen yang lebih cepat — melainkan tentang satu langkah perjalanan
-yang lebih sedikit*.
 
 ---
 
-## 10. Tutorial / Hands-On
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial 1: Setup MLX untuk LLM Inference di Mac
 
@@ -398,7 +406,8 @@ hal normal karena STREAM mengukur *sustained throughput*, bukan *peak*.
 
 ---
 
-## 11. Studi Kasus: Developer Memilih Mac Studio vs PC untuk LLM
+## 9. Studi Kasus: Developer Memilih Mac Studio vs PC untuk LLM
+
 
 **Latar.** Seorang developer AI di Surabaya menerima *project* analisis dokumen hukum
 berbahasa Indonesia yang membutuhkan pemahaman konteks sangat panjang. Anggaran total:
@@ -439,7 +448,8 @@ kartu, satu PSU 1,5 kW, dan ruangan yang lega.
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa **KV-cache** menjadi *bottleneck* utama dalam *LLM serving* — baik dari sisi kapasitas memori maupun pola alokasinya
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Masalah KV-Cache pada Serving
+
 
 ### 2.1 Dua Fase yang Tidak Seimbang
 
@@ -39,78 +41,6 @@ Ada alasan mengapa topik ini baru meledak popularitasnya dalam dua tahun terakhi
 
 Kabar baiknya, arsitektur model mulai membantu. DeepSeek V4 Pro dengan *hybrid CSA/HCA attention* memangkas KV-cache hingga hanya **10% dari V3.2** pada konteks 1 juta token, dan *training FLOPs*-nya hanya 27% milik V3.2 [8]. Efek gabungannya terlihat di Tabel 2 nanti: meski berparameter 1,6 triliun, DeepSeek V4 Pro justru mencapai *throughput* tertinggi di kelasnya — karena masalah memori yang menganga sudah diobati sejak arsitektur. Namun untuk model-model yang belum seefisien itu, manajemen memori yang baik tetap menjadi pembeda antara server yang melayani 4 request dan yang melayani 64 request per detik.
 
----
-
-## 3. Konsep PagedAttention
-
-### 3.1 Meminjam Virtual Memory dari OS
-
-PagedAttention lahir dari sebuah analogi yang sangat sederhana namun dalam: jika LLM serving menghadapi masalah memori yang sama seperti program komputer di tahun 1960-an — *memory fragmentation* dan alokasi *contiguous* yang membatasi — mengapa tidak memakai solusi yang sudah matang di sistem operasi, yaitu **virtual memory**? Di dunia OS, program melihat alamat memori seolah berurutan, tetapi di belakang layar halaman-halamannya (*pages*) disimpan di mana saja di RAM, bahkan boleh dipindah ke disk. Pemetaannya dicatat di struktur bernama *page table*.
-
-PagedAttention mengadopsi ide ini secara harfiah untuk KV-cache. KV-cache sebuah request dipecah menjadi **KV blocks** kecil berukuran tetap — secara default **16 token per blok**. Ketika sebuah request selesai memproses 16 token, satu blok penuh terpakai; jika berhenti di tengah, hanya sebagian kecil slot yang sia-sia, bukan seluruh ruang kontiguitas. Karena blok-blok ini *independen*, mereka boleh berserakan di mana saja di memori GPU — tidak perlu lagi menyimpan satu barisan memori yang panjang dan kaku.
-
-Dampak langsung *block-level allocation* ini: alokasi dan pembebasan memori menjadi operasi murah yang sering dilakukan, bukan peristiwa langka yang mengerikan. Setiap kali sebuah request selesai, blok-bloknya kembali ke *pool* dalam hitungan mikrodetik dan langsung bisa dipinjam request lain. Analogi yang lebih pas: sistem lama seperti menyewa seluruh lantai gedung untuk setiap tamu (boros dan rumit), sementara PagedAttention menyewa per kamar — dan kamar yang kosong selalu bisa diisi tamu baru.
-
-### 3.2 Block Table: Menghubungkan Logika dan Fisik
-
-Agar model tetap bisa menghitung *attention* seolah-olah urutan KV-nya berurutan, vLLM menyimpan struktur yang disebut **block table** untuk setiap request. Struktur ini memetakan *logical blocks* — urutan abstrak yang dilihat model, 0, 1, 2, dan seterusnya — ke *physical blocks* yang lokasinya acak di *GPU memory pool*. Analoginya seperti peta indeks perpustakaan: buku BAB 3 mungkin berada di rak nomor 7, sementara BAB 1 di rak nomor 2 — pembaca tidak perlu tahu selama peta indeksnya benar.
-
-Karena pemetaannya *non-contiguous*, blok yang berserakan sekalipun tetap bisa dihitung akurat oleh kernel attention. Lebih dari itu, pencarian blok bebas menjadi murah: vLLM cukup mencatat blok mana yang sedang dipakai oleh request mana, dan langsung melekatkan blok baru yang tersedia dari *GPU memory pool*. Ini menghapus fragmenasi eksternal sekaligus meminimalkan fragmenasi internal hingga sisa **~4%** saja — lompatan yang luar biasa dibandingkan sistem lama.
-
-### 3.3 Copy-on-Write untuk Sampling Paralel
-
-Ada satu lagi trik cerdik: untuk *parallel sampling* (meminta beberapa kandidat jawaban dari satu prompt) dan *beam search* (menelusuri beberapa cabang kalimat sekaligus), banyak request berbagi bagian awal prompt yang sama persis. Dengan skema lama, setiap cabang menyimpan salinan KV-cache sendiri — boros. PagedAttention memakai **copy-on-write**: cabang-cabang itu cukup *berbagi* blok fisik yang sama, dan baru diduplikasi ketika salah satu cabang mulai menghasilkan token yang berbeda. Hasilnya, memori untuk eksperimen multisampling turun drastis tanpa mengubah hasil komputasi sama sekali.
-
----
-
-## 4. Arsitektur vLLM
-
-### 4.1 Scheduler: Maestro Antrean yang Tegas
-
-vLLM menjalankan *serving loop* yang terdiri dari beberapa komponen, dan yang pertama kali menari adalah **scheduler**. Scheduler menentukan request mana yang masuk ke batch pada iterasi berikutnya, berapa blok KV yang dialokasikan, dan — ketika memori GPU mulai penuh — request mana yang harus dihentikan sementara (*preempted*). Karena keputusan dibuat per iterasi kecil (bukan per *request* selesai), vLLM bisa mencampur *prefill* dan *decode* dari banyak request dalam satu langkah komputasi; inilah esensi **continuous batching** yang diwarisi dari sistem Orca [2]. Setiap request baru yang mengular tidak perlu menunggu batch lama selesai — cukup menunggu satu iterasi.
-
-Kebijakan *scheduling* juga menjawab pertanyaan keadilan: apakah satu request dengan konteks 100K token boleh menguasai GPU berjam-jam, sementara puluhan request pendek antre? vLLM menangani ini dengan *weighted scheduling* dan *preemption* yang adil — request raksasa boleh masuk, tetapi tidak berhak memblokir yang lain tanpa batas. Efeknya terasa dalam *stabilitas*: pengguna dengan pertanyaan pendek hampir selalu mendapat jawaban cepat, sementara *request* besar tetap selesai — hanya sedikit lebih lambat dari yang mereka inginkan.
-
-### 4.2 KV Cache Manager: Pemilik Gudang Blok
-
-Di belakang scheduler ada **KV Cache Manager**, komponen yang bertugas mengalokasikan dan membebaskan blok KV secara dinamis. Saat request masuk, manager memesan blok untuk prompt; saat request selesai, blok-bloknya ditarik kembali ke *pool* untuk dipakai request lain. Karena alokasi dilakukan per blok 16 token, pemanfaatan VRAM menjadi ketat dan efisien — tidak ada lagi reservasi maksimum yang mengunci memori. Manager inilah yang membaca parameter `--gpu-memory-utilization` untuk menentukan seberapa besar fraksi VRAM yang boleh dipakai sebagai *KV cache pool* (default 0,90), dan `--swap-space` untuk menyisihkan RAM CPU sebagai tempat evakuasi sementara.
-
-### 4.3 Worker dan Tensor Parallelism
-
-Untuk model besar yang tidak muat di satu GPU, vLLM menyebar eksekusi ke beberapa *worker* melalui **tensor parallelism**: bobot model dipecah ke sejumlah GPU yang ditentukan `--tensor-parallel-size`, dan setiap iterasi dikomunikasikan lintas GPU. Scheduler tetap satu dan bertindak global, sementara para *worker* menghitung secara paralel di tiap *shard*. Inilah yang memungkinkan DeepSeek V4 Pro (1,6 triliun parameter total, 49 miliar aktif) dijalankan dengan `--tensor-parallel-size 4` di server multi-GPU kelas data center — mesin vLLM yang sama yang melayani model 8B di satu kartu gaming.
-
-Perlu dicatat bahwa *worker* yang tersebar tidak mengubah semantik PagedAttention: KV-cache tetap dipecah per blok, hanya saja setiap blok kini tinggal di *shard* yang memegang bagian bobot yang bersangkutan. Koordinasi lintas GPU sebagian besar menjadi urusan komunikasi *all-reduce* yang sudah dimatangkan ekosistem CUDA — vLLM tinggal memastikan scheduler membuat keputusan global yang konsisten. Karena itu, beralih dari `--tensor-parallel-size 1` ke 2 atau 4 biasanya tidak membutuhkan perubahan kode aplikasi sama sekali — hanya satu baris argumen.
-
----
-
-## 5. Preemption dan Recovery
-
-Ketika VRAM penuh dan ada request baru yang membutuhkan blok KV, *scheduler* terpaksa memindahkan sebagian request keluar — ini disebut **preemption**. Di sinilah VLLM menawarkan dua strategi dengan *trade-off* yang jelas. Strategi pertama adalah **swap**: seluruh blok KV request dipindahkan ke RAM CPU yang lebih murah, lalu dikembalikan ke GPU begitu slot kosong. Strategi kedua adalah **recompute**: KV-cache dibuang begitu saja, dan saat request dijadwalkan ulang, token-token yang sudah dihasilkan *diproses ulang dari awal* untuk membangun kembali cache-nya — sebuah "pengorbanan" yang justru sering lebih cepat.
-
-Mengapa *recompute* bisa menang? Karena GPU memproses semua token secara paralel, meregenerasi KV-cache untuk, misalnya, 256 token membutuhkan satu langkah *prefill* yang mahal namun tunggal. Sementara itu, *swap* memindahkan 256 token melalui bus PCIe/NVLink yang sempit — transfer data kecil-kecil dengan latensi tinggi per blok. Untuk 256 token, vLLM mengukur bahwa *recompute* lebih cepat daripada *swap* dalam banyak skenario [1], selain tidak menempati RAM CPU sama sekali. Karena itu, rekomendasi praktisnya: jika Anda bisa mengatur `--swap-space 0` (menonaktifkan swap) dan memilih *recomputation-based recovery*, server Anda umumnya lebih responsif — dengan catatan kapasitas komputasi GPU mencukupi.
-
-Catatan penting: *preemption* bukanlah kegagalan — ia adalah mekanisme keseimbangan yang disengaja. Tanpa *preemption*, satu *request* raksasa dengan konteks 100K token bisa menggembosi seluruh *pool* KV-cache dan membuat server macet untuk semua orang. Dengan *preemption*, server memilih siapa yang mengalah sementara — persis seperti petugas lalu lintas yang menyuruh satu kendaraan menepi agar persimpangan tetap mengalir. Yang perlu dipantau bukan keberadaan *preemption*, melainkan frekuensinya: jika metrik menunjukkan banyak request ter-*preempt*, konfigurasi `--gpu-memory-utilization` atau `--max-num-seqs` Anda terlalu agresif untuk beban kerja tersebut.
-
----
-
-## 6. Dukungan Fitur vLLM
-
-vLLM bukan sekadar *serving engine* — ia adalah ekosistem lengkap yang terus menyerap teknik terbaik industri. Selain *continuous batching* dan PagedAttention yang sudah dibahas, vLLM mendukung:
-
-- **Speculative decoding** — memakai model kecil sebagai *drafter* agar model besar menghasilkan token lebih cepat
-- **Multi-LoRA** — memuat banyak adapter *Low-Rank Adaptation* dalam satu server
-- **Kuantisasi** — AWQ, GPTQ, hingga FP8 dan GGUF, termasuk `--kv-cache-dtype fp8` untuk memangkas memori cache
-- **Prefix caching** — KV-cache untuk *prefix* yang sama (misalnya *system prompt* identik) otomatis dipakai ulang lintas request, meniadakan komputasi berulang
-- **API server kompatibel OpenAI** — aplikasi yang sudah menulis kode `client.chat.completions` dapat langsung berpindah *base URL* tanpa perubahan berarti
-
-Kombinasi fitur ini membuat vLLM menjadi pilihan *default* bagi tim yang mengutamakan *throughput* murni dan fleksibilitas model besar — sesuatu yang akan kita bandingkan dengan TGI di sub-bab 5.2 dan dengan Aphrodite di sub-bab 5.3.
-
-Dua fitur layak digarisbawahi sebelum kita melangkah ke angka-angka. **Prefix caching** adalah penghemat paling tenang: di aplikasi chat atau *agent*, hampir setiap request membawa *system prompt* dan riwayat percakapan yang identik di bagian awal. Tanpa *prefix caching*, KV-cache untuk bagian itu dihitung ulang setiap kali — sia-sia. Dengan *prefix caching*, vLLM menyimpan hash KV per blok dan melewatkan komputasi berulang; blok yang sama dipakai bersama lintas request hingga salah satu "menyimpang". Penghematannya bisa mencapai puluhan persen waktu *prefill* untuk aplikasi dengan *prompt* templat. Sementara itu, *continuous batching* yang mengantrekan request per iterasi — bukan per *request* selesai — adalah alasan mengapa vLLM tetap sibuk bahkan ketika sebagian besar request sudah selesai menulis jawaban dan hanya menunggu token terakhir.
-
----
-
-## 7. Tabel Wajib
-
 ### Tabel 1: Perbandingan Sistem Serving (OPT-13B pada A100)
 
 Berikut perbandingan empat sistem serving yang diukur pada model OPT-13B dengan *trace* ShareGPT dari paper PagedAttention [1] — perhatikan bagaimana angka-angka ini membuktikan besarnya biaya *memory management* konvensional.
@@ -129,40 +59,29 @@ Berikut perbandingan empat sistem serving yang diukur pada model OPT-13B dengan 
 
 Beberapa insight penting dari tabel di atas. Pertama, *memory waste* turun drastis dari ~80% menjadi ~4% — hampir seluruh VRAM yang tadinya menganggur kini produktif, dan inilah akar percepatan 25,6x. Kedua, capaian ini bukan karena kernel komputasi yang lebih cepat semata, melainkan karena *throughput* dihasilkan dari memuat lebih banyak request dalam satu waktu (*max batch size* 64+). Ketiga, *latency* P50 vLLM sebesar 195 ms — angka yang tampak tidak jauh berbeda dengan Orca, tetapi dicapai sambil melayani dua kali lipat volume request; inilah makna "lebih cepat sambil lebih sibuk".
 
-### Tabel 2: Benchmark Throughput vLLM (Request/s)
-
-Untuk melihat bagaimana performa bertambah seiring jumlah GPU, berikut *throughput* beberapa model populer termasuk model MoE terkini yang menjadi andalan ekosistem lokal.
-
-| Model | 1xA100 40GB | 4xA100 40GB | 8xA100 40GB |
-|:---|:---:|:---:|:---:|
-| Llama-2-7B | 45.2 req/s | - | - |
-| Llama-2-13B | 12.8 req/s | 38.5 req/s | - |
-| Llama-2-70B | - | 4.2 req/s | 8.9 req/s |
-| Mixtral-8x7B | 8.5 req/s | 28.3 req/s | 52.1 req/s |
-| DeepSeek V4 Pro (49B aktif) | 42.1 req/s | 89.4 req/s | 168.2 req/s |
-| Mistral Large 3 (41B aktif) | 38.7 req/s | 81.2 req/s | 155.6 req/s |
-
-Tabel ini menyimpan pelajaran menarik: model MoE seperti DeepSeek V4 Pro — meski berparameter 1,6 triliun — justru mencapai *throughput* tertinggi pada satu GPU (42,1 req/s) karena hanya 49 miliar parameter aktif per token. Berkat arsitektur *hybrid CSA/HCA*, KV-cache DeepSeek V4 Pro hanya sekitar **10% dari KV-cache V3.2** pada konteks 1 juta token, dan *training FLOPs*-nya hanya 27% dari V3.2 — bobot komputasi yang jauh lebih ringan berarti lebih banyak request yang bisa dilayani per detik [8]. Mistral Large 3 (675B total, 41B aktif) menyusul di posisi kedua dengan pola serupa [9]. Perhatikan juga efek *scaling* membawa hasil yang tidak linear sempurna: menambah GPU dari 1 ke 4 umumnya melipatgandakan *throughput*, tetapi dari 4 ke 8 *speedup*-nya mengecil — komunikasi antar-GPU mulai menjadi beban.
-
-### Tabel 3: Parameter Tuning vLLM
-
-Setelah memahami arsitektur, berikut parameter yang paling sering diutak-atik saat men-tune server vLLM di produksi.
-
-| Parameter | Default | Fungsi | Rekomendasi |
-|:---|:---:|:---|:---|
-| `--block-size` | 16 | Ukuran KV block per token | 16 (optimal umum) |
-| `--max-num-seqs` | 256 | Maksimum sequence per batch | 128-512 tergantung VRAM |
-| `--gpu-memory-utilization` | 0.90 | Fraksi GPU untuk KV-cache | 0.85-0.95 |
-| `--swap-space` | 4 | CPU memory untuk swap (GB) | 0 jika disable swap |
-| `--max-model-len` | 4096 | Maksimum panjang sequence | Sesuai model |
-
-Tiga parameter pertama membentuk segitiga *trade-off* klasik: `--max-num-seqs` yang besar menaikkan *throughput* tetapi menambah tekanan VRAM; `--gpu-memory-utilization` yang tinggi memberi lebih banyak ruang KV-cache namun menyisakan sedikit *headroom* untuk aktivasi; dan `--block-size` yang lebih besar mempercepat pembacaan blok tetapi membuang memori di tepi-tepi *request* pendek. Untuk server produksi, mulai dari nilai 0,90 dengan `--max-num-seqs` 256, lalu pantau metrik `vllm:gpu_cache_usage_perc` — jika mendekati 100% dengan request mengantre, naikkan `--swap-space` atau turunkan `--max-num-seqs`.
-
-Satu kesalahpahaman umum perlu diluruskan: `--gpu-memory-utilization` bukan "persentase VRAM yang dipakai model", melainkan **batas atas** seluruh alokasi — bobot model, KV-cache pool, dan aktivasi. Jika model sendiri sudah makan 60% VRAM, nilai 0,90 berarti KV-cache hanya mendapat sisanya sekitar 30%. Karena itu, pada model besar dengan konteks panjang, jangan ragu menurunkan `--gpu-memory-utilization` ke 0,85 agar aktivasi dan *scratch space* punya ruang bernapas — cache yang sedikit lebih kecil jauh lebih baik daripada *out-of-memory* di tengah trafik puncak.
 
 ---
 
-## 8. Diagram & Visualisasi
+## 3. Konsep PagedAttention
+
+
+### 3.1 Meminjam Virtual Memory dari OS
+
+PagedAttention lahir dari sebuah analogi yang sangat sederhana namun dalam: jika LLM serving menghadapi masalah memori yang sama seperti program komputer di tahun 1960-an — *memory fragmentation* dan alokasi *contiguous* yang membatasi — mengapa tidak memakai solusi yang sudah matang di sistem operasi, yaitu **virtual memory**? Di dunia OS, program melihat alamat memori seolah berurutan, tetapi di belakang layar halaman-halamannya (*pages*) disimpan di mana saja di RAM, bahkan boleh dipindah ke disk. Pemetaannya dicatat di struktur bernama *page table*.
+
+PagedAttention mengadopsi ide ini secara harfiah untuk KV-cache. KV-cache sebuah request dipecah menjadi **KV blocks** kecil berukuran tetap — secara default **16 token per blok**. Ketika sebuah request selesai memproses 16 token, satu blok penuh terpakai; jika berhenti di tengah, hanya sebagian kecil slot yang sia-sia, bukan seluruh ruang kontiguitas. Karena blok-blok ini *independen*, mereka boleh berserakan di mana saja di memori GPU — tidak perlu lagi menyimpan satu barisan memori yang panjang dan kaku.
+
+Dampak langsung *block-level allocation* ini: alokasi dan pembebasan memori menjadi operasi murah yang sering dilakukan, bukan peristiwa langka yang mengerikan. Setiap kali sebuah request selesai, blok-bloknya kembali ke *pool* dalam hitungan mikrodetik dan langsung bisa dipinjam request lain. Analogi yang lebih pas: sistem lama seperti menyewa seluruh lantai gedung untuk setiap tamu (boros dan rumit), sementara PagedAttention menyewa per kamar — dan kamar yang kosong selalu bisa diisi tamu baru.
+
+### 3.2 Block Table: Menghubungkan Logika dan Fisik
+
+Agar model tetap bisa menghitung *attention* seolah-olah urutan KV-nya berurutan, vLLM menyimpan struktur yang disebut **block table** untuk setiap request. Struktur ini memetakan *logical blocks* — urutan abstrak yang dilihat model, 0, 1, 2, dan seterusnya — ke *physical blocks* yang lokasinya acak di *GPU memory pool*. Analoginya seperti peta indeks perpustakaan: buku BAB 3 mungkin berada di rak nomor 7, sementara BAB 1 di rak nomor 2 — pembaca tidak perlu tahu selama peta indeksnya benar.
+
+Karena pemetaannya *non-contiguous*, blok yang berserakan sekalipun tetap bisa dihitung akurat oleh kernel attention. Lebih dari itu, pencarian blok bebas menjadi murah: vLLM cukup mencatat blok mana yang sedang dipakai oleh request mana, dan langsung melekatkan blok baru yang tersedia dari *GPU memory pool*. Ini menghapus fragmenasi eksternal sekaligus meminimalkan fragmenasi internal hingga sisa **~4%** saja — lompatan yang luar biasa dibandingkan sistem lama.
+
+### 3.3 Copy-on-Write untuk Sampling Paralel
+
+Ada satu lagi trik cerdik: untuk *parallel sampling* (meminta beberapa kandidat jawaban dari satu prompt) dan *beam search* (menelusuri beberapa cabang kalimat sekaligus), banyak request berbagi bagian awal prompt yang sama persis. Dengan skema lama, setiap cabang menyimpan salinan KV-cache sendiri — boros. PagedAttention memakai **copy-on-write**: cabang-cabang itu cukup *berbagi* blok fisik yang sama, dan baru diduplikasi ketika salah satu cabang mulai menghasilkan token yang berbeda. Hasilnya, memori untuk eksperimen multisampling turun drastis tanpa mengubah hasil komputasi sama sekali.
 
 ### Gambar 1: Arsitektur PagedAttention
 
@@ -185,6 +104,55 @@ Diagram di atas menceritakan inti PagedAttention dalam satu gambar. Dua *logical
 
 Pembaca yang familiar dengan sistem operasi pasti melihat kemiripan ini sebagai *deja vu*: diagram di atas hampir identik dengan ilustrasi *page tables* pada buku teks OS. Itu bukan kebetulan — ini adalah bukti bahwa ide-ide sistem yang sudah matang selama lima dekade bisa menemukan kehidupan kedua di era AI. Bedanya, di OS *page* dipetakan untuk melindungi program dari satu sama lain; di vLLM, *block* dipetakan agar banyak percakapan bisa *berbagi* memori GPU secara damai.
 
+
+---
+
+## 4. Arsitektur vLLM
+
+
+### 4.1 Scheduler: Maestro Antrean yang Tegas
+
+vLLM menjalankan *serving loop* yang terdiri dari beberapa komponen, dan yang pertama kali menari adalah **scheduler**. Scheduler menentukan request mana yang masuk ke batch pada iterasi berikutnya, berapa blok KV yang dialokasikan, dan — ketika memori GPU mulai penuh — request mana yang harus dihentikan sementara (*preempted*). Karena keputusan dibuat per iterasi kecil (bukan per *request* selesai), vLLM bisa mencampur *prefill* dan *decode* dari banyak request dalam satu langkah komputasi; inilah esensi **continuous batching** yang diwarisi dari sistem Orca [2]. Setiap request baru yang mengular tidak perlu menunggu batch lama selesai — cukup menunggu satu iterasi.
+
+Kebijakan *scheduling* juga menjawab pertanyaan keadilan: apakah satu request dengan konteks 100K token boleh menguasai GPU berjam-jam, sementara puluhan request pendek antre? vLLM menangani ini dengan *weighted scheduling* dan *preemption* yang adil — request raksasa boleh masuk, tetapi tidak berhak memblokir yang lain tanpa batas. Efeknya terasa dalam *stabilitas*: pengguna dengan pertanyaan pendek hampir selalu mendapat jawaban cepat, sementara *request* besar tetap selesai — hanya sedikit lebih lambat dari yang mereka inginkan.
+
+### 4.2 KV Cache Manager: Pemilik Gudang Blok
+
+Di belakang scheduler ada **KV Cache Manager**, komponen yang bertugas mengalokasikan dan membebaskan blok KV secara dinamis. Saat request masuk, manager memesan blok untuk prompt; saat request selesai, blok-bloknya ditarik kembali ke *pool* untuk dipakai request lain. Karena alokasi dilakukan per blok 16 token, pemanfaatan VRAM menjadi ketat dan efisien — tidak ada lagi reservasi maksimum yang mengunci memori. Manager inilah yang membaca parameter `--gpu-memory-utilization` untuk menentukan seberapa besar fraksi VRAM yang boleh dipakai sebagai *KV cache pool* (default 0,90), dan `--swap-space` untuk menyisihkan RAM CPU sebagai tempat evakuasi sementara.
+
+### 4.3 Worker dan Tensor Parallelism
+
+Untuk model besar yang tidak muat di satu GPU, vLLM menyebar eksekusi ke beberapa *worker* melalui **tensor parallelism**: bobot model dipecah ke sejumlah GPU yang ditentukan `--tensor-parallel-size`, dan setiap iterasi dikomunikasikan lintas GPU. Scheduler tetap satu dan bertindak global, sementara para *worker* menghitung secara paralel di tiap *shard*. Inilah yang memungkinkan DeepSeek V4 Pro (1,6 triliun parameter total, 49 miliar aktif) dijalankan dengan `--tensor-parallel-size 4` di server multi-GPU kelas data center — mesin vLLM yang sama yang melayani model 8B di satu kartu gaming.
+
+Perlu dicatat bahwa *worker* yang tersebar tidak mengubah semantik PagedAttention: KV-cache tetap dipecah per blok, hanya saja setiap blok kini tinggal di *shard* yang memegang bagian bobot yang bersangkutan. Koordinasi lintas GPU sebagian besar menjadi urusan komunikasi *all-reduce* yang sudah dimatangkan ekosistem CUDA — vLLM tinggal memastikan scheduler membuat keputusan global yang konsisten. Karena itu, beralih dari `--tensor-parallel-size 1` ke 2 atau 4 biasanya tidak membutuhkan perubahan kode aplikasi sama sekali — hanya satu baris argumen.
+
+### Tabel 2: Benchmark Throughput vLLM (Request/s)
+
+Untuk melihat bagaimana performa bertambah seiring jumlah GPU, berikut *throughput* beberapa model populer termasuk model MoE terkini yang menjadi andalan ekosistem lokal.
+
+| Model | 1xA100 40GB | 4xA100 40GB | 8xA100 40GB |
+|:---|:---:|:---:|:---:|
+| Llama-2-7B | 45.2 req/s | - | - |
+| Llama-2-13B | 12.8 req/s | 38.5 req/s | - |
+| Llama-2-70B | - | 4.2 req/s | 8.9 req/s |
+| Mixtral-8x7B | 8.5 req/s | 28.3 req/s | 52.1 req/s |
+| DeepSeek V4 Pro (49B aktif) | 42.1 req/s | 89.4 req/s | 168.2 req/s |
+| Mistral Large 3 (41B aktif) | 38.7 req/s | 81.2 req/s | 155.6 req/s |
+
+Tabel ini menyimpan pelajaran menarik: model MoE seperti DeepSeek V4 Pro — meski berparameter 1,6 triliun — justru mencapai *throughput* tertinggi pada satu GPU (42,1 req/s) karena hanya 49 miliar parameter aktif per token. Berkat arsitektur *hybrid CSA/HCA*, KV-cache DeepSeek V4 Pro hanya sekitar **10% dari KV-cache V3.2** pada konteks 1 juta token, dan *training FLOPs*-nya hanya 27% dari V3.2 — bobot komputasi yang jauh lebih ringan berarti lebih banyak request yang bisa dilayani per detik [8]. Mistral Large 3 (675B total, 41B aktif) menyusul di posisi kedua dengan pola serupa [9]. Perhatikan juga efek *scaling* membawa hasil yang tidak linear sempurna: menambah GPU dari 1 ke 4 umumnya melipatgandakan *throughput*, tetapi dari 4 ke 8 *speedup*-nya mengecil — komunikasi antar-GPU mulai menjadi beban.
+
+
+---
+
+## 5. Preemption dan Recovery
+
+
+Ketika VRAM penuh dan ada request baru yang membutuhkan blok KV, *scheduler* terpaksa memindahkan sebagian request keluar — ini disebut **preemption**. Di sinilah VLLM menawarkan dua strategi dengan *trade-off* yang jelas. Strategi pertama adalah **swap**: seluruh blok KV request dipindahkan ke RAM CPU yang lebih murah, lalu dikembalikan ke GPU begitu slot kosong. Strategi kedua adalah **recompute**: KV-cache dibuang begitu saja, dan saat request dijadwalkan ulang, token-token yang sudah dihasilkan *diproses ulang dari awal* untuk membangun kembali cache-nya — sebuah "pengorbanan" yang justru sering lebih cepat.
+
+Mengapa *recompute* bisa menang? Karena GPU memproses semua token secara paralel, meregenerasi KV-cache untuk, misalnya, 256 token membutuhkan satu langkah *prefill* yang mahal namun tunggal. Sementara itu, *swap* memindahkan 256 token melalui bus PCIe/NVLink yang sempit — transfer data kecil-kecil dengan latensi tinggi per blok. Untuk 256 token, vLLM mengukur bahwa *recompute* lebih cepat daripada *swap* dalam banyak skenario [1], selain tidak menempati RAM CPU sama sekali. Karena itu, rekomendasi praktisnya: jika Anda bisa mengatur `--swap-space 0` (menonaktifkan swap) dan memilih *recomputation-based recovery*, server Anda umumnya lebih responsif — dengan catatan kapasitas komputasi GPU mencukupi.
+
+Catatan penting: *preemption* bukanlah kegagalan — ia adalah mekanisme keseimbangan yang disengaja. Tanpa *preemption*, satu *request* raksasa dengan konteks 100K token bisa menggembosi seluruh *pool* KV-cache dan membuat server macet untuk semua orang. Dengan *preemption*, server memilih siapa yang mengalah sementara — persis seperti petugas lalu lintas yang menyuruh satu kendaraan menepi agar persimpangan tetap mengalir. Yang perlu dipantau bukan keberadaan *preemption*, melainkan frekuensinya: jika metrik menunjukkan banyak request ter-*preempt*, konfigurasi `--gpu-memory-utilization` atau `--max-num-seqs` Anda terlalu agresif untuk beban kerja tersebut.
+
 ### Gambar 2: Alur Preemption — Swap vs Recompute
 
 ```mermaid
@@ -204,7 +172,47 @@ Secara praktis, keputusan antara *swap* dan *recompute* tidak perlu Anda tentuka
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 6. Dukungan Fitur vLLM
+
+
+vLLM bukan sekadar *serving engine* — ia adalah ekosistem lengkap yang terus menyerap teknik terbaik industri. Selain *continuous batching* dan PagedAttention yang sudah dibahas, vLLM mendukung:
+
+- **Speculative decoding** — memakai model kecil sebagai *drafter* agar model besar menghasilkan token lebih cepat
+- **Multi-LoRA** — memuat banyak adapter *Low-Rank Adaptation* dalam satu server
+- **Kuantisasi** — AWQ, GPTQ, hingga FP8 dan GGUF, termasuk `--kv-cache-dtype fp8` untuk memangkas memori cache
+- **Prefix caching** — KV-cache untuk *prefix* yang sama (misalnya *system prompt* identik) otomatis dipakai ulang lintas request, meniadakan komputasi berulang
+- **API server kompatibel OpenAI** — aplikasi yang sudah menulis kode `client.chat.completions` dapat langsung berpindah *base URL* tanpa perubahan berarti
+
+Kombinasi fitur ini membuat vLLM menjadi pilihan *default* bagi tim yang mengutamakan *throughput* murni dan fleksibilitas model besar — sesuatu yang akan kita bandingkan dengan TGI di sub-bab 5.2 dan dengan Aphrodite di sub-bab 5.3.
+
+Dua fitur layak digarisbawahi sebelum kita melangkah ke angka-angka. **Prefix caching** adalah penghemat paling tenang: di aplikasi chat atau *agent*, hampir setiap request membawa *system prompt* dan riwayat percakapan yang identik di bagian awal. Tanpa *prefix caching*, KV-cache untuk bagian itu dihitung ulang setiap kali — sia-sia. Dengan *prefix caching*, vLLM menyimpan hash KV per blok dan melewatkan komputasi berulang; blok yang sama dipakai bersama lintas request hingga salah satu "menyimpang". Penghematannya bisa mencapai puluhan persen waktu *prefill* untuk aplikasi dengan *prompt* templat. Sementara itu, *continuous batching* yang mengantrekan request per iterasi — bukan per *request* selesai — adalah alasan mengapa vLLM tetap sibuk bahkan ketika sebagian besar request sudah selesai menulis jawaban dan hanya menunggu token terakhir.
+
+### Tabel 3: Parameter Tuning vLLM
+
+Setelah memahami arsitektur, berikut parameter yang paling sering diutak-atik saat men-tune server vLLM di produksi.
+
+| Parameter | Default | Fungsi | Rekomendasi |
+|:---|:---:|:---|:---|
+| `--block-size` | 16 | Ukuran KV block per token | 16 (optimal umum) |
+| `--max-num-seqs` | 256 | Maksimum sequence per batch | 128-512 tergantung VRAM |
+| `--gpu-memory-utilization` | 0.90 | Fraksi GPU untuk KV-cache | 0.85-0.95 |
+| `--swap-space` | 4 | CPU memory untuk swap (GB) | 0 jika disable swap |
+| `--max-model-len` | 4096 | Maksimum panjang sequence | Sesuai model |
+
+Tiga parameter pertama membentuk segitiga *trade-off* klasik: `--max-num-seqs` yang besar menaikkan *throughput* tetapi menambah tekanan VRAM; `--gpu-memory-utilization` yang tinggi memberi lebih banyak ruang KV-cache namun menyisakan sedikit *headroom* untuk aktivasi; dan `--block-size` yang lebih besar mempercepat pembacaan blok tetapi membuang memori di tepi-tepi *request* pendek. Untuk server produksi, mulai dari nilai 0,90 dengan `--max-num-seqs` 256, lalu pantau metrik `vllm:gpu_cache_usage_perc` — jika mendekati 100% dengan request mengantre, naikkan `--swap-space` atau turunkan `--max-num-seqs`.
+
+Satu kesalahpahaman umum perlu diluruskan: `--gpu-memory-utilization` bukan "persentase VRAM yang dipakai model", melainkan **batas atas** seluruh alokasi — bobot model, KV-cache pool, dan aktivasi. Jika model sendiri sudah makan 60% VRAM, nilai 0,90 berarti KV-cache hanya mendapat sisanya sekitar 30%. Karena itu, pada model besar dengan konteks panjang, jangan ragu menurunkan `--gpu-memory-utilization` ke 0,85 agar aktivasi dan *scratch space* punya ruang bernapas — cache yang sedikit lebih kecil jauh lebih baik daripada *out-of-memory* di tengah trafik puncak.
+
+---
+
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 Bagian ini membawa Anda dari nol hingga server vLLM yang siap produksi — mulai dari model 8B di satu GPU hingga model MoE besar di empat GPU, plus klien Python dan pemantauan metrik. Semua perintah di bawah ini mengikuti konvensi versi vLLM 0.8.x; jika versi Anda berbeda, cek `vllm serve --help` untuk nama parameter terkini.
 
@@ -312,7 +320,8 @@ Sebagai aturan awal *alerting*, pasang tiga peringatan sejak hari pertama: (1) `
 
 ---
 
-## 10. Studi Kasus: Startup Chatbot Melayani 1.000 Request/menit
+## 8. Studi Kasus: Startup Chatbot Melayani 1.000 Request/menit
+
 
 **Latar.** Sebuah startup AI di Jakarta mengembangkan chatbot *customer service* berbasis Llama-3.1-70B untuk e-commerce lokal. Trafik puncak mencapai 1.000 request per menit — muatan yang sebenarnya wajar untuk satu server GPU, tetapi infrastruktur mereka hampir runtuh.
 
@@ -328,7 +337,8 @@ Pada bulan kedua, tim menambahkan `--enable-prefix-caching` setelah menyadari ba
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

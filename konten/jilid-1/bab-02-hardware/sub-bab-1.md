@@ -11,6 +11,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan perbedaan fundamental antara ekosistem **CUDA** (NVIDIA), **ROCm** (AMD),
@@ -29,6 +30,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. CUDA — Standar De Facto
+
 
 ### Platform Paralel yang Menguasai Dua Dekade
 
@@ -92,6 +94,7 @@ perang dari GPU ke perangkat yang sudah dimiliki orang.
 
 ## 3. ROCm — AMD Menantang Tahta
 
+
 ### Menyambut Era ROCm 6.x
 
 Jika CUDA adalah restoran yang sudah terkenal, **ROCm** (*Radeon Open Compute*) adalah
@@ -149,6 +152,7 @@ mengapa komunitas pengguna AMD untuk LLM di Indonesia terus tumbuh.
 
 ## 4. OpenVINO — Ekosistem Intel
 
+
 Sementara NVIDIA dan AMD bertarung di arena GPU diskrit, Intel menempuh jalan yang
 berbeda — dan justru berpotensi lebih bijak. **OpenVINO** (*Open Visual Inference and
 Neural Network Optimization*), yang sejak rilis versi 2024+ dioptimalkan untuk
@@ -184,6 +188,7 @@ di kantor tanpa anggaran GPU diskrit.
 
 ## 5. Vulkan dan DirectML — Backend Alternatif
 
+
 Di luar tiga ekosistem besar, ada dua jembatan yang tidak berpihak: **Vulkan** dan
 **DirectML**.
 
@@ -208,6 +213,7 @@ satu vendor: dengan *hardware* yang sama, Anda punya pilihan jalan.
 ---
 
 ## 6. Matriks Komparasi Ekosistem — Tiga Burung Satu Sasaran
+
 
 ### Tabel 1: Perbandingan Ekosistem GPU untuk LLM Lokal
 
@@ -245,6 +251,7 @@ Pilihan platform, dengan kata lain, juga adalah pilihan *kebiasaan penggunaan*.
 ---
 
 ## 7. Benchmark Performa — Angka yang Bicara
+
 
 ### Tabel 2: Benchmark Performa Llama-3-8B Q4_K_M
 
@@ -294,6 +301,7 @@ uang yang nyata.
 
 ## 8. Kompatibilitas Framework per Platform
 
+
 ### Tabel 3: Matriks Dukungan Framework
 
 Sebelum membeli GPU apa pun, tanyakan satu pertanyaan: *framework apa yang ingin saya
@@ -321,6 +329,7 @@ bukanlah tabel, melainkan diagram ekosistem berikut.
 
 ## 9. Rekomendasi Pemilihan GPU
 
+
 Setelah menyaksikan seluruh medan perang, mari turunkan tiga aturan praktis yang bisa
 langsung dipakai.
 
@@ -343,31 +352,6 @@ terbaik di kelasnya. Ini bukan pilihan "kalah"; ini pilihan untuk konteks yang b
 Aturan emas yang menaungi ketiganya: **pilih ekosistem berdasarkan beban kerja Anda,
 bukan berdasarkan spesifikasi GPU semata**. Sebuah GPU 24 GB tanpa framework yang Anda
 butuhkan lebih buruk daripada GPU 16 GB dengan dukungan penuh.
-
----
-
-## 10. Tren 2025-2026: Perlombaan yang Masih Berjalan
-
-Dua tahun terakhir memperlihatkan arah yang jelas bagi masing-masing kubu. **ROCm
-membaik dengan cepat** — setiap rilis menutup lebih banyak celah akurasi dan memperluas
-daftar model teruji; vLLM kini mendukung ROCm 6.2+ dengan performa yang semakin setara.
-**OpenVINO bergeser fokus ke NPU dan CPU**, meninggalkan pertarungan GPU diskrit yang
-sudah terlanjur dimenangkan dua kubu di atasnya. Sementara itu, **Vulkan dan DirectML
-naik kelas** dari sekadar *penyelamat darurat* menjadi jalur utama bagi pengguna Windows
-tanpa CUDA — sebuah demokratisasi yang jarang dibicarakan.
-
-Di kelas *datacenter*, pertarungan terpanas terjadi antara MI300X (192 GB, 5,3 TB/s,
-~Rp 600 jt) dan H100 (80 GB, 3,35 TB/s, ~Rp 800 jt) — AMD menang kapasitas, NVIDIA
-menang ekosistem perangkat lunak. Dan di ujung ekstrem, model MoE raksasa seperti
-DeepSeek V4 Flash (284B) dan Mistral Large 3 (675B) menuntut kompatibilitas framework
-kelas server — vLLM dengan *tensor parallelism* — yang untuk saat ini hanya benar-benar
-matang di CUDA. Arah perlombaan 2026 tampak stabil: NVIDIA tidak akan digulingkan dalam
-waktu dekat, tetapi untuk pertama kalinya dalam dua dekade, "NVIDIA atau tidak" adalah
-pertanyaan yang sah untuk diajukan.
-
----
-
-## 11. Diagram & Visualisasi
 
 ### Gambar 1: Peta Ekosistem GPU — Software Stack
 
@@ -407,7 +391,33 @@ bukan milik pabrikan mana pun.
 
 ---
 
-## 12. Tutorial / Hands-On
+
+---
+
+## 10. Tren 2025-2026: Perlombaan yang Masih Berjalan
+
+
+Dua tahun terakhir memperlihatkan arah yang jelas bagi masing-masing kubu. **ROCm
+membaik dengan cepat** — setiap rilis menutup lebih banyak celah akurasi dan memperluas
+daftar model teruji; vLLM kini mendukung ROCm 6.2+ dengan performa yang semakin setara.
+**OpenVINO bergeser fokus ke NPU dan CPU**, meninggalkan pertarungan GPU diskrit yang
+sudah terlanjur dimenangkan dua kubu di atasnya. Sementara itu, **Vulkan dan DirectML
+naik kelas** dari sekadar *penyelamat darurat* menjadi jalur utama bagi pengguna Windows
+tanpa CUDA — sebuah demokratisasi yang jarang dibicarakan.
+
+Di kelas *datacenter*, pertarungan terpanas terjadi antara MI300X (192 GB, 5,3 TB/s,
+~Rp 600 jt) dan H100 (80 GB, 3,35 TB/s, ~Rp 800 jt) — AMD menang kapasitas, NVIDIA
+menang ekosistem perangkat lunak. Dan di ujung ekstrem, model MoE raksasa seperti
+DeepSeek V4 Flash (284B) dan Mistral Large 3 (675B) menuntut kompatibilitas framework
+kelas server — vLLM dengan *tensor parallelism* — yang untuk saat ini hanya benar-benar
+matang di CUDA. Arah perlombaan 2026 tampak stabil: NVIDIA tidak akan digulingkan dalam
+waktu dekat, tetapi untuk pertama kalinya dalam dua dekade, "NVIDIA atau tidak" adalah
+pertanyaan yang sah untuk diajukan.
+
+---
+
+## 11. Tutorial / Hands-On
+
 
 ### Tutorial 1: Benchmark GPU Anda dengan llama.cpp
 
@@ -498,7 +508,8 @@ bahkan NPU dengan perubahan konfigurasi minimum.
 
 ---
 
-## 13. Studi Kasus: Migrasi dari RTX 3090 ke RX 7900 XTX
+## 12. Studi Kasus: Migrasi dari RTX 3090 ke RX 7900 XTX
+
 
 **Latar.** Bayangkan Anda, seorang penggemar LLM lokal di Jakarta dengan kartu RTX 3090
 24GB yang dibeli seken. Di awal 2026, harga jual RTX 3090 di pasar *second* tinggi —
@@ -537,7 +548,8 @@ untuk tugas ringan.
 
 ---
 
-## 14. Referensi
+## 13. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

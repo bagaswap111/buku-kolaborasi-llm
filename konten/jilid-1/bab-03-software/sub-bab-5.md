@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan perbedaan mekanisme **Temperature**, **Top-K**, **Top-P**, **Min-P**, dan **Repetition Penalty** beserta matematika di baliknya
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Mengapa Sampling Penting?
 
+
 ### Model Menebak Satu Token Demi Satu Token
 
 Cara kerja LLM pada dasarnya sederhana: diberikan rangkaian token sejauh ini, model menghitung **logits** — skor mentah untuk setiap kata dalam *vocabulary* — lalu memilih token berikutnya. Proses ini diulang hingga *end-of-sequence*. Pertanyaannya adalah: *bagaimana* memilih token dari kumpulan skor itu? Pilihan strategi inilah yang disebut **sampling strategy** atau **decoding strategy**, dan ia menentukan kualitas output sama pentingnya dengan model itu sendiri [2].
@@ -28,9 +30,51 @@ Strategi paling naif adalah **greedy decoding**: selalu pilih token dengan skor 
 
 Cara paling hidup memahami *sampling* adalah analogi restoran: **Temperature** mengatur seberapa berani Anda mencoba menu baru, **Top-K** membatasi hanya melihat menu-menu terpopuler saja, **Top-P** membolehkan lihat menu apa pun asalkan total popularitasnya masih dalam anggaran, dan **Min-P** hanya memesan menu yang "cukup populer" relatif terhadap yang terfavorit. Empat tombol ini bekerja bersama menentukan kepribadian output. Memahami masing-masing adalah kunci untuk mengendalikan perilaku model — dan Text-Generation-WebUI adalah arena terbaik untuk melatihnya.
 
+### Tabel 1: Efek Parameter Sampling terhadap Output
+
+Tabel ini merangkum rentang kerja dan pengaruh setiap parameter pada semangat output:
+
+| Parameter | Rentang | Efek Low | Efek Medium | Efek High |
+|:---|:---:|:---|:---|:---|
+| **Temperature** | 0.0–2.0 | Deterministik, repetitif | Seimbang (default 0.7) | Kreatif, riskan incoherent |
+| **Top-K** | 1–200 | Fokus sempit | Seimbang (40) | Variasi tinggi |
+| **Top-P** | 0.5–1.0 | Konservatif (0.8) | Default (0.9) | Longgar (0.99) |
+| **Min-P** | 0.0–1.0 | Deterministik | Default (0.05-0.1) | Kreatif (0.2) |
+| **Repetition Penalty** | 1.0–2.0 | Normal (1.0) | Sedang (1.1) | Agresif (1.2+) |
+
+Gambar berikut memvisualisasikan kolom *Rentang* tabel ini.
+
+![Rentang kerja kelima parameter sampling di Text-Generation-WebUI](../../assets/images/bab-03-software/sub-bab-5/rentang-parameter-sampling.png)
+
+*Gambar 3.5-1 — Top-K memiliki rentang operasi terluas (1–200) karena K bersifat statis, sementara parameter berbasis probabilitas (Temperature 0–2, Top-P 0,5–1, Min-P 0–1) bekerja pada skala yang lebih sempit — sebagian alasan mengapa truncation adaptif seperti Min-P lebih mudah dikendalikan.*
+
+Analisis: perhatikan pola yang konsisten — hampir semua parameter memiliki wilayah "seimbang" yang menjadi *default* industri. Temperature rendah dan *penalty* polos adalah kunci tugas presisi; *ketiganya* dilonggarkan bersamaan hanya untuk tugas kreatif. Kesalahan umum pemula adalah mengubah hanya Temperature untuk "membuat model kreatif" tanpa menyentuh *truncation* — hasilnya sering persis seperti yang ditakuti: *incoherent*. Kuncinya diingat: **Temperature mengatur keberanian, truncation mengatur batas keselamatan** — keduanya harus diubah bersama.
+
+
+### Diagram 1: Pipeline Decoding Step-by-Step
+
+Berikut urutan operasi *decoding* pada setiap langkah generasi token:
+
+```mermaid
+graph LR
+    A[Model Forward Pass] --> B[Logits: vocab_size vector]
+    B --> C[Temperature Scaling: logits / T]
+    C --> D[Top-K: filter K tertinggi]
+    D --> E[Top-P: cumulative probability threshold]
+    E --> F[Min-P: confidence scaling threshold]
+    F --> G[Softmax: normalize probability]
+    G --> H[Sample: pick token from distribution]
+    H --> I[Next Token]
+    I --> A
+```
+
+Pahami urutan ini — ia bukan sembarang urutan. Pertama model menghasilkan logits mentah; *Temperature* menata ulang skalanya; lalu *truncation* (Top-K → Top-P → Min-P) bekerja *berlapis*, masing-masing membuang kandidat sisa; *softmax* menormalkan sisanya menjadi distribusi probabilitas; token terakhir di-*sample*. Output menjadi input iterasi berikutnya — siklus yang sama berulang hingga *end-of-sequence*. Karena urutan ini tetap, mengubah satu parameter juga mengubah *efek* parameter berikutnya — salah satu alasan mengapa eksperimen holistik lebih bernilai daripada tuning per-parameter.
+
+
 ---
 
 ## 3. Temperature
+
 
 ### Renormalisasi Logits
 
@@ -54,6 +98,7 @@ Pada T ekstrem (di atas 1,5), model cenderung "berfantasi": kata-kata tetap gram
 
 ## 4. Top-K Sampling
 
+
 ### Memangkas Ekor Distribusi
 
 **Top-K** bekerja sederhana: dari seluruh *vocabulary*, pertahankan hanya **K token dengan probabilitas tertinggi**, buang sisanya, lalu *renormalize* probabilitas di antara token-token yang tersisa. Jika K = 40, model hanya boleh memilih dari 40 kandidat teratas di setiap langkah — apapun situasinya.
@@ -66,6 +111,7 @@ Kelemahan konseptual Top-K: K bersifat **statis**. Pada langkah di mana distribu
 ---
 
 ## 5. Top-P (Nucleus Sampling)
+
 
 ### Memangkas Berdasarkan Massa Probabilitas
 
@@ -84,6 +130,7 @@ Adaptivitas inilah keunggulan kunci Top-P: ia *menyesuaikan diri dengan konteks*
 
 ## 6. Min-P Sampling
 
+
 ### Ambang yang Bergerak Mengikuti Keyakinan Model
 
 **Min-P** adalah metode termuda dalam keluarga ini, diperkenalkan lewat paper *Turning Up the Heat: Min-p Sampling for Creative and Coherent LLM Outputs* yang dipublikasikan pada ICLR 2025 [1]. Ide dasarnya elegan:
@@ -100,9 +147,28 @@ Temuan utama paper Min-P [1]: metode ini **unggul di temperature tinggi**. Kombi
 
 Keunggulan praktis lainnya: Min-P adalah **parameter tunggal yang intuitif**. Nilai default umumnya 0,05–0,1 untuk perilaku seimbang; dinaikkan ke 0,2 untuk lebih deterministik, diturunkan untuk lebih liar. Tidak heran Min-P kini diadopsi luas — termasuk di vLLM dan Hugging Face Transformers [8] — dan menjadi *game-changer* untuk tugas kreatif (lihat Studi Kasus).
 
+### Tabel 3: Perbandingan Metode Sampling
+
+Perbandingan sifat-sifat tiap metode secara ringkas:
+
+| Metode | Adaptif | Parameter Tunggal | Performa di High Temp | Koherensi vs Kreativitas |
+|:---|:---:|:---:|:---:|:---|
+| **Greedy** | Tidak | - | Buruk | 100% koheren, 0% kreatif |
+| **Temperature** | Tidak | Ya | Buruk | Bergantung T |
+| **Top-K** | Tidak | Ya | Buruk | Seimbang (dengan tuning) |
+| **Top-P (Nucleus)** | Ya | Ya | Cukup | Baik |
+| **Min-P** | Ya | Ya | **Sangat Baik** | **Terbaik** |
+| **Mirostat** | Ya | Ya | Baik | Auto-tune |
+
+Analisis: poros utama tabel ini adalah **adaptivitas**. Metode non-adaptif (Greedy, Temperature, Top-K) memerlukan tuning manual yang hati-hati setiap ganti konteks dan gagal di *temperature* tinggi. Metode adaptif — Top-P, Min-P, Mirostat — menyesuaikan ambangnya dengan bentuk distribusi sesaat. Min-P menonjol sebagai pemenang di *high temperature* karena ambangnya berbasis skala relatif (lihat Sub-bab 6), dan Mirostat menawarkan nilai unik: *zero-tuning* karena menargetkan *perplexity* secara langsung. Pilihan sinergis yang umum: gabungkan Temperature + Top-P *dan* Min-P sekaligus — keterangan Tutorial A memperlihatkan dampak kombinasi ini.
+
+---
+
+
 ---
 
 ## 7. Parameter Pendukung Lainnya
+
 
 Keluarga *sampling* tidak berhenti di empat parameter utama. Beberapa parameter *penalty* dan metode alternatif layak dipahami:
 
@@ -113,47 +179,6 @@ Keluarga *sampling* tidak berhenti di empat parameter utama. Beberapa parameter 
 **Typical-P**: metode berbasis *entropy* yang memilih token-token yang probabilitasnya "khas" untuk distribusi — menjaga *surprise* pada tingkat yang diharapkan model. **Mirostat**: *auto-adjusting* — ia mengukur *perplexity* teks yang dihasilkan secara langsung dan mengubah *Temperature* secara adaptif untuk menjaga *perplexity* pada target yang ditentukan, mengotomatiskan apa yang biasanya dilakukan manual [3][5].
 
 Di luar keluarga *sampling*, ada pendekatan *decoding* yang sama sekali berbeda: **Contrastive Decoding** membandingkan distribusi model "expert" dan "amateur"; token dipilih jika expert sangat menyukainya tetapi amateur tidak — menghasilkan teks yang lebih koheren dan informatif [3]. Sementara **Speculative Decoding** mempercepat inferensi dengan meminta model kecil "drafting" beberapa token terlebih dahulu lalu model besar memverifikasinya — mempercepat produksi tanpa mengubah distribusi hasil akhir [5].
-
----
-
-## 8. Implementasi di Text-Generation-WebUI
-
-### Tab Parameters dan Perangkat Eksperimen
-
-Text-Generation-WebUI (oobabooga) adalah *frontend* yang berfokus pada **kendali teknis total** [6]. Tab **Parameters** menyediakan *slider interaktif* untuk setiap parameter yang dibahas — termasuk yang jarang ada di aplikasi lain. Pengguna dapat bereksperimen secara *live*: ubah nilai, generate, bandingkan. Fitur-fitur pendukung eksperimen:
-
-- **Truncate the prompt up to this length**: mengontrol *context window* — berapa banyak riwayat yang benar-benar dilihat model.
-- **Seed**: nilai acak tetap untuk *reproducibility*. Seed yang sama + parameter yang sama = output identik — alat penting untuk *debugging* dan perbandingan eksperimen yang adil.
-- **Tab Character**: *persona-based preset* — definisi karakter yang disisipkan ke *prompt*, berguna untuk *roleplay* dan *creative writing* terarah.
-- **API**: server TGW membuka API OpenAI-compatible, sehingga eksperimen dapat dilakukan *programmatically* (lihat Tutorial B).
-
-### Reasoning Effort: Parameter Baru di Era Model Reasoning
-
-Perkembangan terbaru memperkenalkan dimensi kontrol baru. Model terbaru seperti **GPT-5.5** (rilis April 2026) mendukung parameter **`reasoning_effort`** dengan nilai `low`/`medium`/`high`/`xhigh` yang mengontrol seberapa lama model "berpikir" (*chain-of-thought*/CoT) sebelum menjawab — setara dengan mengatur *depth* CoT secara dinamis. Parameter ini diatur lewat API OpenAI-compatible: `low` untuk tugas cepat sehari-hari, `xhigh` untuk masalah kompleks yang menuntut penalaran panjang. Meskipun pengaturannya mirip *sampling*, penting dipahami bedanya: *sampling* mengatur *distribusi* token yang dipilih, sedangkan *reasoning_effort* mengatur *panjang proses berpikir internal* sebelum token jawaban dihasilkan.
-
----
-
-## 9. Tabel Wajib
-
-### Tabel 1: Efek Parameter Sampling terhadap Output
-
-Tabel ini merangkum rentang kerja dan pengaruh setiap parameter pada semangat output:
-
-| Parameter | Rentang | Efek Low | Efek Medium | Efek High |
-|:---|:---:|:---|:---|:---|
-| **Temperature** | 0.0–2.0 | Deterministik, repetitif | Seimbang (default 0.7) | Kreatif, riskan incoherent |
-| **Top-K** | 1–200 | Fokus sempit | Seimbang (40) | Variasi tinggi |
-| **Top-P** | 0.5–1.0 | Konservatif (0.8) | Default (0.9) | Longgar (0.99) |
-| **Min-P** | 0.0–1.0 | Deterministik | Default (0.05-0.1) | Kreatif (0.2) |
-| **Repetition Penalty** | 1.0–2.0 | Normal (1.0) | Sedang (1.1) | Agresif (1.2+) |
-
-Gambar berikut memvisualisasikan kolom *Rentang* tabel ini.
-
-![Rentang kerja kelima parameter sampling di Text-Generation-WebUI](../../assets/images/bab-03-software/sub-bab-5/rentang-parameter-sampling.png)
-
-*Gambar 3.5-1 — Top-K memiliki rentang operasi terluas (1–200) karena K bersifat statis, sementara parameter berbasis probabilitas (Temperature 0–2, Top-P 0,5–1, Min-P 0–1) bekerja pada skala yang lebih sempit — sebagian alasan mengapa truncation adaptif seperti Min-P lebih mudah dikendalikan.*
-
-Analisis: perhatikan pola yang konsisten — hampir semua parameter memiliki wilayah "seimbang" yang menjadi *default* industri. Temperature rendah dan *penalty* polos adalah kunci tugas presisi; *ketiganya* dilonggarkan bersamaan hanya untuk tugas kreatif. Kesalahan umum pemula adalah mengubah hanya Temperature untuk "membuat model kreatif" tanpa menyentuh *truncation* — hasilnya sering persis seperti yang ditakuti: *incoherent*. Kuncinya diingat: **Temperature mengatur keberanian, truncation mengatur batas keselamatan** — keduanya harus diubah bersama.
 
 ### Tabel 2: Preset Parameter per Use Case
 
@@ -176,43 +201,24 @@ Gambar berikut membandingkan dua kolom parameter yang berskala sama (Temperature
 
 Analisis: baca tabel ini sebagai spektrum. Di ujung kiri, tugas presisi (coding, fakta, terjemahan) memakai Temperature rendah dan *truncation* ketat dengan *seed* tetap — *reproducibility* adalah prioritas; perhatikan *Factual Q&A* memakai seed 123 agar output dapat diverifikasi ulang. Di ujung kanan, *Roleplay* paling longgar (T=1,0, Top-P 0,98, Min-P 0,15) dengan *seed* acak (-1) — kreativitas dan variasi justru yang diinginkan. *Creative Writing* dan *Chat* berada di tengah. Tabel ini bukan hukum, melainkan titik awal eksperimen: setiap kombinasi perlu divalidasi terhadap kebutuhan nyata, karena karakter model antar arsitektur berbeda.
 
-### Tabel 3: Perbandingan Metode Sampling
-
-Perbandingan sifat-sifat tiap metode secara ringkas:
-
-| Metode | Adaptif | Parameter Tunggal | Performa di High Temp | Koherensi vs Kreativitas |
-|:---|:---:|:---:|:---:|:---|
-| **Greedy** | Tidak | - | Buruk | 100% koheren, 0% kreatif |
-| **Temperature** | Tidak | Ya | Buruk | Bergantung T |
-| **Top-K** | Tidak | Ya | Buruk | Seimbang (dengan tuning) |
-| **Top-P (Nucleus)** | Ya | Ya | Cukup | Baik |
-| **Min-P** | Ya | Ya | **Sangat Baik** | **Terbaik** |
-| **Mirostat** | Ya | Ya | Baik | Auto-tune |
-
-Analisis: poros utama tabel ini adalah **adaptivitas**. Metode non-adaptif (Greedy, Temperature, Top-K) memerlukan tuning manual yang hati-hati setiap ganti konteks dan gagal di *temperature* tinggi. Metode adaptif — Top-P, Min-P, Mirostat — menyesuaikan ambangnya dengan bentuk distribusi sesaat. Min-P menonjol sebagai pemenang di *high temperature* karena ambangnya berbasis skala relatif (lihat Sub-bab 6), dan Mirostat menawarkan nilai unik: *zero-tuning* karena menargetkan *perplexity* secara langsung. Pilihan sinergis yang umum: gabungkan Temperature + Top-P *dan* Min-P sekaligus — keterangan Tutorial A memperlihatkan dampak kombinasi ini.
 
 ---
 
-## 10. Diagram & Visualisasi
+## 8. Implementasi di Text-Generation-WebUI
 
-### Diagram 1: Pipeline Decoding Step-by-Step
 
-Berikut urutan operasi *decoding* pada setiap langkah generasi token:
+### Tab Parameters dan Perangkat Eksperimen
 
-```mermaid
-graph LR
-    A[Model Forward Pass] --> B[Logits: vocab_size vector]
-    B --> C[Temperature Scaling: logits / T]
-    C --> D[Top-K: filter K tertinggi]
-    D --> E[Top-P: cumulative probability threshold]
-    E --> F[Min-P: confidence scaling threshold]
-    F --> G[Softmax: normalize probability]
-    G --> H[Sample: pick token from distribution]
-    H --> I[Next Token]
-    I --> A
-```
+Text-Generation-WebUI (oobabooga) adalah *frontend* yang berfokus pada **kendali teknis total** [6]. Tab **Parameters** menyediakan *slider interaktif* untuk setiap parameter yang dibahas — termasuk yang jarang ada di aplikasi lain. Pengguna dapat bereksperimen secara *live*: ubah nilai, generate, bandingkan. Fitur-fitur pendukung eksperimen:
 
-Pahami urutan ini — ia bukan sembarang urutan. Pertama model menghasilkan logits mentah; *Temperature* menata ulang skalanya; lalu *truncation* (Top-K → Top-P → Min-P) bekerja *berlapis*, masing-masing membuang kandidat sisa; *softmax* menormalkan sisanya menjadi distribusi probabilitas; token terakhir di-*sample*. Output menjadi input iterasi berikutnya — siklus yang sama berulang hingga *end-of-sequence*. Karena urutan ini tetap, mengubah satu parameter juga mengubah *efek* parameter berikutnya — salah satu alasan mengapa eksperimen holistik lebih bernilai daripada tuning per-parameter.
+- **Truncate the prompt up to this length**: mengontrol *context window* — berapa banyak riwayat yang benar-benar dilihat model.
+- **Seed**: nilai acak tetap untuk *reproducibility*. Seed yang sama + parameter yang sama = output identik — alat penting untuk *debugging* dan perbandingan eksperimen yang adil.
+- **Tab Character**: *persona-based preset* — definisi karakter yang disisipkan ke *prompt*, berguna untuk *roleplay* dan *creative writing* terarah.
+- **API**: server TGW membuka API OpenAI-compatible, sehingga eksperimen dapat dilakukan *programmatically* (lihat Tutorial B).
+
+### Reasoning Effort: Parameter Baru di Era Model Reasoning
+
+Perkembangan terbaru memperkenalkan dimensi kontrol baru. Model terbaru seperti **GPT-5.5** (rilis April 2026) mendukung parameter **`reasoning_effort`** dengan nilai `low`/`medium`/`high`/`xhigh` yang mengontrol seberapa lama model "berpikir" (*chain-of-thought*/CoT) sebelum menjawab — setara dengan mengatur *depth* CoT secara dinamis. Parameter ini diatur lewat API OpenAI-compatible: `low` untuk tugas cepat sehari-hari, `xhigh` untuk masalah kompleks yang menuntut penalaran panjang. Meskipun pengaturannya mirip *sampling*, penting dipahami bedanya: *sampling* mengatur *distribusi* token yang dipilih, sedangkan *reasoning_effort* mengatur *panjang proses berpikir internal* sebelum token jawaban dihasilkan.
 
 ### Diagram 2: Peta Keputusan Pemilihan Preset
 
@@ -241,7 +247,11 @@ Peta ini menerjemahkan *preset* Tabel 2 menjadi alur keputusan: tentukan priorit
 
 ---
 
-## 11. Praktikum / Hands-On
+
+---
+
+## 9. Praktikum / Hands-On
+
 
 ### Tutorial A: Eksperimen Parameter dengan Text-Generation-WebUI
 
@@ -333,7 +343,8 @@ Ruang kombinasi `4 × 3 × 3 = 36` konfigurasi — *grid search* sederhana yang 
 
 ---
 
-## 12. Studi Kasus: Parameter Tuning untuk Novel Writing
+## 10. Studi Kasus: Parameter Tuning untuk Novel Writing
+
 
 **Skenario.** Seorang penulis ingin AI membantu menyusun *draft* novel fantasi 50.000 kata. Permasalahannya klasik: *output* AI terlalu kaku — pola kalimat formulaik, emosi dangkal, konflik melodramatis — atau terlalu acak ketika parameter dinaikkan: plot meloncat, karakter bertindak di luar motivasi.
 
@@ -351,7 +362,8 @@ Ruang kombinasi `4 × 3 × 3 = 36` konfigurasi — *grid search* sederhana yang 
 
 ---
 
-## 13. Referensi
+## 11. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

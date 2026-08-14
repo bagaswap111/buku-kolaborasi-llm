@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menghitung **total biaya kepemilikan** (TCO) server LLM rumahan dalam 3 tahun — CAPEX hingga OPEX
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Komponen Biaya Server LLM Rumahan
+
 
 ### CAPEX vs OPEX: Dua Kantong yang Berbeda
 
@@ -30,13 +32,14 @@ Pembangun server pemula hampir selalu melupakan tiga biaya "hantu": **AC ruangan
 
 ## 3. Lima Tier Build
 
+
 ### Build Hemat (Rp 25-30 juta)
 
 **RTX 3090 *used* + Ryzen 7 + 32 GB DDR4.** Ini *entry point* yang paling rasional untuk keluarga Indonesia: kartu bekas menawarkan 24 GB VRAM dengan harga jauh di bawah kartu baru, dan kapasitas itu cukup untuk model 7-14B — rangkaian yang mencakup **Ministral 3 8B/14B** yang menjadi andalan RAG keluarga di Bab 6.5. Batasannya: GPU bekas berisiko *wear and tear*, dan hanya satu GPU berarti *upgrade* model besar tidak dimungkinkan tanpa mengulang dari nol.
 
 ### Build Performa (Rp 40-45 juta)
 
-**RTX 4090 + Ryzen 7 7800X3D + 64 GB DDR5.** Langkah naik ini membuka kelas model **14-33B** — termasuk Qwen-2.5-14B, Llama-3.1-33B, dan sebagian besar model yang dibahas di jilid ini, cukup cepat untuk *inference* interaktif. DDR5 + X3D juga mempercepat *offload* saat konteks memanjang. Ini adalah build yang paling "tidak akan Anda sesali" dalam 3 tahun — dan studi kasus Seksi 11 memilihnya.
+**RTX 4090 + Ryzen 7 7800X3D + 64 GB DDR5.** Langkah naik ini membuka kelas model **14-33B** — termasuk Qwen-2.5-14B, Llama-3.1-33B, dan sebagian besar model yang dibahas di jilid ini, cukup cepat untuk *inference* interaktif. DDR5 + X3D juga mempercepat *offload* saat konteks memanjang. Ini adalah build yang paling "tidak akan Anda sesali" dalam 3 tahun — dan studi kasus Seksi 9 memilihnya.
 
 ### Build Premium (Rp 55-70 juta)
 
@@ -51,68 +54,6 @@ Pembangun server pemula hampir selalu melupakan tiga biaya "hantu": **AC ruangan
 **2× RTX 4090 + Ryzen 9 + 128 GB RAM.** Untuk keluarga yang serius: **DeepSeek V4 Flash** (284B total, 13B aktif) dengan kuantisasi INT4, atau **Mistral Large 3** — kualitas *frontier* di rumah. Konsekuensinya jelas di tagihan listrik: ~350W rata-rata, sekitar Rp 252rb/bulan saja untuk GPU (Tabel 2). Ini investasi untuk pengguna yang benar-benar memakai — *power user* dan programmer keluarga.
 
 Semua build di atas **sudah termasuk komponen pendukung** (case, PSU, storage, networking) — jadi angka yang tercantum adalah angka jadi, bukan harga GPU saja.
-
----
-
-## 4. Biaya Listrik Tahunan
-
-### Tarif Indonesia dan Pola Pemakaian
-
-Tarif listrik rumah tangga Indonesia berada di kisaran **Rp 1.444 - Rp 1.700 per kWh** tergantung golongan daya. Asumsi yang dipakai seluruh perhitungan sub-bab ini: **Rp 1.500/kWh**, GPU hidup **16 jam/hari** (dimatikan 8 jam saat tidur), dan *duty cycle* pembebanan sekitar 70% idle / 30% load. Perhatikan: GPU *idle* bukan nol watt — RTX 4090 *idle* memakai ~35W, dan beban ini berjalan selama 16 jam meski tidak ada yang bertanya apa-apa.
-
-### Effisiensi per Build
-
-Perbandingan paling jujur ada di Tabel 2, tetapi satu angka layak disebut di sini: **Mac Mini M4 Pro** dengan idle 7W + load 65W menghabiskan sekitar Rp 25rb/bulan — tagihan listrik yang lebih kecil dari satu kali makan keluarga. Sebaliknya **2× RTX 4090** untuk DeepSeek V4 Flash menghabiskan ~Rp 252rb/bulan: lebih dari setahun cloud termurah? Tidak — tetapi angka ini harus masuk kesadaran Anda sebelum membeli hardware kedua.
-
----
-
-## 5. Perbandingan vs Cloud Subscription
-
-### Harga Langganan Cloud per Keluarga
-
-Ini matematika cloud yang menjadi pembanding seluruh sub-bab. Untuk lima anggota keluarga:
-
-- **ChatGPT Team:** $25/orang/bulan × 5 = $125/bulan ≈ **Rp 2jt/bulan**
-- **ChatGPT Plus:** $20/orang/bulan × 5 = $100/bulan ≈ **Rp 1,6jt/bulan**
-- **Claude Pro:** $20/orang/bulan × 5 = $100/bulan ≈ **Rp 1,6jt/bulan**
-
-Total cloud 3 tahun untuk 5 pengguna: **Rp 57-72 juta** tergantung tier [9][10]. Angka ini adalah *baseline* — biaya yang sudah dikeluarkan keluarga Anda (atau akan dikeluarkan) tanpa memiliki apa pun di akhir periode.
-
-### Break-Even: Kapan Lokal Menang
-
-Perbandingan jujur tidak berhenti di nominal. *Break-even point* — bulan ketika biaya kumulatif build lokal menyusul biaya cloud kumulatif — untuk **build hemat** tercapai di bulan ke-12 hingga 24, dan untuk **build performa** di bulan ke-24 hingga 30 (lihat Gambar 1). Setelah titik itu, setiap bulan berikutnya adalah penghematan murni. Keluarga yang ragu disarankan mengambil perspektif 3 tahun: dengan rentang hidup GPU 5 tahun, build hemat "membayar dirinya sendiri" dua kali.
-
----
-
-## 6. Biaya Tersembunyi dan Kontinjensi
-
-### Yang Tidak Muncul di Harga Componen
-
-Di luar CPU dan GPU, ada pos-pos kecil yang wajib dianggarkan:
-
-- **UPS Rp 1-2 juta** (600VA ~Rp 800rb, 1200VA ~Rp 1,8jt): proteksi data dan GPU — mati listrik mendadak dapat merusak komponen mahal [7]
-- **Thermal paste + ganti fan:** ~Rp 200rb/tahun — rutinitas yang sering dilupakan sampai suhu GPU menyentuh 80°C
-- **SSD upgrade:** ~Rp 1-2jt dalam 3 tahun — model-model baru datang lebih besar dari model lama
-- **Internet:** sudah ada — server lokal tidak membutuhkan langganan tambahan
-- **Domain?** Tidak perlu — akses via IP lokal dalam jaringan rumah
-
-### Kontinjensi dan Nilai Jual Kembali
-
-Dua angka yang sering absen dari perhitungan pemula: **nilai jual kembali** hardware (asumsikan 30% dari harga beli setelah 3 tahun — GPU bekas tetap laku di pasar Indonesia) dan **kontinjensi** (sisihkan ~10% dari CAPEX untuk pengganti komponen yang gagal dalam garansi). Memasukkan keduanya menghasilkan angka TCO bersih yang jujur, seperti terlihat di Tabel 1.
-
----
-
-## 7. Nilai Tambah Non-Finansial
-
-### Privasi, Ketersediaan, Edukasi, Kustomisasi
-
-Angka tidak pernah bercerita utuh, dan ada empat nilai yang tidak muncul di kalkulator TCO. **Privasi**: data keluarga — chat, dokumen, audio — tidak dijual atau dipelajari pihak ketiga; survei *privacy-preserving inference* menyoroti bahwa biaya privasi adalah nyata di kedua arah: cloud murah di depan tetapi mahal dalam risiko [4]. **Ketersediaan**: saat internet mati, server tetang melakukan semua yang bisa ia lakukan — fitur yang tidak dimiliki langganan cloud mana pun. **Edukasi**: anak-anak belajar *prompt engineering*, literasi data, dan cara kerja AI di rumah sendiri — nilai pengganti kursus yang bisa puluhan juta rupiah. **Kustomisasi**: model bisa diganti sesuai kebutuhan minggu ini, tanpa negosiasi kontrak.
-
-Apakah nilai-nilai ini pantas dihitung dalam rupiah? Keluarga yang menjawab "ya" cenderung memilih lokal lebih cepat; keluarga yang "tidak" bisa berkonsentrasi penuh pada Tabel 1. Keduanya sah — tetapi kini Anda menghitung dengan dua jenis mata uang sekaligus.
-
----
-
-## 8. Tabel Referensi
 
 ### Tabel 1: TCO 3 Tahun — Build Hemat vs Performa vs Cloud
 
@@ -138,6 +79,20 @@ Tabel ini adalah jantung sub-bab: perbandingan kumulatif tiga opsi untuk lima an
 
 Analisis: baca tabel ini baris per baris dan perhatikan *moral* utamanya. Cloud menang di Tahun 1 (Rp 24jt vs Rp 29,3jt vs Rp 47,9jt) — itulah umpan yang membuat banyak keluarga terjebak *subscription*: tampak murah, padahal belum memiliki apa pun. Di Tahun 3, arah berbalik total: cloud Rp 72jt, build hemat Rp 33,9jt — dan setelah *resale value* dimasukkan, build hemat hanya ~Rp 25,8jt. Artinya: **cloud tiga tahun = hampir 3× build hemat, dan 1,8× build performa**, dengan catatan penting bahwa build lokal tetap menjadi aset fisik di akhir periode. Satu-satunya argumen kuat untuk cloud adalah kebutuhan *frontier model* (yang belum bisa dijalankan lokal) — jika keluarga Anda membutuhkan itu, perlakukan cloud sebagai pelengkap, bukan pengganti.
 
+
+---
+
+## 4. Biaya Listrik Tahunan
+
+
+### Tarif Indonesia dan Pola Pemakaian
+
+Tarif listrik rumah tangga Indonesia berada di kisaran **Rp 1.444 - Rp 1.700 per kWh** tergantung golongan daya. Asumsi yang dipakai seluruh perhitungan sub-bab ini: **Rp 1.500/kWh**, GPU hidup **16 jam/hari** (dimatikan 8 jam saat tidur), dan *duty cycle* pembebanan sekitar 70% idle / 30% load. Perhatikan: GPU *idle* bukan nol watt — RTX 4090 *idle* memakai ~35W, dan beban ini berjalan selama 16 jam meski tidak ada yang bertanya apa-apa.
+
+### Effisiensi per Build
+
+Perbandingan paling jujur ada di Tabel 2, tetapi satu angka layak disebut di sini: **Mac Mini M4 Pro** dengan idle 7W + load 65W menghabiskan sekitar Rp 25rb/bulan — tagihan listrik yang lebih kecil dari satu kali makan keluarga. Sebaliknya **2× RTX 4090** untuk DeepSeek V4 Flash menghabiskan ~Rp 252rb/bulan: lebih dari setahun cloud termurah? Tidak — tetapi angka ini harus masuk kesadaran Anda sebelum membeli hardware kedua.
+
 ### Tabel 2: Perbandingan Biaya Listrik per Build
 
 Kalkulasi tagihan listrik tahunan untuk setiap build — data ini paling mudah diverifikasi lewat tagihan PLN bulanan.
@@ -157,27 +112,27 @@ Kalkulasi tagihan listrik tahunan untuk setiap build — data ini paling mudah d
 
 > Asumsi: 16 jam operasi/hari, tarif Rp 1.500/kWh. GPU dimatikan 8 jam saat tidur.
 
-Analisis: tiga insight penting. *Pertama*, perbedaan *idle* antar build hampir sama besarnya dengan perbedaan *load* — RTX 4090 yang "idle" (85W) masih mengonsumsi hampir 6× Mac Mini M4 Pro yang sedang bekerja keras (85W vs 15W). *Kedua*, build GPU tidak sefantastis takutannya: ~Rp 130-144rb/bulan setara satu-dua kali belanja pasar mingguan — cukup kecil jika dibandingkan potensi penghematan Rp 4jt/bulan versus cloud di Tabel 1. *Ketiga*, *power management* adalah juru selamat tersembunyi: *auto-shutdown* malam (8 jam mati) menyumbang penghematan ~Rp 50-80rb/bulan pada build GPU — angka yang diwujudkan studi kasus Seksi 11. Konsumsi daya dan kebutuhan *resource* SLM di berbagai perangkat keras ini juga didokumentasikan luas di literatur *edge deployment* [3][5].
+Analisis: tiga insight penting. *Pertama*, perbedaan *idle* antar build hampir sama besarnya dengan perbedaan *load* — RTX 4090 yang "idle" (85W) masih mengonsumsi hampir 6× Mac Mini M4 Pro yang sedang bekerja keras (85W vs 15W). *Kedua*, build GPU tidak sefantastis takutannya: ~Rp 130-144rb/bulan setara satu-dua kali belanja pasar mingguan — cukup kecil jika dibandingkan potensi penghematan Rp 4jt/bulan versus cloud di Tabel 1. *Ketiga*, *power management* adalah juru selamat tersembunyi: *auto-shutdown* malam (8 jam mati) menyumbang penghematan ~Rp 50-80rb/bulan pada build GPU — angka yang diwujudkan studi kasus Seksi 9. Konsumsi daya dan kebutuhan *resource* SLM di berbagai perangkat keras ini juga didokumentasikan luas di literatur *edge deployment* [3][5].
 
-### Tabel 3: Estimasi Biaya Tambahan (Opsional)
-
-Pos-pos pelengkap yang menentukan kenyamanan dan umur panjang server — urutkan berdasarkan prioritas.
-
-| Item | Fungsi | Harga (IDR) | Prioritas |
-|:---|:---|:---:|:---:|
-| **UPS 600VA** | Proteksi mati listrik | ~Rp 800rb | Wajib |
-| **UPS 1200VA** | Proteksi + stabilizer | ~Rp 1.8jt | Disarankan |
-| **Microphone array** | Voice input | ~Rp 500rb-1jt | Opsional |
-| **Smart plug (watt meter)** | Monitoring listrik | ~Rp 200rb | Disarankan |
-| **USB microphone** | Voice input awal | ~Rp 300rb | Opsional |
-| **NVMe 2TB upgrade** | Storage model | ~Rp 2jt | Saat diperlukan |
-| **Fan case tambahan** | Cooling GPU | ~Rp 150rb | Jika suhu > 75°C |
-
-Analisis: klasifikasi prioritas di kolom terakhir mencerminkan urutan rasional belanja: **UPS pertama** (perangkat yang kehilangan data lebih mahal daripada yang kehilangan daya), lalu **smart plug watt meter** (alat yang mengukur tagihan listriknya sendiri — investasi Rp 200rb untuk data yang menghemat jauh lebih besar), lalu *microphone array* jika voice interface direncanakan (Bab 6.7). Perhatikan posisi **fan case**: bukan pembelian awal, melainkan respons terhadap gejala — beli hanya jika suhu GPU terbaca di atas 75°C. Urutan ini menjaga total biaya tambahan tetap di bawah 10% CAPEX kecuali kebutuhan baru muncul.
 
 ---
 
-## 9. Diagram & Visualisasi
+## 5. Perbandingan vs Cloud Subscription
+
+
+### Harga Langganan Cloud per Keluarga
+
+Ini matematika cloud yang menjadi pembanding seluruh sub-bab. Untuk lima anggota keluarga:
+
+- **ChatGPT Team:** $25/orang/bulan × 5 = $125/bulan ≈ **Rp 2jt/bulan**
+- **ChatGPT Plus:** $20/orang/bulan × 5 = $100/bulan ≈ **Rp 1,6jt/bulan**
+- **Claude Pro:** $20/orang/bulan × 5 = $100/bulan ≈ **Rp 1,6jt/bulan**
+
+Total cloud 3 tahun untuk 5 pengguna: **Rp 57-72 juta** tergantung tier [9][10]. Angka ini adalah *baseline* — biaya yang sudah dikeluarkan keluarga Anda (atau akan dikeluarkan) tanpa memiliki apa pun di akhir periode.
+
+### Break-Even: Kapan Lokal Menang
+
+Perbandingan jujur tidak berhenti di nominal. *Break-even point* — bulan ketika biaya kumulatif build lokal menyusul biaya cloud kumulatif — untuk **build hemat** tercapai di bulan ke-12 hingga 24, dan untuk **build performa** di bulan ke-24 hingga 30 (lihat Gambar 1). Setelah titik itu, setiap bulan berikutnya adalah penghematan murni. Keluarga yang ragu disarankan mengambil perspektif 3 tahun: dengan rentang hidup GPU 5 tahun, build hemat "membayar dirinya sendiri" dua kali.
 
 ### Gambar 1: Break-Even Analysis — Lokal vs Cloud
 
@@ -205,7 +160,60 @@ Cara membaca diagram ini: setiap build lokal "menandingi" cloud dalam *duel* bia
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 6. Biaya Tersembunyi dan Kontinjensi
+
+
+### Yang Tidak Muncul di Harga Componen
+
+Di luar CPU dan GPU, ada pos-pos kecil yang wajib dianggarkan:
+
+- **UPS Rp 1-2 juta** (600VA ~Rp 800rb, 1200VA ~Rp 1,8jt): proteksi data dan GPU — mati listrik mendadak dapat merusak komponen mahal [7]
+- **Thermal paste + ganti fan:** ~Rp 200rb/tahun — rutinitas yang sering dilupakan sampai suhu GPU menyentuh 80°C
+- **SSD upgrade:** ~Rp 1-2jt dalam 3 tahun — model-model baru datang lebih besar dari model lama
+- **Internet:** sudah ada — server lokal tidak membutuhkan langganan tambahan
+- **Domain?** Tidak perlu — akses via IP lokal dalam jaringan rumah
+
+### Kontinjensi dan Nilai Jual Kembali
+
+Dua angka yang sering absen dari perhitungan pemula: **nilai jual kembali** hardware (asumsikan 30% dari harga beli setelah 3 tahun — GPU bekas tetap laku di pasar Indonesia) dan **kontinjensi** (sisihkan ~10% dari CAPEX untuk pengganti komponen yang gagal dalam garansi). Memasukkan keduanya menghasilkan angka TCO bersih yang jujur, seperti terlihat di Tabel 1.
+
+### Tabel 3: Estimasi Biaya Tambahan (Opsional)
+
+Pos-pos pelengkap yang menentukan kenyamanan dan umur panjang server — urutkan berdasarkan prioritas.
+
+| Item | Fungsi | Harga (IDR) | Prioritas |
+|:---|:---|:---:|:---:|
+| **UPS 600VA** | Proteksi mati listrik | ~Rp 800rb | Wajib |
+| **UPS 1200VA** | Proteksi + stabilizer | ~Rp 1.8jt | Disarankan |
+| **Microphone array** | Voice input | ~Rp 500rb-1jt | Opsional |
+| **Smart plug (watt meter)** | Monitoring listrik | ~Rp 200rb | Disarankan |
+| **USB microphone** | Voice input awal | ~Rp 300rb | Opsional |
+| **NVMe 2TB upgrade** | Storage model | ~Rp 2jt | Saat diperlukan |
+| **Fan case tambahan** | Cooling GPU | ~Rp 150rb | Jika suhu > 75°C |
+
+Analisis: klasifikasi prioritas di kolom terakhir mencerminkan urutan rasional belanja: **UPS pertama** (perangkat yang kehilangan data lebih mahal daripada yang kehilangan daya), lalu **smart plug watt meter** (alat yang mengukur tagihan listriknya sendiri — investasi Rp 200rb untuk data yang menghemat jauh lebih besar), lalu *microphone array* jika voice interface direncanakan (Bab 6.7). Perhatikan posisi **fan case**: bukan pembelian awal, melainkan respons terhadap gejala — beli hanya jika suhu GPU terbaca di atas 75°C. Urutan ini menjaga total biaya tambahan tetap di bawah 10% CAPEX kecuali kebutuhan baru muncul.
+
+---
+
+
+---
+
+## 7. Nilai Tambah Non-Finansial
+
+
+### Privasi, Ketersediaan, Edukasi, Kustomisasi
+
+Angka tidak pernah bercerita utuh, dan ada empat nilai yang tidak muncul di kalkulator TCO. **Privasi**: data keluarga — chat, dokumen, audio — tidak dijual atau dipelajari pihak ketiga; survei *privacy-preserving inference* menyoroti bahwa biaya privasi adalah nyata di kedua arah: cloud murah di depan tetapi mahal dalam risiko [4]. **Ketersediaan**: saat internet mati, server tetang melakukan semua yang bisa ia lakukan — fitur yang tidak dimiliki langganan cloud mana pun. **Edukasi**: anak-anak belajar *prompt engineering*, literasi data, dan cara kerja AI di rumah sendiri — nilai pengganti kursus yang bisa puluhan juta rupiah. **Kustomisasi**: model bisa diganti sesuai kebutuhan minggu ini, tanpa negosiasi kontrak.
+
+Apakah nilai-nilai ini pantas dihitung dalam rupiah? Keluarga yang menjawab "ya" cenderung memilih lokal lebih cepat; keluarga yang "tidak" bisa berkonsentrasi penuh pada Tabel 1. Keduanya sah — tetapi kini Anda menghitung dengan dua jenis mata uang sekaligus.
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Kalkulator TCO Lokal vs Cloud
 
@@ -341,7 +349,8 @@ Keunggulan *template sensor* di atas dibanding Tutorial B: ia mengukur **seluruh
 
 ---
 
-## 11. Studi Kasus: Keputusan Investasi Keluarga Firmansyah
+## 9. Studi Kasus: Keputusan Investasi Keluarga Firmansyah
+
 
 **Latar:** Keluarga Firmansyah — lima anggota, dua di antaranya bekerja dari rumah — mengeluarkan **Rp 2,5jt/bulan** untuk AI: ChatGPT Team untuk lima user ditambah Claude untuk satu user. Ayah mulai curiga total tahunannya sudah menyentuh harga laptop baru, dan bertanya: apa yang kami miliki setelah tiga tahun berlangganan?
 
@@ -356,7 +365,8 @@ Keunggulan *template sensor* di atas dibanding Tutorial B: ia mengukur **seluruh
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan perbedaan teknis antara Q4_K_M, Q5_0, Q8_0, dan FP16 dari sisi *perplexity* versus kecepatan *inference*
@@ -17,6 +18,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep Dasar: Menekan Jaringan Syaraf ke Dalam Lemari Kecil
+
 
 Setiap model bahasa adalah gudang angka — miliaran *weight* (bobot) yang menentukan bagaimana model merespons dunia. Di dalam format aslinya, setiap bobot disimpan sebagai angka *floating point* 32-bit (FP32): presisi penuh, rentang luas, tetapi rakus ruang. Lalu muncul pertanyaan sederhana yang mengubah tata letak seluruh ekosistem lokal: *apakah kita benar-benar membutuhkan semua presisi itu?*
 
@@ -31,6 +33,7 @@ Sebelum melangkah lebih jauh, ada satu kalkulasi yang akan menyelamatkan Anda da
 ---
 
 ## 3. Metode Pembulatan Bit: Empat Cabang ke Hasil yang Sama
+
 
 Tidak semua kuantisasi diciptakan sama. Ada beberapa aliran pemikiran tentang *bagaimana* memetakan angka presisi tinggi ke angka presisi rendah. Mari kita bedah satu per satu.
 
@@ -62,6 +65,7 @@ Satu lagi nama yang wajib Anda kenal: **QLoRA** memperkenalkan tipe data **NF4**
 
 ## 4. Level Kuantisasi GGUF: Dari Q2_K hingga Q8_0
 
+
 GGUF — format milik ekosistem llama.cpp — menyediakan tangga level kuantisasi yang lengkap. Setiap level memberi kompromi berbeda antara ukuran, kecepatan, dan presisi. Mari kita kenali masing-masing, karena di sinilah Anda akan menghabiskan sebagian besar hidup sebagai pengguna model lokal.
 
 **Q2_K** (2,56 bit per bobot) adalah ekstrem: model ditekan hingga sepertiga ukuran Q4_K_M. Untuk model 70B, ukurannya hanya sekitar 23 GB — cukup untuk satu GPU 24 GB. Tapi ada harga yang jelas: *perplexity* naik sekitar 0,8-1,5 poin, dan pada model kecil kualitasnya bisa terasa "patah-patah". Q2_K adalah pilihan terakhir — untuk perangkat yang sangat terbatas.
@@ -83,46 +87,6 @@ GGUF — format milik ekosistem llama.cpp — menyediakan tangga level kuantisas
 Sekilas, sistem penamaan ini tampak seperti kode-kode acak, tetapi ada logikanya: **ks** (*k-quants*) berarti komposisi heterogen berbasis pentingnya blok, sedangkan angka menunjukkan target bit rata-rata. Semakin tinggi angka, semakin besar file, semakin cepat kehabisan VRAM — tetapi semakin dekat Anda ke kecerdasan asli model.
 
 Satu perbandingan yang sering disalahpahami: **Q4_0 vs Q4_K_M**. Keduanya sama-sama "4-bit", tetapi Q4_0 menerapkan presisi seragam ke seluruh bobot, sementara Q4_K_M mengalokasikan bit secara strategis — sedikit lebih banyak untuk bagian yang sensitif terhadap kesalahan (seperti layer *attention* dan *norm*), dan sedikit lebih sedikit untuk bagian yang toleran. Hasilnya Q4_K_M hampir selalu mengalahkan Q4_0 dalam *perplexity* sembari hanya membawa ukuran 0,25 bit lebih besar (4,25 vs 4,00). Inilah contoh paling nyata bahwa kuantisasi bukan sekadar matematika bit, melainkan *kecerdasan dalam mengalokasikan sumber daya* — seperti tukang masak yang menggunakan mentalek terbaiknya hanya pada bumbu utama, bukan pada air rebusan.
-
----
-
-## 5. EXL2 vs GGUF: Dua Filosofi, Dua Dunia
-
-Di luar GGUF ada saudara tirinya yang lebih eksotis: **EXL2**, format milik *ExLlamaV2*. Perbedaannya fundamental, bukan sekadar pergantian ekstensi file.
-
-**EXL2** dibangun untuk satu tujuan: *throughput* maksimal di GPU NVIDIA. Ia menukar fleksibilitas dengan kecepatan — format ini menggunakan kompresi per-bobot yang dinamis, memanfaatkan setiap bit VRAM secara optimal, dan berjalan *GPU-only* karena ketergantungannya pada kernel CUDA yang dioptimalkan. Jika Anda memiliki GPU kencang dan ingin menyedot token sebanyak mungkin per detik, EXL2 adalah pilihan juara.
-
-**GGUF**, sebaliknya, adalah format universal. Ia mendukung *hybrid inference* (CPU + GPU sekaligus), berjalan *native* di Apple Silicon, ARM, hingga SBC seperti Raspberry Pi, dan menjadi standar de facto di Ollama, LM Studio, dan hampir semua aplikasi desktop. Kekurangannya: kecepatan di GPU murni sedikit di bawah EXL2 karena overhead kompatibilitas.
-
-Pilihan Anda pada akhirnya sederhana: **selalu GGUF** jika ingin fleksibilitas lintas perangkat dan kemudahan konversi; **pertimbangkan EXL2** jika seluruh dunia Anda adalah satu GPU NVIDIA dan Anda mengejar setiap token per detik. Model MoE besar dengan arsitektur eksotis biasanya lebih mudah dijinakkan dalam bentuk GGUF.
-
-Ada satu faktor lagi yang sering luput: velositas *loading*. EXL2 dirancang untuk memuat dan mengalokasikan memori dengan sangat efisien di VRAM — itulah mengapa ia mendapat lima bintang untuk kecepatan *loading* di Tabel 3 — sementara GGUF lebih lambat saat pertama kali dijalankan karena proses *mmap* dan dekompresi yang bergantung platform. Bagi pengguna yang membuka-tutup model sepanjang hari (misalnya berganti-ganti antara model chat dan model coding), perbedaan beberapa detik *startup* ini bisa terasa seperti perbedaan antara angkutan umum yang tepat waktu dan yang "siap-siap telat". Jangan remehkan dimensi ini saat menimbang dua format — throughput tinggi tidak ada artinya jika Anda menghabiskan separuh sesi menunggu model terbangun.
-
----
-
-## 6. Dampak Kuantisasi pada Output: Perplexity, Kejujuran, dan "Keluguan"
-
-Apa yang sebenarnya terjadi pada *kualitas* model ketika kita menekannya dari FP16 ke Q4_K_M? Ukuran paling standar untuk menjawabnya adalah **perplexity** — sebuah metrik yang mengukur seberapa "terkejut" model terhadap teks: semakin rendah, semakin prediktif model tersebut terhadap bahasa alami.
-
-Untuk model berukuran 7B, perbedaan antara FP16 dan Q4_K_M hanya sekitar **0,1-0,5 poin perplexity** — dan untuk bahasa yang sederhana, selisih 0,2 poin praktis tidak terasa dalam penggunaan sehari-hari [1][3]. Pada Q8_0, perbedaannya hampir nol. Ini kabar baik: sebagian besar distorsi kuantisasi memang terjadi, tetapi berada di wilayah yang jauh dari ambang persepsi manusia.
-
-Bagaimana dengan halusinasi? Jawaban jujurnya: **halusinasi tidak selalu meningkat drastis**, tetapi ada perubahan karakter yang halus. Model terkuantisasi cenderung menjadi lebih "lugu" — replikasi pola yang lebih malas, peluang melompat ke kesimpulan yang salah sedikit lebih besar pada teks bernuansa. Ini bukan karena kuantisasi "merusak" kemampuan berpikir, melainkan karena detail terbaik dari distribusi bobot hilang, dan detail halus itulah yang biasanya menjadi pembeda antara jawaban tepat dan jawaban "hampir tepat". Untuk penggunaan sehari-hari (chat, ringkasan, coding sederhana), efek ini tidak signifikan; untuk tugas yang menuntut presisi ilmiah, selalu validasi dengan evaluasi yang lebih ketat — seperti yang akan kita pelajari di Bab 1.5.
-
-Ada satu peringatan metodologis yang perlu disampaikan jujur: angka *perplexity* di tabel-tabel ini hampir selalu diukur pada **korpus bahasa Inggris** (misalnya WikiText-2). Karena itu, selisih 0,1-0,5 poin tersebut tidak serta-merta berlaku untuk Bahasa Indonesia — tokenizer yang kurang efisien untuk bahasa kita (lihat Bab 1.6) bisa memperbesar kesalahan kuantisasi pada kata-kata berimbuhan yang jarang muncul utuh di *vocabulary* model. Artinya, jika Anda bekerja dengan Bahasa Indonesia, lakukan verifikasi *perplexity* pada korpus Indonesia sendiri alih-alih menyalin patokan internasional. Kuantisasi yang "aman" untuk Inggris belum tentu sama amannya untuk kata-kata seperti "mempertanggungjawabkan" yang dipecah menjadi enam token.
-
----
-
-## 7. Panduan Pemilihan: Memetakan VRAM Anda ke Level Kuantisasi
-
-Kapan memilih level mana? Aturan praktisnya mengikuti matematika VRAM. Untuk pemilik **4 GB VRAM**: pilih Q4_K_M untuk model 7B, atau turun ke Q3_K_M jika menginginkan model 13B. Dengan **8 GB VRAM**: Q5_K_M untuk 7B nyaman dijalankan, Q4_K_M untuk 13B. Di **24 GB VRAM**, Anda memasuki wilayah mewah: Q8_0 untuk 13B, atau Q4_K_M untuk model 70B. Untuk **Apple Silicon 16 GB**: Q4_K_M untuk model 7B dengan *GPU offload* 100% adalah kombinasi paling seimbang — model muat penuh di memori terpadu, dan sisa memori tetap lega untuk sistem.
-
-Ada satu wilayah baru yang sebelumnya mustahil: model **MoE raksasa**. DeepSeek V4 Flash (284B parameter total) dalam Q2_K hanya berbobot sekitar **90 GB**, dan Mistral Large 3 (675B) sekitar **210 GB** — keduanya hanya feasible di *workstation* multi-GPU atau Mac Studio 192 GB. Di sinilah kuantisasi bukan lagi sekadar penghemat, melainkan *pembuka pintu*: tanpa Q2_K/Q4_K_M, model sekelas ini tidak akan pernah bisa hidup di luar pusat data.
-
-Terakhir, satu catatan tentang **kecepatan dan *memory bandwidth*** — hubungan yang akan dibahas lebih dalam di Bab 2. Dalam *inference* LLM, kecepatan generasi token hampir seluruhnya ditentukan oleh seberapa cepat VRAM bisa "menyuapi" bobot ke prosesor, bukan oleh kecepatan komputasi itu sendiri. Itulah sebabnya Q4_K_M terasa jauh lebih cepat daripada Q8_0 di GPU yang sama: bobot 3,8 GB yang dipindahkan jauh lebih sedikit daripada 7,2 GB per langkah generasi. Konsekuensinya, pilihan kuantisasi bukan hanya keputusan *ruang*, tetapi juga keputusan *kecepatan* — turun satu level kuantisasi sering kali berarti menaikkan puluhan token per detik tanpa mengganti perangkat keras apa pun. Bagi yang ingin mengejar kecepatan tanpa membeli GPU baru, kuantisasi adalah "upgrade gratis" yang paling mudah diambil.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: Perbandingan Level Kuantisasi GGUF
 
@@ -147,6 +111,7 @@ Fenomena paling menarik dari tabel ini adalah kurva *perplexity loss* yang tidak
 
 *Gambar 1.4-1 — kerugian kualitas (batang) melandai di wilayah Q4-Q6 lalu melonjak di Q2; ukuran model (garis) justru turun linier — wilayah "gratis" ada di Q5_Q6.*
 
+
 ### Tabel 2: Trade-off Kecepatan vs Kualitas (7B, RTX 4090)
 
 Jika Tabel 1 menunjukkan peta teori, tabel berikut menunjukkan peta pengalaman nyata — diukur pada model 7B di GPU RTX 4090.
@@ -163,24 +128,6 @@ Perhatikan tiga angka ini sekaligus: dari Q4_K_M ke Q8_0, *perplexity* hanya mem
 
 *Gambar 1.4-2 — kecepatan (batang) naik 55% saat beralih ke Q4_K_M, sementara perplexity (garis) nyaris tidak berubah — bukti diminishing returns kualitas.*
 
-### Tabel 3: Perbandingan Tools Konversi
-
-Terakhir, mari kita pilih senjatanya: empat tool utama yang akan menemani perjalanan kuantisasi Anda.
-
-| Fitur | llama.cpp (GGUF) | ExLlamaV2 (EXL2) | AutoGPTQ | AWQ |
-|:---|:---|:---|:---|:---|
-| **Format Output** | GGUF | EXL2/Safetensors | GPTQ | AWQ |
-| **CPU + GPU Hybrid** | Ya | GPU only | GPU only | GPU only |
-| **Apple Silicon** | Native | - | - | - |
-| **Kecepatan Loading** | *** | ***** | *** | **** |
-| **Kemudahan Konversi** | ***** | ** | *** | ** |
-| **Best For** | Semua platform | GPU kencang | GPU NVIDIA | GPU NVIDIA |
-
-Yang menonjol: llama.cpp unggul di semua dimensi *kecuali* kecepatan loading, karena ia mengalahkan kompetitor dalam hal fleksibilitas platform — satu-satunya tool yang bekerja di Apple Silicon dan mendukung mode CPU+GPU hybrid secara *native*. ExLlamaV2 adalah pilihan khusus bagi pemilik GPU NVIDIA yang ingin performa paling ekstrem. AutoGPTQ dan AWQ sama-sama terbatas pada GPU NVIDIA, dengan AWQ sebagai penerus yang lebih modern [1][2]. Untuk 95% pengguna, llama.cpp adalah titik awal yang tepat — Anda bisa beralih ke EXL2 nanti jika benar-benar mengejar kecepatan.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Pipeline Kuantisasi
 
@@ -200,6 +147,64 @@ graph LR
 ```
 
 Diagram ini menceritakan satu hal yang sering dilupakan: kuantisasi bukan proses satu arah yang mekanis, melainkan sebuah *pipeline* dengan titik keputusan. Data kalibrasi menentukan seberapa baik algoritma mengenali distribusi bobot yang harus dipertahankan; RTN, GPTQ, dan AWQ kemudian bersaing di titik yang sama — dan semuanya bermuara pada format file yang sama di ujung. Kualitas hasil akhir Anda ditentukan di dua titik: kualitas data kalibrasi, dan pilihan algoritma. Jika satu saja di antaranya asal-asalan, Anda akan melihat "kebocoran" kualitas yang tidak bisa disalahkan pada level kuantisasi.
+
+
+---
+
+## 5. EXL2 vs GGUF: Dua Filosofi, Dua Dunia
+
+
+Di luar GGUF ada saudara tirinya yang lebih eksotis: **EXL2**, format milik *ExLlamaV2*. Perbedaannya fundamental, bukan sekadar pergantian ekstensi file.
+
+**EXL2** dibangun untuk satu tujuan: *throughput* maksimal di GPU NVIDIA. Ia menukar fleksibilitas dengan kecepatan — format ini menggunakan kompresi per-bobot yang dinamis, memanfaatkan setiap bit VRAM secara optimal, dan berjalan *GPU-only* karena ketergantungannya pada kernel CUDA yang dioptimalkan. Jika Anda memiliki GPU kencang dan ingin menyedot token sebanyak mungkin per detik, EXL2 adalah pilihan juara.
+
+**GGUF**, sebaliknya, adalah format universal. Ia mendukung *hybrid inference* (CPU + GPU sekaligus), berjalan *native* di Apple Silicon, ARM, hingga SBC seperti Raspberry Pi, dan menjadi standar de facto di Ollama, LM Studio, dan hampir semua aplikasi desktop. Kekurangannya: kecepatan di GPU murni sedikit di bawah EXL2 karena overhead kompatibilitas.
+
+Pilihan Anda pada akhirnya sederhana: **selalu GGUF** jika ingin fleksibilitas lintas perangkat dan kemudahan konversi; **pertimbangkan EXL2** jika seluruh dunia Anda adalah satu GPU NVIDIA dan Anda mengejar setiap token per detik. Model MoE besar dengan arsitektur eksotis biasanya lebih mudah dijinakkan dalam bentuk GGUF.
+
+Ada satu faktor lagi yang sering luput: velositas *loading*. EXL2 dirancang untuk memuat dan mengalokasikan memori dengan sangat efisien di VRAM — itulah mengapa ia mendapat lima bintang untuk kecepatan *loading* di Tabel 3 — sementara GGUF lebih lambat saat pertama kali dijalankan karena proses *mmap* dan dekompresi yang bergantung platform. Bagi pengguna yang membuka-tutup model sepanjang hari (misalnya berganti-ganti antara model chat dan model coding), perbedaan beberapa detik *startup* ini bisa terasa seperti perbedaan antara angkutan umum yang tepat waktu dan yang "siap-siap telat". Jangan remehkan dimensi ini saat menimbang dua format — throughput tinggi tidak ada artinya jika Anda menghabiskan separuh sesi menunggu model terbangun.
+
+### Tabel 3: Perbandingan Tools Konversi
+
+Terakhir, mari kita pilih senjatanya: empat tool utama yang akan menemani perjalanan kuantisasi Anda.
+
+| Fitur | llama.cpp (GGUF) | ExLlamaV2 (EXL2) | AutoGPTQ | AWQ |
+|:---|:---|:---|:---|:---|
+| **Format Output** | GGUF | EXL2/Safetensors | GPTQ | AWQ |
+| **CPU + GPU Hybrid** | Ya | GPU only | GPU only | GPU only |
+| **Apple Silicon** | Native | - | - | - |
+| **Kecepatan Loading** | *** | ***** | *** | **** |
+| **Kemudahan Konversi** | ***** | ** | *** | ** |
+| **Best For** | Semua platform | GPU kencang | GPU NVIDIA | GPU NVIDIA |
+
+Yang menonjol: llama.cpp unggul di semua dimensi *kecuali* kecepatan loading, karena ia mengalahkan kompetitor dalam hal fleksibilitas platform — satu-satunya tool yang bekerja di Apple Silicon dan mendukung mode CPU+GPU hybrid secara *native*. ExLlamaV2 adalah pilihan khusus bagi pemilik GPU NVIDIA yang ingin performa paling ekstrem. AutoGPTQ dan AWQ sama-sama terbatas pada GPU NVIDIA, dengan AWQ sebagai penerus yang lebih modern [1][2]. Untuk 95% pengguna, llama.cpp adalah titik awal yang tepat — Anda bisa beralih ke EXL2 nanti jika benar-benar mengejar kecepatan.
+
+---
+
+
+---
+
+## 6. Dampak Kuantisasi pada Output: Perplexity, Kejujuran, dan "Keluguan"
+
+
+Apa yang sebenarnya terjadi pada *kualitas* model ketika kita menekannya dari FP16 ke Q4_K_M? Ukuran paling standar untuk menjawabnya adalah **perplexity** — sebuah metrik yang mengukur seberapa "terkejut" model terhadap teks: semakin rendah, semakin prediktif model tersebut terhadap bahasa alami.
+
+Untuk model berukuran 7B, perbedaan antara FP16 dan Q4_K_M hanya sekitar **0,1-0,5 poin perplexity** — dan untuk bahasa yang sederhana, selisih 0,2 poin praktis tidak terasa dalam penggunaan sehari-hari [1][3]. Pada Q8_0, perbedaannya hampir nol. Ini kabar baik: sebagian besar distorsi kuantisasi memang terjadi, tetapi berada di wilayah yang jauh dari ambang persepsi manusia.
+
+Bagaimana dengan halusinasi? Jawaban jujurnya: **halusinasi tidak selalu meningkat drastis**, tetapi ada perubahan karakter yang halus. Model terkuantisasi cenderung menjadi lebih "lugu" — replikasi pola yang lebih malas, peluang melompat ke kesimpulan yang salah sedikit lebih besar pada teks bernuansa. Ini bukan karena kuantisasi "merusak" kemampuan berpikir, melainkan karena detail terbaik dari distribusi bobot hilang, dan detail halus itulah yang biasanya menjadi pembeda antara jawaban tepat dan jawaban "hampir tepat". Untuk penggunaan sehari-hari (chat, ringkasan, coding sederhana), efek ini tidak signifikan; untuk tugas yang menuntut presisi ilmiah, selalu validasi dengan evaluasi yang lebih ketat — seperti yang akan kita pelajari di Bab 1.5.
+
+Ada satu peringatan metodologis yang perlu disampaikan jujur: angka *perplexity* di tabel-tabel ini hampir selalu diukur pada **korpus bahasa Inggris** (misalnya WikiText-2). Karena itu, selisih 0,1-0,5 poin tersebut tidak serta-merta berlaku untuk Bahasa Indonesia — tokenizer yang kurang efisien untuk bahasa kita (lihat Bab 1.6) bisa memperbesar kesalahan kuantisasi pada kata-kata berimbuhan yang jarang muncul utuh di *vocabulary* model. Artinya, jika Anda bekerja dengan Bahasa Indonesia, lakukan verifikasi *perplexity* pada korpus Indonesia sendiri alih-alih menyalin patokan internasional. Kuantisasi yang "aman" untuk Inggris belum tentu sama amannya untuk kata-kata seperti "mempertanggungjawabkan" yang dipecah menjadi enam token.
+
+---
+
+## 7. Panduan Pemilihan: Memetakan VRAM Anda ke Level Kuantisasi
+
+
+Kapan memilih level mana? Aturan praktisnya mengikuti matematika VRAM. Untuk pemilik **4 GB VRAM**: pilih Q4_K_M untuk model 7B, atau turun ke Q3_K_M jika menginginkan model 13B. Dengan **8 GB VRAM**: Q5_K_M untuk 7B nyaman dijalankan, Q4_K_M untuk 13B. Di **24 GB VRAM**, Anda memasuki wilayah mewah: Q8_0 untuk 13B, atau Q4_K_M untuk model 70B. Untuk **Apple Silicon 16 GB**: Q4_K_M untuk model 7B dengan *GPU offload* 100% adalah kombinasi paling seimbang — model muat penuh di memori terpadu, dan sisa memori tetap lega untuk sistem.
+
+Ada satu wilayah baru yang sebelumnya mustahil: model **MoE raksasa**. DeepSeek V4 Flash (284B parameter total) dalam Q2_K hanya berbobot sekitar **90 GB**, dan Mistral Large 3 (675B) sekitar **210 GB** — keduanya hanya feasible di *workstation* multi-GPU atau Mac Studio 192 GB. Di sinilah kuantisasi bukan lagi sekadar penghemat, melainkan *pembuka pintu*: tanpa Q2_K/Q4_K_M, model sekelas ini tidak akan pernah bisa hidup di luar pusat data.
+
+Terakhir, satu catatan tentang **kecepatan dan *memory bandwidth*** — hubungan yang akan dibahas lebih dalam di Bab 2. Dalam *inference* LLM, kecepatan generasi token hampir seluruhnya ditentukan oleh seberapa cepat VRAM bisa "menyuapi" bobot ke prosesor, bukan oleh kecepatan komputasi itu sendiri. Itulah sebabnya Q4_K_M terasa jauh lebih cepat daripada Q8_0 di GPU yang sama: bobot 3,8 GB yang dipindahkan jauh lebih sedikit daripada 7,2 GB per langkah generasi. Konsekuensinya, pilihan kuantisasi bukan hanya keputusan *ruang*, tetapi juga keputusan *kecepatan* — turun satu level kuantisasi sering kali berarti menaikkan puluhan token per detik tanpa mengganti perangkat keras apa pun. Bagi yang ingin mengejar kecepatan tanpa membeli GPU baru, kuantisasi adalah "upgrade gratis" yang paling mudah diambil.
 
 ### Gambar 2: Pohon Keputusan Pemilihan Kuantisasi
 
@@ -230,7 +235,11 @@ Satu catatan penutup untuk diagram ini: pohon keputusan di atas mengasumsikan sa
 
 ---
 
-## 10. Praktikum / Hands-On: Konversi dan Verifikasi Model Sendiri
+
+---
+
+## 8. Praktikum / Hands-On: Konversi dan Verifikasi Model Sendiri
+
 
 Teori cukup — sekarang giliran Anda menekan tombol. Ikuti tiga tutorial berikut di terminal untuk mengubah model Hugging Face menjadi GGUF, lalu memverifikasi kualitasnya.
 
@@ -318,7 +327,8 @@ Pola ini menumbuhkan satu kebiasaan bernilai: **selalu simpan master FP16**. Fil
 
 ---
 
-## 11. Studi Kasus: Memilih Kuantisasi untuk MacBook Pro M3 18GB
+## 9. Studi Kasus: Memilih Kuantisasi untuk MacBook Pro M3 18GB
+
 
 **Latar:** Budi, seorang developer lepas di Yogyakarta, ingin memakai Llama-3.1-8B-Instruct sebagai *daily coding assistant*. Ia bekerja dari kafe-kafe, sering offline, dan membutuhkan model yang nyaman diajak berdiskusi tentang kode tanpa rasa "kaku". Perangkatnya: MacBook Pro M3 dengan 18 GB *Unified Memory*.
 
@@ -332,7 +342,8 @@ Pola ini menumbuhkan satu kebiasaan bernilai: **selalu simpan master FP16**. Fil
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

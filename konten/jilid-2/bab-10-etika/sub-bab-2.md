@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Memahami kerangka *fair use* dan implikasinya pada *training* dan *deployment* LLM
@@ -17,127 +18,10 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Hak Cipta dalam Konteks AI Generatif
 
+
 *Copyright* (hak cipta) lahir jauh sebelum model bahasa — tetapi pertanyaannya kini bergeser: apakah aturan yang dirancang untuk buku, lagu, dan film dapat menjawab realitas model yang menelan korpus digital raksasa? Undang-Undang Nomor 28 Tahun 2014 tentang Hak Cipta di Indonesia melindungi karya cipta yang *original* dan *diekspresikan* dalam bentuk nyata — dan perdebatan saat ini berpusat pada apakah reproduksi internal yang dilakukan machine learning merupakan pelanggaran, serta apakah output model bisa dianggap sebagai karya turunan atau justru karya baru [1][3].
 
 Praktisi hukum dan teknis sepakat bahwa risiko *copyright* pada generative AI terkonsentrasi di **tiga titik** dalam rantai pasok. Pertama, **ingestion** — menyalin *training data* ke dalam model. Kedua, **reproduksi dalam model** — menyimpan pola karya dalam *weights*. Ketiga, **output generatif** — menghasilkan konten yang menyalin karya asli secara *verbatim* atau sebagai karya turunan [2][4]. Ketiga titik ini diatur berbeda di setiap yurisdiksi: Amerika Serikat mengandalkan doktrin *fair use* yang fleksibel; Uni Eropa mengatur pengecualian *text and data mining* (TDM) dalam DSM Directive dan menempatkan AI di bawah payung AI Act; sementara Indonesia belum memiliki regulasi spesifik AI — UU 28/2014 dan UU Perlindungan Data Pribadi (UU 27/2022) menjadi rujukan utama yang tidak dirancang untuk kasus ini [1].
-
----
-
-## 3. Fair Use Doctrine di Amerika Serikat
-
-Di AS, pembelaan utama pelatihan AI adalah doktrin *fair use* yang diuji dengan **empat faktor**: (1) tujuan dan karakter penggunaan — apakah transformatif atau komersial; (2) sifat karya cipta — faktual vs kreatif; (3) jumlah dan substansi bagian yang digunakan; dan (4) dampak penggunaan terhadap pasar karya asli [1]. Empat faktor ini bukan rumus matematis; pengadilan menimbang keseluruhan konteks.
-
-Momen yang mengubah arah diskusi adalah laporan **US Copyright Office, Copyright and Artificial Intelligence, Part 3** (Mei 2025), yang menyimpulkan bahwa *training* AI **tidak otomatis** menjadi *fair use* — analisis harus dilakukan per kasus, dan penggunaan komersial data yang diperoleh tanpa izin untuk menghasilkan output yang bersaing cenderung **bukan** *fair use* [2]. Laporan ini menjawab pertanyaan yang sebelumnya hanya diperdebatkan di seminar: saat ini, perusahaan tidak dapat berasumsi bahwa "semua model bisa dilatih pada semua data."
-
-Kasus-kasus yang sedang berjalan mempertegas ketidakpastian ini: *The New York Times Co. v. OpenAI* (2023) — surat kabar menuntut OpenAI atas reproduksi artikelnya dalam *training* dan output; *Kadrey v. Meta* (2023) — penulis menuntut Meta atas penggunaan buku bajakan dari *shadow library* dalam *training* LLaMA; dan *Getty Images v. Stability AI* (2023) — perusahaan stok foto menuntut Stability atas pelatihan Stable Diffusion pada jutaan foto berlisensinya [2][5]. Isyarat awal dari putusan-putusan ini: penggunaan komersial atas data bajakan — apalagi bila outputnya bersaing langsung dengan sumber asli — merupakan posisi hukum yang paling lemah, sementara penggunaan transformatif atas data yang diperoleh sah masih memiliki ruang untuk *fair use* [1][5].
-
----
-
-## 4. Lisensi Open-Source Model: Arena Kontrak dan Klausul
-
-Di ranah model AI, "open-source" sering dipakai longgar: yang benar-benar terbuka hanyalah *weights*, sementara lisensinya beragam — dari yang sangat permisif hingga yang mengikat pengguna pada kebijakan penggunaan [1]. Empat lisensi dominan di ekosistem model 2026 adalah **Llama Community License** (Meta), **Apache 2.0**, **MIT**, dan **CC BY-SA 4.0**, ditambah **RAIL** (*Responsible AI License*) yang dirancang khusus untuk AI [3]. Klausul kunci yang membedakan mereka: *acceptable use policy* (pembatasan penggunaan), *attribution requirement* (kewajiban mencantumkan kredit), dan *commercial restriction* (pembatasan komersial termasuk batas MAU) [3].
-
-Perlu peringatan hukum yang jujur di sini: status *enforceability* lisensi model masih diperdebatkan. Beldiman (2024) berargumen bahwa karena *model weights* dan output AI mungkin tidak dapat dilindungi hak cipta — tidak ada karya "*original expression*" dalam angka floating-point yang dihasilkan mesin — maka lisensi yang menggantungkan diri pada hukum hak cipta melemah [4]. Di Indonesia, konsekuensinya praktis: lisensi model berlaku sebagai **perjanjian sipil** antara penyedia dan pengguna; sengketa pemutusan kontrak berpotensi dibawa ke pengadilan niaga, yang berarti litigasi bisa berlarut dan mahal. Karena itu, audit lisensi bukan sekadar urusan teknis — ia keputusan hukum yang harus melibatkan *legal counsel* [3][4].
-
-### Studi Kasus Lisensi: DeepSeek V4 dengan MIT License
-
-DeepSeek V4 Pro (1,6 triliun parameter) dan V4 Flash (284 miliar parameter) dirilis pada April 2026 dengan **MIT License** — lisensi paling permisif di antara model *open-weight* teratas, dan kontras tajam dengan DeepSeek V3 yang memakai lisensi kustom [6]. Bagi perusahaan Indonesia, lima implikasi berikut paling relevan:
-
-1. **Penggunaan komersial tanpa batasan.** Tidak ada pembatasan MAU — berbeda dengan Llama 3 yang membatasi penggunaan gratis hingga 700 juta *monthly active users* (MAU), batas yang melampaui hampir semua bisnis nasional tetapi tetap menjadi pembatas bagi platform global.
-2. **Modifikasi bebas.** Perusahaan dapat melakukan *fine-tuning*, distilasi, atau perubahan arsitektur tanpa kewajiban atribusi yang memberatkan.
-3. **Redistribusi.** *Weights* model dapat didistribusikan ulang, bahkan di dalam produk komersial tertutup (*closed-source*).
-4. **Tidak ada *patent grant* eksplisit.** MIT tidak menyertakan *patent grant* — berbeda dengan Apache 2.0 yang eksplisit. Risikonya rendah untuk penggunaan umum, tetapi *due diligence* tetap diperlukan untuk aplikasi yang sensitif terhadap paten.
-5. **Tidak ada *Acceptable Use Policy*.** Berbeda dengan Llama dan RAIL, MIT tidak membatasi penggunaan — kebebasan penuh berarti **perusahaan bertanggung jawab penuh atas output modelnya**, termasuk risiko *copyright* yang dibahas di seksi berikutnya [3][6].
-
-Secara kumulatif, DeepSeek V4 (MIT) memberi fleksibilitas hukum tertinggi, disusul Mistral Large 3 (Apache 2.0 — sama permisifnya untuk komersial, plus *patent grant* eksplisit), lalu Llama 3 (*Community License* dengan restriksi MAU). Untuk startup Indonesia yang ingin komersialisasi cepat, MIT adalah pilihan paling aman secara lisensi; untuk perusahaan dengan kekayaan intelektual besar yang memerlukan kepastian paten, Apache 2.0 layak dipertimbangkan lebih serius.
-
----
-
-## 5. Risiko Copyright pada Output Model
-
-Kabar baiknya, sebagian besar risiko *copyright* bukan pada *weights*, melainkan pada **output** — dan ini yang paling mudah dimitigasi. Dua pola yang diidentifikasi literatur: **verbatim copying** — model mereproduksi teks *training* hampir kata demi kata — dan **derivative works** — output yang sangat mirip dengan karya asli sehingga dianggap karya turunan [5][7]. Penelitian Carlini et al. (2021) menunjukkan bahwa model bahasa yang cukup besar memang mampu "mengekstrak" data *training* secara *verbatim* ketika diprovokasi, terutama kalimat unik yang muncul berkali-kali dalam korpus [7].
-
-Kasus yang paling didengar industri: *class action* terhadap GitHub Copilot atas kode sumber berlisensi GPL yang direproduksi tanpa atribusi. Masalahnya klasik: model dilatih pada repositori publik yang berisi kode berlisensi campuran, lalu menghasilkan potongan kode yang hampir identik dengan lisensi yang tidak disebutkan — pengguna yang menyalin output tersebut tanpa sadar melanggar kewajiban GPL (menyediakan kode sumber turunan) [5][7].
-
-Mitigasi teknis yang tersedia: **deduplication data training** (menghapus dokumen yang muncul berkali-kali, karena pengulangan memperkuat *memorization*), **output filtering** (memeriksa kemiripan semantik antara output dan korpus berlisensi), serta **differential privacy** pada tahap lanjutan — meskipun yang terakhir masih jarang diterapkan karena menurunkan kualitas model [5][7]. Detail implementasinya bisa Anda lihat di Langkah 2 Praktikum.
-
----
-
-## 6. Teknik Mitigasi Hukum-Teknis
-
-Strategi terbaik untuk risiko *copyright* adalah mencegah sejak hulu, bukan membersihkan di hilir. Lima teknik berikut saling melengkapi dan sebaiknya diterapkan berlapis:
-
-- **Data provenance** — dokumentasi sumber *training data* secara transparan (dari mana data diunduh, lisensinya apa, siapa penyalinnya). Provenance tidak mencegah pelanggaran, tetapi menjadi pembelaan krusial bila terjadi sengketa, dan syarat *due diligence* bagi *finetuner* maupun pengguna.
-- **Data deduplication** — menghapus data duplikat dan berisik dari korpus sebelum *training*. Karena *memorization* diperkuat pengulangan, deduplication secara langsung menurunkan kemungkinan *verbatim copying* [7].
-- **Output de-risking** — pemeriksaan kemiripan semantik antara output model dan korpus yang dilindungi hak cipta, dengan *threshold* similarity yang memicu penolakan atau perbaikan output (bukan sekadar peringatan).
-- **Licensed training data** — menggunakan dataset yang jelas lisensinya, seperti Wikipedia dan *filtered Common Crawl*; bila memungkinkan, prioritaskan korpus berlisensi terbuka untuk *fine-tuning*.
-- **Copyright-aligned fine-tuning** — melatih ulang model pada data yang telah memiliki izin, sehingga model secara bertahap "dijauhkan" dari pola karya yang bermasalah.
-
-Kombinasi `provenance + deduplication` di hulu dan `output filter` di hilir menutup dua titik berisiko sekaligus: data masuk dan data keluar. Perlu ditegaskan: mitigasi teknis **tidak menghapus risiko hukum** — ia menguranginya. Keputusan akhir tetap berada pada *legal counsel* perusahaan [4][5].
-
----
-
-## 7. Rekomendasi Strategi Bisnis
-
-Pemetaan strategi dimulai dari satu pertanyaan: **berapa besar eksposur hukum bisnis Anda?** Model yang hanya menjalankan *chatbot* internal dengan data sendiri menghadapi risiko jauh lebih kecil daripada perusahaan yang melatih model baru dari awal. Matriks pada Tabel 2 membantu memetakan lima skenario bisnis khas — dari *internal chatbot* hingga *training from scratch* — beserta mitigasi minimum dan optimalnya.
-
-Pemilihan model sebaiknya mengikuti *risk appetite* yang sama. Untuk bisnis dengan anggaran hukum tipis, MIT (DeepSeek V4) menghilangkan kekhawatiran kewajiban lisensi; untuk organisasi yang memerlukan *accountability* penggunaan (fintech, kesehatan), RAIL atau model dengan *acceptable use policy* justru membantu karena pembatasan penggunaan tertulis secara eksplisit [3]. Terakhir, sebelum *deployment* ke produksi, wajib ada **SOP legal review**: audit lisensi model (Tutorial A), audit sumber data (bila *fine-tuning*), penetapan tanggung jawab output dalam *terms of service* (pengguna bertanggung jawab atas *prompt* dan penggunaan output), serta dokumentasi seluruh putusan. Biaya kepatuhan ini bukan nol — Tabel 3 memperlihatkan estimasinya — tetapi selalu lebih murah daripada satu gugatan.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Perbandingan Lisensi Model Open-Source Utama
-
-Tabel berikut membandingkan lima lisensi dominan di ekosistem model 2026 berdasarkan delapan dimensi yang menentukan kepatuhan bisnis:
-
-| Aspek | Llama 3 Community License | Apache 2.0 | MIT | CC BY-SA 4.0 | RAIL (Responsible AI License) |
-|:---|:---|:---|:---|:---|:---|
-| **Penggunaan Komersial** | Ya (≤700M MAU gratis) | Ya | Ya | Ya | Ya (dengan batasan) |
-| **Atribusi Wajib** | Ya | Ya | Ya | Ya | Ya |
-| **Copyleft** | Tidak | Tidak | Tidak | Ya | Tidak |
-| **Acceptable Use Policy** | Ya | Tidak | Tidak | Tidak | Ya (terstruktur) |
-| **Restriksi Output** | Tidak eksplisit | Tidak | Tidak | Tidak | Ya |
-| **Paten Grant** | Ya | Ya | Tidak | Tidak | Ya |
-| **Enforceability on Weights** | Diperdebatkan | Diperdebatkan | Diperdebatkan | Diperdebatkan | Diperdebatkan |
-
-Analisis: perhatikan bahwa seluruh baris *enforceability on weights* berisi kata yang sama — "diperdebatkan" — pengingat dari argumen Beldiman (2024) bahwa fondasi hukum lisensi model masih belum kokoh [4]. Keputusan praktisnya bukan "lisensi mana yang sah?", melainkan "lisensi mana yang paling kecil risikonya untuk menggugat ataupun digugat?" MIT menang untuk kebebasan, Apache 2.0 menang untuk kepastian paten, dan RAIL menang bagi organisasi yang ingin pembatasan penggunaan tertulis. Satu-satunya jebakan nyata adalah CC BY-SA 4.0: klausul *copyleft*-nya dapat "menular" ke karya turunan, sehingga perusahaan yang *fine-tuning* model CC BY-SA harus bersiap membuka hasilnya dengan lisensi yang sama — sesuatu yang sering luput dari tim teknis [3].
-
-### Tabel 2: Analisis Risiko Hukum per Skenario Bisnis
-
-Peta berikut menghubungkan lima skenario pengguna dengan tingkat eksposur hukum dan langkah mitigasi yang memadai:
-
-| Skenario | Eksposur Hukum | Risiko Fair Use | Mitigasi Minimum | Mitigasi Optimal |
-|:---|:---:|:---:|:---|:---|
-| **Internal chatbot (tanpa data eksternal)** | Rendah | Kuat | Record keeping | + Legal review lisensi |
-| **Customer-facing Q&A (document grounding)** | Sedang | Sedang | RAG + atribusi | + Filter copyright output |
-| **Code generation assistant** | Tinggi | Lemah | Verbatim check | + Licenses audit tool |
-| **Fine-tuning model untuk domain spesifik** | Tinggi | Lemah | Provenance data | + Licensed dataset only |
-| **Model training dari awal (LLM baru)** | Sangat Tinggi | Tidak pasti | Data deduplication | + Legal + technical compliance |
-
-Analisis: pola yang menonjol — pivoting bisnis dari "menggunakan" model menjadi "melatih" model menaikkan eksposur hukum secara dramatis. *Internal chatbot* cukup dilindungi *record keeping*; begitu model di-*fine-tune*, *provenance* menjadi wajib; dan begitu Anda melatih model dari nol, seluruh korpus *training* membutuhkan analisis legal-format. Catatan khusus untuk *code generation assistant*: posisinya "tinggi/lemah" karena preseden GitHub Copilot menunjukkan reproduksi kode berlisensi adalah kasus paling konkret yang sedang diuji di pengadilan [5][7].
-
-### Tabel 3: Biaya Kepatuhan Copyright (Estimasi)
-
-Kepatuhan bukan konsep gratis. Tabel ini memperkirakan investasi yang diperlukan untuk setiap lapisan mitigasi, dari yang paling ringan:
-
-| Langkah Kepatuhan | Biaya Setup | Biaya Operasional/Tahun | Kompleksitas | Efektivitas |
-|:---|:---:|:---:|:---:|:---:|
-| **Data Provenance Documentation** | Rp 20-50jt | Rp 10-20jt | Rendah | Sedang |
-| **Data Deduplication Pipeline** | Rp 50-150jt | Rp 30-60jt | Sedang | Tinggi |
-| **Output Copyright Filter** | Rp 100-300jt | Rp 50-100jt | Tinggi | Tinggi |
-| **Legal Review & Compliance** | Rp 30-80jt | Rp 20-40jt | Rendah | Tinggi |
-| **Licensed Dataset Procurement** | Rp 200-500jt | Rp 100-200jt | Tinggi | Sangat Tinggi |
-
-![Grafik batang horizontal berkelompok membandingkan biaya setup dan biaya operasional tahunan lima langkah kepatuhan copyright, dengan pengadaan dataset berlisensi paling mahal dan dokumentasi provenance paling murah](../../assets/images/bab-10-etika/sub-bab-2/biaya-kepatuhan-copyright.png)
-
-*Gambar 10.2-1 — Perkiraan biaya lima lapisan kepatuhan copyright (titik tengah rentang estimasi Tabel 3). Pengadaan dataset berlisensi membutuhkan setup hingga Rp 350 juta — sepuluh kali lipat dokumentasi provenance (Rp 35 juta) — tetapi keduanya "membeli" jenis keamanan hukum yang berbeda.*
-
-Analisis: bandingkan baris pertama dan terakhir — *provenance documentation* (Rp 20-50jt) dan *licensed dataset procurement* (Rp 200-500jt) berbeda kelipatan sepuluh, tetapi keduanya "membeli" jenis keamanan yang berbeda: *provenance* membeli pembelaan hukum saat sengketa terjadi, sementara *licensed dataset* membeli ketenangan sejak awal. Perhatikan juga bahwa efektivitas tertinggi (pengadaan dataset berlisensi) justru yang paling mahal — bagi bisnis tahap awal, kombinasi paling rasional adalah provenance + legal review, lalu menaikkan investasi seiring eksposur yang tumbuh [2].
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Rantai Pasok Hak Cipta Generative AI
 
@@ -168,6 +52,56 @@ graph LR
 
 Bacalah diagram ini dari kiri ke kanan: *training data* disuntikkan ke dalam proses pelatihan — titik di mana pertanyaan "apakah reproduksi ini dilanggar?" muncul (RISK1); kemudian *weights* model terbentuk — titik di mana pertanyaan "apakah ini karya turunan?" diajukan (RISK2); dan akhirnya *user prompt* menghasilkan output — titik paling nyata di mana pertanyaan "apakah konten ini melanggar?" diuji (RISK3). Tiga kotak risiko dihubungkan dengan garis putus-putus karena hubungannya *potensial*, bukan selalu aktual. Strategi berlapis pada seksi 6 — *provenance* untuk RISK1, pemilihan lisensi untuk RISK2, *output filter* untuk RISK3 — adalah peta jalan melawan tiga titik ini sekaligus [2][4].
 
+
+---
+
+## 3. Fair Use Doctrine di Amerika Serikat
+
+
+Di AS, pembelaan utama pelatihan AI adalah doktrin *fair use* yang diuji dengan **empat faktor**: (1) tujuan dan karakter penggunaan — apakah transformatif atau komersial; (2) sifat karya cipta — faktual vs kreatif; (3) jumlah dan substansi bagian yang digunakan; dan (4) dampak penggunaan terhadap pasar karya asli [1]. Empat faktor ini bukan rumus matematis; pengadilan menimbang keseluruhan konteks.
+
+Momen yang mengubah arah diskusi adalah laporan **US Copyright Office, Copyright and Artificial Intelligence, Part 3** (Mei 2025), yang menyimpulkan bahwa *training* AI **tidak otomatis** menjadi *fair use* — analisis harus dilakukan per kasus, dan penggunaan komersial data yang diperoleh tanpa izin untuk menghasilkan output yang bersaing cenderung **bukan** *fair use* [2]. Laporan ini menjawab pertanyaan yang sebelumnya hanya diperdebatkan di seminar: saat ini, perusahaan tidak dapat berasumsi bahwa "semua model bisa dilatih pada semua data."
+
+Kasus-kasus yang sedang berjalan mempertegas ketidakpastian ini: *The New York Times Co. v. OpenAI* (2023) — surat kabar menuntut OpenAI atas reproduksi artikelnya dalam *training* dan output; *Kadrey v. Meta* (2023) — penulis menuntut Meta atas penggunaan buku bajakan dari *shadow library* dalam *training* LLaMA; dan *Getty Images v. Stability AI* (2023) — perusahaan stok foto menuntut Stability atas pelatihan Stable Diffusion pada jutaan foto berlisensinya [2][5]. Isyarat awal dari putusan-putusan ini: penggunaan komersial atas data bajakan — apalagi bila outputnya bersaing langsung dengan sumber asli — merupakan posisi hukum yang paling lemah, sementara penggunaan transformatif atas data yang diperoleh sah masih memiliki ruang untuk *fair use* [1][5].
+
+---
+
+## 4. Lisensi Open-Source Model: Arena Kontrak dan Klausul
+
+
+Di ranah model AI, "open-source" sering dipakai longgar: yang benar-benar terbuka hanyalah *weights*, sementara lisensinya beragam — dari yang sangat permisif hingga yang mengikat pengguna pada kebijakan penggunaan [1]. Empat lisensi dominan di ekosistem model 2026 adalah **Llama Community License** (Meta), **Apache 2.0**, **MIT**, dan **CC BY-SA 4.0**, ditambah **RAIL** (*Responsible AI License*) yang dirancang khusus untuk AI [3]. Klausul kunci yang membedakan mereka: *acceptable use policy* (pembatasan penggunaan), *attribution requirement* (kewajiban mencantumkan kredit), dan *commercial restriction* (pembatasan komersial termasuk batas MAU) [3].
+
+Perlu peringatan hukum yang jujur di sini: status *enforceability* lisensi model masih diperdebatkan. Beldiman (2024) berargumen bahwa karena *model weights* dan output AI mungkin tidak dapat dilindungi hak cipta — tidak ada karya "*original expression*" dalam angka floating-point yang dihasilkan mesin — maka lisensi yang menggantungkan diri pada hukum hak cipta melemah [4]. Di Indonesia, konsekuensinya praktis: lisensi model berlaku sebagai **perjanjian sipil** antara penyedia dan pengguna; sengketa pemutusan kontrak berpotensi dibawa ke pengadilan niaga, yang berarti litigasi bisa berlarut dan mahal. Karena itu, audit lisensi bukan sekadar urusan teknis — ia keputusan hukum yang harus melibatkan *legal counsel* [3][4].
+
+### Studi Kasus Lisensi: DeepSeek V4 dengan MIT License
+
+DeepSeek V4 Pro (1,6 triliun parameter) dan V4 Flash (284 miliar parameter) dirilis pada April 2026 dengan **MIT License** — lisensi paling permisif di antara model *open-weight* teratas, dan kontras tajam dengan DeepSeek V3 yang memakai lisensi kustom [6]. Bagi perusahaan Indonesia, lima implikasi berikut paling relevan:
+
+1. **Penggunaan komersial tanpa batasan.** Tidak ada pembatasan MAU — berbeda dengan Llama 3 yang membatasi penggunaan gratis hingga 700 juta *monthly active users* (MAU), batas yang melampaui hampir semua bisnis nasional tetapi tetap menjadi pembatas bagi platform global.
+2. **Modifikasi bebas.** Perusahaan dapat melakukan *fine-tuning*, distilasi, atau perubahan arsitektur tanpa kewajiban atribusi yang memberatkan.
+3. **Redistribusi.** *Weights* model dapat didistribusikan ulang, bahkan di dalam produk komersial tertutup (*closed-source*).
+4. **Tidak ada *patent grant* eksplisit.** MIT tidak menyertakan *patent grant* — berbeda dengan Apache 2.0 yang eksplisit. Risikonya rendah untuk penggunaan umum, tetapi *due diligence* tetap diperlukan untuk aplikasi yang sensitif terhadap paten.
+5. **Tidak ada *Acceptable Use Policy*.** Berbeda dengan Llama dan RAIL, MIT tidak membatasi penggunaan — kebebasan penuh berarti **perusahaan bertanggung jawab penuh atas output modelnya**, termasuk risiko *copyright* yang dibahas di seksi berikutnya [3][6].
+
+Secara kumulatif, DeepSeek V4 (MIT) memberi fleksibilitas hukum tertinggi, disusul Mistral Large 3 (Apache 2.0 — sama permisifnya untuk komersial, plus *patent grant* eksplisit), lalu Llama 3 (*Community License* dengan restriksi MAU). Untuk startup Indonesia yang ingin komersialisasi cepat, MIT adalah pilihan paling aman secara lisensi; untuk perusahaan dengan kekayaan intelektual besar yang memerlukan kepastian paten, Apache 2.0 layak dipertimbangkan lebih serius.
+
+### Tabel 1: Perbandingan Lisensi Model Open-Source Utama
+
+Tabel berikut membandingkan lima lisensi dominan di ekosistem model 2026 berdasarkan delapan dimensi yang menentukan kepatuhan bisnis:
+
+| Aspek | Llama 3 Community License | Apache 2.0 | MIT | CC BY-SA 4.0 | RAIL (Responsible AI License) |
+|:---|:---|:---|:---|:---|:---|
+| **Penggunaan Komersial** | Ya (≤700M MAU gratis) | Ya | Ya | Ya | Ya (dengan batasan) |
+| **Atribusi Wajib** | Ya | Ya | Ya | Ya | Ya |
+| **Copyleft** | Tidak | Tidak | Tidak | Ya | Tidak |
+| **Acceptable Use Policy** | Ya | Tidak | Tidak | Tidak | Ya (terstruktur) |
+| **Restriksi Output** | Tidak eksplisit | Tidak | Tidak | Tidak | Ya |
+| **Paten Grant** | Ya | Ya | Tidak | Tidak | Ya |
+| **Enforceability on Weights** | Diperdebatkan | Diperdebatkan | Diperdebatkan | Diperdebatkan | Diperdebatkan |
+
+Analisis: perhatikan bahwa seluruh baris *enforceability on weights* berisi kata yang sama — "diperdebatkan" — pengingat dari argumen Beldiman (2024) bahwa fondasi hukum lisensi model masih belum kokoh [4]. Keputusan praktisnya bukan "lisensi mana yang sah?", melainkan "lisensi mana yang paling kecil risikonya untuk menggugat ataupun digugat?" MIT menang untuk kebebasan, Apache 2.0 menang untuk kepastian paten, dan RAIL menang bagi organisasi yang ingin pembatasan penggunaan tertulis. Satu-satunya jebakan nyata adalah CC BY-SA 4.0: klausul *copyleft*-nya dapat "menular" ke karya turunan, sehingga perusahaan yang *fine-tuning* model CC BY-SA harus bersiap membuka hasilnya dengan lisensi yang sama — sesuatu yang sering luput dari tim teknis [3].
+
+
 ### Gambar 2: Pohon Keputusan Pemilihan Lisensi Model
 
 Diagram kedua adalah alat kerja harian: keputusan lisensi yang bisa dijalankan *legal counsel* bersama tim teknis:
@@ -191,7 +125,82 @@ Alur ini menerjemahkan empat pertanyaan bisnis dasar — komersial?, redistribus
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 5. Risiko Copyright pada Output Model
+
+
+Kabar baiknya, sebagian besar risiko *copyright* bukan pada *weights*, melainkan pada **output** — dan ini yang paling mudah dimitigasi. Dua pola yang diidentifikasi literatur: **verbatim copying** — model mereproduksi teks *training* hampir kata demi kata — dan **derivative works** — output yang sangat mirip dengan karya asli sehingga dianggap karya turunan [5][7]. Penelitian Carlini et al. (2021) menunjukkan bahwa model bahasa yang cukup besar memang mampu "mengekstrak" data *training* secara *verbatim* ketika diprovokasi, terutama kalimat unik yang muncul berkali-kali dalam korpus [7].
+
+Kasus yang paling didengar industri: *class action* terhadap GitHub Copilot atas kode sumber berlisensi GPL yang direproduksi tanpa atribusi. Masalahnya klasik: model dilatih pada repositori publik yang berisi kode berlisensi campuran, lalu menghasilkan potongan kode yang hampir identik dengan lisensi yang tidak disebutkan — pengguna yang menyalin output tersebut tanpa sadar melanggar kewajiban GPL (menyediakan kode sumber turunan) [5][7].
+
+Mitigasi teknis yang tersedia: **deduplication data training** (menghapus dokumen yang muncul berkali-kali, karena pengulangan memperkuat *memorization*), **output filtering** (memeriksa kemiripan semantik antara output dan korpus berlisensi), serta **differential privacy** pada tahap lanjutan — meskipun yang terakhir masih jarang diterapkan karena menurunkan kualitas model [5][7]. Detail implementasinya bisa Anda lihat di Langkah 2 Praktikum.
+
+### Tabel 2: Analisis Risiko Hukum per Skenario Bisnis
+
+Peta berikut menghubungkan lima skenario pengguna dengan tingkat eksposur hukum dan langkah mitigasi yang memadai:
+
+| Skenario | Eksposur Hukum | Risiko Fair Use | Mitigasi Minimum | Mitigasi Optimal |
+|:---|:---:|:---:|:---|:---|
+| **Internal chatbot (tanpa data eksternal)** | Rendah | Kuat | Record keeping | + Legal review lisensi |
+| **Customer-facing Q&A (document grounding)** | Sedang | Sedang | RAG + atribusi | + Filter copyright output |
+| **Code generation assistant** | Tinggi | Lemah | Verbatim check | + Licenses audit tool |
+| **Fine-tuning model untuk domain spesifik** | Tinggi | Lemah | Provenance data | + Licensed dataset only |
+| **Model training dari awal (LLM baru)** | Sangat Tinggi | Tidak pasti | Data deduplication | + Legal + technical compliance |
+
+Analisis: pola yang menonjol — pivoting bisnis dari "menggunakan" model menjadi "melatih" model menaikkan eksposur hukum secara dramatis. *Internal chatbot* cukup dilindungi *record keeping*; begitu model di-*fine-tune*, *provenance* menjadi wajib; dan begitu Anda melatih model dari nol, seluruh korpus *training* membutuhkan analisis legal-format. Catatan khusus untuk *code generation assistant*: posisinya "tinggi/lemah" karena preseden GitHub Copilot menunjukkan reproduksi kode berlisensi adalah kasus paling konkret yang sedang diuji di pengadilan [5][7].
+
+
+### Tabel 3: Biaya Kepatuhan Copyright (Estimasi)
+
+Kepatuhan bukan konsep gratis. Tabel ini memperkirakan investasi yang diperlukan untuk setiap lapisan mitigasi, dari yang paling ringan:
+
+| Langkah Kepatuhan | Biaya Setup | Biaya Operasional/Tahun | Kompleksitas | Efektivitas |
+|:---|:---:|:---:|:---:|:---:|
+| **Data Provenance Documentation** | Rp 20-50jt | Rp 10-20jt | Rendah | Sedang |
+| **Data Deduplication Pipeline** | Rp 50-150jt | Rp 30-60jt | Sedang | Tinggi |
+| **Output Copyright Filter** | Rp 100-300jt | Rp 50-100jt | Tinggi | Tinggi |
+| **Legal Review & Compliance** | Rp 30-80jt | Rp 20-40jt | Rendah | Tinggi |
+| **Licensed Dataset Procurement** | Rp 200-500jt | Rp 100-200jt | Tinggi | Sangat Tinggi |
+
+![Grafik batang horizontal berkelompok membandingkan biaya setup dan biaya operasional tahunan lima langkah kepatuhan copyright, dengan pengadaan dataset berlisensi paling mahal dan dokumentasi provenance paling murah](../../assets/images/bab-10-etika/sub-bab-2/biaya-kepatuhan-copyright.png)
+
+*Gambar 10.2-1 — Perkiraan biaya lima lapisan kepatuhan copyright (titik tengah rentang estimasi Tabel 3). Pengadaan dataset berlisensi membutuhkan setup hingga Rp 350 juta — sepuluh kali lipat dokumentasi provenance (Rp 35 juta) — tetapi keduanya "membeli" jenis keamanan hukum yang berbeda.*
+
+Analisis: bandingkan baris pertama dan terakhir — *provenance documentation* (Rp 20-50jt) dan *licensed dataset procurement* (Rp 200-500jt) berbeda kelipatan sepuluh, tetapi keduanya "membeli" jenis keamanan yang berbeda: *provenance* membeli pembelaan hukum saat sengketa terjadi, sementara *licensed dataset* membeli ketenangan sejak awal. Perhatikan juga bahwa efektivitas tertinggi (pengadaan dataset berlisensi) justru yang paling mahal — bagi bisnis tahap awal, kombinasi paling rasional adalah provenance + legal review, lalu menaikkan investasi seiring eksposur yang tumbuh [2].
+
+---
+
+
+---
+
+## 6. Teknik Mitigasi Hukum-Teknis
+
+
+Strategi terbaik untuk risiko *copyright* adalah mencegah sejak hulu, bukan membersihkan di hilir. Lima teknik berikut saling melengkapi dan sebaiknya diterapkan berlapis:
+
+- **Data provenance** — dokumentasi sumber *training data* secara transparan (dari mana data diunduh, lisensinya apa, siapa penyalinnya). Provenance tidak mencegah pelanggaran, tetapi menjadi pembelaan krusial bila terjadi sengketa, dan syarat *due diligence* bagi *finetuner* maupun pengguna.
+- **Data deduplication** — menghapus data duplikat dan berisik dari korpus sebelum *training*. Karena *memorization* diperkuat pengulangan, deduplication secara langsung menurunkan kemungkinan *verbatim copying* [7].
+- **Output de-risking** — pemeriksaan kemiripan semantik antara output model dan korpus yang dilindungi hak cipta, dengan *threshold* similarity yang memicu penolakan atau perbaikan output (bukan sekadar peringatan).
+- **Licensed training data** — menggunakan dataset yang jelas lisensinya, seperti Wikipedia dan *filtered Common Crawl*; bila memungkinkan, prioritaskan korpus berlisensi terbuka untuk *fine-tuning*.
+- **Copyright-aligned fine-tuning** — melatih ulang model pada data yang telah memiliki izin, sehingga model secara bertahap "dijauhkan" dari pola karya yang bermasalah.
+
+Kombinasi `provenance + deduplication` di hulu dan `output filter` di hilir menutup dua titik berisiko sekaligus: data masuk dan data keluar. Perlu ditegaskan: mitigasi teknis **tidak menghapus risiko hukum** — ia menguranginya. Keputusan akhir tetap berada pada *legal counsel* perusahaan [4][5].
+
+---
+
+## 7. Rekomendasi Strategi Bisnis
+
+
+Pemetaan strategi dimulai dari satu pertanyaan: **berapa besar eksposur hukum bisnis Anda?** Model yang hanya menjalankan *chatbot* internal dengan data sendiri menghadapi risiko jauh lebih kecil daripada perusahaan yang melatih model baru dari awal. Matriks pada Tabel 2 membantu memetakan lima skenario bisnis khas — dari *internal chatbot* hingga *training from scratch* — beserta mitigasi minimum dan optimalnya.
+
+Pemilihan model sebaiknya mengikuti *risk appetite* yang sama. Untuk bisnis dengan anggaran hukum tipis, MIT (DeepSeek V4) menghilangkan kekhawatiran kewajiban lisensi; untuk organisasi yang memerlukan *accountability* penggunaan (fintech, kesehatan), RAIL atau model dengan *acceptable use policy* justru membantu karena pembatasan penggunaan tertulis secara eksplisit [3]. Terakhir, sebelum *deployment* ke produksi, wajib ada **SOP legal review**: audit lisensi model (Tutorial A), audit sumber data (bila *fine-tuning*), penetapan tanggung jawab output dalam *terms of service* (pengguna bertanggung jawab atas *prompt* dan penggunaan output), serta dokumentasi seluruh putusan. Biaya kepatuhan ini bukan nol — Tabel 3 memperlihatkan estimasinya — tetapi selalu lebih murah daripada satu gugatan.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Audit Lisensi Model Open-Source
 
@@ -322,7 +331,8 @@ Hasil dari dua contoh ini konsisten dengan analisis seksi 4: parameter DeepSeek 
 
 ---
 
-## 11. Studi Kasus: Perusahaan SaaS Mengadopsi Llama 3 untuk Fitur Chatbot
+## 9. Studi Kasus: Perusahaan SaaS Mengadopsi Llama 3 untuk Fitur Chatbot
+
 
 **Profil.** Sebuah startup SaaS Indonesia yang menyediakan CRM untuk UKM ingin menambahkan fitur *AI assistant* — asisten yang membantu pengguna menulis email, merangkum catatan pelanggan, dan menjawab pertanyaan seputar data penjualan. Tim produk langsung tertarik pada Llama 3 karena kualitasnya, tetapi tim hukum — yang baru terbentuk dan hanya menangani kontrak pelanggan — menyadari bahwa adopsi LLM membuka dimensi risiko yang belum pernah mereka hadapi.
 
@@ -336,7 +346,8 @@ Hasil dari dua contoh ini konsisten dengan analisis seksi 4: parameter DeepSeek 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

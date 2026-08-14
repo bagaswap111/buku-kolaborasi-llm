@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Membangun *RAG pipeline* lokal untuk data keluarga — mulai dari resep, dokumen pajak, catatan sekolah, hingga foto — dengan *vector database* di rumah
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep RAG untuk Data Keluarga
+
 
 ### Mengapa LLM Perlu "Mencari Dulu, Baru Menjawab"
 
@@ -40,111 +42,6 @@ Supaya tidak abstrak, bayangkan tiga skenario sehari-hari yang akan berjalan mul
 
 Ketiga skenario ini menggambarkan tiga jenis data yang berbeda (teks, dokumen terenkripsi, foto), dan semuanya dikelola oleh satu arsitektur yang akan kita bangun di seksi berikutnya.
 
----
-
-## 3. Arsitektur Pipeline RAG Lokal
-
-### Alur Ingestion: dari Kertas ke Vektor
-
-Perjalanan data keluarga menjadi entri *database* vektor terdiri dari empat tahap. **Pertama**, dokumen fisik di-*scan* dan diproses oleh **Tesseract OCR** dengan *language pack* Indonesia untuk mengubah gambar menjadi teks. **Kedua**, teks dipecah menjadi *chunk* dengan strategi yang disesuaikan jenis dokumen. **Ketiga**, setiap *chunk* diubah menjadi vektor oleh model *embedding*. **Keempat**, vektor beserta metadata (pemilik, tanggal, jenis dokumen) disimpan di **ChromaDB** — *vector database* yang menjadi "peta arsip keluarga". Ingestion ini biasanya hanya perlu dilakukan sekali per dokumen; setelah itu, sistem tinggal melayani pertanyaan.
-
-### Alur Query: Tanya, Temukan, Jawab
-
-Saat seorang anggota keluarga bertanya, urutan kebalikannya terjadi: pertanyaan diubah menjadi vektor *query* dengan model *embedding* yang sama, kemudian dilakukan **similarity search** terhadap seluruh *chunk* di *database* — vektor terdekat secara semantik dianggap paling relevan. Hasil pencarian (biasanya 3-5 *chunk*) digabung menjadi konteks, lalu dikirim ke **LLM** bersama pertanyaan asli. LLM menyusun jawaban yang bersumber pada konteks tersebut. Karena konteks datang dari dokumen keluarga, jawabannya akurat secara faktual dan bisa ditelusuri kembali ke sumbernya.
-
-### Toolbox: ChromaDB, Model Embedding, dan Ollama
-
-Untuk *deployment* rumahan, kombinasi yang paling praktis adalah **ChromaDB** sebagai *vector store*, **Nomic Embed Text** atau **BGE-M3** sebagai model *embedding*, dan **Ollama** sebagai *runtime* LLM. ChromaDB dipilih karena *setup*-nya sangat mudah dan hemat memori — sekitar ~500 MB RAM untuk 10 ribu dokumen (lihat Tabel 1). Ukuran dataset keluarga umumnya berada di kisaran **100-500 GB** (foto mendominasi, dokumen teks hanya puluhan MB), tetapi yang masuk ke ChromaDB hanyalah vektor *embedding* berukuran ~100 MB — jauh lebih kecil dari data aslinya.
-
-Untuk dokumen berbahasa Indonesia, rekomendasi model *embedding* adalah **BGE-M3** dari BAAI. Berbeda dengan Nomic Embed Text yang lebih kuat di dokumen Inggris, BGE-M3 dirancang *multi-lingual* — termasuk bahasa Indonesia — sehingga *retrieval quality*-nya lebih baik untuk resep, surat pajak, dan catatan sekolah berbahasa Indonesia [9]. Di sisi LLM, **Ministral 3 8B** menjadi pilihan menarik untuk RAG keluarga: *edge-optimized*, berkonteks **128K token**, sehingga satu *prompt* bisa memuat *chunk* yang lebih besar tanpa kehilangan informasi [11]. Untuk rumah *high-end*, **DeepSeek V4 Flash** dengan konteks **1 juta token** mampu me-*retrieve* ribuan dokumen dalam satu *prompt* tanpa kehilangan konteks; alternatifnya **Ministral 3 14B** dengan 128K konteks sudah lebih dari cukup untuk kebutuhan keluarga biasa [11].
-
-### Ukuran Dataset dan Konsekuensinya
-
-Angka 100-500 GB terdengar besar, tetapi perlu ditegaskan: mayoritas volume itu adalah foto mentah dan dokumen scan yang tetap tersimpan sebagai *file* biasa di *file system*. Yang di-*embed* hanyalah representasi vektornya. Dengan total ~20.000 *chunk* untuk keluarga aktif (lihat Tabel 2), seluruh *embedding* hanya memakan ~100 MB penyimpanan dan ~25 menit waktu *embedding* di CPU. Artinya, sebuah PC rumahan kelas menengah sudah sanggup menjalankan seluruh pipeline tanpa GPU khusus untuk tahap *ingestion*.
-
----
-
-## 4. Multi-User RAG dengan Isolasi Data
-
-### Satu Rumah, Banyak Pemilik Data
-
-Rumah adalah organisasi kecil: setiap penghuninya punya data sendiri, tapi ada juga data bersama. Resep keluarga boleh dibaca semua; catatan medis dan dokumen pajak adalah ranah pribadi. RAG keluarga harus mencerminkan kenyataan ini. Pola yang digunakan: setiap anggota memiliki folder `/rag/{user}/` sendiri, dan setiap folder dipetakan ke **collection terpisah** di ChromaDB dengan penamaan `{user_id}_{collection_type}` — misalnya `ibu_recipes`, `ayah_finance`, `anak_school`. *Collection* adalah unit isolasi alami di ChromaDB: *query* di satu *collection* tidak akan pernah menyentuh data di *collection* lain.
-
-### Metadata Filtering sebagai Pengaman Kedua
-
-Selain isolasi fisik lewat *collection*, setiap dokumen diberi metadata `user_id` saat disimpan. Ini memungkinkan **metadata filtering** saat *retrieval*: bahkan jika Anda menggabungkan beberapa *collection* dalam satu pencarian, hasilnya tetap bisa disaring berdasarkan pemilik data. Dua lapis ini (pemisahan *collection* + filter metadata) adalah praktik standar *multi-tenant RAG* — seperti dua lemari arsip yang tidak hanya terpisah ruangan, tetapi setiap berkasnya juga diberi label pemilik.
-
-### Akses Data Bersama vs Data Pribadi
-
-Tidak semua data harus diisolasi. Struktur direktori di bawah memisahkan **data bersama** (`shared/`) yang boleh diakses semua anggota — resep, manual peralatan rumah, bahan pelajaran — dari **data pribadi** (`ayah/`, `ibu/`, `anak/`) yang hanya bisa di-*query* oleh pemiliknya. Akses data bersama diperoleh dengan *query* ke `shared_*` collection; akses data pribadi wajib melalui verifikasi identitas pengguna.
-
-### Implementasi Header X-User-ID
-
-Dalam *deployment* nyata, isolasi ini dijembatani oleh lapisan aplikasi. **Open WebUI** — antarmuka web yang umum dipakai bersama Ollama — mendukung *multi-user*, dan setiap *request* bisa membawa header `X-User-ID`. Aplikasi *backend* membaca header ini, menentukan *collection* mana yang boleh diakses, lalu meneruskan *query* ke ChromaDB dengan filter `user_id` yang sesuai. Dengan pola ini, menambah anggota keluarga baru cukup dengan membuat folder dan *collection* baru — tanpa menyentuh kode pipeline inti.
-
----
-
-## 5. OCR dan Chunking untuk Dokumen Indonesia
-
-### Tesseract dan Bahasa Indonesia
-
-Sebagian besar arsip keluarga masih berwujud kertas — buku resep nenek, fotokopi akta, rapor anak. Untuk memasukkannya ke RAG, kertas harus diubah menjadi teks dulu. **Tesseract OCR** adalah mesin *optical character recognition* open-source yang mendukung bahasa Indonesia melalui paket `tesseract-ocr-ind`. Kualitas OCR Indonesia cukup memadai untuk dokumen cetak yang bersih; untuk dokumen dengan tulisan tangan, akurasinya menurun dan sebaiknya dikonfirmasi manual atau ditulis ulang ke *markdown*.
-
-### Strategi Chunking: 512 untuk Formal, 256 untuk Informal
-
-Pecahnya teks menjadi *chunk* bukan urusan remeh — ukuran *chunk* menentukan seberapa presisi *retrieval* bekerja. Untuk **dokumen formal** (pajak, surat, manual), gunakan *chunk* **512 token dengan overlap 128** — cukup besar untuk menangkap konteks satu pasal atau satu tabel, dan tumpang tindihnya memastikan kalimat tidak terpotong di tengah. Untuk **resep dan catatan informal**, gunakan *chunk* **256 token** tanpa banyak *overlap* — lebih pendek, lebih presisi, karena satu resep biasanya hanya terdiri dari satu atau dua paragraf.
-
-Pilihan ini bukan tanpa dasar. Studi tentang keterbatasan *in-context learning* pada *small language model* menunjukkan bahwa model kecil kehilangan akurasi saat konteks dijejali terlalu banyak informasi yang tidak relevan [3]. *Chunk* yang pendek dan relevan memberi model "bahan bakar" yang tepat — bukan segunung kertas.
-
----
-
-## 6. Enkripsi Dokumen Sensitif
-
-### Mengapa Dokumen Pajak dan Medis Tidak Boleh "Terlentang"
-
-Dokumen pajak, KTP, akta, dan catatan medis adalah aset paling sensitif dalam arsip keluarga. Jika diretas atau jika *disk* dicuri, dokumen ini membuka pintu pencurian identitas dan penipuan finansial. Oleh karena itu, dokumen semacam ini tidak boleh disimpan sebagai *file* terbuka di *file system*, dan *chunk*-nya tidak boleh tersimpan sebagai *plaintext* di ChromaDB. Ini sejalan dengan prinsip *privacy-preserving inference*: data sensitif harus tetap terenkripsi kecuali saat benar-benar diproses [5].
-
-### Encrypted Volume: LUKS sebagai Lemari Besi
-
-Pendekatan yang paling mudah diimplementasikan dan sulit ditembus adalah **encrypted volume** — file image berukuran tetap (misalnya 10 GB) yang dienkripsi penuh dengan **LUKS** (*Linux Unified Key Setup*). Volume ini di-*mount* hanya saat *query* diproses: dokumen dibaca, dipecah, di-*embed*, lalu dijawab — semuanya di memori — setelah itu volume di-*unmount* dan dikunci kembali. Di luar jendela proses, data berada dalam keadaan terenkripsi.
-
-Alternatif yang lebih ringan: simpan *file* asli terenkripsi, dan di ChromaDB hanya simpan **hash nama file** + *embedding* dari isi yang didekripsi sementara. Saat *retrieval* menemukan *chunk* yang cocok, sistem mendekripsi dokumen sumbernya di memori untuk membentuk konteks jawaban. Kedua pendekatan sama-sama menjamin bahwa *plaintext* tidak pernah mengendap di penyimpanan.
-
-### Titik Lemah yang Sering Dilupakan
-
-Enkripsi sekuat apa pun tidak berguna jika kuncinya disimpan di tempat yang sama. Tuliskan *passphrase* LUKS di *password manager* keluarga, bukan di catatan tempel di samping server. Dan ingat: enkripsi melindungi data saat istirahat (*at rest*) — tetapi selama *query* berlangsung, data ada dalam memori. Pastikan hanya proses pipeline yang sah yang bisa mengakses volume tersebut (lihat Tutorial C).
-
----
-
-## 7. Pipeline Foto dan Multimedia
-
-### Foto Bukan untuk Di-embed — Caption-nya yang Di-embed
-
-Arsip foto keluarga bisa mencapai puluhan ribu file dan puluhan GB. *Embedding* langsung terhadap gambar akan memakan waktu dan memori yang besar, dan sebagian besar model *embedding* teks tidak bisa "memahami" piksel. Solusi praktisnya: ekstrak **metadata EXIF** (tanggal, lokasi, kamera) dari setiap foto, lalu buat **caption otomatis** menggunakan LLM *vision* (misalnya LLaVA) yang menjelaskan isi foto. Yang disimpan ke ChromaDB adalah *embedding teks* dari kombinasi caption + EXIF — bukan *embedding* gambar.
-
-### Query Berbasis Waktu dan Caption
-
-Dengan pola ini, pertanyaan "Cari foto liburan di Bali tahun 2024" diterjemahkan menjadi pencarian dengan filter waktu (dari EXIF) dan kemiripan semantik dengan *caption*. Sistem tidak menebak-nebak isi piksel; ia memanfaatkan teks deskriptif yang sudah dibuat otomatis saat *ingestion*. Konsekuensinya, kualitas pencarian foto sangat bergantung pada kualitas *caption* — jadi luangkan waktu membuat *caption* yang baik saat foto pertama kali masuk arsip.
-
----
-
-## 8. Tabel Referensi
-
-### Tabel 1: Perbandingan Vector Database Lokal
-
-Sebelum memutuskan tempat menyimpan vektor keluarga, berikut perbandingan empat kandidat *vector database* yang umum digunakan.
-
-| Fitur | ChromaDB | Qdrant | Weaviate | Milvus |
-|:---|:---|:---|:---|:---|
-| **Setup** | Sangat Mudah | Mudah | Sedang | Sulit |
-| **Multi-Collection** | Ya | Ya | Ya | Ya |
-| **Metadata Filter** | Ya | Ya | Ya | Ya |
-| **Encryption at Rest** | Tidak | Tidak | Tidak | Tidak |
-| **RAM (10K docs)** | ~500 MB | ~1 GB | ~2 GB | ~2 GB |
-| **Rekomendasi** | Terbaik untuk pemula | Performa tinggi | Fitur lengkap | Skala besar |
-
-Analisis: perhatikan bahwa **tidak ada satupun** *vector database* yang menyediakan enkripsi saat istirahat — itulah sebabnya enkripsi dokumen sensitif harus ditangani di lapisan atas (LUKS), bukan diserahkan ke ChromaDB. Untuk keluarga, ChromaDB menang di kemudahan *setup* dan jejak memori terkecil; Qdrant baru layak dipilih jika Anda sudah merasakan *query* melambat — yang jarang terjadi di skala puluhan ribu *chunk*. Milvus dengan *setup*-nya yang rumit sebaiknya dihindari untuk skala rumah tangga.
-
 ### Tabel 2: Ukuran Dataset Keluarga dan *Embedding Cost*
 
 Tabel berikut memperkirakan volume data khas keluarga aktif beserta biaya pemrosesannya — perhatikan bahwa waktu *embedding* dihitung untuk CPU biasa.
@@ -166,6 +63,7 @@ Tabel berikut memperkirakan volume data khas keluarga aktif beserta biaya pemros
 *Gambar 6.5-2 — Foto menghabiskan 15 dari 25 menit waktu embedding CPU; *captioning* bertahap (500 foto/malam) menjadi strategi yang masuk akal agar ingestion tidak mengganggu server di siang hari.*
 
 Analisis: dua insight penting muncul dari tabel ini. *Pertama*, penyimpanan vektor total hanya ~100 MB untuk seluruh arsip — hampir tidak terasa di era NVMe 1 TB, dan ini membuktikan bahwa RAG keluarga bukan masalah kapasitas, melainkan disiplin pipeline. *Kedua*, *ingestion* sekali jalan memakan waktu paling banyak dari foto (15 menit dari total 25 menit) karena 10.000 foto harus lewat LLM *vision* untuk *captioning* — jadi lakukan *captioning* bertahap, misalnya 500 foto per malam, agar tidak mengganggu penggunaan server siang hari.
+
 
 ### Tabel 3: Struktur Direktori RAG Keluarga
 
@@ -192,7 +90,45 @@ Analisis: pola penamaan folder ini dirancang agar *script ingestion* bisa otomat
 
 ---
 
-## 9. Diagram & Visualisasi
+
+---
+
+## 3. Arsitektur Pipeline RAG Lokal
+
+
+### Alur Ingestion: dari Kertas ke Vektor
+
+Perjalanan data keluarga menjadi entri *database* vektor terdiri dari empat tahap. **Pertama**, dokumen fisik di-*scan* dan diproses oleh **Tesseract OCR** dengan *language pack* Indonesia untuk mengubah gambar menjadi teks. **Kedua**, teks dipecah menjadi *chunk* dengan strategi yang disesuaikan jenis dokumen. **Ketiga**, setiap *chunk* diubah menjadi vektor oleh model *embedding*. **Keempat**, vektor beserta metadata (pemilik, tanggal, jenis dokumen) disimpan di **ChromaDB** — *vector database* yang menjadi "peta arsip keluarga". Ingestion ini biasanya hanya perlu dilakukan sekali per dokumen; setelah itu, sistem tinggal melayani pertanyaan.
+
+### Alur Query: Tanya, Temukan, Jawab
+
+Saat seorang anggota keluarga bertanya, urutan kebalikannya terjadi: pertanyaan diubah menjadi vektor *query* dengan model *embedding* yang sama, kemudian dilakukan **similarity search** terhadap seluruh *chunk* di *database* — vektor terdekat secara semantik dianggap paling relevan. Hasil pencarian (biasanya 3-5 *chunk*) digabung menjadi konteks, lalu dikirim ke **LLM** bersama pertanyaan asli. LLM menyusun jawaban yang bersumber pada konteks tersebut. Karena konteks datang dari dokumen keluarga, jawabannya akurat secara faktual dan bisa ditelusuri kembali ke sumbernya.
+
+### Toolbox: ChromaDB, Model Embedding, dan Ollama
+
+Untuk *deployment* rumahan, kombinasi yang paling praktis adalah **ChromaDB** sebagai *vector store*, **Nomic Embed Text** atau **BGE-M3** sebagai model *embedding*, dan **Ollama** sebagai *runtime* LLM. ChromaDB dipilih karena *setup*-nya sangat mudah dan hemat memori — sekitar ~500 MB RAM untuk 10 ribu dokumen (lihat Tabel 1). Ukuran dataset keluarga umumnya berada di kisaran **100-500 GB** (foto mendominasi, dokumen teks hanya puluhan MB), tetapi yang masuk ke ChromaDB hanyalah vektor *embedding* berukuran ~100 MB — jauh lebih kecil dari data aslinya.
+
+Untuk dokumen berbahasa Indonesia, rekomendasi model *embedding* adalah **BGE-M3** dari BAAI. Berbeda dengan Nomic Embed Text yang lebih kuat di dokumen Inggris, BGE-M3 dirancang *multi-lingual* — termasuk bahasa Indonesia — sehingga *retrieval quality*-nya lebih baik untuk resep, surat pajak, dan catatan sekolah berbahasa Indonesia [9]. Di sisi LLM, **Ministral 3 8B** menjadi pilihan menarik untuk RAG keluarga: *edge-optimized*, berkonteks **128K token**, sehingga satu *prompt* bisa memuat *chunk* yang lebih besar tanpa kehilangan informasi [11]. Untuk rumah *high-end*, **DeepSeek V4 Flash** dengan konteks **1 juta token** mampu me-*retrieve* ribuan dokumen dalam satu *prompt* tanpa kehilangan konteks; alternatifnya **Ministral 3 14B** dengan 128K konteks sudah lebih dari cukup untuk kebutuhan keluarga biasa [11].
+
+### Ukuran Dataset dan Konsekuensinya
+
+Angka 100-500 GB terdengar besar, tetapi perlu ditegaskan: mayoritas volume itu adalah foto mentah dan dokumen scan yang tetap tersimpan sebagai *file* biasa di *file system*. Yang di-*embed* hanyalah representasi vektornya. Dengan total ~20.000 *chunk* untuk keluarga aktif (lihat Tabel 2), seluruh *embedding* hanya memakan ~100 MB penyimpanan dan ~25 menit waktu *embedding* di CPU. Artinya, sebuah PC rumahan kelas menengah sudah sanggup menjalankan seluruh pipeline tanpa GPU khusus untuk tahap *ingestion*.
+
+### Tabel 1: Perbandingan Vector Database Lokal
+
+Sebelum memutuskan tempat menyimpan vektor keluarga, berikut perbandingan empat kandidat *vector database* yang umum digunakan.
+
+| Fitur | ChromaDB | Qdrant | Weaviate | Milvus |
+|:---|:---|:---|:---|:---|
+| **Setup** | Sangat Mudah | Mudah | Sedang | Sulit |
+| **Multi-Collection** | Ya | Ya | Ya | Ya |
+| **Metadata Filter** | Ya | Ya | Ya | Ya |
+| **Encryption at Rest** | Tidak | Tidak | Tidak | Tidak |
+| **RAM (10K docs)** | ~500 MB | ~1 GB | ~2 GB | ~2 GB |
+| **Rekomendasi** | Terbaik untuk pemula | Performa tinggi | Fitur lengkap | Skala besar |
+
+Analisis: perhatikan bahwa **tidak ada satupun** *vector database* yang menyediakan enkripsi saat istirahat — itulah sebabnya enkripsi dokumen sensitif harus ditangani di lapisan atas (LUKS), bukan diserahkan ke ChromaDB. Untuk keluarga, ChromaDB menang di kemudahan *setup* dan jejak memori terkecil; Qdrant baru layak dipilih jika Anda sudah merasakan *query* melambat — yang jarang terjadi di skala puluhan ribu *chunk*. Milvus dengan *setup*-nya yang rumit sebaiknya dihindari untuk skala rumah tangga.
+
 
 ### Gambar 1: Pipeline RAG Keluarga
 
@@ -238,7 +174,79 @@ Diagram ini menampilkan dua dunia yang berjalan paralel. Di atas, dunia *ingesti
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 4. Multi-User RAG dengan Isolasi Data
+
+
+### Satu Rumah, Banyak Pemilik Data
+
+Rumah adalah organisasi kecil: setiap penghuninya punya data sendiri, tapi ada juga data bersama. Resep keluarga boleh dibaca semua; catatan medis dan dokumen pajak adalah ranah pribadi. RAG keluarga harus mencerminkan kenyataan ini. Pola yang digunakan: setiap anggota memiliki folder `/rag/{user}/` sendiri, dan setiap folder dipetakan ke **collection terpisah** di ChromaDB dengan penamaan `{user_id}_{collection_type}` — misalnya `ibu_recipes`, `ayah_finance`, `anak_school`. *Collection* adalah unit isolasi alami di ChromaDB: *query* di satu *collection* tidak akan pernah menyentuh data di *collection* lain.
+
+### Metadata Filtering sebagai Pengaman Kedua
+
+Selain isolasi fisik lewat *collection*, setiap dokumen diberi metadata `user_id` saat disimpan. Ini memungkinkan **metadata filtering** saat *retrieval*: bahkan jika Anda menggabungkan beberapa *collection* dalam satu pencarian, hasilnya tetap bisa disaring berdasarkan pemilik data. Dua lapis ini (pemisahan *collection* + filter metadata) adalah praktik standar *multi-tenant RAG* — seperti dua lemari arsip yang tidak hanya terpisah ruangan, tetapi setiap berkasnya juga diberi label pemilik.
+
+### Akses Data Bersama vs Data Pribadi
+
+Tidak semua data harus diisolasi. Struktur direktori di bawah memisahkan **data bersama** (`shared/`) yang boleh diakses semua anggota — resep, manual peralatan rumah, bahan pelajaran — dari **data pribadi** (`ayah/`, `ibu/`, `anak/`) yang hanya bisa di-*query* oleh pemiliknya. Akses data bersama diperoleh dengan *query* ke `shared_*` collection; akses data pribadi wajib melalui verifikasi identitas pengguna.
+
+### Implementasi Header X-User-ID
+
+Dalam *deployment* nyata, isolasi ini dijembatani oleh lapisan aplikasi. **Open WebUI** — antarmuka web yang umum dipakai bersama Ollama — mendukung *multi-user*, dan setiap *request* bisa membawa header `X-User-ID`. Aplikasi *backend* membaca header ini, menentukan *collection* mana yang boleh diakses, lalu meneruskan *query* ke ChromaDB dengan filter `user_id` yang sesuai. Dengan pola ini, menambah anggota keluarga baru cukup dengan membuat folder dan *collection* baru — tanpa menyentuh kode pipeline inti.
+
+---
+
+## 5. OCR dan Chunking untuk Dokumen Indonesia
+
+
+### Tesseract dan Bahasa Indonesia
+
+Sebagian besar arsip keluarga masih berwujud kertas — buku resep nenek, fotokopi akta, rapor anak. Untuk memasukkannya ke RAG, kertas harus diubah menjadi teks dulu. **Tesseract OCR** adalah mesin *optical character recognition* open-source yang mendukung bahasa Indonesia melalui paket `tesseract-ocr-ind`. Kualitas OCR Indonesia cukup memadai untuk dokumen cetak yang bersih; untuk dokumen dengan tulisan tangan, akurasinya menurun dan sebaiknya dikonfirmasi manual atau ditulis ulang ke *markdown*.
+
+### Strategi Chunking: 512 untuk Formal, 256 untuk Informal
+
+Pecahnya teks menjadi *chunk* bukan urusan remeh — ukuran *chunk* menentukan seberapa presisi *retrieval* bekerja. Untuk **dokumen formal** (pajak, surat, manual), gunakan *chunk* **512 token dengan overlap 128** — cukup besar untuk menangkap konteks satu pasal atau satu tabel, dan tumpang tindihnya memastikan kalimat tidak terpotong di tengah. Untuk **resep dan catatan informal**, gunakan *chunk* **256 token** tanpa banyak *overlap* — lebih pendek, lebih presisi, karena satu resep biasanya hanya terdiri dari satu atau dua paragraf.
+
+Pilihan ini bukan tanpa dasar. Studi tentang keterbatasan *in-context learning* pada *small language model* menunjukkan bahwa model kecil kehilangan akurasi saat konteks dijejali terlalu banyak informasi yang tidak relevan [3]. *Chunk* yang pendek dan relevan memberi model "bahan bakar" yang tepat — bukan segunung kertas.
+
+---
+
+## 6. Enkripsi Dokumen Sensitif
+
+
+### Mengapa Dokumen Pajak dan Medis Tidak Boleh "Terlentang"
+
+Dokumen pajak, KTP, akta, dan catatan medis adalah aset paling sensitif dalam arsip keluarga. Jika diretas atau jika *disk* dicuri, dokumen ini membuka pintu pencurian identitas dan penipuan finansial. Oleh karena itu, dokumen semacam ini tidak boleh disimpan sebagai *file* terbuka di *file system*, dan *chunk*-nya tidak boleh tersimpan sebagai *plaintext* di ChromaDB. Ini sejalan dengan prinsip *privacy-preserving inference*: data sensitif harus tetap terenkripsi kecuali saat benar-benar diproses [5].
+
+### Encrypted Volume: LUKS sebagai Lemari Besi
+
+Pendekatan yang paling mudah diimplementasikan dan sulit ditembus adalah **encrypted volume** — file image berukuran tetap (misalnya 10 GB) yang dienkripsi penuh dengan **LUKS** (*Linux Unified Key Setup*). Volume ini di-*mount* hanya saat *query* diproses: dokumen dibaca, dipecah, di-*embed*, lalu dijawab — semuanya di memori — setelah itu volume di-*unmount* dan dikunci kembali. Di luar jendela proses, data berada dalam keadaan terenkripsi.
+
+Alternatif yang lebih ringan: simpan *file* asli terenkripsi, dan di ChromaDB hanya simpan **hash nama file** + *embedding* dari isi yang didekripsi sementara. Saat *retrieval* menemukan *chunk* yang cocok, sistem mendekripsi dokumen sumbernya di memori untuk membentuk konteks jawaban. Kedua pendekatan sama-sama menjamin bahwa *plaintext* tidak pernah mengendap di penyimpanan.
+
+### Titik Lemah yang Sering Dilupakan
+
+Enkripsi sekuat apa pun tidak berguna jika kuncinya disimpan di tempat yang sama. Tuliskan *passphrase* LUKS di *password manager* keluarga, bukan di catatan tempel di samping server. Dan ingat: enkripsi melindungi data saat istirahat (*at rest*) — tetapi selama *query* berlangsung, data ada dalam memori. Pastikan hanya proses pipeline yang sah yang bisa mengakses volume tersebut (lihat Tutorial C).
+
+---
+
+## 7. Pipeline Foto dan Multimedia
+
+
+### Foto Bukan untuk Di-embed — Caption-nya yang Di-embed
+
+Arsip foto keluarga bisa mencapai puluhan ribu file dan puluhan GB. *Embedding* langsung terhadap gambar akan memakan waktu dan memori yang besar, dan sebagian besar model *embedding* teks tidak bisa "memahami" piksel. Solusi praktisnya: ekstrak **metadata EXIF** (tanggal, lokasi, kamera) dari setiap foto, lalu buat **caption otomatis** menggunakan LLM *vision* (misalnya LLaVA) yang menjelaskan isi foto. Yang disimpan ke ChromaDB adalah *embedding teks* dari kombinasi caption + EXIF — bukan *embedding* gambar.
+
+### Query Berbasis Waktu dan Caption
+
+Dengan pola ini, pertanyaan "Cari foto liburan di Bali tahun 2024" diterjemahkan menjadi pencarian dengan filter waktu (dari EXIF) dan kemiripan semantik dengan *caption*. Sistem tidak menebak-nebak isi piksel; ia memanfaatkan teks deskriptif yang sudah dibuat otomatis saat *ingestion*. Konsekuensinya, kualitas pencarian foto sangat bergantung pada kualitas *caption* — jadi luangkan waktu membuat *caption* yang baik saat foto pertama kali masuk arsip.
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Setup ChromaDB Multi-User RAG
 
@@ -381,7 +389,8 @@ Ganti `PASSWORD` pada baris `ExecStart` dengan *passphrase* yang sebenarnya — 
 
 ---
 
-## 11. Studi Kasus: Keluarga Gunawan — "Digital Memory" untuk 5 Anggota
+## 9. Studi Kasus: Keluarga Gunawan — "Digital Memory" untuk 5 Anggota
+
 
 **Latar:** Keluarga Gunawan — dua orang tua, dua anak sekolah dasar, dan nenek yang tinggal serumah — memiliki arsip yang menumpuk selama dua dekade: buku resep nenek yang menguning, berkas pajak sejak 2019, puluhan ribu foto liburan, dan PR anak yang kian banyak. Setiap kali ibu ingin memasak opor ayam andalan nenek, ia harus membuka binder resep yang tebalnya lima centimeter. Setiap kali ayah butuh data pajak, ia menggali laci arsip. Rutinitas ini memakan waktu dan sering berakhir dengan kekalahan.
 
@@ -393,7 +402,8 @@ Ganti `PASSWORD` pada baris `ExecStart` dengan *passphrase* yang sebenarnya — 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

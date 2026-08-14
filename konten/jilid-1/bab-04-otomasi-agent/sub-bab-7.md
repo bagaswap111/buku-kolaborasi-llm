@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menginstall dan menjalankan **Whisper** (termasuk *faster-whisper*) untuk *speech-to-text* lokal di Mac
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Konsep STT/TTS Lokal
 
+
 ### Dua Arah Percakapan
 
 Suara adalah antarmuka yang paling alami bagi manusia, tetapi mesin butuh dua jembatan untuk berbicara dengannya. **STT** (*Speech-to-Text*) mengubah gelombang suara menjadi teks — perannya dimainkan oleh **Whisper**, model open-source dari OpenAI yang dilatih pada **680 ribu jam audio** dan mendukung 97 bahasa [1]. **TTS** (*Text-to-Speech*) bekerja sebaliknya: mengubah teks menjadi ucapan — di sini **Piper** dari proyek Rhasspy hadir sebagai mesin lokal yang ringan [4].
@@ -26,9 +28,24 @@ Suara adalah antarmuka yang paling alami bagi manusia, tetapi mesin butuh dua je
 
 Tiga alasan yang sama-sama kuat. **Privasi**: tidak ada satu byte audio pun yang dikirim ke server pihak ketiga — penting untuk jurnal pribadi atau rekaman rapat internal. **Latensi**: tanpa perjalanan jaringan, waktu respons lebih bisa diprediksi. **Biaya**: setelah model diunduh, semua penggunaan gratis tanpa langganan. Ketiganya menjadikan integrasi suara lokal fondasi alami untuk *voice assistant* yang dibangun pada bab-bab sebelumnya.
 
+### Tabel 2: Perbandingan TTS Lokal
+
+Empat mesin TTS lokal dengan ukuran, kecepatan, dan cakupan bahasa yang berbeda.
+
+| Engine | Kualitas Suara | Kecepatan (RTF) | Bahasa | Parameter | Platform |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **Piper** | Medium-Tinggi | 0.3-0.8 RTF | 30+ | ~50M | CPU/GPU |
+| **Coqui TTS** | Tinggi | 0.5-1.5 RTF | 20+ | ~100M | GPU |
+| **eSpeak-NG** | Rendah (robotik) | 0.01 RTF | 100+ | 0 (rule-based) | CPU |
+| **MeloTTS** | Tinggi | 0.2-0.5 RTF | 5 | ~80M | CPU/GPU |
+
+Konsep **RTF** (*Real-Time Factor*) perlu dipahami: nilai 0,5 berarti untuk setiap 1 detik audio, mesin butuh 0,5 detik untuk menghasilkan. eSpeak-NG berkecepatan ekstrem (0,01) tetapi suaranya robotik dan tidak neural. Coqui TTS menghasilkan suara terbaik tetapi menuntut GPU. **Piper berada di zona nyaman**: suara neural yang layak, RTF di bawah 1 (bisa *real-time* di CPU), dan 30+ bahasa. MeloTTS lebih cepat dan berkualitas tinggi, tetapi hanya mendukung 5 bahasa.
+
+
 ---
 
 ## 3. Whisper — Model dan Varian
+
 
 ### Arsitektur yang Terbukti
 
@@ -41,62 +58,6 @@ Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (7
 ### faster-whisper: Turbo untuk Transkripsi
 
 Implementasi asli Whisper berjalan di PyTorch. **faster-whisper** menggantinya dengan backend **CTranslate2** — optimasi runtime yang membuat transkripsi **4 kali lebih cepat** dengan akurasi yang sama. Untuk keperluan *batch* transkripsi puluhan file, selisih ini terasa nyata. Di Mac berbasis Apple Silicon, ada pula **mlx-whisper** (CoreML/MLX) yang mencatat akselerasi sekitar 2 kali lipat.
-
----
-
-## 4. Piper TTS — Arsitektur
-
-### VITS + ONNX = Ringan
-
-Piper dibangun di atas **VITS** (*Variational Inference with adversarial Training for end-to-end Text to Speech*) yang dikonversi ke **ONNX Runtime**. Hasilnya: mesin TTS yang berjalan nyaman di CPU saja — tanpa GPU — dengan output audio **16kHz hingga 22kHz**. Kualitas suaranya masuk kategori *medium hingga tinggi* untuk ukuran model neural yang hanya ~50 juta parameter.
-
-### Bahasa dan Kualitas
-
-Piper mendukung **30+ bahasa** dengan empat tingkat kualitas suara: *x_low*, *low*, *medium*, dan *high*. Untuk Bahasa Indonesia tersedia suara seperti `id_ID-female-medium` — cukup untuk asisten suara dan pembacaan teks. Jika Anda sudah menikmati kualitas LLM besar, suara Piper memang belum setara aktor manusia — tetapi untuk kecepatan (RTF 0,3-0,8, lihat Tabel 2) dan kemudahan instalasi, Piper adalah pilihan terbaik untuk pemrosesan lokal.
-
----
-
-## 5. Pipeline Voice Agent
-
-### Lima Tahap, Satu Target
-
-*Voice agent* end-to-end adalah rangkaian lima tahap: **Microphone → VAD → Whisper STT → LLM → Piper TTS → Speaker**. Tahap VAD (*Voice Activity Detection*) dengan **Silero VAD** berperan sebagai penjaga gerbang: ia mendeteksi kapan Anda mulai bicara dan kapan berhenti, sehingga LLM tidak perlu "mendengarkan" senyap.
-
-### Target Latensi: Di Bawah 3 Detik
-
-Untuk percakapan terasa *real-time*, target standar adalah **kurang dari 3 detik** end-to-end. Anggaran waktunya (Tabel 3): VAD 20-50 ms, Whisper small 300-800 ms, LLM 500-1500 ms, dan Piper 200-500 ms. Total sekitar 1-2,9 detik — masih dalam target, tetapi jelas terlihat bahwa **LLM adalah komponen termahal**, dan pilihan model kecil (7B) menjadi krusial. Tools pendukung di Python: **`speech_recognition`**, **`pyaudio`**, dan **`sounddevice`**.
-
----
-
-## 6. Optimasi untuk Mac
-
-### Apple Silicon: CoreML dan MLX
-
-Dua jalur optimasi tersedia di Mac modern. **mlx-whisper** mengeksploitasi Apple Silicon via MLX dengan kecepatan sekitar 2 kali lipat dibanding versi PyTorch biasa. Untuk Piper, **ONNX Runtime** saja sudah memadai — sintesis suara berjalan cepat di CPU, sehingga GPU bisa fokus pada LLM.
-
-### VAD dan Alur Percakapan
-
-**Silero VAD** adalah standar untuk deteksi aktivitas suara: model kecil (sekitar 2 MB) yang berjalan ratusan kali lebih cepat dari real-time. Dalam pipeline, VAD membaca audio 30 ms per jendela, menandai mana ujaran dan mana jeda — ini yang memungkinkan percakapan bergantian alami, bukan perekaman durasi tetap.
-
----
-
-## 7. Use Cases: Tiga Skenario Nyata
-
-### Voice Assistant Lokal (Siri tanpa Cloud)
-
-Gabungan bab 4.4-4.7 menghasilkan *voice assistant* pribadi yang sepenuhnya lokal: katakan "Buatkan fungsi Python untuk menghitung Fibonacci", dan pipeline suara + LLM + coding agent mengerjakannya dari ujung ke ujung. Tanpa cloud, asisten ini tidak butuh langganan, tidak mencatat riwayat di server mana pun, dan tetap bekerja saat internet mati — keunggulan yang tidak bisa ditawarkan asisten komersial.
-
-### Transkripsi Meeting Otomatis
-
-Rekaman rapat berjam-jam bisa diubah menjadi transkrip dalam hitungan menit menggunakan Whisper di atas *faster-whisper* — 4 kali lebih cepat dari implementasi dasar. Transkrip lalu diserahkan ke LLM untuk ringkasan, keputusan, dan tindak lanjut. Privasi menjadi nilai utama di sini: rapat bisnis yang berisi strategi tidak perlu meninggalkan Mac.
-
-### Audio Journaling dengan LLM
-
-Skenario dari studi kasus seksi 11 — bercerita setiap malam, mendapat ringkasan tertulis yang bisa dicari. Ini kombinasi paling menarik ketiga pola di atas: privasi jurnal pribadi, kemudahan bicara, dan nilai analisa teks. Ketiga *use case* ini akan kembali Anda temui di studi kasus.
-
----
-
-## 8. Tabel Perbandingan
 
 ### Tabel 1: Perbandingan Varian Whisper
 
@@ -117,18 +78,32 @@ Dua pola penting muncul dari tabel ini. Pertama, WER Bahasa Indonesia konsisten 
 
 *Gambar 4.7-1 — WER Indonesia selalu lebih tinggi dari WER Inggris pada semua varian, tetapi gap menyempit seiring ukuran model; turbo (WER 7,8%) hampir menyamai large-v3 (7,1%) dengan setengah parameter.*
 
-### Tabel 2: Perbandingan TTS Lokal
 
-Empat mesin TTS lokal dengan ukuran, kecepatan, dan cakupan bahasa yang berbeda.
+---
 
-| Engine | Kualitas Suara | Kecepatan (RTF) | Bahasa | Parameter | Platform |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **Piper** | Medium-Tinggi | 0.3-0.8 RTF | 30+ | ~50M | CPU/GPU |
-| **Coqui TTS** | Tinggi | 0.5-1.5 RTF | 20+ | ~100M | GPU |
-| **eSpeak-NG** | Rendah (robotik) | 0.01 RTF | 100+ | 0 (rule-based) | CPU |
-| **MeloTTS** | Tinggi | 0.2-0.5 RTF | 5 | ~80M | CPU/GPU |
+## 4. Piper TTS — Arsitektur
 
-Konsep **RTF** (*Real-Time Factor*) perlu dipahami: nilai 0,5 berarti untuk setiap 1 detik audio, mesin butuh 0,5 detik untuk menghasilkan. eSpeak-NG berkecepatan ekstrem (0,01) tetapi suaranya robotik dan tidak neural. Coqui TTS menghasilkan suara terbaik tetapi menuntut GPU. **Piper berada di zona nyaman**: suara neural yang layak, RTF di bawah 1 (bisa *real-time* di CPU), dan 30+ bahasa. MeloTTS lebih cepat dan berkualitas tinggi, tetapi hanya mendukung 5 bahasa.
+
+### VITS + ONNX = Ringan
+
+Piper dibangun di atas **VITS** (*Variational Inference with adversarial Training for end-to-end Text to Speech*) yang dikonversi ke **ONNX Runtime**. Hasilnya: mesin TTS yang berjalan nyaman di CPU saja — tanpa GPU — dengan output audio **16kHz hingga 22kHz**. Kualitas suaranya masuk kategori *medium hingga tinggi* untuk ukuran model neural yang hanya ~50 juta parameter.
+
+### Bahasa dan Kualitas
+
+Piper mendukung **30+ bahasa** dengan empat tingkat kualitas suara: *x_low*, *low*, *medium*, dan *high*. Untuk Bahasa Indonesia tersedia suara seperti `id_ID-female-medium` — cukup untuk asisten suara dan pembacaan teks. Jika Anda sudah menikmati kualitas LLM besar, suara Piper memang belum setara aktor manusia — tetapi untuk kecepatan (RTF 0,3-0,8, lihat Tabel 2) dan kemudahan instalasi, Piper adalah pilihan terbaik untuk pemrosesan lokal.
+
+---
+
+## 5. Pipeline Voice Agent
+
+
+### Lima Tahap, Satu Target
+
+*Voice agent* end-to-end adalah rangkaian lima tahap: **Microphone → VAD → Whisper STT → LLM → Piper TTS → Speaker**. Tahap VAD (*Voice Activity Detection*) dengan **Silero VAD** berperan sebagai penjaga gerbang: ia mendeteksi kapan Anda mulai bicara dan kapan berhenti, sehingga LLM tidak perlu "mendengarkan" senyap.
+
+### Target Latensi: Di Bawah 3 Detik
+
+Untuk percakapan terasa *real-time*, target standar adalah **kurang dari 3 detik** end-to-end. Anggaran waktunya (Tabel 3): VAD 20-50 ms, Whisper small 300-800 ms, LLM 500-1500 ms, dan Piper 200-500 ms. Total sekitar 1-2,9 detik — masih dalam target, tetapi jelas terlihat bahwa **LLM adalah komponen termahal**, dan pilihan model kecil (7B) menjadi krusial. Tools pendukung di Python: **`speech_recognition`**, **`pyaudio`**, dan **`sounddevice`**.
 
 ### Tabel 3: Pipeline Latency Budget (target <3 detik)
 
@@ -150,7 +125,41 @@ Tabel ini adalah *budget* yang harus dikelola, bukan sekadar daftar. Total 1.000
 
 ---
 
-## 9. Diagram: Voice Agent Pipeline
+
+---
+
+## 6. Optimasi untuk Mac
+
+
+### Apple Silicon: CoreML dan MLX
+
+Dua jalur optimasi tersedia di Mac modern. **mlx-whisper** mengeksploitasi Apple Silicon via MLX dengan kecepatan sekitar 2 kali lipat dibanding versi PyTorch biasa. Untuk Piper, **ONNX Runtime** saja sudah memadai — sintesis suara berjalan cepat di CPU, sehingga GPU bisa fokus pada LLM.
+
+### VAD dan Alur Percakapan
+
+**Silero VAD** adalah standar untuk deteksi aktivitas suara: model kecil (sekitar 2 MB) yang berjalan ratusan kali lebih cepat dari real-time. Dalam pipeline, VAD membaca audio 30 ms per jendela, menandai mana ujaran dan mana jeda — ini yang memungkinkan percakapan bergantian alami, bukan perekaman durasi tetap.
+
+---
+
+## 7. Use Cases: Tiga Skenario Nyata
+
+
+### Voice Assistant Lokal (Siri tanpa Cloud)
+
+Gabungan bab 4.4-4.7 menghasilkan *voice assistant* pribadi yang sepenuhnya lokal: katakan "Buatkan fungsi Python untuk menghitung Fibonacci", dan pipeline suara + LLM + coding agent mengerjakannya dari ujung ke ujung. Tanpa cloud, asisten ini tidak butuh langganan, tidak mencatat riwayat di server mana pun, dan tetap bekerja saat internet mati — keunggulan yang tidak bisa ditawarkan asisten komersial.
+
+### Transkripsi Meeting Otomatis
+
+Rekaman rapat berjam-jam bisa diubah menjadi transkrip dalam hitungan menit menggunakan Whisper di atas *faster-whisper* — 4 kali lebih cepat dari implementasi dasar. Transkrip lalu diserahkan ke LLM untuk ringkasan, keputusan, dan tindak lanjut. Privasi menjadi nilai utama di sini: rapat bisnis yang berisi strategi tidak perlu meninggalkan Mac.
+
+### Audio Journaling dengan LLM
+
+Skenario dari studi kasus seksi 10 — bercerita setiap malam, mendapat ringkasan tertulis yang bisa dicari. Ini kombinasi paling menarik ketiga pola di atas: privasi jurnal pribadi, kemudahan bicara, dan nilai analisa teks. Ketiga *use case* ini akan kembali Anda temui di studi kasus.
+
+---
+
+## 8. Diagram: Voice Agent Pipeline
+
 
 Alur suara end-to-end dari mulut Anda hingga suara balasan, dengan anotasi waktu tempuh tiap tahap:
 
@@ -167,7 +176,8 @@ Diagram ini menunjukkan aliran satu arah namun dua dunia: dari sinyal analog (au
 
 ---
 
-## 10. Tutorial / Hands-On
+## 9. Tutorial / Hands-On
+
 
 ### Langkah 1: STT Lokal dengan Whisper
 
@@ -320,7 +330,8 @@ Jalankan dengan Ollama aktif (`ollama pull deepseek-v4-flash` atau ganti nama mo
 
 ---
 
-## 11. Studi Kasus: Voice Journal Harian
+## 10. Studi Kasus: Voice Journal Harian
+
 
 **Skenario:** Seorang penulis ingin membuat jurnal harian, tetapi mengetik setiap malam terasa seperti pekerjaan. Selama bertahun-tahun ia mencoba aplikasi jurnal, dan selalu berhenti di minggu kedua. Ia membutuhkan cara bercerita yang semudah mengobrol — dan cukup privat untuk memuat pikiran-pikiran yang tidak ingin ia bagikan ke cloud mana pun.
 
@@ -338,7 +349,8 @@ Jalankan dengan Ollama aktif (`ollama pull deepseek-v4-flash` atau ganti nama mo
 
 ---
 
-## 12. Referensi
+## 11. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

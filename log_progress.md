@@ -261,3 +261,25 @@ Setiap file guideline berisi 7 seksi wajib:
 - Data grafik 100% dari tabel file sendiri — tidak ada angka dikarang
 - Penomoran caption `Gambar X.N-i` tidak bentrok dengan mermaid
 - Build sukses: gambar tersalin ke `site/assets/images/` (semua bab ter-cover)
+
+---
+
+## 2026-08-14 (lanjutan) — Restrukturisasi Tata Letak Media Inline
+
+### Masalah
+- 53/85 file menggrupkan semua tabel di seksi akhir "Tabel Wajib"/"Tabel Referensi"/"Tabel Perbandingan"; 84/85 file menggrupkan diagram di seksi akhir "Diagram & Visualisasi" — pembaca harus melompat jauh dari teori ke media, mengurangi pemahaman per sub-bab.
+
+### Pelaksanaan (script Python deterministik, bukan agen)
+- `plan_media.py` — analisis pemetaan: untuk tiap unit media (### Tabel/Gambar/Diagram N), pilih seksi teori target dengan skor gabungan: referensi silang eksplisit di teks (bobot 4) + kemiripan kata kunci judul (jaccard) + posisi proporsional sebagai tie-breaker; seksi media satu-unit dipetakan ke seksi teori terakhir; seksi "Tujuan Sub-Bab" dikecualikan.
+- `exec_media.py` — eksekusi: pindahkan blok unit utuh (header + narasi pengantar + tabel/mermaid + analisis + PNG embed + caption) ke akhir seksi teori target; pembuka seksi media lama diselipkan ke unit pertama ("seksi ini"→"sub-bab ini"); hapus seksi media yang kosong; **renumber semua seksi berurutan 1..N**; perbaiki 145 referensi "seksi N"/"bagian N" di teks via peta lama→baru (+ presisi untuk "Tabel X di seksi M").
+- Backup sebelum eksekusi di `/var/folders/.../opencode/backup-konten`.
+
+### Hasil
+- **406 unit media dipindah** ke seksi teori terkait (261 tabel, 116 gambar, 29 diagram) di 85 file
+- 0 unit hilang (jumlah unit per file sama sebelum/sesudah), 0 fence mermaid tidak seimbang, 0 path PNG putus, 0 referensi "seksi N" patah
+- Penomoran seksi semua file berurutan 1..N tanpa lompatan; seksi media penampung tidak ada lagi
+- Selisih kata per file ≤0,3% (hanya judul seksi media yang dibubarkan)
+- Build `mkdocs build` sukses (8 detik)
+
+### Protokol
+- `templates/writing-protocol.md`: seksi "## N. Tabel Wajib" dan "## N+1. Diagram & Visualisasi" diganti aturan **"Media Inline"** — tabel/diagram/gambar diletakkan di seksi teori yang membahasnya, diberi narasi pengantar 1 kalimat, analisis setelahnya, penomoran berurutan sesuai kemunculan; dilarang membuat seksi penampung media di akhir bab.

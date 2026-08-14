@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Membedakan AWQ (kuantisasi *weight-only* 4-bit, W4A16) dan FP8 (kuantisasi *weight+activation* 8-bit, W8A8), termasuk dua varian format FP8 yaitu E4M3 dan E5M2
@@ -16,6 +17,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa Kuantisasi Server Berbeda?
+
 
 ### Stabilitas di Atas Throughput Puncak
 
@@ -31,9 +33,70 @@ Perbedaan kedua yang membentuk peta keputusan: **dukungan perangkat keras**. FP8
 
 Konsekuensi dari pembagian ini menyentuh keputusan operasional harian. Tim yang mengelola server lama (A100, RTX 3090) akan menghabiskan sebagian besar energinya di *calibration*: menyiapkan dataset, membandingkan *loss*, memantau *drift* — karena mereka hidup di dunia AWQ yang statis. Tim dengan H100 bisa lebih santai: FP8 dinamis mengurangi *calibration overhead*, dan *failure mode*-nya lebih terprediksi. Sebelum memilih format, tanyakan dulu dua hal: GPU apa yang sedang dimiliki, dan seberapa besar energi tim yang siap dialokasikan untuk *monitoring* kualitas jangka panjang. Keputusan format hampir selalu mengikuti jawaban kedua pertanyaan itu, bukan sebaliknya.
 
+Tiga tabel berikut adalah satu kesatuan: Tabel 1 membandingkan karakteristik format di atas kertas, Tabel 2 menunjukkan dampaknya pada performa server nyata di H100, dan Tabel 3 menerjemahkan semuanya menjadi rekomendasi per GPU. Baca berurutan — dari "apa bedanya" menuju "jadi pakai apa" — sebelum menyentuh perintah kuantisasi di bagian praktikum.
+
+### Tabel 1: Perbandingan Metode Kuantisasi
+
+Tabel berikut membandingkan tiga pendekatan — AWQ, FP8, dan NVFP4 (format 4-bit floating point NVIDIA) — pada dimensi yang paling relevan untuk server:
+
+| Aspek | AWQ (W4A16) | FP8 (W8A8) | NVFP4 (W4A8) |
+|:---|:---:|:---:|:---:|
+| **Bit-width Weight** | 4-bit integer | 8-bit float (E4M3/E5M2) | 4-bit float (NVFP4) |
+| **Bit-width Activation** | 16-bit float | 8-bit float | 8-bit float |
+| **Kompresi Weight** | 4x | 2x | 4x |
+| **Percepatan Throughput** | ~1.3x - 1.5x | ~1.6x - 2.0x | ~1.7x - 2.2x |
+| **GPU Minimum** | Turing (CC 7.5) | Hopper/Ada (CC 8.9) | Blackwell (CC 10.0) |
+| **MMLU Loss (7B)** | ~0.5 - 1.0% | ~0.1 - 0.3% | ~0.4 - 0.8% |
+| **HumanEval Loss** | ~1 - 2% | ~0.5 - 1% | ~0.8 - 1.5% |
+| **Stabilitas 24/7** | Baik (no drift) | Sangat Baik (native) | Baik |
+| **Calibration Data** | 128 samples | Optional (dynamic) | Required |
+| **Model Support** | Llama, Qwen, Mistral | Llama, Mistral, DeepSeek | Mistral Large 3 |
+
+Beberapa pola penting terlihat. Pertama, **FP8 adalah yang paling ringan kerusakannya**: *loss* MMLU hanya 0,1-0,3% dan *loss* HumanEval 0,5-1% — hampir tidak terlihat oleh pengguna akhir. AWQ dan NVFP4 memang mengompresi dua kali lebih kuat (4x), tetapi membayar dengan *loss* yang lebih besar — terutama di *HumanEval* (1-2%) yang mengukur kemampuan *coding*, salah satu beban kerja yang paling sensitif terhadap kuantisasi. Kedua, perhatikan kolom *calibration*: AWQ butuh 128 sampel kalibrasi, FP8 bisa dinamis (tanpa kalibrasi), sedangkan NVFP4 *wajib* kalibrasi. Ketiga, **NVFP4** adalah pendatang baru menarik — kompresi 4x dengan *throughput* tertinggi (1.7-2.2x) berkat dukungan asli GPU Blackwell, dan didukung *natively* oleh Mistral Large 3 (rilis Apache 2.0). Namun ketersediaannya masih terbatas: hanya GPU Blackwell dan model tertentu.
+
+
+### Tabel 2: Benchmark Throughput Server (H100, Model 70B-675B)
+
+Bagaimana angka-angka ini berterjemah ke performa server nyata? Tabel berikut membandingkan enam konfigurasi kuantisasi di GPU H100:
+
+| Quantization | Model | VRAM | Throughput (tok/s) | Batch Size Max | TTFT P50 (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|
+| FP16 (baseline) | Llama-3.1-70B | 140 GB | 12.500 | 64 | 210 |
+| FP8 (W8A8 full) | Llama-3.1-70B | 72 GB | 21.500 | 144 | 128 |
+| AWQ (W4A16) | Llama-3.1-70B | 42 GB | 16.800 | 256 | 165 |
+| FP8 (W8A8) | Mistral Large 3 (675B) | 84 GB | 18.200 | 128 | 195 |
+| NVFP4 | Mistral Large 3 (675B) | 48 GB | 22.400 | 256 | 145 |
+| FP8 | DeepSeek V4 Pro (1.6T) | 96 GB | 15.800 | 96 | 240 |
+
+![Pada Llama-3.1-70B, AWQ memakai VRAM jauh lebih kecil (42 GB) tetapi FP8 lebih cepat (21.500 vs 16.800 tok/s); NVFP4 menggabungkan keduanya dengan 22.400 tok/s di 48 GB](../../assets/images/bab-05-inference/sub-bab-5/benchmark-kuantisasi-server-h100.png)
+
+*Gambar 5.5-1 — Peta kuantisasi server di H100: AWQ menjual ruang (42 GB, batch 256), FP8 menjual kecepatan dan responsivitas (21.500 tok/s, TTFT 128 ms), dan NVFP4 memenangkan keduanya untuk Mistral Large 3 — 23% lebih cepat dari FP8 sambil hemat VRAM 43%.*
+
+Perhatikan kontras antara FP8 dan AWQ pada Llama-3.1-70B. AWQ memakai VRAM jauh lebih sedikit (42 GB vs 72 GB) dan *batch size* maksimumnya lebih besar (256 vs 144) — unggul saat ruang memori adalah segalanya. Tetapi FP8 unggul di *throughput* (21.500 vs 16.800 token/detik, sekitar 1,3x lebih cepat) **dan** di TTFT (128 ms vs 165 ms) — unggul di dua dimensi yang dirasakan langsung oleh pengguna. Inilah inti trade-off AWQ vs FP8: AWQ menjual ruang, FP8 menjual kecepatan dan responsivitas. Sementara itu, **NVFP4 menyatukan keduanya** untuk Mistral Large 3: VRAM 48 GB (hampir separuh FP8) namun *throughput* 22.400 token/detik — 23% lebih cepat dari FP8 dan hemat VRAM 43%. DeepSeek V4 Pro menunjukkan satu pelengkap penting: karena KV-cache-nya hanya 10% dari V3.2, konteks 1M token hanya menghabiskan ~3,2 GB VRAM (bandingkan ~32 GB di V3.2) — sehingga model 1,6 triliun parameter total / 49 miliar aktif ini bisa dilayani dengan 96 GB VRAM dalam FP8.
+
+
+### Gambar 1: Pipeline Kuantisasi AWQ
+
+Berikut alur kerja AWQ dari model FP16 hingga model 4-bit siap *deploy*:
+
+```mermaid
+flowchart LR
+    A[FP16 Weights] --> B[Kumpulkan Statistik Aktivasi]
+    B --> C[Deteksi Salient Channels]
+    C --> D[Cari Faktor Skala per-Kanal]
+    D --> E[Terapkan Per-channel Scaling]
+    E --> F[Kuantisasi 4-bit + Aktivasi FP16]
+```
+
+Jalur kiri ke kanan menunjukkan mengapa AWQ disebut *activation-aware*: *activation* dilihat lebih dulu (B) sebelum menentukan bobot mana yang diselamatkan (C). Tidak ada loop *backpropagation* — diagramnya linier, dan itu justru kekuatannya: cepat, deterministik, dan mudah direproduksi. Model output (F) adalah campuran *weight* 4-bit dan *activation* FP16 yang dikenal sebagai W4A16.
+
+Perhatikan bahwa langkah E (per-channel scaling) adalah "trik" utama yang membuat semuanya bekerja tanpa pelatihan ulang: scaling tidak menambah parameter, hanya mengubah skala — dan karena operasi ini dapat dibalik (di-dequantisasi) saat *inference*, model tetap berperilaku hampir sama seperti FP16. Inilah alasan mengapa *quantizer* AWQ yang dibuat sekali bisa dipakai berulang kali di berbagai *task* tanpa perlu *re-calibration* per domain.
+
+
 ---
 
 ## 3. AWQ — Activation-aware Weight Quantization
+
 
 AWQ mewakili satu filsafat dalam kuantisasi: alih-alih memangkas semua bobot secara seragam, kenali mana yang paling menentukan, lalu perlakukan khusus. Filsafat ini lahir dari pengamatan empiris — dan hasilnya menjadi standar de facto untuk kuantisasi 4-bit di dunia open source, dipakai di vLLM, TGI, dan engine utama lainnya.
 
@@ -54,6 +117,7 @@ Sebagai konteks sejarah: sebelum AWQ, pendekatan dominan adalah **GPTQ** [5] yan
 ---
 
 ## 4. FP8 — Floating Point 8-bit
+
 
 Jika AWQ adalah format "pintar tapi harus dijaga", FP8 adalah format "bawaan pabrik". Ia memanfaatkan fakta bahwa GPU modern sudah menghitung dalam FP8 secara *native* — bukan kompresi yang dipaksakan dari luar, melainkan bahasa asli *tensor core*-nya. Konsekuensinya, efisiensinya konsisten di semua lapisan: bobot, aktivasi, bahkan cache.
 
@@ -77,61 +141,38 @@ Perpaduan FP8 W8A8 + FP8 KV-cache inilah kombinasi "FP8 penuh" yang paling serin
 
 ## 5. AWQ vs FP8: Dua Jalur, Satu Tujuan
 
+
 Perbandingan ringkas: **AWQ menang di kompresi dan kompatibilitas** — kompresi 4x (berbanding 2x FP8), berjalan di GPU Turing/Ampere lama, dan kualitas rata-rata lebih baik di model kecil karena *weight* krusialnya dirawat dengan *scaling*. **FP8 menang di throughput dan stabilitas** — kecepatan asli H100/Ada, *calibration overhead* minimal, dan perilaku jangka panjang yang lebih deterministik berkat *scaling* dinamis. Untuk model kecil di GPU lama, AWQ adalah pemenang; untuk model menengah-besar di GPU Hopper yang harus hidup 24/7, FP8 lebih masuk akal. Data kuantitatifnya dirangkum di Tabel 1 dan 2.
 
 Ada satu dimensi yang sering terlewat dalam perdebatan "AWQ vs FP8": **biaya total kepemilikan**. AWQ memungkinkan model besar berjalan di GPU generasi sebelumnya, yang harganya kini jauh lebih murah di pasar bekas — jalur hemat yang sangat menarik bagi perusahaan dengan anggaran terbatas. FP8 menuntut investasi GPU baru tetapi membuka kapasitas yang jauh lebih besar: *throughput* lebih tinggi berarti lebih sedikit GPU untuk melayani beban yang sama, dan TTFT yang lebih rendah berarti SLO yang lebih ketat bisa dikontrakkan ke bisnis. Kedua angka itu — harga GPU bekas versus kapasitas tambahan — harus dihitung dalam mata uang yang sama sebelum memutuskan.
 
 Yang tidak kalah penting: batas kualitas di tengahnya. Untuk model di bawah 13B, AWQ (MMLU *loss* 0,5-1,0%) biasanya masih nyaman; untuk model 30B ke atas, *loss* absolutnya bisa terlihat lebih besar pada *task* sensitif seperti *coding* (HumanEval *loss* 1-2%). Jika tim Anda tidak memiliki kapasitas *monitoring* kualitas harian, pilihan paling aman adalah FP8 — di mana margin kesalahannya sangat kecil sehingga *drift* hampir tidak mungkin terlihat oleh pengguna akhir.
 
+### Gambar 2: Dua Format FP8 — E4M3 vs E5M2
+
+```mermaid
+flowchart LR
+    subgraph E4M3["E4M3 — presisi tinggi, jangkauan terbatas (±448)"]
+        E1[1 bit sign] --> E2[4 bit eksponen] --> E3[3 bit mantissa]
+    end
+    subgraph E5M2["E5M2 — jangkauan luas, presisi rendah (±57.344)"]
+        M1[1 bit sign] --> M2[5 bit eksponen] --> M3[2 bit mantissa]
+    end
+```
+
+Bandingkan dua baris bit di atas: E4M3 mengorbankan *range* demi 3 bit mantissa (presisi tinggi) — ideal untuk *forward pass*/inference; E5M2 mengorbankan presisi demi 5 bit eksponen (jangkauan hingga ±57.344) — ideal menangkap *outlier* dan *gradient* saat training. Keduanya tetap satu format 8-bit; pertukarannya terjadi di dalam 8 bit yang sama.
+
+Implikasinya bagi server: dalam *inference*, gunakan **E4M3** untuk bobot dan aktivasi. Jika suatu *activation* di salah satu lapisan ternyata melebihi ±448 (langka, tetapi bisa terjadi pada beberapa model), angka itu akan dipotong (*clamped*) — dan di sinilah *scaling* dinamis FP8 berperan menyelamatkan: skala dihitung dari nilai maksimum aktual, sehingga hampir tidak ada nilai yang benar-benar *clamped*. Inilah alasan teknise mengapa FP8 jarang menunjukkan *drift* signifikan pada beban nyata.
+
+
+---
+
 ## 6. Strategi Hybrid: Menggabungkan yang Terbaik
+
 
 Keputusan tidak harus hitam-putih. Strategi campuran biasa dipakai di lapangan: **AWQ untuk model > 70B** yang harus muat di VRAM terbatas (kompresi 4x sangat bernilai), dan **FP8 untuk model di bawah 70B** di H100 (kompresi 2x sudah cukup, kecepatan lebih penting). Ada pula kombinasi menarik: **AWQ + FP8 KV-cache** — *weight* 4-bit untuk menghemat ruang, cache 8-bit untuk menghemat lalu lintas memori — asalkan GPU mendukung FP8. Panduan umum berdasarkan GPU (Tabel 3): A100/RTX 3090 → AWQ; H100/RTX 4090 → FP8; GPU Blackwell (B200) → NVFP4 untuk model yang mendukungnya. Peta ini akan Anda lihat lengkap pada tabel rekomendasi nanti.
 
 Ingat prinsip paling sederhana dari strategi hybrid: **kompresi membeli ruang, native membeli kecepatan**. Ketika salah satu dari keduanya sudah cukup — model muat dan cepat — format paling sederhana yang memenuhi dua syarat itu adalah yang terbaik. Menumpuk kuantisasi dua lapis (misalnya AWQ + kuantisasi cache + *quantized LoRA*) jarang memberi nilai tambah, tetapi hampir selalu menambah titik kerusakan (*failure point*) baru.
-
----
-
-## 7. Tabel Wajib: Data Perbandingan
-
-Tiga tabel berikut adalah satu kesatuan: Tabel 1 membandingkan karakteristik format di atas kertas, Tabel 2 menunjukkan dampaknya pada performa server nyata di H100, dan Tabel 3 menerjemahkan semuanya menjadi rekomendasi per GPU. Baca berurutan — dari "apa bedanya" menuju "jadi pakai apa" — sebelum menyentuh perintah kuantisasi di bagian praktikum.
-
-### Tabel 1: Perbandingan Metode Kuantisasi
-
-Tabel berikut membandingkan tiga pendekatan — AWQ, FP8, dan NVFP4 (format 4-bit floating point NVIDIA) — pada dimensi yang paling relevan untuk server:
-
-| Aspek | AWQ (W4A16) | FP8 (W8A8) | NVFP4 (W4A8) |
-|:---|:---:|:---:|:---:|
-| **Bit-width Weight** | 4-bit integer | 8-bit float (E4M3/E5M2) | 4-bit float (NVFP4) |
-| **Bit-width Activation** | 16-bit float | 8-bit float | 8-bit float |
-| **Kompresi Weight** | 4x | 2x | 4x |
-| **Percepatan Throughput** | ~1.3x - 1.5x | ~1.6x - 2.0x | ~1.7x - 2.2x |
-| **GPU Minimum** | Turing (CC 7.5) | Hopper/Ada (CC 8.9) | Blackwell (CC 10.0) |
-| **MMLU Loss (7B)** | ~0.5 - 1.0% | ~0.1 - 0.3% | ~0.4 - 0.8% |
-| **HumanEval Loss** | ~1 - 2% | ~0.5 - 1% | ~0.8 - 1.5% |
-| **Stabilitas 24/7** | Baik (no drift) | Sangat Baik (native) | Baik |
-| **Calibration Data** | 128 samples | Optional (dynamic) | Required |
-| **Model Support** | Llama, Qwen, Mistral | Llama, Mistral, DeepSeek | Mistral Large 3 |
-
-Beberapa pola penting terlihat. Pertama, **FP8 adalah yang paling ringan kerusakannya**: *loss* MMLU hanya 0,1-0,3% dan *loss* HumanEval 0,5-1% — hampir tidak terlihat oleh pengguna akhir. AWQ dan NVFP4 memang mengompresi dua kali lebih kuat (4x), tetapi membayar dengan *loss* yang lebih besar — terutama di *HumanEval* (1-2%) yang mengukur kemampuan *coding*, salah satu beban kerja yang paling sensitif terhadap kuantisasi. Kedua, perhatikan kolom *calibration*: AWQ butuh 128 sampel kalibrasi, FP8 bisa dinamis (tanpa kalibrasi), sedangkan NVFP4 *wajib* kalibrasi. Ketiga, **NVFP4** adalah pendatang baru menarik — kompresi 4x dengan *throughput* tertinggi (1.7-2.2x) berkat dukungan asli GPU Blackwell, dan didukung *natively* oleh Mistral Large 3 (rilis Apache 2.0). Namun ketersediaannya masih terbatas: hanya GPU Blackwell dan model tertentu.
-
-### Tabel 2: Benchmark Throughput Server (H100, Model 70B-675B)
-
-Bagaimana angka-angka ini berterjemah ke performa server nyata? Tabel berikut membandingkan enam konfigurasi kuantisasi di GPU H100:
-
-| Quantization | Model | VRAM | Throughput (tok/s) | Batch Size Max | TTFT P50 (ms) |
-|:---|:---|:---:|:---:|:---:|:---:|
-| FP16 (baseline) | Llama-3.1-70B | 140 GB | 12.500 | 64 | 210 |
-| FP8 (W8A8 full) | Llama-3.1-70B | 72 GB | 21.500 | 144 | 128 |
-| AWQ (W4A16) | Llama-3.1-70B | 42 GB | 16.800 | 256 | 165 |
-| FP8 (W8A8) | Mistral Large 3 (675B) | 84 GB | 18.200 | 128 | 195 |
-| NVFP4 | Mistral Large 3 (675B) | 48 GB | 22.400 | 256 | 145 |
-| FP8 | DeepSeek V4 Pro (1.6T) | 96 GB | 15.800 | 96 | 240 |
-
-![Pada Llama-3.1-70B, AWQ memakai VRAM jauh lebih kecil (42 GB) tetapi FP8 lebih cepat (21.500 vs 16.800 tok/s); NVFP4 menggabungkan keduanya dengan 22.400 tok/s di 48 GB](../../assets/images/bab-05-inference/sub-bab-5/benchmark-kuantisasi-server-h100.png)
-
-*Gambar 5.5-1 — Peta kuantisasi server di H100: AWQ menjual ruang (42 GB, batch 256), FP8 menjual kecepatan dan responsivitas (21.500 tok/s, TTFT 128 ms), dan NVFP4 memenangkan keduanya untuk Mistral Large 3 — 23% lebih cepat dari FP8 sambil hemat VRAM 43%.*
-
-Perhatikan kontras antara FP8 dan AWQ pada Llama-3.1-70B. AWQ memakai VRAM jauh lebih sedikit (42 GB vs 72 GB) dan *batch size* maksimumnya lebih besar (256 vs 144) — unggul saat ruang memori adalah segalanya. Tetapi FP8 unggul di *throughput* (21.500 vs 16.800 token/detik, sekitar 1,3x lebih cepat) **dan** di TTFT (128 ms vs 165 ms) — unggul di dua dimensi yang dirasakan langsung oleh pengguna. Inilah inti trade-off AWQ vs FP8: AWQ menjual ruang, FP8 menjual kecepatan dan responsivitas. Sementara itu, **NVFP4 menyatukan keduanya** untuk Mistral Large 3: VRAM 48 GB (hampir separuh FP8) namun *throughput* 22.400 token/detik — 23% lebih cepat dari FP8 dan hemat VRAM 43%. DeepSeek V4 Pro menunjukkan satu pelengkap penting: karena KV-cache-nya hanya 10% dari V3.2, konteks 1M token hanya menghabiskan ~3,2 GB VRAM (bandingkan ~32 GB di V3.2) — sehingga model 1,6 triliun parameter total / 49 miliar aktif ini bisa dilayani dengan 96 GB VRAM dalam FP8.
 
 ### Tabel 3: Rekomendasi Berdasarkan GPU
 
@@ -157,40 +198,6 @@ Satu hal terakhir: **jadikan kualitas sebagai gerbang, bukan formalitas**. Susun
 
 ---
 
-## 8. Diagram & Visualisasi
-
-### Gambar 1: Pipeline Kuantisasi AWQ
-
-Berikut alur kerja AWQ dari model FP16 hingga model 4-bit siap *deploy*:
-
-```mermaid
-flowchart LR
-    A[FP16 Weights] --> B[Kumpulkan Statistik Aktivasi]
-    B --> C[Deteksi Salient Channels]
-    C --> D[Cari Faktor Skala per-Kanal]
-    D --> E[Terapkan Per-channel Scaling]
-    E --> F[Kuantisasi 4-bit + Aktivasi FP16]
-```
-
-Jalur kiri ke kanan menunjukkan mengapa AWQ disebut *activation-aware*: *activation* dilihat lebih dulu (B) sebelum menentukan bobot mana yang diselamatkan (C). Tidak ada loop *backpropagation* — diagramnya linier, dan itu justru kekuatannya: cepat, deterministik, dan mudah direproduksi. Model output (F) adalah campuran *weight* 4-bit dan *activation* FP16 yang dikenal sebagai W4A16.
-
-Perhatikan bahwa langkah E (per-channel scaling) adalah "trik" utama yang membuat semuanya bekerja tanpa pelatihan ulang: scaling tidak menambah parameter, hanya mengubah skala — dan karena operasi ini dapat dibalik (di-dequantisasi) saat *inference*, model tetap berperilaku hampir sama seperti FP16. Inilah alasan mengapa *quantizer* AWQ yang dibuat sekali bisa dipakai berulang kali di berbagai *task* tanpa perlu *re-calibration* per domain.
-
-### Gambar 2: Dua Format FP8 — E4M3 vs E5M2
-
-```mermaid
-flowchart LR
-    subgraph E4M3["E4M3 — presisi tinggi, jangkauan terbatas (±448)"]
-        E1[1 bit sign] --> E2[4 bit eksponen] --> E3[3 bit mantissa]
-    end
-    subgraph E5M2["E5M2 — jangkauan luas, presisi rendah (±57.344)"]
-        M1[1 bit sign] --> M2[5 bit eksponen] --> M3[2 bit mantissa]
-    end
-```
-
-Bandingkan dua baris bit di atas: E4M3 mengorbankan *range* demi 3 bit mantissa (presisi tinggi) — ideal untuk *forward pass*/inference; E5M2 mengorbankan presisi demi 5 bit eksponen (jangkauan hingga ±57.344) — ideal menangkap *outlier* dan *gradient* saat training. Keduanya tetap satu format 8-bit; pertukarannya terjadi di dalam 8 bit yang sama.
-
-Implikasinya bagi server: dalam *inference*, gunakan **E4M3** untuk bobot dan aktivasi. Jika suatu *activation* di salah satu lapisan ternyata melebihi ±448 (langka, tetapi bisa terjadi pada beberapa model), angka itu akan dipotong (*clamped*) — dan di sinilah *scaling* dinamis FP8 berperan menyelamatkan: skala dihitung dari nilai maksimum aktual, sehingga hampir tidak ada nilai yang benar-benar *clamped*. Inilah alasan teknise mengapa FP8 jarang menunjukkan *drift* signifikan pada beban nyata.
 
 ### Gambar 3: Keputusan Pemilihan Format
 
@@ -212,7 +219,11 @@ Alur ini juga menunjukkan mengapa keputusan kuantisasi sebaiknya diambil *per de
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 Empat langkah berikut membawa Anda dari nol menuju produksi: kuantisasi AWQ yang bisa dijalankan di GPU lama (Langkah 1), FP8 *online* untuk GPU Hopper (Langkah 2), NVFP4 untuk Blackwell (Langkah 3), lalu gerbang terakhir — validasi kualitas (Langkah 4) yang wajib dilewati sebelum *deploy* apa pun.
 
@@ -315,7 +326,8 @@ Jangan lupa menyimpan *baseline*: simpan hasil evaluasi FP16 sebagai angka acuan
 
 ---
 
-## 10. Studi Kasus: Perusahaan Fintech — Stabilitas 24/7 Prioritas Utama
+## 8. Studi Kasus: Perusahaan Fintech — Stabilitas 24/7 Prioritas Utama
+
 
 **Latar belakang.** Sebuah platform *fintech* mengoperasikan Llama-3.1-70B untuk tugas kritis: menganalisis dokumen transaksi, mengekstrak klausul kontrak, dan meringkas notulen rapat investasi. Konsekuensi kesalahan kecil bukan sekadar jawaban aneh — bisa menjadi keputusan bisnis yang salah. SLO yang dikontrakkan ke manajemen: **uptime 99,9%**, **tidak ada degradasi kualitas**, dan **latensi < 2 detik**.
 
@@ -335,7 +347,8 @@ Perlu ditegaskan: ini bukan kegagalan AWQ secara umum — AWQ tetap format terba
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

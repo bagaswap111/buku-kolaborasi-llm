@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan apa itu parameter, weight, bias, dan tensor dalam konteks LLM
@@ -16,6 +17,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Apa Itu Parameter?
+
 
 ### Parameter sebagai Unit Pengetahuan
 
@@ -38,6 +40,7 @@ Istilah "weight" (bobot) dan "bias" berasal dari jaringan saraf tradisional. Wei
 ---
 
 ## 3. Arsitektur Satu Lapisan Transformer
+
 
 ### Aliran Data dalam Satu Lapisan
 
@@ -63,9 +66,38 @@ Tiga proyeksi ini adalah penyumbang parameter terbesar dalam model. Pada Llama-3
 
 **Residual connection** (skip connection) tidak memiliki parameter sama sekali — mereka hanya menjumlahkan input sub-blok dengan output-nya. Mekanisme yang tampak sederhana ini memungkinkan gradien mengalir langsung ke lapisan awal saat backpropagation, mengatasi masalah vanishing gradient yang membuat training model dengan lebih dari 30 lapisan praktis mustahil sebelum residual connection diperkenalkan. Tanpa residual connection, Transformer sedalam 80 lapisan seperti Llama-3 70B tidak akan bisa dilatih.
 
+### Diagram 1: Anatomi Satu Lapisan Transformer
+
+Berikut adalah aliran data dalam satu lapisan Transformer, dari input token hingga output yang siap masuk ke lapisan berikutnya.
+
+```mermaid
+graph TD
+    Input[Input Token] --> Emb[Embedding]
+    Emb --> Attn[Self-Attention]
+    Attn --> LN1[LayerNorm]
+    LN1 --> FFN[Feed-Forward]
+    FFN --> LN2[LayerNorm]
+    LN2 --> Output[Output ke Lapisan Berikutnya]
+    
+    subgraph Self-Attention
+        Q[Query Projection]
+        K[Key Projection]
+        V[Value Projection]
+        O[Output Projection]
+    end
+    
+    subgraph FFN
+        G[Gate Projection]
+        U[Up Projection]
+        D[Down Projection]
+    end
+```
+
+
 ---
 
 ## 4. Perhitungan Parameter per Ukuran Model
+
 
 ### Membongkar Llama-3 8B
 
@@ -102,9 +134,78 @@ P = V·d + L·(4·d² + 3·d·ffn + 2·d)
 
 Di mana V = vocab size, d = d_model, ffn = ffn_dim, L = jumlah lapisan. Komponen: V·d untuk embedding, 4·d² untuk attention (Q, K, V, O dengan asumsi head penuh — jika GQA, koefisien ini berubah), 3·d·ffn untuk FFN (gate, up, down), dan 2·d untuk LayerNorm. Rumus ini memberikan estimasi dalam 1-2% dari parameter aktual. Deviasi kecil berasal dari bias (jika ada), pembulatan dimensi head, dan tied embedding (jika bobot embedding dan output layer digabung).
 
+### Tabel 1: Perbandingan Anatomi Model Populer
+
+| Model | Lapisan | d_model | FFN dim | Head | GQA | Total Param | Embedding % |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Llama-3 8B | 32 | 4096 | 14336 | 32 | Ya (8 KV) | 8.03B | ~5% |
+| Mistral 7B | 32 | 4096 | 14336 | 32 | Ya (8 KV) | 7.24B | ~5% |
+| Qwen 2.5 7B | 28 | 4096 | 11008 | 28 | Ya | 7.61B | ~8% |
+| Llama-3 70B | 80 | 8192 | 28672 | 64 | Ya (8 KV) | 70.6B | ~2% |
+| DeepSeek V2 | 60 | 7168 | 2048 (MoE) | 56 | Ya | 236B | ~1% |
+| DeepSeek V4 Pro | 84* | 8192 | 4096 (MoE-256) | 64 | Ya | 1.6T (49B aktif) | ~0.5% |
+| Mistral Large 3 | 56* | 7168 | 3072 (granular MoE) | 48 | Ya | 675B (41B aktif) | ~1% |
+| Gemma 2 9B | 42 | 3584 | 14336 | 16 | Ya | 9.2B | ~4% |
+
+*Tanda * menandakan konfigurasi internal — detail arsitektur penuh hanya dirilis oleh vendor.*
+
+
+### Tabel 2: Kebutuhan Memori per Ukuran Model
+
+| Presisi | Bytes/Param | 1.5B | 7B | 8B | 13B | 49B* | 70B | 405B | 675B* |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| FP32 | 4 | 6 GB | 28 GB | 32 GB | 52 GB | 196 GB | 280 GB | 1.6 TB | 2.7 TB |
+| FP16 | 2 | 3 GB | 14 GB | 16 GB | 26 GB | 98 GB | 140 GB | 810 GB | 1.35 TB |
+| INT8 (Q8_0) | 1 | 1.5 GB | 7 GB | 8 GB | 13 GB | 49 GB | 70 GB | 405 GB | 675 GB |
+| INT4 (Q4_K_M) | ~0.5 | 0.8 GB | 3.8 GB | 4.2 GB | 6.5 GB | 25 GB | 38 GB | 220 GB | 340 GB |
+
+*Parameter aktif untuk model MoE. Semua expert harus tetap di-load ke VRAM meskipun hanya sebagian yang aktif per token.*
+
+Perhatikan bagaimana kuantisasi menggeser batas kemampuan perangkat keras: model 70B yang memerlukan 280 GB dalam FP32 bisa "dipadatkan" menjadi 38 GB dalam Q4_K_M — perbedaan yang menentukan antara butuh server dan cukup satu kartu RTX 4090.
+
+![Kebutuhan memori model dari 1,5B hingga 675B pada empat tingkat presisi](../../assets/images/bab-01-model/sub-bab-2/memori-per-presisi.png)
+
+*Gambar 1.2-1 — memori naik logaritmik seiring ukuran model; INT4 (biru tua) memangkas kebutuhan hingga 8x dibanding FP32 (biru muda).*
+
+
+### Gambar 2: Visualisasi Tensor Shape
+
+Diagram berikut menunjukkan dimensi tensor di setiap tahap pemrosesan — dari input dengan bentuk (batch, sequence, d_model) hingga attention scores dan output FFN. Setiap kotak dalam diagram merepresentasikan satu matriks yang harus disimpan di VRAM selama inferensi.
+
+```mermaid
+flowchart LR
+    A[Input\n(batch, seq, d_model)] --> B[Q Projection\nd_model x d_model]
+    A --> C[K Projection\nd_model x d_model]
+    A --> D[V Projection\nd_model x d_model]
+    B --> E[Attention Scores\n(seq x seq x heads)]
+    C --> E
+    E --> F[Weighted Sum\n(seq, d_model)]
+    D --> F
+    F --> G[FFN Up Projection\n(d_model x ffn_dim)]
+    G --> H[FFN Down Projection\n(ffn_dim x d_model)]
+    H --> I[Output\n(batch, seq, d_model)]
+```
+
+
+### Gambar 3: Perbandingan Fisik Ukuran Model
+
+Untuk memberikan intuisi tentang skala: model 1,5B (GPT-2) seukuran buku novel (~1,2 GB Q4). Model 7B seukuran ensiklopedia satu jilid (~4,5 GB). Model 70B sebesar rak buku penuh (~42 GB Q4). Model 405B membutuhkan perpustakaan kecil (~220 GB). Dan DeepSeek V4 Pro 1,6T membutuhkan ruang server khusus (~865 GB INT4). Perbandingan visualnya dapat dibayangkan sebagai tangga berikut:
+
+```mermaid
+flowchart LR
+    A[GPT-2 1,5B\n1,2 GB - Novel] --> B[Model 7B\n4,5 GB - Ensiklopedia]
+    B --> C[Model 70B\n42 GB - Rak Buku]
+    C --> D[Model 405B\n220 GB - Perpustakaan]
+    D --> E[DeepSeek V4 Pro 1,6T\n865 GB - Ruang Server]
+```
+
+---
+
+
 ---
 
 ## 5. Peran Setiap Komponen
+
 
 ### Embedding Layer: Gerbang Masuk
 
@@ -134,6 +235,7 @@ LayerNorm dan RoPE adalah komponen non-linear yang tidak menyimpan pengetahuan f
 
 ## 6. Distribusi Parameter: Komponen Terbesar hingga Terkecil
 
+
 ### FFN: Penguasa Parameter
 
 FFN mendominasi dengan 60-70% dari total parameter pada model dense. Pada Llama-3 8B, FFN = 5,2B dari 8,03B total (64,7%). Pada Llama-3 70B, proporsi naik menjadi ~68% karena embedding hanya menyumbang ~1,5B dari 70,6B. Alasan dominasi ini sederhana: FFN memiliki tiga matriks besar per lapisan, dan dimensi intermediate (ffn_dim) biasanya 3,5-4× d_model. Ini berarti satu lapisan FFN menyimpan lebih banyak parameter daripada satu lapisan attention — dan ada puluhan lapisan seperti ini.
@@ -152,9 +254,27 @@ LayerNorm + RoPE hanya ~2-3% — pada Llama-3 8B, LayerNorm hanya 262K parameter
 
 Pada arsitektur MoE seperti DeepSeek V4 Pro (1,6T total, 49B aktif), distribusi bergeser: FFN shared + expert routing ~45%, expert FFN (256 expert, 2 aktif per token) ~50%, attention + embedding ~5%. Inilah mengapa MoE bisa memberikan kualitas model besar dengan kecepatan dan VRAM jauh lebih kecil.
 
+### Tabel 3: Distribusi Parameter per Komponen (Llama-3 8B)
+
+| Komponen | Jumlah Parameter | Persentase |
+|:---|:---:|:---:|
+| Embedding (vocab 128K × 4096) | 524M | 6.5% |
+| Attention (QKV + Output per layer × 32) | 2.1B | 26.2% |
+| FFN (gate + up + down per layer × 32) | 5.2B | 64.7% |
+| LayerNorm + RoPE | 209M | 2.6% |
+| **Total** | **8.03B** | **100%** |
+
+![Distribusi parameter dalam Llama-3 8B](../../assets/images/bab-01-model/sub-bab-2/distribusi-parameter.png)
+
+*Gambar 1.2-2 — dua pertiga parameter duduk di lapisan FFN; inilah mengapa MoE bisa "memangkas" biaya komputasi dengan berbagi bergantian.*
+
+---
+
+
 ---
 
 ## 7. Dampak Jumlah Parameter pada Inferensi
+
 
 ### Kebutuhan VRAM
 
@@ -188,118 +308,8 @@ Strategi optimal: deploy model kecil (7-8B) untuk 80% beban kerja harian, dan ro
 
 ---
 
-## 8. Tabel Referensi
+## 8. Tutorial / Hands-On
 
-### Tabel 1: Perbandingan Anatomi Model Populer
-
-| Model | Lapisan | d_model | FFN dim | Head | GQA | Total Param | Embedding % |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Llama-3 8B | 32 | 4096 | 14336 | 32 | Ya (8 KV) | 8.03B | ~5% |
-| Mistral 7B | 32 | 4096 | 14336 | 32 | Ya (8 KV) | 7.24B | ~5% |
-| Qwen 2.5 7B | 28 | 4096 | 11008 | 28 | Ya | 7.61B | ~8% |
-| Llama-3 70B | 80 | 8192 | 28672 | 64 | Ya (8 KV) | 70.6B | ~2% |
-| DeepSeek V2 | 60 | 7168 | 2048 (MoE) | 56 | Ya | 236B | ~1% |
-| DeepSeek V4 Pro | 84* | 8192 | 4096 (MoE-256) | 64 | Ya | 1.6T (49B aktif) | ~0.5% |
-| Mistral Large 3 | 56* | 7168 | 3072 (granular MoE) | 48 | Ya | 675B (41B aktif) | ~1% |
-| Gemma 2 9B | 42 | 3584 | 14336 | 16 | Ya | 9.2B | ~4% |
-
-*Tanda * menandakan konfigurasi internal — detail arsitektur penuh hanya dirilis oleh vendor.*
-
-### Tabel 2: Kebutuhan Memori per Ukuran Model
-
-| Presisi | Bytes/Param | 1.5B | 7B | 8B | 13B | 49B* | 70B | 405B | 675B* |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| FP32 | 4 | 6 GB | 28 GB | 32 GB | 52 GB | 196 GB | 280 GB | 1.6 TB | 2.7 TB |
-| FP16 | 2 | 3 GB | 14 GB | 16 GB | 26 GB | 98 GB | 140 GB | 810 GB | 1.35 TB |
-| INT8 (Q8_0) | 1 | 1.5 GB | 7 GB | 8 GB | 13 GB | 49 GB | 70 GB | 405 GB | 675 GB |
-| INT4 (Q4_K_M) | ~0.5 | 0.8 GB | 3.8 GB | 4.2 GB | 6.5 GB | 25 GB | 38 GB | 220 GB | 340 GB |
-
-*Parameter aktif untuk model MoE. Semua expert harus tetap di-load ke VRAM meskipun hanya sebagian yang aktif per token.*
-
-Perhatikan bagaimana kuantisasi menggeser batas kemampuan perangkat keras: model 70B yang memerlukan 280 GB dalam FP32 bisa "dipadatkan" menjadi 38 GB dalam Q4_K_M — perbedaan yang menentukan antara butuh server dan cukup satu kartu RTX 4090.
-
-![Kebutuhan memori model dari 1,5B hingga 675B pada empat tingkat presisi](../../assets/images/bab-01-model/sub-bab-2/memori-per-presisi.png)
-
-*Gambar 1.2-1 — memori naik logaritmik seiring ukuran model; INT4 (biru tua) memangkas kebutuhan hingga 8x dibanding FP32 (biru muda).*
-
-### Tabel 3: Distribusi Parameter per Komponen (Llama-3 8B)
-
-| Komponen | Jumlah Parameter | Persentase |
-|:---|:---:|:---:|
-| Embedding (vocab 128K × 4096) | 524M | 6.5% |
-| Attention (QKV + Output per layer × 32) | 2.1B | 26.2% |
-| FFN (gate + up + down per layer × 32) | 5.2B | 64.7% |
-| LayerNorm + RoPE | 209M | 2.6% |
-| **Total** | **8.03B** | **100%** |
-
-![Distribusi parameter dalam Llama-3 8B](../../assets/images/bab-01-model/sub-bab-2/distribusi-parameter.png)
-
-*Gambar 1.2-2 — dua pertiga parameter duduk di lapisan FFN; inilah mengapa MoE bisa "memangkas" biaya komputasi dengan berbagi bergantian.*
-
----
-
-## 9. Diagram Arsitektur
-
-### Diagram 1: Anatomi Satu Lapisan Transformer
-
-Berikut adalah aliran data dalam satu lapisan Transformer, dari input token hingga output yang siap masuk ke lapisan berikutnya.
-
-```mermaid
-graph TD
-    Input[Input Token] --> Emb[Embedding]
-    Emb --> Attn[Self-Attention]
-    Attn --> LN1[LayerNorm]
-    LN1 --> FFN[Feed-Forward]
-    FFN --> LN2[LayerNorm]
-    LN2 --> Output[Output ke Lapisan Berikutnya]
-    
-    subgraph Self-Attention
-        Q[Query Projection]
-        K[Key Projection]
-        V[Value Projection]
-        O[Output Projection]
-    end
-    
-    subgraph FFN
-        G[Gate Projection]
-        U[Up Projection]
-        D[Down Projection]
-    end
-```
-
-### Gambar 2: Visualisasi Tensor Shape
-
-Diagram berikut menunjukkan dimensi tensor di setiap tahap pemrosesan — dari input dengan bentuk (batch, sequence, d_model) hingga attention scores dan output FFN. Setiap kotak dalam diagram merepresentasikan satu matriks yang harus disimpan di VRAM selama inferensi.
-
-```mermaid
-flowchart LR
-    A[Input\n(batch, seq, d_model)] --> B[Q Projection\nd_model x d_model]
-    A --> C[K Projection\nd_model x d_model]
-    A --> D[V Projection\nd_model x d_model]
-    B --> E[Attention Scores\n(seq x seq x heads)]
-    C --> E
-    E --> F[Weighted Sum\n(seq, d_model)]
-    D --> F
-    F --> G[FFN Up Projection\n(d_model x ffn_dim)]
-    G --> H[FFN Down Projection\n(ffn_dim x d_model)]
-    H --> I[Output\n(batch, seq, d_model)]
-```
-
-### Gambar 3: Perbandingan Fisik Ukuran Model
-
-Untuk memberikan intuisi tentang skala: model 1,5B (GPT-2) seukuran buku novel (~1,2 GB Q4). Model 7B seukuran ensiklopedia satu jilid (~4,5 GB). Model 70B sebesar rak buku penuh (~42 GB Q4). Model 405B membutuhkan perpustakaan kecil (~220 GB). Dan DeepSeek V4 Pro 1,6T membutuhkan ruang server khusus (~865 GB INT4). Perbandingan visualnya dapat dibayangkan sebagai tangga berikut:
-
-```mermaid
-flowchart LR
-    A[GPT-2 1,5B\n1,2 GB - Novel] --> B[Model 7B\n4,5 GB - Ensiklopedia]
-    B --> C[Model 70B\n42 GB - Rak Buku]
-    C --> D[Model 405B\n220 GB - Perpustakaan]
-    D --> E[DeepSeek V4 Pro 1,6T\n865 GB - Ruang Server]
-```
-
----
-
-## 10. Tutorial / Hands-On
 
 ### Tutorial 1: Memeriksa Anatomi Model dengan Python
 
@@ -378,7 +388,8 @@ Hasilnya akan menunjukkan kecepatan tulis NVMe Anda. Semakin tinggi, semakin cep
 
 ---
 
-## 11. Studi Kasus: Memilih Model 7B vs 70B untuk Chatbot Perusahaan
+## 9. Studi Kasus: Memilih Model 7B vs 70B untuk Chatbot Perusahaan
+
 
 **Skenario:** Sebuah perusahaan dengan 20 karyawan ingin men-deploy chatbot internal untuk membantu menjawab pertanyaan seputar dokumen perusahaan, menulis kode, dan menganalisis kontrak. Mereka membutuhkan respons cepat (di bawah 2 detik) dan akurasi yang memadai. Anggaran hardware terbatas.
 
@@ -402,7 +413,8 @@ Hasilnya akan menunjukkan kecepatan tulis NVMe Anda. Semakin tinggi, semakin cep
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

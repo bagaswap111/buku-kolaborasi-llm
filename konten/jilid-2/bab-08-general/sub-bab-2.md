@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Membedakan **NVIDIA A100, H100, dan L40S** secara teknis — arsitektur, VRAM, *memory bandwidth*, dan *throughput* — dalam konteks *inference* LLM, bukan *training*
@@ -19,7 +20,8 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Konsep Dasar GPU Inference Server
 
-Sebelum menyentuh spesifikasi, satu kesalahpahaman umum harus diluruskan: **LLM inference berbeda fundamental dari training**. *Training* dibebani *compute* (matematika floating-point yang masif), sedangkan *inference* — menyalakan model untuk melayani prompt — dibatasi oleh **memory bandwidth**: kecepatan GPU membaca bobot model dari VRAM untuk setiap token yang dihasilkan. Sebuah GPU dengan TFLOPS tinggi tetapi bandwidth rendah akan menghasilkan token dengan lambat, seperti pustakawan yang sangat pintar tetapi harus berjalan jauh setiap kali mengambil sebuah buku. Inilah sebabnya pada tabel perbandingan di seksi 7, kolom *memory bandwidth* dan VRAM lebih menentukan daripada kolom TFLOPS.
+
+Sebelum menyentuh spesifikasi, satu kesalahpahaman umum harus diluruskan: **LLM inference berbeda fundamental dari training**. *Training* dibebani *compute* (matematika floating-point yang masif), sedangkan *inference* — menyalakan model untuk melayani prompt — dibatasi oleh **memory bandwidth**: kecepatan GPU membaca bobot model dari VRAM untuk setiap token yang dihasilkan. Sebuah GPU dengan TFLOPS tinggi tetapi bandwidth rendah akan menghasilkan token dengan lambat, seperti pustakawan yang sangat pintar tetapi harus berjalan jauh setiap kali mengambil sebuah buku. Inilah sebabnya pada tabel perbandingan di seksi 2, kolom *memory bandwidth* dan VRAM lebih menentukan daripada kolom TFLOPS.
 
 Konsekuensi kedua dari karakteristik ini: **efisiensi batching lebih berharga daripada kecepatan kartu**. Karena *decode* token berjalan sekuensial, satu GPU yang melayani satu *request* sambil menganggur di antara token adalah pemborosan murni — kartu itu tidak terpakai 60-80% waktunya. Teknik *continuous batching* (yang diimplementasikan vLLM via *PagedAttention* [2]) memanfaatkan celah ini dengan mengerjakan banyak *request* dalam satu kartu secara bergantian token per token. Implikasi praktisnya bagi *sizing*: *throughput* kartu ditentukan oleh *concurrency* yang bisa ditampungnya, dan *concurrency* itu dibatasi VRAM — memutar lagi ke tema bandwidth + VRAM sebagai dua sumbu keputusan pembelian.
 
@@ -31,9 +33,26 @@ Batasan *throughput* ini juga menerjemahkan menjadi bahasa teknis yang sederhana
 
 Dari titik ini muncul dua arsitektur yang akan diuji sepanjang bab: **single-node multi-GPU** — satu server fisik berisi 4-8 GPU yang saling terhubung NVLink — dan **multi-node single-GPU** — dua hingga empat server, masing-masing berisi satu-dua GPU, yang diorkestrasi oleh Kubernetes. Keduanya punya pengusungnya masing-masing; seksi 5 akan mengupas kapan memilih yang mana. Sebelum melangkah lebih jauh, mari kita kenali dulu ketiga kandidat GPU-nya — karena keputusan arsitektur pada akhirnya ditentukan oleh karakter kartu yang dipilih.
 
+### Tabel 1: Perbandingan GPU Spesifikasi
+
+| Spesifikasi | NVIDIA A100 80GB | NVIDIA H100 80GB | NVIDIA L40S 48GB |
+|:---|:---|:---|:---|
+| **Arsitektur** | Ampere (2020) | Hopper (2022) | Ada Lovelace (2023) |
+| **VRAM** | 80 GB HBM2e | 80 GB HBM3 | 48 GB GDDR6 |
+| **Memory Bandwidth** | 2.0 TB/s | 3.35 TB/s | 864 GB/s |
+| **FP32 TFLOPS** | 312 | 989 | 568 |
+| **FP8 TFLOPS** | 624 | 1,979 | 1,138 |
+| **Interconnect** | NVLink 3 (600 GB/s) | NVLink 4 (900 GB/s) | PCIe 4.0 x16 |
+| **TDP** | 400W | 700W | 350W |
+| **Harga Pasar (Rp)** | ~250-350 jt | ~400-600 jt | ~150-250 jt |
+
+Bacaan penting tabel ini: perhatikan bahwa *memory bandwidth* tidak berjalan seiring harga. A100 dua kali lebih lebar dari L40S dalam bandwidth (2,0 TB/s vs 864 GB/s) — untuk model 70B, A100 unggul jelas; tetapi untuk model 7B yang muat dalam satu *die*, perbedaan bandwidth itu nyaris tak terasa, sementara harga L40S setengahnya. Inilah inti *trade-off* pembelian: **beli bandwidth ketika model besar mendominasi; beli kartu murah ketika beban mayoritas adalah model kecil**. Jangan pula mengabaikan baris interkoneksi: L40S hanya PCIe 4.0 x16 tanpa NVLink — ia adalah kartu *single-GPU independent* yang disatu-padukan lewat jaringan, cocok untuk klaster multi-node, bukan untuk *tensor parallel* dalam satu node [1]. Spesifikasi di atas mengacu pada dokumen arsitektur resmi NVIDIA [1, referensi pendukung] dan benchmark dunia nyata A100 vs H100 vs L40S [5].
+
+
 ---
 
 ## 3. Profil GPU: A100, H100, dan L40S
+
 
 ### NVIDIA A100 (Ampere, 2020)
 
@@ -59,6 +78,7 @@ Kesimpulan yang lebih tajam: **L40S dan H100 bukanlah pesaing, melainkan mitra d
 
 ## 4. Perhitungan Kebutuhan VRAM
 
+
 Merancang kapasitas dimulai dari satu pertanyaan: **berapa GB VRAM yang dibutuhkan sebuah model pada tingkat konkurensi tertentu?** Rumusnya terdiri dari tiga komponen: ukuran bobot model (sesuai kuantisasi), *KV cache* per *context*, dan faktor pengali untuk konkurensi.
 
 Angka dasar yang dipakai di seluruh buku ini:
@@ -72,57 +92,6 @@ Komponen yang paling sering diremehkan adalah **faktor konkurensi**. *KV cache* 
 Mari kerjakan satu contoh lengkap untuk kantor 35 user dengan *peak concurrency* 15 (Bab 8.1). Asumsi: 40% trafik adalah RAG atas dokumen panjang (context 8.192 token), 30% *coding assistant* (context 4.096), 30% sisanya tugas ringan. Untuk model **Mistral Large 3 Q4** pada H100 80 GB: bobot ±46 GB, lalu tambahkan *KV cache* untuk 15 percakapan hidup masing-masing ±8 GB → 120 GB. Total kebutuhan ±166 GB — artinya satu H100 tidak cukup; konfigurasi dua node @ 1x H100 (berbagi beban via klaster) menjadi minimum yang rasional. Sekarang ulangi dengan beban 5 user konkuren: ±86 GB — satu H100 80 GB *masih* muat dengan *squeeze*. Di sinilah keputusan hardware berubah total hanya karena membaca pola beban dengan benar: **konkurensi, bukan jumlah karyawan, yang menentukan jumlah kartu** [2].
 
 Uji kedua untuk beban yang lebih ringan: model **Ministral 3 14B Q4** (±9 GB bobot + ±2 GB *KV cache* per percakapan) pada L40S 48 GB. Dengan *peak concurrency* 10 di jam sibuk — kantor 25 user yang 60% trafiknya *chat cepat* — kebutuhan total hanya ±29 GB, muat dengan lega dalam satu L40S, dan *sekarat* sama sekali belum terasa: vLLM masih bisa *batching* 8-16 *request* bersamaan. Bandingkan biayanya: satu L40S (Rp 150-250 juta) menggantikan peran satu H100 (Rp 400-600 juta) untuk seluruh beban ringan kantor. Inilah ilustrasi mengapa *tiered serving* pada seksi 3 bukan teori: **dua L40S + satu H100 seringkali lebih murah dan lebih sesuai daripada tiga H100** untuk kantor yang *query*-nya didominasi model kecil.
-
----
-
-## 5. Cluster Multi-Node vs Single-Node
-
-Dua jalan menuju kapasitas. **Single-node (4-8 GPU)** — biasanya server dual-socket seperti Dell R760xa dengan GPU yang saling terhubung NVLink — menawarkan *latency* terendah karena komunikasi antar-GPU berjalan di 900 GB/s, dan *software stack* lebih sederhana (satu OS, satu hypervisor). Kelemahannya klasik: **single point of failure**. Satu PSU mati, satu *motherboard* rusak, maka delapan GPU ikut mati — dan *downtime* GPU seharga miliaran rupiah itu sangat menyakitkan.
-
-**Multi-node (2-4 node, masing-masing 1-2 GPU)** mengorbankan sebagian *latency* (komunikasi antar-node melewati jaringan 25/100 GbE, bukan NVLink) demi dua keuntungan besar: **resilience** — satu node mati, node lain tetap melayani; dan **scalability horisontal** — menambah kapasitas sesederhana memasang satu server baru ke dalam klaster K3s, tanpa menyentuh yang lama. Bagi general office yang mengejar 99,999% uptime (Bab 8.1), karakteristik ini adalah ajang kemenangan.
-
-Perbandingan kedua arsitektur juga menyentuh lapisan yang lebih halus: *operational blast radius*. Dalam single-node, satu *kernel panic* berarti delapan GPU mati sekaligus — dan investigasi *root cause* harus menyisir satu mesin raksasa. Dalam multi-node, kegagalan terisolasi per node; pod vLLM yang mati di-*reschedule* oleh K3s ke node sehat dalam hitungan detik, sementara operator menyelidiki server bermasalah tanpa tekanan lalu lintas. Bagi tim IT kantor yang umumnya kecil (1-3 orang), *blast radius* kecil ini bernilai luar biasa — mereka jarang mendapat *maintenance window* panjang seperti *data center* operator.
-
-Rekomendasi buku ini untuk 21-50 user: **2 node @ 1x H100 atau L40S** — bukan 1 node @ 2 GPU, bukan pula 4 node kecil-kecil. Dua node memberi redundansi GPU minimum yang diminta pilar arsitektur (Bab 8.1), sementara tetap menjaga kompleksitas jaringan dan biaya interkoneksi tetap rendah. Sedangkan single-node multi-GPU tetap punya tempat: hanya untuk workload yang membutuhkan *tensor parallelism* antar-GPU berlatensi sangat rendah, seperti DeepSeek V4 Pro dalam FP8 — kasus yang dibahas pada konfigurasi Premium.
-
-Ringkas perbandingannya: **single-node membeli kecepatan, multi-node membeli ketenangan**. Kantor yang melayani klien eksternal dengan janji SLA 99,9%+ tidak punya pilihan selain multi-node — nama baik lebih mahal daripada *latency* 5 milidetik. Kantor yang beban AI-nya non-kritis (misalnya hanya asisten internal) boleh mulai dari single-node dengan catatan eksplisit: *recovery time objective* (RTO) mereka dihitung dalam satuan hari, bukan detik. Keputusan ini harus ditulis sebagai kebijakan tertulis, karena menentukan seluruh biaya *cooling*, listrik, dan *maintenance* tiga tahun ke depan.
-
----
-
-## 6. Komponen Pendukung
-
-GPU adalah bintang, tetapi tanpa pengiring yang tepat, bintang itu tidak akan naik panggung. Berikut komponen pendukung yang wajib dianggarkan bersama GPU:
-
-- **CPU**: AMD EPYC atau Intel Xeon, minimal **16 core** — untuk mesin GPU worker, 32 core (misalnya AMD EPYC 32C) adalah pilihan aman karena runtime vLLM, tokenizer, dan scheduler ikut menumpang
-- **RAM**: **256-512 GB DDR5** per node GPU — model di-load penuh ke VRAM, tetapi *prefetch* bobot, *KV cache* CPU offload (Mooncake-style [4]), dan *prefill* berjalan lewat RAM
-- **Storage**: **NVMe RAID 10 sebesar 2-4 TB** untuk menyimpan bobot model dan *checkpoint* — RAID 10 dipilih karena menggabungkan kecepatan dan ketahanan disk
-- **Network**: **25/100 GbE** untuk *interconnect* antar-node di klaster multi-node; 25 GbE adalah *baseline*, 100 GbE untuk beban RAG atau *tensor parallel*
-- **Rack & listrik**: rack **42U**, **UPS 3000VA**, dan kapasitas *cooling* **10-15 kW** — TDP tiga GPU plus CPU server dengan mudah melewati 2 kW, dan ruang server biasa tanpa AC khusus akan meleleh
-
-Sebuah catatan praktis tentang **urutan pembelian**: komponen pendukung harus dipesan lebih dulu daripada GPU — bukan sebaliknya. Alasannya logistik murni: GPU enterprise membutuhkan *power connector* khusus (8-pin EPS pada H100), server NVIDIA-Certified tertentu, dan rak dengan *airflow* depan-belakang. Kantor yang membeli GPU lebih dulu sering menemukan kekurangan ini dua bulan kemudian, saat kartu mahal sudah terlanjur menumpuk di gudang. Urutan yang benar: *(1)* periksa daya listrik ruangan dan siapkan jalur khusus, *(2)* pesan rack, UPS, dan AC, *(3)* pesan server dan storage, *(4)* baru GPU — dan gunakan masa tunggu GPU untuk menyelesaikan instalasi.
-
-Komponen-komponen ini — bukan GPU-nya — yang sering membengkakkan anggaran di lapangan. Tabel TCO pada seksi 7 memasukkan semuanya, sehingga pembaca tidak akan kaget setelah pembelian.
-
-Satu komponen terakhir yang sering luput dari daftar karena tidak berwujud: **waktu setup dan keahlian**. Memasang dua node GPU + K3s + vLLM dari nol biasanya memakan 5-10 hari kerja seorang engineer — atau 2-3 hari jika memakai *deployment guide* terstandardisasi dari vendor (NVIDIA Base Command, Dell OpenManage). Untuk general office yang tidak memiliki DevOps penuh waktu, *platform engineering* semacam ini bisa di-outsource, dengan catatan: serahkan dokumentasi konfigurasi yang menyeluruh, karena pergantian tim adalah kemungkinan nyata. Anggaran setup ±Rp 50 juta pada studi kasus Bab 8.1 adalah gambaran realistis kelas biaya ini.
-
----
-
-## 7. Tabel Wajib
-
-### Tabel 1: Perbandingan GPU Spesifikasi
-
-| Spesifikasi | NVIDIA A100 80GB | NVIDIA H100 80GB | NVIDIA L40S 48GB |
-|:---|:---|:---|:---|
-| **Arsitektur** | Ampere (2020) | Hopper (2022) | Ada Lovelace (2023) |
-| **VRAM** | 80 GB HBM2e | 80 GB HBM3 | 48 GB GDDR6 |
-| **Memory Bandwidth** | 2.0 TB/s | 3.35 TB/s | 864 GB/s |
-| **FP32 TFLOPS** | 312 | 989 | 568 |
-| **FP8 TFLOPS** | 624 | 1,979 | 1,138 |
-| **Interconnect** | NVLink 3 (600 GB/s) | NVLink 4 (900 GB/s) | PCIe 4.0 x16 |
-| **TDP** | 400W | 700W | 350W |
-| **Harga Pasar (Rp)** | ~250-350 jt | ~400-600 jt | ~150-250 jt |
-
-Bacaan penting tabel ini: perhatikan bahwa *memory bandwidth* tidak berjalan seiring harga. A100 dua kali lebih lebar dari L40S dalam bandwidth (2,0 TB/s vs 864 GB/s) — untuk model 70B, A100 unggul jelas; tetapi untuk model 7B yang muat dalam satu *die*, perbedaan bandwidth itu nyaris tak terasa, sementara harga L40S setengahnya. Inilah inti *trade-off* pembelian: **beli bandwidth ketika model besar mendominasi; beli kartu murah ketika beban mayoritas adalah model kecil**. Jangan pula mengabaikan baris interkoneksi: L40S hanya PCIe 4.0 x16 tanpa NVLink — ia adalah kartu *single-GPU independent* yang disatu-padukan lewat jaringan, cocok untuk klaster multi-node, bukan untuk *tensor parallel* dalam satu node [1]. Spesifikasi di atas mengacu pada dokumen arsitektur resmi NVIDIA [1, referensi pendukung] dan benchmark dunia nyata A100 vs H100 vs L40S [5].
 
 ### Tabel 2: Rekomendasi Konfigurasi per Skenario
 
@@ -139,28 +108,34 @@ Empat skenario ini juga mengajarkan pola yang lebih umum: **kualitas model dan j
 
 Cara membaca tabel ini sebagai *decision tree*: pertama tentukan **model kelas berat** yang wajib dijalankan (jika DeepSeek V4 Pro menjadi syarat, langsung lompat ke skenario Premium; jika Mistral Large 3 cukup, Standard; dan seterusnya). Kedua, cocokkan dengan **jumlah user nyata**, bukan jumlah karyawan — kantor 50 karyawan dengan hanya 20 yang rutin memakai AI boleh membangun di atas skenario Budget. Ketiga, beri *headroom* satu langkah bila proyeksi pertumbuhan pengguna aktif lebih dari 30% per tahun. Tabel ini juga menunjukkan bahwa *max concurrent user* tidak pernah sebanding linear dengan jumlah kartu: dari 2x L40S (15 user) ke 4x H100 (35 user), GPU berlipat dua tetapi user hanya naik 2,3x — karena model yang dijalankan ikut membesar. **Memilih model dulu, menghitung user kemudian — itulah urutan yang benar.**
 
-### Tabel 3: TCO 3 Tahun (IDR)
 
-| Komponen Biaya | L40S Dual Node | H100 Dual Node | A100 Quad Node |
-|:---|:---:|:---:|:---:|
-| **Hardware** | Rp 400jt | Rp 750jt | Rp 1.2M |
-| **Listrik (3 thn, Rp 1.5k/kWh)** | Rp 92jt | Rp 184jt | Rp 315jt |
-| **Cooling & Rack (3 thn)** | Rp 54jt | Rp 72jt | Rp 108jt |
-| **Maintenance (3 thn)** | Rp 60jt | Rp 90jt | Rp 120jt |
-| **Software/Lisensi** | Rp 30jt | Rp 45jt | Rp 60jt |
-| **Total TCO 3 Tahun** | **Rp 636jt** | **Rp 1.14M** | **Rp 1.8M** |
+### Gambar 2: Diagram Perbandingan Performance per Dollar
 
-Tabel TCO mengubah cara pandang pembelian GPU. Harga beli H100 dual node hanya sepertiga dari total TCO Rp 1,14 miliar — **dua pertiga sisanya adalah biaya hidup** (listrik, cooling, maintenance, lisensi). Perhatikan pula perbandingan mengejutkan antara H100 (700W) dan L40S (350W): selisih TDP dua kali lipat memproduksi selisih tagihan listrik dua kali lipat (Rp 184jt vs Rp 92jt) dan selisih *cooling* yang sejalan. Untuk kantor yang beroperasi di lokasi dengan tarif listrik industri tinggi, L40S bahkan lebih menarik daripada yang terlihat di harga kartu. Satu-satunya koreksi terhadap kesimpulan "pilih yang paling hemat" adalah *throughput*: jika 25 user membutuhkan H100 (Tabel 2, skenario Standard), memaksakan L40S hanya akan menghasilkan antrean — dan biaya karyawan menunggu jauh lebih mahal daripada selisih TCO [5]. Angka-angka di sini bersifat indikatif terhadap harga pasar Indonesia saat penulisan dan wajib divalidasi ulang sebelum keputusan pembelian.
+Perbandingan **token per detik per juta rupiah** untuk A100, H100, dan L40S berdasarkan *benchmark* dunia nyata [5] dapat dilihat pada diagram berikut. Dua kesimpulan yang diharapkan dari perbandingan ini: **L40S unggul di *cost efficiency*** — token termurah per rupiah untuk beban model kecil — sementara **H100 unggul di *raw performance*** — token terbanyak per detik mutlak. A100 duduk di tengah: bukan yang tercepat, bukan yang termurah, tetapi pembelian *second-hand* yang berharga untuk kantor dengan anggaran terbatas yang tetap ingin menjalankan model 70B.
 
-![TCO 3 tahun L40S Dual Node Rp 636 jt, H100 Dual Node Rp 1.140 jt, dan A100 Quad Node Rp 1.800 jt — hardware hanya sepertiga, dua pertiga sisanya biaya hidup (listrik, cooling, maintenance, lisensi)](../../assets/images/bab-08-general/sub-bab-2/komposisi-tco-3-tahun.png)
+```mermaid
+flowchart LR
+    L40S[L40S 48GB\nLowest cost/token\nbeban model kecil] --- A100[A100 80GB\nbalance\n2nd-hand value]
+    A100 --- H100[H100 80GB\nHighest raw throughput\n: bbn model besar]
+```
 
-*Gambar 8.2-1 — Hardware mendominasi tiap pilar TCO (Rp 400 jt → Rp 750 jt → Rp 1.200 jt), tetapi biaya hidup ikut menanjak seiring kelas kartu; TDP dua kali lipat (H100 vs L40S) tercermin pada tagihan listrik dua kali lipat (Rp 184 jt vs Rp 92 jt), persis narasi seksi 6.*
+Cara memakai perbandingan ini saat bernegosiasi dengan *budget holder*: jangan mulai dari harga kartu, tetapi dari **biaya per 1 juta token** yang dihasilkan selama 3 tahun. Angka itulah yang membuat pembelian H100 untuk beban berat dan L40S untuk beban ringan terdengar masuk akal — bukan sebagai "GPU mahal", melainkan sebagai "token murah". Sebaliknya, memakai satu L40S untuk beban yang seharusnya H100 akan tampak jelas sia-sia dalam grafik yang sama: token per rupiahnya anjlok karena antrean membatasi utilisasi kartu.
 
-Baca juga apa yang **tidak tercantum** di tabel TCO: biaya tenaga kerja setup (±Rp 50 juta dalam studi kasus Bab 8.1), biaya *downtime* selama migrasi, dan *residual value* GPU di akhir tahun ketiga. A100 yang setelah 3 tahun masih laku 50% dari harga beli di pasar *surplus* akan mengubah kalkulasi — begitu pula H100 yang *depresiasinya* lebih lambat karena permintaan kuat. Bagi perusahaan yang disiplin mencatat, praktik terbaik adalah membuat **tabel TCO versi sendiri** — kolom tambahan untuk *residual value* dan *replacement schedule* — sebelum menandatangani PO. Terakhir, jadwalkan pembelian di sekitar siklus rilis NVIDIA: kedatangan generasi baru biasanya menekan harga GPU generasi lama di pasar resmi, sebuah fenomena yang menguntungkan kantor dengan tenggat fleksibel.
 
 ---
 
-## 8. Diagram & Visualisasi
+## 5. Cluster Multi-Node vs Single-Node
+
+
+Dua jalan menuju kapasitas. **Single-node (4-8 GPU)** — biasanya server dual-socket seperti Dell R760xa dengan GPU yang saling terhubung NVLink — menawarkan *latency* terendah karena komunikasi antar-GPU berjalan di 900 GB/s, dan *software stack* lebih sederhana (satu OS, satu hypervisor). Kelemahannya klasik: **single point of failure**. Satu PSU mati, satu *motherboard* rusak, maka delapan GPU ikut mati — dan *downtime* GPU seharga miliaran rupiah itu sangat menyakitkan.
+
+**Multi-node (2-4 node, masing-masing 1-2 GPU)** mengorbankan sebagian *latency* (komunikasi antar-node melewati jaringan 25/100 GbE, bukan NVLink) demi dua keuntungan besar: **resilience** — satu node mati, node lain tetap melayani; dan **scalability horisontal** — menambah kapasitas sesederhana memasang satu server baru ke dalam klaster K3s, tanpa menyentuh yang lama. Bagi general office yang mengejar 99,999% uptime (Bab 8.1), karakteristik ini adalah ajang kemenangan.
+
+Perbandingan kedua arsitektur juga menyentuh lapisan yang lebih halus: *operational blast radius*. Dalam single-node, satu *kernel panic* berarti delapan GPU mati sekaligus — dan investigasi *root cause* harus menyisir satu mesin raksasa. Dalam multi-node, kegagalan terisolasi per node; pod vLLM yang mati di-*reschedule* oleh K3s ke node sehat dalam hitungan detik, sementara operator menyelidiki server bermasalah tanpa tekanan lalu lintas. Bagi tim IT kantor yang umumnya kecil (1-3 orang), *blast radius* kecil ini bernilai luar biasa — mereka jarang mendapat *maintenance window* panjang seperti *data center* operator.
+
+Rekomendasi buku ini untuk 21-50 user: **2 node @ 1x H100 atau L40S** — bukan 1 node @ 2 GPU, bukan pula 4 node kecil-kecil. Dua node memberi redundansi GPU minimum yang diminta pilar arsitektur (Bab 8.1), sementara tetap menjaga kompleksitas jaringan dan biaya interkoneksi tetap rendah. Sedangkan single-node multi-GPU tetap punya tempat: hanya untuk workload yang membutuhkan *tensor parallelism* antar-GPU berlatensi sangat rendah, seperti DeepSeek V4 Pro dalam FP8 — kasus yang dibahas pada konfigurasi Premium.
+
+Ringkas perbandingannya: **single-node membeli kecepatan, multi-node membeli ketenangan**. Kantor yang melayani klien eksternal dengan janji SLA 99,9%+ tidak punya pilihan selain multi-node — nama baik lebih mahal daripada *latency* 5 milidetik. Kantor yang beban AI-nya non-kritis (misalnya hanya asisten internal) boleh mulai dari single-node dengan catatan eksplisit: *recovery time objective* (RTO) mereka dihitung dalam satuan hari, bukan detik. Keputusan ini harus ditulis sebagai kebijakan tertulis, karena menentukan seluruh biaya *cooling*, listrik, dan *maintenance* tiga tahun ke depan.
 
 ### Gambar 1: Arsitektur Multi-Node Cluster
 
@@ -210,17 +185,47 @@ Diagram ini menggambarkan rekomendasi utama bab ini: **dua node GPU worker** den
 
 Ada satu detail yang sengaja tidak digambar: **koneksi internet**. Node inference tidak memerlukan akses internet berkelanjutan — model sudah berada di storage lokal — dan justru lebih aman tanpa koneksi keluar, karena ini mempersempit permukaan serangan (Bab 8.5). Jika internet diperlukan (misalnya untuk *telemetry* atau pembaruan model), arahkan lewat *proxy* terkontrol. Dengan kata lain, diagram di atas adalah diagram sebuah kantor yang *sovereign*: seluruh siklus hidup model — penyimpanan, pemuatan, *inference* — berjalan di dalam perimeter fisik perusahaan sendiri.
 
-### Gambar 2: Diagram Perbandingan Performance per Dollar
 
-Perbandingan **token per detik per juta rupiah** untuk A100, H100, dan L40S berdasarkan *benchmark* dunia nyata [5] dapat dilihat pada diagram berikut. Dua kesimpulan yang diharapkan dari perbandingan ini: **L40S unggul di *cost efficiency*** — token termurah per rupiah untuk beban model kecil — sementara **H100 unggul di *raw performance*** — token terbanyak per detik mutlak. A100 duduk di tengah: bukan yang tercepat, bukan yang termurah, tetapi pembelian *second-hand* yang berharga untuk kantor dengan anggaran terbatas yang tetap ingin menjalankan model 70B.
+---
 
-```mermaid
-flowchart LR
-    L40S[L40S 48GB\nLowest cost/token\nbeban model kecil] --- A100[A100 80GB\nbalance\n2nd-hand value]
-    A100 --- H100[H100 80GB\nHighest raw throughput\n: bbn model besar]
-```
+## 6. Komponen Pendukung
 
-Cara memakai perbandingan ini saat bernegosiasi dengan *budget holder*: jangan mulai dari harga kartu, tetapi dari **biaya per 1 juta token** yang dihasilkan selama 3 tahun. Angka itulah yang membuat pembelian H100 untuk beban berat dan L40S untuk beban ringan terdengar masuk akal — bukan sebagai "GPU mahal", melainkan sebagai "token murah". Sebaliknya, memakai satu L40S untuk beban yang seharusnya H100 akan tampak jelas sia-sia dalam grafik yang sama: token per rupiahnya anjlok karena antrean membatasi utilisasi kartu.
+
+GPU adalah bintang, tetapi tanpa pengiring yang tepat, bintang itu tidak akan naik panggung. Berikut komponen pendukung yang wajib dianggarkan bersama GPU:
+
+- **CPU**: AMD EPYC atau Intel Xeon, minimal **16 core** — untuk mesin GPU worker, 32 core (misalnya AMD EPYC 32C) adalah pilihan aman karena runtime vLLM, tokenizer, dan scheduler ikut menumpang
+- **RAM**: **256-512 GB DDR5** per node GPU — model di-load penuh ke VRAM, tetapi *prefetch* bobot, *KV cache* CPU offload (Mooncake-style [4]), dan *prefill* berjalan lewat RAM
+- **Storage**: **NVMe RAID 10 sebesar 2-4 TB** untuk menyimpan bobot model dan *checkpoint* — RAID 10 dipilih karena menggabungkan kecepatan dan ketahanan disk
+- **Network**: **25/100 GbE** untuk *interconnect* antar-node di klaster multi-node; 25 GbE adalah *baseline*, 100 GbE untuk beban RAG atau *tensor parallel*
+- **Rack & listrik**: rack **42U**, **UPS 3000VA**, dan kapasitas *cooling* **10-15 kW** — TDP tiga GPU plus CPU server dengan mudah melewati 2 kW, dan ruang server biasa tanpa AC khusus akan meleleh
+
+Sebuah catatan praktis tentang **urutan pembelian**: komponen pendukung harus dipesan lebih dulu daripada GPU — bukan sebaliknya. Alasannya logistik murni: GPU enterprise membutuhkan *power connector* khusus (8-pin EPS pada H100), server NVIDIA-Certified tertentu, dan rak dengan *airflow* depan-belakang. Kantor yang membeli GPU lebih dulu sering menemukan kekurangan ini dua bulan kemudian, saat kartu mahal sudah terlanjur menumpuk di gudang. Urutan yang benar: *(1)* periksa daya listrik ruangan dan siapkan jalur khusus, *(2)* pesan rack, UPS, dan AC, *(3)* pesan server dan storage, *(4)* baru GPU — dan gunakan masa tunggu GPU untuk menyelesaikan instalasi.
+
+Komponen-komponen ini — bukan GPU-nya — yang sering membengkakkan anggaran di lapangan. Tabel TCO pada seksi 2 memasukkan semuanya, sehingga pembaca tidak akan kaget setelah pembelian.
+
+Satu komponen terakhir yang sering luput dari daftar karena tidak berwujud: **waktu setup dan keahlian**. Memasang dua node GPU + K3s + vLLM dari nol biasanya memakan 5-10 hari kerja seorang engineer — atau 2-3 hari jika memakai *deployment guide* terstandardisasi dari vendor (NVIDIA Base Command, Dell OpenManage). Untuk general office yang tidak memiliki DevOps penuh waktu, *platform engineering* semacam ini bisa di-outsource, dengan catatan: serahkan dokumentasi konfigurasi yang menyeluruh, karena pergantian tim adalah kemungkinan nyata. Anggaran setup ±Rp 50 juta pada studi kasus Bab 8.1 adalah gambaran realistis kelas biaya ini.
+
+### Tabel 3: TCO 3 Tahun (IDR)
+
+| Komponen Biaya | L40S Dual Node | H100 Dual Node | A100 Quad Node |
+|:---|:---:|:---:|:---:|
+| **Hardware** | Rp 400jt | Rp 750jt | Rp 1.2M |
+| **Listrik (3 thn, Rp 1.5k/kWh)** | Rp 92jt | Rp 184jt | Rp 315jt |
+| **Cooling & Rack (3 thn)** | Rp 54jt | Rp 72jt | Rp 108jt |
+| **Maintenance (3 thn)** | Rp 60jt | Rp 90jt | Rp 120jt |
+| **Software/Lisensi** | Rp 30jt | Rp 45jt | Rp 60jt |
+| **Total TCO 3 Tahun** | **Rp 636jt** | **Rp 1.14M** | **Rp 1.8M** |
+
+Tabel TCO mengubah cara pandang pembelian GPU. Harga beli H100 dual node hanya sepertiga dari total TCO Rp 1,14 miliar — **dua pertiga sisanya adalah biaya hidup** (listrik, cooling, maintenance, lisensi). Perhatikan pula perbandingan mengejutkan antara H100 (700W) dan L40S (350W): selisih TDP dua kali lipat memproduksi selisih tagihan listrik dua kali lipat (Rp 184jt vs Rp 92jt) dan selisih *cooling* yang sejalan. Untuk kantor yang beroperasi di lokasi dengan tarif listrik industri tinggi, L40S bahkan lebih menarik daripada yang terlihat di harga kartu. Satu-satunya koreksi terhadap kesimpulan "pilih yang paling hemat" adalah *throughput*: jika 25 user membutuhkan H100 (Tabel 2, skenario Standard), memaksakan L40S hanya akan menghasilkan antrean — dan biaya karyawan menunggu jauh lebih mahal daripada selisih TCO [5]. Angka-angka di sini bersifat indikatif terhadap harga pasar Indonesia saat penulisan dan wajib divalidasi ulang sebelum keputusan pembelian.
+
+![TCO 3 tahun L40S Dual Node Rp 636 jt, H100 Dual Node Rp 1.140 jt, dan A100 Quad Node Rp 1.800 jt — hardware hanya sepertiga, dua pertiga sisanya biaya hidup (listrik, cooling, maintenance, lisensi)](../../assets/images/bab-08-general/sub-bab-2/komposisi-tco-3-tahun.png)
+
+*Gambar 8.2-1 — Hardware mendominasi tiap pilar TCO (Rp 400 jt → Rp 750 jt → Rp 1.200 jt), tetapi biaya hidup ikut menanjak seiring kelas kartu; TDP dua kali lipat (H100 vs L40S) tercermin pada tagihan listrik dua kali lipat (Rp 184 jt vs Rp 92 jt), persis narasi seksi 6.*
+
+Baca juga apa yang **tidak tercantum** di tabel TCO: biaya tenaga kerja setup (±Rp 50 juta dalam studi kasus Bab 8.1), biaya *downtime* selama migrasi, dan *residual value* GPU di akhir tahun ketiga. A100 yang setelah 3 tahun masih laku 50% dari harga beli di pasar *surplus* akan mengubah kalkulasi — begitu pula H100 yang *depresiasinya* lebih lambat karena permintaan kuat. Bagi perusahaan yang disiplin mencatat, praktik terbaik adalah membuat **tabel TCO versi sendiri** — kolom tambahan untuk *residual value* dan *replacement schedule* — sebelum menandatangani PO. Terakhir, jadwalkan pembelian di sekitar siklus rilis NVIDIA: kedatangan generasi baru biasanya menekan harga GPU generasi lama di pasar resmi, sebuah fenomena yang menguntungkan kantor dengan tenggat fleksibel.
+
+---
+
 
 ### Gambar 3: Foto Fisik Rack Server General Office (opsional)
 
@@ -240,7 +245,11 @@ flowchart TD
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Verifikasi Kompatibilitas GPU untuk LLM Inference
 
@@ -337,7 +346,8 @@ Untuk *stress test* yang benar, jangan berhenti di satu model: deploy **juga** p
 
 ---
 
-## 10. Studi Kasus: PT Solusi AI — General Office 40 Karyawan
+## 8. Studi Kasus: PT Solusi AI — General Office 40 Karyawan
+
 
 Studi kasus berikut adalah kisah nyata pola pemilihan hardware pada kantor berbeban *multi-model*. Bedakan dari studi kasus PT Karya Digital di Bab 8.1 yang menekankan arsitektur dan SLA: di sini perhatian kita terpusat pada **keputusan kartu, *sizing*, dan TCO** — bagaimana tiga model berbeda (konteks panjang, *coding*, transkripsi) diterjemahkan menjadi dua server yang sama, dan mengapa pilihan itu bertahan menghadapi 90 hari produksi.
 
@@ -353,7 +363,8 @@ Studi kasus berikut adalah kisah nyata pola pemilihan hardware pada kantor berbe
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

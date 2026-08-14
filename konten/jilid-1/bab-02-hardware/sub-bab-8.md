@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mekanisme *thermal throttle* pada GPU dan CPU — mengapa GPU menurunkan clock speed ketika suhu melewati ambang batas
@@ -18,15 +19,57 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Apa Itu Thermal Throttle?
 
+
 Setiap GPU dirancang dengan batas suhu operasional yang aman. Untuk kartu NVIDIA modern, ambang ini umumnya berada di **83–85°C** — di atas angka tersebut, kartu mulai menurunkan *clock speed*-nya secara otomatis untuk menekan produksi panas. Mekanisme ini disebut **thermal throttle**: GPU sengaja memperlambat dirinya sendiri agar tidak merusak silikon, mengorbankan performa demi keselamatan.
 
 *Throttle* bukan kebetulan — ia adalah keputusan arsitektur yang disengaja. Chip silikon yang terlalu panas akan mengalami degradasi permanen dan, pada kasus ekstrem, kegagalan solder (yang terkenal dengan sebutan *thermal pad pump-out* pada kartu bekas). Jadi GPU "mendinginkan diri" dengan cara memperlambat kerja. Masalahnya, bagi pengguna LLM, penurunan clock ini berarti penurunan **tokens/s sebesar 20–40%** — dan ini paling terasa justru saat Anda paling membutuhkannya: inferensi *long-context* di atas 32K token yang berlangsung berjam-jam. Inilah ironi termal: semakin lama model berpikir, semakin panas kartunya, dan semakin lambat ia berpikir.
 
 *Throttle* bisa dipicu oleh banyak hal yang sering kali tidak disadari: *airflow* kotak yang tidak memadai, suhu ruangan (*ambient temperature*) yang tinggi, *thermal paste* yang sudah kering dan mengeras setelah bertahun-tahun, hingga *case* yang terlalu sempit sehingga GPU "tercekik" tanpa pasokan udara segar.
 
+### Tabel 1: Dampak Throttle pada Performa LLM
+
+Tabel berikut mengukur penurunan performa secara nyata pada satu konfigurasi: RTX 3090 menjalankan Llama-3.1-8B Q4_K_M. Perhatikan bagaimana performa menari-nari mengikuti suhu dan clock.
+
+| Kondisi | Suhu GPU | Clock (MHz) | Tokens/s | Penurunan | Daya (W) |
+|:---|---:|---:|---:|---:|---:|
+| **Idle** | 35°C | 210 | - | - | 30W |
+| **Optimal (fan 100%, 25°C ambient)** | 65°C | 1860 | 85 t/s | 0% | 320W |
+| **Stock (fan auto, 30°C ambient)** | 78°C | 1720 | 78 t/s | -8% | 320W |
+| **Thermal throttle mulai** | 83°C | 1500 | 65 t/s | -24% | 280W |
+| **Throttle parah** | 88°C | 1100 | 45 t/s | -47% | 220W |
+| **Setelah undervolt 220W** | 68°C | 1650 | 80 t/s | -6% | 220W |
+
+![Kurva penurunan tokens/s dan clock GPU saat suhu naik dari 65°C ke 88°C pada RTX 3090](../../assets/images/bab-02-hardware/sub-bab-8/dampak-throttle-performa.png)
+
+*Gambar 2.8-1 — Setelah ambang 83°C, clock dan tokens/s jatuh beriringan: throttle parah di 88°C kehilangan 47% performa (85 → 45 t/s), sementara undervolt 220W mempertahankan 80 t/s di suhu hanya 68°C.*
+
+Analisis dari tabel ini sangat instruktif. Pertama, perhatikan enam baris pertama: sejak *throttle* dimulai di 83°C, performa jatuh 24%, dan pada *throttle* parah di 88°C — hampir separuh performa (45 t/s vs 85 t/s) hilang padahal model dan hardware sama persis. Kedua, perhatikan baris terakhir: *undervolt* ke 220W mengembalikan performa ke 80 t/s (hanya -6%) sambil mengurangi konsumsi daya sebesar 100W — bukti bahwa panas, bukan daya, adalah musuh sebenarnya. Kapan memilih antara pendinginan mahal vs *undervolt*? Jika penurunan 5-6% masih bisa diterima untuk beban kerja harian Anda, *undervolt* selalu menang dalam rasio biaya-manfaat; jika target Anda adalah performa maksimum yang dapat dipertahankan berjam-jam, baru pertimbangkan investasi pendinginan di Tabel 2 [1][4].
+
+
+### Diagram 1: Mekanisme Thermal Throttle
+
+Bagaimana sebuah sesi inferensi yang sehat berubah menjadi lingkaran setan performa? Berikut peta lengkapnya.
+
+```mermaid
+graph TD
+    A[Load Model LLM] --> B[GPU 100% Utilization]
+    B --> C[Suhu Naik]
+    C --> D{Suhu Melewati Threshold?}
+    D -- Tidak --> B
+    D -- Ya --> E[Clock Turun Drastis]
+    E --> F[Tokens per Detik Turun]
+    F --> G[Inferensi Makin Lama]
+    G --> H[Suhu Makin Naik]
+    H --> D
+```
+
+Diagram di atas menunjukkan dua jalur yang berlawanan. Jalur kiri (putaran "Tidak") adalah keadaan sehat: GPU bekerja 100%, suhu naik, tetapi belum melewati *threshold*, sehingga *loop* kembali ke beban penuh tanpa penalti. Jalur kanan (putaran "Ya") adalah awal malapetaka: begitu *threshold* terlampaui, clock turun, tokens/s turun, inferensi makin lama, suhu makin naik — dan pertanyaan "Suhu melewati threshold?" kembali dijawab "Ya" dengan clock yang semakin rendah. Inilah mengapa penurunan performa terlihat bertahap tetapi sebenarnya *eksponensial*: setiap putaran loop kanan memperdalam kerugian. Tugas Anda sebagai pengguna adalah menambahkan intervensi di titik mana pun pada loop: *undervolt* (mengurangi C), *fan curve* (membangun jalur pendinginan lebih cepat dari H), atau repaste (menurunkan seluruh kurva suhu).
+
+
 ---
 
 ## 3. Mengapa LLM Inference Rawan Overheat
+
 
 ### Beban Sustained vs Beban Gaming
 
@@ -50,6 +93,7 @@ Ada satu lagi alasan mengapa *sustained heat* LLM berbahaya: ia mempercepat penu
 
 ## 4. Solusi Pendinginan
 
+
 ### Airflow: Fondasi yang Paling Murah
 
 Sebelum membayangkan pipa-pipa *watercooling*, pastikan fondasi dasarnya benar: **case dengan mesh front** (bukaan kawat halus di bagian depan) yang memungkinkan udara masuk, *fan intake* dengan **positive pressure** (lebih banyak fan menarik udara masuk daripada membuangnya) agar debu tidak tersedot lewat celah, dan **GUI fan curve yang agresif** — jangan biarkan fan GPU bersikap sopan di 60% saat suhu sudah 80°C. Ketiga hal ini bisa menurunkan suhu 5–10°C tanpa mengeluarkan rupiah, atau hanya dengan mengganti fan intake 120 mm yang harganya puluhan ribu.
@@ -66,70 +110,7 @@ Ketika udara saja tidak sanggup, air adalah jawabannya. Dua jalur tersedia: **AI
 
 Satu solusi yang sering diremehkan: **undervolt** melalui *power limit*. Dengan menurunkan batas daya dari, misalnya, 350W ke 220W, suhu turun **8–12°C** sementara penurunan performa hanya sekitar 5% — karena GPU modern sudah bekerja mendekati *sweet spot* efisiensinya, dan panas yang berkurang membuat clock justru lebih stabil. Ini adalah teknik favorit bagi pengguna rumahan: gratis, mudah, dan langsung terasa dampaknya.
 
-Yang paling penting untuk diingat: solusi-solusi ini **tidak saling eksklusif** — mereka justru bekerja paling baik secara berurutan. Hasil studi kasus di Seksi 11 menunjukkan pola khas: repaste menurunkan suhu 7°C, *undervolt* menurunkan 3°C lagi, dan fan intake menurunkan 5°C — total 15°C dari tiga langkah yang masing-masing kecil. Efeknya bersifat *additive* karena masing-masing menyerang sumber panas yang berbeda: paste mengembalikan transfer panas chip → heatsink, *undervolt* mengurangi total energi yang harus dibuang, dan airflow mempercepat pembuangan panas dari heatsink → ruangan. Karena itu, mulailah dari yang paling murah dan ukur dampaknya dengan skrip monitoring (Tutorial 1) sebelum pindah ke langkah berikutnya — Anda mungkin terkejut menemukan bahwa repaste + *undervolt* saja sudah cukup, tanpa perlu menyentuh *watercooling* sama sekali.
-
----
-
-## 5. Thermal di Data Center vs Desktop: Dua Dunia Termal
-
-Penting untuk memahami bahwa GPU di data center adalah warga negara berbeda. Di pusat data, ruangan diatur secara *cooling-regulated*: *inlet temperature* (suhu udara yang masuk ke server) dikontrol ketat, dan GPU umumnya dipertahankan di bawah **60°C**. Ada tim engineer khusus yang menjaga suhu, dan *thermal management* bahkan diotomatisasi: penelitian TAPAS (Stojkovic dkk., ASPLOS 2025) menunjukkan bahwa *thermal-aware scheduling* — penempatan dan penjadwalan workload berdasarkan profil termal — mampu mengurangi suhu maksimum hingga 17% dan **menurunkan kejadian throttle hingga 97%** di cloud platform [1]. Di sisi lain, scheduler berbasis *reinforcement learning* dari Wang dkk. (ACM SIGEnergy 2025) mengurangi konsumsi energi sistem pendingin CRAC hingga 20% [2].
-
-Desktop Anda tidak mendapat kemewahan itu. Di Indonesia, dengan *ambient* ruangan **28–32°C** dan sering kali tanpa AC, GPU di dalam *case* yang diletakkan di sudut ruangan bisa beroperasi di **75–85°C** sepanjang hari. Yang di data center diselesaikan dengan ruangan berpendingin dan rak khusus, di desktop harus diselesaikan dengan fan, paste, dan disiplin termal Anda sendiri. Kabar baiknya: *throttle* di desktop bisa dicegah, asalkan Anda mau memantau dan menindaklanjutinya sejak dini.
-
-Ada satu temuan dari dunia data center yang bisa "diimpor" ke rumah: **scheduling yang sadar termal**. TAPAS di ASPLOS 2025 membuktikan bahwa hanya dengan menempatkan workload pada VM yang tepat — bukan menambah pendinginan — kejadian *throttle* bisa dikurangi hingga 97% [1]. Terjemahan praktisnya untuk desktop: jangan menjalankan dua inferensi berat bersamaan di kamar ber-AC mati; jadwalkan tugas berat di pagi atau malam hari saat suhu ruangan lebih rendah; dan jika Anda punya dua GPU, tempatkan GPU yang menangani prefill (lebih panas) di posisi yang mendapat aliran udara terbaik. Yang perlu diingat, solusi termal terbaik sering kali bukan yang paling mahal, melainkan yang paling *tahu kapan* dan *di mana* panas muncul. Untuk ruangan tanpa AC, opsi "AC ruangan 0.5 PK" di Tabel 2 — sekitar Rp 3–4 juta — sering kali lebih masuk akal secara ekonomi daripada *custom loop* Rp 8–15 juta, karena AC menurunkan *ambient* untuk seluruh sistem sekaligus: GPU, CPU, VRM, dan SSD NVMe yang sensitif panas.
-
----
-
-## 6. Monitoring Suhu
-
-Anda tidak bisa melawan musuh yang tidak Anda lihat. Karena itu, peralatan pertama seorang pengguna LLM yang serius bukanlah CPU overclock, melainkan alat pemantauan. Di Linux tersedia `nvidia-smi` (baris perintah resmi NVIDIA) dan `nvtop` (antarmuka mirip `htop` untuk GPU); di Windows ada HWMonitor dan Open Hardware Monitor.
-
-Sensor yang perlu dipantau tidak hanya satu: **GPU core** (suhu utama yang menentukan throttle), **VRAM *hotspot*** (suhu memori — kerusakan paling umum pada GPU mining bekas), **VRM** (regulator daya — komponen paling panas yang sering dilupakan), dan **CPU** (jangan lupa, *inference* CPU-only seperti di T-MAC juga bisa throttle). Tanda-tanda throttle mudah dikenali jika Anda rutin memantau: clock GPU turun drastis dari nilai boost, daya yang ditarik ikut turun (karena GPU mengurangi aktivitas), dan fan berputar maksimal terus-menerus tanpa henti. Tiga gejala itu bersamaan berarti GPU sedang "menjaga diri".
-
-Satu keterampilan yang perlu diasah: membaca **alasan** throttle. Kolom `throttle_reasons.active` pada `nvidia-smi` tidak hanya memberi tahu bahwa throttle terjadi — ia menyebutkan penyebabnya: *Thermal* (suhu — masalah pendinginan), *Power Cap* (batas daya terlampaui — GPU "meminta" daya lebih dari yang diizinkan), *Voltage Cap* (tegangan dibatasi), atau kombinasi ketiganya. Perbedaan ini menentukan solusi: throttle termal dijawab dengan repaste atau airflow (Tabel 2), sementara *power cap* — yang sering terjadi pada kartu dengan *power limit* bawaan pabrik yang rendah — dijawab dengan menaikkan power limit, bukan dengan membongkar kartu. Kesalahan diagnosis adalah alasan paling umum orang membayar solusi pendinginan mahal padahal masalahnya hanya konfigurasi daya. Ingat pula ambang batas pada Tabel 3: RTX 3090 mulai throttle di 80°C sementara RTX 4090 baru di 83°C — alarm yang Anda pasang di 82°C akan berbunyi terlalu cepat di kartu Ampere dan tepat waktu di kartu Ada Lovelace.
-
-Ringkasnya, setiap sesi monitoring yang baik menjawab lima pertanyaan berikut:
-
-1. Berapa suhu GPU core saat beban puncak, dan berapa jam sebelum suhu itu tercapai?
-2. Apakah clock turun dari nilai boost — dan seberapa dalam penurunannya?
-3. Apakah daya ditarik mengikuti TDP kartu, atau turun bersamaan dengan clock (indikasi throttle termal)?
-4. Apakah suhu VRAM *hotspot* melewati batas 95°C (untuk RTX 40-series) atau 105°C (RTX 30-series)?
-5. Apakah alasan throttle yang tercatat adalah *Thermal*, *Power Cap*, atau keduanya?
-
-Lima pertanyaan ini bisa dijawab dalam 10 menit dengan `thermal_check.sh` pada Tutorial 1 — dan jawabannya langsung menunjuk ke solusi yang tepat di Tabel 2.
-
----
-
-## 7. Rekomendasi Praktis
-
-Menutup bagian teori, berikut peta jalan yang disarankan berdasarkan profil penggunaan:
-
-- **Pengguna rumahan** dengan model 7–8B dan sesi inferensi biasa: ***undervolt* + *fan curve* + *case airflow*** sudah cukup. Biayanya nyaris nol, dan hampir selalu mengembalikan performa yang hilang.
-- **Pengguna *long-context*** (di atas 100K token) yang menjalankan inferensi 30+ menit non-stop: pertimbangkan **watercooling atau *open bench table*** — GPU yang dibiarkan terbuka di atas meja sebenarnya memiliki termal yang lebih baik daripada di dalam case sempit.
-- **Bagi pemilik GPU high-end bekas** (RTX 3090/4090): jadwalkan **repaste setiap 2 tahun** — ini adalah biaya perawatan terkecil yang memberikan dampak termal terbesar.
-
----
-
-## 8. Tabel Referensi
-
-### Tabel 1: Dampak Throttle pada Performa LLM
-
-Tabel berikut mengukur penurunan performa secara nyata pada satu konfigurasi: RTX 3090 menjalankan Llama-3.1-8B Q4_K_M. Perhatikan bagaimana performa menari-nari mengikuti suhu dan clock.
-
-| Kondisi | Suhu GPU | Clock (MHz) | Tokens/s | Penurunan | Daya (W) |
-|:---|---:|---:|---:|---:|---:|
-| **Idle** | 35°C | 210 | - | - | 30W |
-| **Optimal (fan 100%, 25°C ambient)** | 65°C | 1860 | 85 t/s | 0% | 320W |
-| **Stock (fan auto, 30°C ambient)** | 78°C | 1720 | 78 t/s | -8% | 320W |
-| **Thermal throttle mulai** | 83°C | 1500 | 65 t/s | -24% | 280W |
-| **Throttle parah** | 88°C | 1100 | 45 t/s | -47% | 220W |
-| **Setelah undervolt 220W** | 68°C | 1650 | 80 t/s | -6% | 220W |
-
-![Kurva penurunan tokens/s dan clock GPU saat suhu naik dari 65°C ke 88°C pada RTX 3090](../../assets/images/bab-02-hardware/sub-bab-8/dampak-throttle-performa.png)
-
-*Gambar 2.8-1 — Setelah ambang 83°C, clock dan tokens/s jatuh beriringan: throttle parah di 88°C kehilangan 47% performa (85 → 45 t/s), sementara undervolt 220W mempertahankan 80 t/s di suhu hanya 68°C.*
-
-Analisis dari tabel ini sangat instruktif. Pertama, perhatikan enam baris pertama: sejak *throttle* dimulai di 83°C, performa jatuh 24%, dan pada *throttle* parah di 88°C — hampir separuh performa (45 t/s vs 85 t/s) hilang padahal model dan hardware sama persis. Kedua, perhatikan baris terakhir: *undervolt* ke 220W mengembalikan performa ke 80 t/s (hanya -6%) sambil mengurangi konsumsi daya sebesar 100W — bukti bahwa panas, bukan daya, adalah musuh sebenarnya. Kapan memilih antara pendinginan mahal vs *undervolt*? Jika penurunan 5-6% masih bisa diterima untuk beban kerja harian Anda, *undervolt* selalu menang dalam rasio biaya-manfaat; jika target Anda adalah performa maksimum yang dapat dipertahankan berjam-jam, baru pertimbangkan investasi pendinginan di Tabel 2 [1][4].
+Yang paling penting untuk diingat: solusi-solusi ini **tidak saling eksklusif** — mereka justru bekerja paling baik secara berurutan. Hasil studi kasus di Seksi 9 menunjukkan pola khas: repaste menurunkan suhu 7°C, *undervolt* menurunkan 3°C lagi, dan fan intake menurunkan 5°C — total 15°C dari tiga langkah yang masing-masing kecil. Efeknya bersifat *additive* karena masing-masing menyerang sumber panas yang berbeda: paste mengembalikan transfer panas chip → heatsink, *undervolt* mengurangi total energi yang harus dibuang, dan airflow mempercepat pembuangan panas dari heatsink → ruangan. Karena itu, mulailah dari yang paling murah dan ukur dampaknya dengan skrip monitoring (Tutorial 1) sebelum pindah ke langkah berikutnya — Anda mungkin terkejut menemukan bahwa repaste + *undervolt* saja sudah cukup, tanpa perlu menyentuh *watercooling* sama sekali.
 
 ### Tabel 2: Solusi Pendinginan — Biaya vs Efektivitas
 
@@ -153,44 +134,6 @@ Setiap solusi memiliki posisi berbeda pada peta biaya vs usaha. Tabel ini memban
 
 Ada pola menarik di deret ini: tiga solusi teratas (fan curve, repaste, undervolt) hampir tidak menyentuh dompet, sementara tiga terbawah (watercooling AIO, custom loop, AC ruangan) memakan jutaan rupiah. Di tengahnya — *open bench table* seharga ~Rp 300 rb — adalah "hack" termal paling undervalued: membuang saja *case* yang sempit bisa menurunkan suhu 10–15°C. Untuk kebanyakan pengguna Indonesia dengan ambient 28–32°C, kombinasi *fan curve* + repaste + *undervolt* biasanya sudah menutup defisit 10–15°C, dan *open bench* atau AC 0.5 PK menjadi penyelamat ketika di atas itu. Data pengurangan suhu pada kolom ketiga juga dikuatkan oleh penelitian InferCool (Liu dkk., USENIX ATC 2025) yang menunjukkan bahwa *task reassignment* cerdas mampu mengurangi suhu GPU hingga 5°C dan menghemat 20% energi pendinginan [3].
 
-### Tabel 3: Suhu Threshold GPU NVIDIA
-
-Sebelum membeli kartu bekas atau menyusun alarm pemantauan, kenali ambang batas masing-masing GPU — karena setiap generasi memiliki aturan mainnya sendiri.
-
-| GPU | Max Temp | Throttle Start | Clock Turun | Emergency Shutdown | VRAM Max |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **RTX 4090** | 85°C | 83°C | -50 MHz/°C | 90°C | 95°C |
-| **RTX 4080 Super** | 85°C | 83°C | -50 MHz/°C | 90°C | 95°C |
-| **RTX 4070 Ti** | 85°C | 83°C | -45 MHz/°C | 90°C | 95°C |
-| **RTX 3090** | 83°C | 80°C | -30 MHz/°C | 88°C | 105°C |
-| **RTX 3080** | 83°C | 80°C | -30 MHz/°C | 88°C | 105°C |
-| **RTX 4060** | 85°C | 83°C | -45 MHz/°C | 90°C | 95°C |
-| **RX 7900 XTX** | 95°C (hotspot) | 90°C | -40 MHz/°C | 100°C | 100°C |
-
-Dua hal yang perlu diperhatikan. Pertama, generasi **Ampere** (RTX 3090/3080) mulai throttle lebih awal (80°C) dan lebih lamban menurunkan clock (-30 MHz/°C), tetapi VRAM-nya justru lebih tahan panas (105°C) — menjadikan kartu ini favorit di pasar bekas. Kedua, RTX 4090 menurunkan clock sangat agresif (-50 MHz/°C) setelah melewati 83°C, artinya begitu throttle mulai, performa anjloknya paling curam — adalah ironi bahwa kartu termahal justru paling sensitif. Threshold ini bersumber dari dokumentasi NVIDIA dan pengukuran lapangan; gunakan sebagai panduan alarm, bukan harga mati, karena setiap kartu memiliki variasi unit [4][7].
-
----
-
-## 9. Diagram & Visualisasi
-
-### Diagram 1: Mekanisme Thermal Throttle
-
-Bagaimana sebuah sesi inferensi yang sehat berubah menjadi lingkaran setan performa? Berikut peta lengkapnya.
-
-```mermaid
-graph TD
-    A[Load Model LLM] --> B[GPU 100% Utilization]
-    B --> C[Suhu Naik]
-    C --> D{Suhu Melewati Threshold?}
-    D -- Tidak --> B
-    D -- Ya --> E[Clock Turun Drastis]
-    E --> F[Tokens per Detik Turun]
-    F --> G[Inferensi Makin Lama]
-    G --> H[Suhu Makin Naik]
-    H --> D
-```
-
-Diagram di atas menunjukkan dua jalur yang berlawanan. Jalur kiri (putaran "Tidak") adalah keadaan sehat: GPU bekerja 100%, suhu naik, tetapi belum melewati *threshold*, sehingga *loop* kembali ke beban penuh tanpa penalti. Jalur kanan (putaran "Ya") adalah awal malapetaka: begitu *threshold* terlampaui, clock turun, tokens/s turun, inferensi makin lama, suhu makin naik — dan pertanyaan "Suhu melewati threshold?" kembali dijawab "Ya" dengan clock yang semakin rendah. Inilah mengapa penurunan performa terlihat bertahap tetapi sebenarnya *eksponensial*: setiap putaran loop kanan memperdalam kerugian. Tugas Anda sebagai pengguna adalah menambahkan intervensi di titik mana pun pada loop: *undervolt* (mengurangi C), *fan curve* (membangun jalur pendinginan lebih cepat dari H), atau repaste (menurunkan seluruh kurva suhu).
 
 ### Diagram 2: Peta Keputusan Solusi Pendinginan
 
@@ -216,7 +159,73 @@ Alur diagram ini menegaskan urutan yang direkomendasikan pada Seksi 7: periksa f
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 5. Thermal di Data Center vs Desktop: Dua Dunia Termal
+
+
+Penting untuk memahami bahwa GPU di data center adalah warga negara berbeda. Di pusat data, ruangan diatur secara *cooling-regulated*: *inlet temperature* (suhu udara yang masuk ke server) dikontrol ketat, dan GPU umumnya dipertahankan di bawah **60°C**. Ada tim engineer khusus yang menjaga suhu, dan *thermal management* bahkan diotomatisasi: penelitian TAPAS (Stojkovic dkk., ASPLOS 2025) menunjukkan bahwa *thermal-aware scheduling* — penempatan dan penjadwalan workload berdasarkan profil termal — mampu mengurangi suhu maksimum hingga 17% dan **menurunkan kejadian throttle hingga 97%** di cloud platform [1]. Di sisi lain, scheduler berbasis *reinforcement learning* dari Wang dkk. (ACM SIGEnergy 2025) mengurangi konsumsi energi sistem pendingin CRAC hingga 20% [2].
+
+Desktop Anda tidak mendapat kemewahan itu. Di Indonesia, dengan *ambient* ruangan **28–32°C** dan sering kali tanpa AC, GPU di dalam *case* yang diletakkan di sudut ruangan bisa beroperasi di **75–85°C** sepanjang hari. Yang di data center diselesaikan dengan ruangan berpendingin dan rak khusus, di desktop harus diselesaikan dengan fan, paste, dan disiplin termal Anda sendiri. Kabar baiknya: *throttle* di desktop bisa dicegah, asalkan Anda mau memantau dan menindaklanjutinya sejak dini.
+
+Ada satu temuan dari dunia data center yang bisa "diimpor" ke rumah: **scheduling yang sadar termal**. TAPAS di ASPLOS 2025 membuktikan bahwa hanya dengan menempatkan workload pada VM yang tepat — bukan menambah pendinginan — kejadian *throttle* bisa dikurangi hingga 97% [1]. Terjemahan praktisnya untuk desktop: jangan menjalankan dua inferensi berat bersamaan di kamar ber-AC mati; jadwalkan tugas berat di pagi atau malam hari saat suhu ruangan lebih rendah; dan jika Anda punya dua GPU, tempatkan GPU yang menangani prefill (lebih panas) di posisi yang mendapat aliran udara terbaik. Yang perlu diingat, solusi termal terbaik sering kali bukan yang paling mahal, melainkan yang paling *tahu kapan* dan *di mana* panas muncul. Untuk ruangan tanpa AC, opsi "AC ruangan 0.5 PK" di Tabel 2 — sekitar Rp 3–4 juta — sering kali lebih masuk akal secara ekonomi daripada *custom loop* Rp 8–15 juta, karena AC menurunkan *ambient* untuk seluruh sistem sekaligus: GPU, CPU, VRM, dan SSD NVMe yang sensitif panas.
+
+---
+
+## 6. Monitoring Suhu
+
+
+Anda tidak bisa melawan musuh yang tidak Anda lihat. Karena itu, peralatan pertama seorang pengguna LLM yang serius bukanlah CPU overclock, melainkan alat pemantauan. Di Linux tersedia `nvidia-smi` (baris perintah resmi NVIDIA) dan `nvtop` (antarmuka mirip `htop` untuk GPU); di Windows ada HWMonitor dan Open Hardware Monitor.
+
+Sensor yang perlu dipantau tidak hanya satu: **GPU core** (suhu utama yang menentukan throttle), **VRAM *hotspot*** (suhu memori — kerusakan paling umum pada GPU mining bekas), **VRM** (regulator daya — komponen paling panas yang sering dilupakan), dan **CPU** (jangan lupa, *inference* CPU-only seperti di T-MAC juga bisa throttle). Tanda-tanda throttle mudah dikenali jika Anda rutin memantau: clock GPU turun drastis dari nilai boost, daya yang ditarik ikut turun (karena GPU mengurangi aktivitas), dan fan berputar maksimal terus-menerus tanpa henti. Tiga gejala itu bersamaan berarti GPU sedang "menjaga diri".
+
+Satu keterampilan yang perlu diasah: membaca **alasan** throttle. Kolom `throttle_reasons.active` pada `nvidia-smi` tidak hanya memberi tahu bahwa throttle terjadi — ia menyebutkan penyebabnya: *Thermal* (suhu — masalah pendinginan), *Power Cap* (batas daya terlampaui — GPU "meminta" daya lebih dari yang diizinkan), *Voltage Cap* (tegangan dibatasi), atau kombinasi ketiganya. Perbedaan ini menentukan solusi: throttle termal dijawab dengan repaste atau airflow (Tabel 2), sementara *power cap* — yang sering terjadi pada kartu dengan *power limit* bawaan pabrik yang rendah — dijawab dengan menaikkan power limit, bukan dengan membongkar kartu. Kesalahan diagnosis adalah alasan paling umum orang membayar solusi pendinginan mahal padahal masalahnya hanya konfigurasi daya. Ingat pula ambang batas pada Tabel 3: RTX 3090 mulai throttle di 80°C sementara RTX 4090 baru di 83°C — alarm yang Anda pasang di 82°C akan berbunyi terlalu cepat di kartu Ampere dan tepat waktu di kartu Ada Lovelace.
+
+Ringkasnya, setiap sesi monitoring yang baik menjawab lima pertanyaan berikut:
+
+1. Berapa suhu GPU core saat beban puncak, dan berapa jam sebelum suhu itu tercapai?
+2. Apakah clock turun dari nilai boost — dan seberapa dalam penurunannya?
+3. Apakah daya ditarik mengikuti TDP kartu, atau turun bersamaan dengan clock (indikasi throttle termal)?
+4. Apakah suhu VRAM *hotspot* melewati batas 95°C (untuk RTX 40-series) atau 105°C (RTX 30-series)?
+5. Apakah alasan throttle yang tercatat adalah *Thermal*, *Power Cap*, atau keduanya?
+
+Lima pertanyaan ini bisa dijawab dalam 10 menit dengan `thermal_check.sh` pada Tutorial 1 — dan jawabannya langsung menunjuk ke solusi yang tepat di Tabel 2.
+
+### Tabel 3: Suhu Threshold GPU NVIDIA
+
+Sebelum membeli kartu bekas atau menyusun alarm pemantauan, kenali ambang batas masing-masing GPU — karena setiap generasi memiliki aturan mainnya sendiri.
+
+| GPU | Max Temp | Throttle Start | Clock Turun | Emergency Shutdown | VRAM Max |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **RTX 4090** | 85°C | 83°C | -50 MHz/°C | 90°C | 95°C |
+| **RTX 4080 Super** | 85°C | 83°C | -50 MHz/°C | 90°C | 95°C |
+| **RTX 4070 Ti** | 85°C | 83°C | -45 MHz/°C | 90°C | 95°C |
+| **RTX 3090** | 83°C | 80°C | -30 MHz/°C | 88°C | 105°C |
+| **RTX 3080** | 83°C | 80°C | -30 MHz/°C | 88°C | 105°C |
+| **RTX 4060** | 85°C | 83°C | -45 MHz/°C | 90°C | 95°C |
+| **RX 7900 XTX** | 95°C (hotspot) | 90°C | -40 MHz/°C | 100°C | 100°C |
+
+Dua hal yang perlu diperhatikan. Pertama, generasi **Ampere** (RTX 3090/3080) mulai throttle lebih awal (80°C) dan lebih lamban menurunkan clock (-30 MHz/°C), tetapi VRAM-nya justru lebih tahan panas (105°C) — menjadikan kartu ini favorit di pasar bekas. Kedua, RTX 4090 menurunkan clock sangat agresif (-50 MHz/°C) setelah melewati 83°C, artinya begitu throttle mulai, performa anjloknya paling curam — adalah ironi bahwa kartu termahal justru paling sensitif. Threshold ini bersumber dari dokumentasi NVIDIA dan pengukuran lapangan; gunakan sebagai panduan alarm, bukan harga mati, karena setiap kartu memiliki variasi unit [4][7].
+
+---
+
+
+---
+
+## 7. Rekomendasi Praktis
+
+
+Menutup bagian teori, berikut peta jalan yang disarankan berdasarkan profil penggunaan:
+
+- **Pengguna rumahan** dengan model 7–8B dan sesi inferensi biasa: ***undervolt* + *fan curve* + *case airflow*** sudah cukup. Biayanya nyaris nol, dan hampir selalu mengembalikan performa yang hilang.
+- **Pengguna *long-context*** (di atas 100K token) yang menjalankan inferensi 30+ menit non-stop: pertimbangkan **watercooling atau *open bench table*** — GPU yang dibiarkan terbuka di atas meja sebenarnya memiliki termal yang lebih baik daripada di dalam case sempit.
+- **Bagi pemilik GPU high-end bekas** (RTX 3090/4090): jadwalkan **repaste setiap 2 tahun** — ini adalah biaya perawatan terkecil yang memberikan dampak termal terbesar.
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial 1: Monitoring dan Deteksi Thermal Throttle
 
@@ -307,7 +316,8 @@ Hasil tipikal pada RTX 3090: pada 350W Anda mungkin melihat 85 t/s di 82°C; pad
 
 ---
 
-## 11. Studi Kasus: Thermal Throttle pada RTX 3090 untuk Deep Research
+## 9. Studi Kasus: Thermal Throttle pada RTX 3090 untuk Deep Research
+
 
 **Skenario.** Seorang peneliti membeli RTX 3090 bekas untuk menjalankan DeepSeek-R1 dengan konteks 128K. Pada hari-hari pertama semuanya berjalan mulus — 85 token/detik. Namun setiap kali sesi *deep research* berjalan, sekitar 10 menit kemudian kecepatan menurun drastis dari 85 menjadi **45 token/detik**, dan yang lebih buruk, penurunan itu terjadi di tengah pekerjaan yang paling penting: saat model sedang menggabungkan seluruh 128K konteks untuk menjawab.
 
@@ -326,7 +336,8 @@ Hasil tipikal pada RTX 3090: pada 350W Anda mungkin melihat 85 t/s di 82°C; pad
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

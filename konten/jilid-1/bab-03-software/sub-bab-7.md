@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Men-deploy LocalAI dengan Docker dan mengganti endpoint API dari OpenAI ke server lokal
@@ -20,6 +21,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Filosofi LocalAI
 
+
 ### Drop-in Replacement untuk OpenAI API
 
 LocalAI lahir dari sebuah pertanyaan sederhana: apa yang terjadi jika seluruh permintaan yang biasanya dikirim ke `api.openai.com` dialihkan ke komputer kita sendiri? Jawabannya adalah sebuah server yang meniru kontrak API OpenAI secara persis — mulai dari `base_url`, format permintaan, hingga struktur respons JSON. Konsep ini dikenal sebagai **drop-in replacement**: aplikasi yang sudah menulis kode terhadap OpenAI SDK tidak perlu diubah sama sekali. Cukup arahkan `base_url` ke `http://localhost:8080/v1`, dan aplikasi itu kini "berbicara" dengan model lokal.
@@ -31,98 +33,6 @@ Kelebihan pendekatan ini tidak perlu diperdebatkan: *vendor lock-in* hilang, bia
 Yang membedakan LocalAI dari kebanyakan pesaingnya adalah cakupan modalitasnya. Satu proses server yang sama menangani **LLM** (*chat completion*), **image generation** (Stable Diffusion), **speech-to-text** (Whisper), **TTS** (Piper/Bark), dan **embeddings**. Ini seperti memiliki satu dapur pusat yang melayani banyak meja restoran: koki yang berbeda (backend) tetapi dapur (server) dan jam buka (endpoint) yang sama.
 
 Dari sisi perangkat keras, LocalAI bersikap **CPU-first**: server ini dirancang untuk berjalan tanpa GPU sama sekali, dengan dukungan akselerasi GPU sebagai opsi. Artinya, sebuah Mini PC biasa pun bisa menjadi "server AI" keluarga atau kantor kecil — sangat kontras dengan framework seperti vLLM yang menuntut CUDA.
-
----
-
-## 3. Arsitektur Backend Modular
-
-### Backend sebagai "Koki Spesialis"
-
-Arsitektur LocalAI berbasis pada konsep **backend modular**: setiap jenis model ditangani oleh pustaka inference yang paling unggul di bidangnya. Untuk model bahasa, LocalAI memanggil **llama.cpp** (format GGUF) atau **transformers** dari Hugging Face (format Safetensors). Untuk gambar, ia menggunakan **diffusers**. Untuk transkripsi suara, **whisper.cpp**. Masing-masing adalah "koki spesialis" yang menangani masakan tertentu — dan LocalAI bertindak sebagai manajer dapur yang mengarahkan pesanan ke koki yang tepat.
-
-Konsekuensi dari desain ini sangat praktis: Anda tidak perlu memilih satu *engine* untuk semua keperluan. Model Llama 3.1 untuk percakapan harian, DeepSeek V4 Flash untuk tugas penalaran berat, BGE untuk embeddings, dan Whisper untuk transkrip rapat — semuanya hidup berdampingan dalam satu server.
-
-### Alur Permintaan
-
-Setiap permintaan mengalir melalui pipeline yang sama:
-
-```text
-HTTP Request → API Router → Backend Selector → Model Backend → Inference → Response JSON
-```
-
-*API Router* (dibangun di atas Gin HTTP) memeriksa jalur URL, *Backend Selector* menentukan backend mana yang bertanggung jawab berdasarkan konfigurasi model yang diminta, lalu hasil inference dikembalikan dalam format JSON yang identik dengan respons OpenAI. Studi tentang sistem *serving* seperti ScaleLLM [2] dan survey LLM inference serving [3] menunjukkan bahwa desain *API gateway* + *backend abstraction* semacam ini adalah pola yang paling efisien untuk melayani beragam model dengan satu titik masuk — persis yang diadopsi LocalAI.
-
----
-
-## 4. Model Configuration YAML
-
-### Satu Model, Satu File Konfigurasi
-
-Di LocalAI, setiap model direpresentasikan oleh **satu file YAML**. File inilah yang menjadi "resep" model: menentukan backend apa yang digunakan, di mana file bobot berada, dan parameter inference apa yang aktif. Berbeda dengan Ollama yang memanfaatkan Modelfile dan *template* khusus, konfigurasi LocalAI lebih eksplisit dan terbuka terhadap parameter backend secara langsung.
-
-Parameter penting yang dikendalikan dari YAML antara lain:
-
-- **`context_size`** — panjang jendela konteks (misalnya 32.768 token)
-- **`threads`** — jumlah thread CPU untuk inference
-- **`n_gpu_layers`** — jumlah lapisan yang di-*offload* ke GPU (0 berarti CPU murni)
-- **`f16`** dan **`mmap`** — presisi komputasi dan *memory mapping* file model
-- **`temperature`, `top_k`, `top_p`** — parameter sampling untuk mengatur kreativitas
-
-Kelebihan pendekatan file YAML adalah **portabilitas konfigurasi**. Sebuah resep model dapat disimpan di repositori (misalnya Model Gallery milik LocalAI), dibagikan antar tim, dan diputar ulang di mesin mana pun — mirip *Infrastructure as Code*, tetapi untuk model AI.
-
-### Beberapa Backend untuk Satu Tipe Model
-
-Fleksibilitas LocalAI tampak jelas dari kenyataan bahwa satu tipe model bisa punya banyak backend. Model bahasa bisa dijalankan lewat llama.cpp (cepat, ringan) atau transformers (lengkap, cocok untuk eksperimen). Embeddings bisa memakai bert.cpp (format GGUF) atau sentencetransformers (format ONNX). Pilihan backend inilah yang menentukan *trade-off* kecepatan, akurasi, dan penggunaan memori — dan semuanya bisa diatur tanpa menyentuh kode aplikasi klien.
-
----
-
-## 5. Embeddings & Pipeline RAG
-
-### Endpoint /v1/embeddings yang Sesuai Standar
-
-LocalAI mengekspos endpoint **`/v1/embeddings`** yang formatnya identik dengan OpenAI. Artinya, semua pustaka yang terbiasa memanggil API embedding OpenAI — LangChain, LlamaIndex, Open WebUI, hingga *vector database* — bisa langsung diarahkan ke server lokal. Dua backend yang tersedia adalah **bert.cpp** (cepat, ringan, format GGUF) dan **sentencetransformers** (lebih beragam pilihan model, format ONNX).
-
-Fungsi ini mengubah LocalAI menjadi **embedding server mandiri**: alih-alih mengirim dokumen ke cloud untuk di-embedding, dokumen sensitif (kontrak, catatan medis, data pelanggan) diproses sepenuhnya di lingkungan sendiri. Ini penting karena tahap embedding sering menjadi titik bocornya data dalam pipeline RAG — orang rajin merahasiakan prompt, tetapi lupa bahwa dokumen sumber juga dikirim ke penyedia embedding.
-
-### Integrasi LangChain & LlamaIndex
-
-Karena kontrak API-nya sama, integrasi dengan ekosistem *agentic* menjadi murah. LangChain menyediakan `LocalAIEmbeddings` untuk vektor dan `ChatLocalAI` untuk LLM — dua kelas yang dibuat khusus untuk server seperti ini. LlamaIndex, Open WebUI, dan tools lain yang berbasis OpenAI API juga bisa diarahkan dengan mengubah satu variabel `base_url`. Inilah keindahan standar API: kompatibilitas adalah fitur, bukan kebetulan.
-
----
-
-## 6. Image, Audio, dan TTS dalam Satu Server
-
-### Image Generation dengan Stable Diffusion
-
-Lewat backend **diffusers**, LocalAI menyediakan endpoint **`/v1/images/generations`** — setara dengan DALL-E di OpenAI. Model Stable Diffusion di-load dan dijalankan di mesin yang sama dengan LLM Anda. Untuk tim kecil yang butuh ilustrasi internal, ini menghilangkan langganan image generator terpisah.
-
-### Speech-to-Text dengan Whisper
-
-Endpoint **`/v1/audio/transcriptions`** ditangani oleh **whisper.cpp** — implementasi Whisper yang ringan dan efisien. Rapat, wawancara, atau rekaman kuliah bisa ditranskripsi tanpa data meninggalkan perangkat. Format model GGML yang digunakan whisper.cpp juga mendukung akselerasi GPU bila tersedia.
-
-### Text-to-Speech dengan Piper & Bark
-
-Untuk arah sebaliknya, endpoint **`/v1/audio/speech`** didukung oleh **Piper** (ringan, berjalan di CPU, format ONNX) dan **Bark** (lebih natural, berbasis transformers). Dengan satu server, Anda bisa membangun asisten suara lokal penuh: dengar pertanyaan (Whisper), proses (LLM), lalu jawab dengan suara (Piper/Bark). Ekosistem *voice assistant* rumahan yang dibahas di jilid ini menjadi mungkin tanpa satu pun layanan cloud.
-
----
-
-## 7. Performa, Loading, dan Scaling
-
-### Lazy Loading dan Keep-Alive
-
-LocalAI menerapkan **lazy loading**: model tidak dimuat saat server dinyalakan, melainkan saat pertama kali dipanggil. Ini mirip *panggilan on-demand* — server bisa menampung puluhan konfigurasi model di disk, tetapi hanya model yang benar-benar digunakan yang masuk ke RAM. Opsi **keep-alive** mempertahankan model yang sudah dimuat agar permintaan berikutnya tidak perlu memuat ulang.
-
-### Caching dan Autoload
-
-**Prompt caching** menyimpan hasil komputasi untuk bagian prompt yang berulang, sementara **image result caching** menghindari regenerasi gambar identik. Mekanisme ini selaras dengan temuan ServerlessLLM [4] yang menunjukkan bahwa manajemen *checkpoint* berlapis (disk → memori → VRAM) mampu memangkas waktu muat model secara drastis — dan survei taksonomi sistem serving oleh Miao et al. (2025) [5] menegaskan bahwa *request scheduling* dan *memory management* adalah dua tuas performa utama sistem inference.
-
-### Akselerasi GPU
-
-Ketika GPU tersedia, LocalAI memanfaatkannya lewat **CUDA** (NVIDIA), **Metal** (Apple Silicon), atau **OpenCL** (berbagai vendor). Kombinasi *CPU-first* dengan opsi akselerasi membuatnya luwes: server bisa mulai di mesin tanpa GPU, lalu ditingkatkan tanpa mengubah konfigurasi API sama sekali.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel A: Fitur API OpenAI yang Didukung LocalAI
 
@@ -149,43 +59,6 @@ Tabel berikut memetakan endpoint inti OpenAI dengan dukungannya di LocalAI — p
 
 Analisis: cakupan delapan dari sembilan endpoint utama berarti sebagian besar aplikasi yang dibangun di atas OpenAI SDK dapat langsung berjalan. Satu-satunya celah yang menonjol adalah `/v1/moderations` — filter moderasi konten bawaan OpenAI. Jika aplikasi Anda mengandalkan fitur ini, penggantinya harus dibangun sendiri (misalnya dengan model classifier lokal), atau moderasi dijalankan pada lapisan aplikasi. Ini adalah *trade-off* yang wajar: kontrol penuh atas data berarti tanggung jawab moderasi juga menjadi milik Anda.
 
-### Tabel B: Perbandingan API Server Lokal
-
-Untuk memposisikan LocalAI, berikut perbandingannya dengan tiga pesaing utama di kelas yang sama.
-
-| Fitur | LocalAI | Ollama | vLLM | LiteLLM |
-|:---|:---|:---|:---|:---|
-| **Drop-in OpenAI** | **100%** | Sebagian | 95% | Proxy ke berbagai API |
-| **LLM** | Ya | Ya | Ya | Proxy |
-| **Image Gen** | Ya | Tidak | Tidak | Tidak |
-| **STT/TTS** | Ya | Tidak | Tidak | Tidak |
-| **Embeddings** | Ya | Ya | Tidak | Proxy |
-| **GPU Support** | CUDA, Metal | CUDA, Metal, ROCm | CUDA | - |
-| **CPU-Only** | Ya (optimized) | Ya | Tidak | - |
-| **Multi-Model** | Ya (YAML) | Ya (CLI) | Ya | Ya |
-
-Analisis: tabel ini menunjukkan pembagian peran yang jelas. **LocalAI** adalah *generalist* paling lengkap — satu-satunya yang menangani image gen, STT, dan TTS — sehingga ideal untuk server rumah atau kantor kecil yang ingin mengganti banyak layanan cloud sekaligus. **Ollama** unggul dalam kemudahan penggunaan (*model management* via CLI) tetapi kompatibilitas OpenAI-nya parsial. **vLLM** adalah pilihan *production-scale* untuk beban GPU berat dengan throughput tinggi, tetapi tidak CPU-only dan tidak punya modalitas lain. **LiteLLM** berbeda total: ia bukan *engine* inference melainkan *proxy* yang meneruskan permintaan ke berbagai provider. Untuk migrasi *local-first*, LocalAI menang; untuk *enterprise serving*, vLLM menang; untuk *multi-provider routing*, LiteLLM menang.
-
-### Tabel C: Backend Model LocalAI
-
-Tabel ini merangkum peta backend — jenis model, pustaka inference, dan format file yang didukung.
-
-| Tipe Model | Backend | Format | GPU Support |
-|:---|:---|:---|:---:|
-| **LLM** | llama.cpp | GGUF | Ya |
-| **LLM** | transformers | Safetensors | Ya |
-| **LLM** | diffusers | - | Ya (image) |
-| **Embeddings** | bert.cpp | GGUF | Tidak |
-| **Embeddings** | sentencetransformers | ONNX | Tidak |
-| **STT** | whisper.cpp | GGML | Ya |
-| **TTS** | piper | ONNX | Tidak |
-| **TTS** | bark | transformers | Ya |
-
-Analisis: peta ini menjelaskan *trade-off* pemilihan backend. Backend berbasis C++ (llama.cpp, whisper.cpp, bert.cpp) unggul dalam kecepatan dan efisiensi memori — pilihan utama untuk perangkat keras terbatas. Backend berbasis Python (transformers, diffusers, sentencetransformers) lebih fleksibel dan kaya fitur, tetapi lebih berat. Perhatikan bahwa backend embeddings tidak mendukung GPU: untuk workload embedding masif, pertimbangkan beban CPU-nya. Aturan praktisnya: pakai llama.cpp untuk LLM produksi harian, transformers untuk eksperimen dan model yang belum punya konversi GGUF.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur LocalAI Multi-Model
 
@@ -209,6 +82,138 @@ graph TB
 
 Yang menarik dari diagram ini adalah kesimetrisannya: ketiga jalur backend berakhir pada `RESP` yang sama, sehingga klien tidak pernah peduli modalitas apa yang sedang diproses — kontrak JSON-nya seragam. Inilah esensi desain *gateway*: satu pintu masuk, banyak dapur, satu bahasa respons.
 
+
+---
+
+## 3. Arsitektur Backend Modular
+
+
+### Backend sebagai "Koki Spesialis"
+
+Arsitektur LocalAI berbasis pada konsep **backend modular**: setiap jenis model ditangani oleh pustaka inference yang paling unggul di bidangnya. Untuk model bahasa, LocalAI memanggil **llama.cpp** (format GGUF) atau **transformers** dari Hugging Face (format Safetensors). Untuk gambar, ia menggunakan **diffusers**. Untuk transkripsi suara, **whisper.cpp**. Masing-masing adalah "koki spesialis" yang menangani masakan tertentu — dan LocalAI bertindak sebagai manajer dapur yang mengarahkan pesanan ke koki yang tepat.
+
+Konsekuensi dari desain ini sangat praktis: Anda tidak perlu memilih satu *engine* untuk semua keperluan. Model Llama 3.1 untuk percakapan harian, DeepSeek V4 Flash untuk tugas penalaran berat, BGE untuk embeddings, dan Whisper untuk transkrip rapat — semuanya hidup berdampingan dalam satu server.
+
+### Alur Permintaan
+
+Setiap permintaan mengalir melalui pipeline yang sama:
+
+```text
+HTTP Request → API Router → Backend Selector → Model Backend → Inference → Response JSON
+```
+
+*API Router* (dibangun di atas Gin HTTP) memeriksa jalur URL, *Backend Selector* menentukan backend mana yang bertanggung jawab berdasarkan konfigurasi model yang diminta, lalu hasil inference dikembalikan dalam format JSON yang identik dengan respons OpenAI. Studi tentang sistem *serving* seperti ScaleLLM [2] dan survey LLM inference serving [3] menunjukkan bahwa desain *API gateway* + *backend abstraction* semacam ini adalah pola yang paling efisien untuk melayani beragam model dengan satu titik masuk — persis yang diadopsi LocalAI.
+
+---
+
+## 4. Model Configuration YAML
+
+
+### Satu Model, Satu File Konfigurasi
+
+Di LocalAI, setiap model direpresentasikan oleh **satu file YAML**. File inilah yang menjadi "resep" model: menentukan backend apa yang digunakan, di mana file bobot berada, dan parameter inference apa yang aktif. Berbeda dengan Ollama yang memanfaatkan Modelfile dan *template* khusus, konfigurasi LocalAI lebih eksplisit dan terbuka terhadap parameter backend secara langsung.
+
+Parameter penting yang dikendalikan dari YAML antara lain:
+
+- **`context_size`** — panjang jendela konteks (misalnya 32.768 token)
+- **`threads`** — jumlah thread CPU untuk inference
+- **`n_gpu_layers`** — jumlah lapisan yang di-*offload* ke GPU (0 berarti CPU murni)
+- **`f16`** dan **`mmap`** — presisi komputasi dan *memory mapping* file model
+- **`temperature`, `top_k`, `top_p`** — parameter sampling untuk mengatur kreativitas
+
+Kelebihan pendekatan file YAML adalah **portabilitas konfigurasi**. Sebuah resep model dapat disimpan di repositori (misalnya Model Gallery milik LocalAI), dibagikan antar tim, dan diputar ulang di mesin mana pun — mirip *Infrastructure as Code*, tetapi untuk model AI.
+
+### Beberapa Backend untuk Satu Tipe Model
+
+Fleksibilitas LocalAI tampak jelas dari kenyataan bahwa satu tipe model bisa punya banyak backend. Model bahasa bisa dijalankan lewat llama.cpp (cepat, ringan) atau transformers (lengkap, cocok untuk eksperimen). Embeddings bisa memakai bert.cpp (format GGUF) atau sentencetransformers (format ONNX). Pilihan backend inilah yang menentukan *trade-off* kecepatan, akurasi, dan penggunaan memori — dan semuanya bisa diatur tanpa menyentuh kode aplikasi klien.
+
+### Tabel C: Backend Model LocalAI
+
+Tabel ini merangkum peta backend — jenis model, pustaka inference, dan format file yang didukung.
+
+| Tipe Model | Backend | Format | GPU Support |
+|:---|:---|:---|:---:|
+| **LLM** | llama.cpp | GGUF | Ya |
+| **LLM** | transformers | Safetensors | Ya |
+| **LLM** | diffusers | - | Ya (image) |
+| **Embeddings** | bert.cpp | GGUF | Tidak |
+| **Embeddings** | sentencetransformers | ONNX | Tidak |
+| **STT** | whisper.cpp | GGML | Ya |
+| **TTS** | piper | ONNX | Tidak |
+| **TTS** | bark | transformers | Ya |
+
+Analisis: peta ini menjelaskan *trade-off* pemilihan backend. Backend berbasis C++ (llama.cpp, whisper.cpp, bert.cpp) unggul dalam kecepatan dan efisiensi memori — pilihan utama untuk perangkat keras terbatas. Backend berbasis Python (transformers, diffusers, sentencetransformers) lebih fleksibel dan kaya fitur, tetapi lebih berat. Perhatikan bahwa backend embeddings tidak mendukung GPU: untuk workload embedding masif, pertimbangkan beban CPU-nya. Aturan praktisnya: pakai llama.cpp untuk LLM produksi harian, transformers untuk eksperimen dan model yang belum punya konversi GGUF.
+
+---
+
+
+---
+
+## 5. Embeddings & Pipeline RAG
+
+
+### Endpoint /v1/embeddings yang Sesuai Standar
+
+LocalAI mengekspos endpoint **`/v1/embeddings`** yang formatnya identik dengan OpenAI. Artinya, semua pustaka yang terbiasa memanggil API embedding OpenAI — LangChain, LlamaIndex, Open WebUI, hingga *vector database* — bisa langsung diarahkan ke server lokal. Dua backend yang tersedia adalah **bert.cpp** (cepat, ringan, format GGUF) dan **sentencetransformers** (lebih beragam pilihan model, format ONNX).
+
+Fungsi ini mengubah LocalAI menjadi **embedding server mandiri**: alih-alih mengirim dokumen ke cloud untuk di-embedding, dokumen sensitif (kontrak, catatan medis, data pelanggan) diproses sepenuhnya di lingkungan sendiri. Ini penting karena tahap embedding sering menjadi titik bocornya data dalam pipeline RAG — orang rajin merahasiakan prompt, tetapi lupa bahwa dokumen sumber juga dikirim ke penyedia embedding.
+
+### Integrasi LangChain & LlamaIndex
+
+Karena kontrak API-nya sama, integrasi dengan ekosistem *agentic* menjadi murah. LangChain menyediakan `LocalAIEmbeddings` untuk vektor dan `ChatLocalAI` untuk LLM — dua kelas yang dibuat khusus untuk server seperti ini. LlamaIndex, Open WebUI, dan tools lain yang berbasis OpenAI API juga bisa diarahkan dengan mengubah satu variabel `base_url`. Inilah keindahan standar API: kompatibilitas adalah fitur, bukan kebetulan.
+
+---
+
+## 6. Image, Audio, dan TTS dalam Satu Server
+
+
+### Image Generation dengan Stable Diffusion
+
+Lewat backend **diffusers**, LocalAI menyediakan endpoint **`/v1/images/generations`** — setara dengan DALL-E di OpenAI. Model Stable Diffusion di-load dan dijalankan di mesin yang sama dengan LLM Anda. Untuk tim kecil yang butuh ilustrasi internal, ini menghilangkan langganan image generator terpisah.
+
+### Speech-to-Text dengan Whisper
+
+Endpoint **`/v1/audio/transcriptions`** ditangani oleh **whisper.cpp** — implementasi Whisper yang ringan dan efisien. Rapat, wawancara, atau rekaman kuliah bisa ditranskripsi tanpa data meninggalkan perangkat. Format model GGML yang digunakan whisper.cpp juga mendukung akselerasi GPU bila tersedia.
+
+### Text-to-Speech dengan Piper & Bark
+
+Untuk arah sebaliknya, endpoint **`/v1/audio/speech`** didukung oleh **Piper** (ringan, berjalan di CPU, format ONNX) dan **Bark** (lebih natural, berbasis transformers). Dengan satu server, Anda bisa membangun asisten suara lokal penuh: dengar pertanyaan (Whisper), proses (LLM), lalu jawab dengan suara (Piper/Bark). Ekosistem *voice assistant* rumahan yang dibahas di jilid ini menjadi mungkin tanpa satu pun layanan cloud.
+
+### Tabel B: Perbandingan API Server Lokal
+
+Untuk memposisikan LocalAI, berikut perbandingannya dengan tiga pesaing utama di kelas yang sama.
+
+| Fitur | LocalAI | Ollama | vLLM | LiteLLM |
+|:---|:---|:---|:---|:---|
+| **Drop-in OpenAI** | **100%** | Sebagian | 95% | Proxy ke berbagai API |
+| **LLM** | Ya | Ya | Ya | Proxy |
+| **Image Gen** | Ya | Tidak | Tidak | Tidak |
+| **STT/TTS** | Ya | Tidak | Tidak | Tidak |
+| **Embeddings** | Ya | Ya | Tidak | Proxy |
+| **GPU Support** | CUDA, Metal | CUDA, Metal, ROCm | CUDA | - |
+| **CPU-Only** | Ya (optimized) | Ya | Tidak | - |
+| **Multi-Model** | Ya (YAML) | Ya (CLI) | Ya | Ya |
+
+Analisis: tabel ini menunjukkan pembagian peran yang jelas. **LocalAI** adalah *generalist* paling lengkap — satu-satunya yang menangani image gen, STT, dan TTS — sehingga ideal untuk server rumah atau kantor kecil yang ingin mengganti banyak layanan cloud sekaligus. **Ollama** unggul dalam kemudahan penggunaan (*model management* via CLI) tetapi kompatibilitas OpenAI-nya parsial. **vLLM** adalah pilihan *production-scale* untuk beban GPU berat dengan throughput tinggi, tetapi tidak CPU-only dan tidak punya modalitas lain. **LiteLLM** berbeda total: ia bukan *engine* inference melainkan *proxy* yang meneruskan permintaan ke berbagai provider. Untuk migrasi *local-first*, LocalAI menang; untuk *enterprise serving*, vLLM menang; untuk *multi-provider routing*, LiteLLM menang.
+
+
+---
+
+## 7. Performa, Loading, dan Scaling
+
+
+### Lazy Loading dan Keep-Alive
+
+LocalAI menerapkan **lazy loading**: model tidak dimuat saat server dinyalakan, melainkan saat pertama kali dipanggil. Ini mirip *panggilan on-demand* — server bisa menampung puluhan konfigurasi model di disk, tetapi hanya model yang benar-benar digunakan yang masuk ke RAM. Opsi **keep-alive** mempertahankan model yang sudah dimuat agar permintaan berikutnya tidak perlu memuat ulang.
+
+### Caching dan Autoload
+
+**Prompt caching** menyimpan hasil komputasi untuk bagian prompt yang berulang, sementara **image result caching** menghindari regenerasi gambar identik. Mekanisme ini selaras dengan temuan ServerlessLLM [4] yang menunjukkan bahwa manajemen *checkpoint* berlapis (disk → memori → VRAM) mampu memangkas waktu muat model secara drastis — dan survei taksonomi sistem serving oleh Miao et al. (2025) [5] menegaskan bahwa *request scheduling* dan *memory management* adalah dua tuas performa utama sistem inference.
+
+### Akselerasi GPU
+
+Ketika GPU tersedia, LocalAI memanfaatkannya lewat **CUDA** (NVIDIA), **Metal** (Apple Silicon), atau **OpenCL** (berbagai vendor). Kombinasi *CPU-first* dengan opsi akselerasi membuatnya luwes: server bisa mulai di mesin tanpa GPU, lalu ditingkatkan tanpa mengubah konfigurasi API sama sekali.
+
 ### Gambar 2: Jalur Migrasi dari OpenAI ke LocalAI
 
 Migrasi tidak perlu dilakukan sekaligus. Diagram berikut menunjukkan jalur bertahap yang paling aman.
@@ -226,7 +231,11 @@ Perubahan satu baris pada `base_url` adalah satu-satunya langkah wajib; sisanya 
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Deploy LocalAI dengan Docker
 
@@ -356,7 +365,8 @@ Dengan pipeline ini, seluruh siklus hidup dokumen — *chunking*, embedding, ret
 
 ---
 
-## 11. Studi Kasus: Migrasi Startup dari OpenAI ke LocalAI
+## 9. Studi Kasus: Migrasi Startup dari OpenAI ke LocalAI
+
 
 **Skenario:** Sebuah startup kecil dengan lima developer selama ini memakai OpenAI API dengan tagihan sekitar **$200 per bulan** — biaya yang membengkak seiring pertumbuhan penggunaan. Tantangannya bukan teknis, melainkan strategis: bagaimana menghemat biaya tanpa menulis ulang aplikasi dan tanpa mengorbankan privasi data pelanggan.
 
@@ -370,7 +380,8 @@ Dengan pipeline ini, seluruh siklus hidup dokumen — *chunking*, embedding, ret
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

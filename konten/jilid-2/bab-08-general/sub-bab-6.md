@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan persyaratan *audit trail* untuk penggunaan LLM di lingkungan *general office* menurut UU PDP, ISO 27001, dan GDPR
@@ -19,6 +20,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Mengapa Audit Trail Penting?
 
+
 ### Tiga Tekanan yang Bertemu di Satu Titik
 
 *Audit trail* untuk LLM bukan lagi inisiatif sukarela — ia lahir dari pertemuan tiga tekanan sekaligus. Pertama, **regulasi**: UU PDP Indonesia (UU No. 27/2022) mewajibkan *pelindungan data pribadi* yang dapat dibuktikan, ISO 27001 mensyaratkan *logging* dan *monitoring* sebagai kontrol keamanan informasi, dan GDPR mengamanatkan *accountability principle* — semuanya berujung pada satu tuntutan teknis yang sama: *setiap pemrosesan data harus dapat direkonstruksi*. Kedua, **kebutuhan internal**: investigasi insiden (siapa mengirim prompt data nasabah kepada model mana?), review produktivitas (apakah biaya AI sepadan dengan penggunaannya?), dan deteksi penyalahgunaan (siapa memakai gateway di luar jam kerja?) semuanya membutuhkan catatan. Ketiga, **kebutuhan forensik**: ketika *data leakage* terjadi, tim keamanan harus bisa merekonstruksi percakapan lengkap — prompt apa yang masuk, jawaban apa yang keluar — untuk mengukur dampak dan mencegah pengulangan.
@@ -29,13 +31,37 @@ Ketiga tekanan ini tidak bisa dipenuhi oleh *log* aplikasi biasa yang berisi der
 
 Skala 21-50 user sering menggoda kantor untuk beralasan: "log kami kecil, cukup pakai file teks." Anggapan itu keliru ganda. *Log* dalam jumlah kecil sekalipun bisa menyimpan data pribadi karyawan dan pelanggan — dan **regulasi tidak membedakan ukuran kantor**: UU PDP berlaku untuk siapa pun yang memproses data pribadi di Indonesia. Di sisi lain, *audit log* yang berantakan justru lebih berbahaya daripada tidak ada *log* sama sekali, karena auditor akan membacanya dan menemukan bahwa metadata hilang, *timestamp* acak, atau *response* tidak tersimpan. Untungnya, skala kecil juga berarti solusi bisa sederhana: satu PostgreSQL 500 GB, satu *aggregator* Fluentd, dan satu SIEM bisa melayani 50 user selama bertahun-tahun.
 
+### Diagram 1: Pipeline Audit Logging
+
+Berikut perjalanan satu permintaan dari pengguna hingga tiba di empat tujuan penyimpanan.
+
+```mermaid
+flowchart LR
+    PROMPT[User Prompt] --> LITELM[LiteLLM Proxy]
+    LITELM --> VLLM[vLLM]
+    VLLM --> RESPONSE[LLM Response]
+    LITELM --> AUDIT[Audit Log Generator]
+    AUDIT --> META[Add Metadata\nuser, dept, model, cost]
+    META --> HASH[Prompt Hashing\nSHA-256]
+    HASH --> SIGN[Cryptographic Sign\nHMAC-SHA256]
+    SIGN --> HOT[(PostgreSQL\nHot Storage 30d)]
+    HOT --> FLUENT[Fluentd Aggregator]
+    FLUENT --> WARM[(MinIO\nWarm Storage 90d)]
+    FLUENT --> COLD[(Cold Storage\n1-3 Year)]
+    FLUENT --> SIEM[Wazuh / ELK\nAlerting & Analysis]
+```
+
+Diagram ini menunjukkan urutan yang tidak boleh dibalik: **metadata → hash → sign → store**. Metadata dilengkapi lebih dulu (siapa, kapan, model, biaya), lalu prompt di-hash, baru seluruh entri ditandatangani — *signature* mencakup metadata dan *hash*, sehingga mengubah salah satu saja langsung terdeteksi. Perhatikan bahwa *hot storage* (PostgreSQL) adalah satu-satunya tujuan langsung; *warm*, *cold*, dan SIEM semuanya dicapai *melalui Fluentd* — pola *fan-out* yang menjaga konsistensi: satu entri, banyak konsumen, tanpa sinkronisasi manual.
+
+
 ---
 
 ## 3. Komponen Audit Log: Metadata yang Harus Ada
 
+
 ### Apa yang Wajib Tercatat per Permintaan
 
-Satu entri *audit log* yang baik menjawab enam pertanyaan investigasi sekaligus: **siapa** (user_id), **di mana kerjanya** (department), **kapan** (timestamp), **ke mana** (model), **apa yang ditanya** (prompt hash + prompt_length), **berapa hasilnya** (response_length, latency_ms), dan **berapa biayanya** (cost_idr). Ditambah tiga kolom kunci: **dlp_verdict** — hasil scan DLP dari Bab 8.5 (clean, warn, blocked) yang menghubungkan *audit trail* dengan *security pipeline*; **signature** — nilai HMAC yang membuat entri tahan manipulasi; dan **log_id** UUID — identitas unik setiap entri. Skema lengkap ada di Tabel 1 (Seksi 8).
+Satu entri *audit log* yang baik menjawab enam pertanyaan investigasi sekaligus: **siapa** (user_id), **di mana kerjanya** (department), **kapan** (timestamp), **ke mana** (model), **apa yang ditanya** (prompt hash + prompt_length), **berapa hasilnya** (response_length, latency_ms), dan **berapa biayanya** (cost_idr). Ditambah tiga kolom kunci: **dlp_verdict** — hasil scan DLP dari Bab 8.5 (clean, warn, blocked) yang menghubungkan *audit trail* dengan *security pipeline*; **signature** — nilai HMAC yang membuat entri tahan manipulasi; dan **log_id** UUID — identitas unik setiap entri. Skema lengkap ada di Tabel 1 (Seksi 3).
 
 ### Prompt Tidak Disimpan Mentah — Hanya Hash-nya
 
@@ -44,64 +70,6 @@ Keputusan desain paling penting: **prompt tidak disimpan mentah; yang disimpan a
 ### Response Disimpan Penuh — dengan Enkripsi
 
 Sebaliknya, **response disimpan penuh**, karena respons model adalah bukti utama *compliance*: auditor perlu melihat apa yang model jawab untuk menilai apakah *output* memuat data yang seharusnya tidak keluar. Namun karena respons bisa *memuat ulang* data sensitif dari prompt, penyimpanannya wajib **dienkripsi AES-256** — baik saat diam di database maupun saat transit ke *storage* dingin. Kombinasi "hash untuk prompt, *full text* untuk respons" adalah kompromi yang diadopsi banyak organisasi: *privacy* di sisi input, *evidence* di sisi output.
-
----
-
-## 4. Arsitektur Logging: Dari Permintaan hingga Arsip
-
-### Litelllm Logging ke PostgreSQL
-
-Titik awal pipeline adalah **LiteLLM** itu sendiri, yang punya *logging* bawaan: setiap request/response dapat langsung ditulis ke PostgreSQL bersama metadata (user, model, cost). Ini *jalur utama* untuk kantor di bawah 50 user — sederhana, sudah teruji, dan cukup untuk kebutuhan harian. Di atasnya, pengaturan `turn_off_message_logging: false` memastikan isi pesan tercatat, bukan hanya jumlah token (lihat Tutorial A di Seksi 10).
-
-### Fluentd sebagai Aggregator
-
-Mengapa perlu **Fluentd** jika LiteLLM sudah menulis ke PostgreSQL? Karena *log* tidak berhenti di satu tujuan. *Aggregator* Fluentd membaca *log* dari sumber, menambah metadata lingkungan (hostname, environment), lalu **menyalinnya ke beberapa tujuan sekaligus**: MinIO untuk *warm storage*, Elasticsearch untuk pencarian, dan *cold storage* untuk arsip jangka panjang. Pola *copy* ini adalah kunci skalabilitas: setiap entri ditulis satu kali, tetapi tersedia di semua lapisan *storage* tanpa duplikasi kerja manual.
-
-### Storage Berjenjang dan SIEM
-
-*Storage* dibagi tiga lapisan: **hot** (0-30 hari) di PostgreSQL untuk akses cepat; **warm** (31-90 hari) di MinIO yang *S3-compatible*; **cold** (91-365 hari) hingga **archive** (1-3 tahun) di *cold storage* berbiaya rendah. Sementara itu, **Wazuh atau ELK Stack** menganalisis *log* untuk *alerting* — misalnya lonjakan pemakaian dari satu user, atau pola prompt yang berulang dari alamat IP yang sama. Kombinasi ini memisahkan dua kebutuhan yang sering tertukar: *penyimpanan* (murah dan besar) versus *kueri* (mahal dan cepat) — SIEM hanya menampung indeks + *alert*, bukan replika *log* mentah.
-
----
-
-## 5. Tamper-Evident Logging: Membuat Log yang Tidak Bisa Digorek
-
-### Append-Only dan Penandatanganan HMAC
-
-Masalah klasik *audit log* adalah pemiliknya sendiri: admin database bisa saja mengubah entri untuk menutupi kesalahan. *Tamper-evident logging* menutup celah ini dengan dua mekanisme. Pertama, **append-only storage** — gunakan *database* time-series seperti TimescaleDB atau mekanisme *write-once* sehingga entri hanya bisa ditambahkan, bukan diubah atau dihapus; bahkan operator yang berbuat curang harus meninggalkan jejak. Kedua, **cryptographic signing**: setiap entri log ditandatangani dengan **HMAC-SHA256** menggunakan kunci rahasia yang disimpan terpisah dari database — konfigurasi, bukan data. Nilai *signature* dihitung dari seluruh isi entri, sehingga perubahan satu karakter pun membuat verifikasi gagal.
-
-### Verifikasi Berkala dan Nilainya di Mata Auditor
-
-*Signature* hanya berarti jika diverifikasi. Kantor yang sehat menjalankan **verifikasi berkala**: *script* membuka file log, menghitung ulang HMAC setiap entri, dan melaporkan entri yang tidak cocok — pada Tutorial C (Seksi 10) Anda akan mendapatkan *script* siap pakai untuk tugas ini. Rutinitas verifikasi ini menghasilkan artefak yang sangat disukai auditor: bukti bahwa organisasi memiliki **proses penyelidikan integritas log**, bukan sekadar klaim. Ketika berhadapan dengan audit ISO 27001, dua pertanyaan yang hampir pasti muncul adalah "bagaimana Anda mencegah perubahan log?" dan "kapan terakhir kali Anda memverifikasi?" — jawaban untuk keduanya lahir dari seksi ini.
-
----
-
-## 6. Kebijakan Retensi: Kapan Memanas, Kapan Mendingin, Kapan Menghapus
-
-### Empat Tier Penyimpanan
-
-*Audit log* tidak bisa disimpan selamanya di satu tempat: *storage* mahal, dan hukum menentukan kapan sesuatu harus dihapus. Solusinya adalah **retensi berjenjang** empat *tier* (rincian di Tabel 3, Seksi 8): **Hot** (0-30 hari, PostgreSQL, akses < 1 detik), **Warm** (31-90 hari, MinIO, akses < 5 detik dengan kompresi Gzip ~70%), **Cold** (91-365 hari, MinIO/Glacier, akses < 1 menit, enkripsi + KMS), dan **Archive** (1-3 tahun, tape/*cold storage*, akses > 1 jam, kompresi Zstd ~90%). Semakin tua *log*, semakin lambat aksesnya dan semakin terkompresi — mencerminkan kebutuhan nyata: data lama hampir tak pernah dibaca, tetapi terkadang harus muncul sebagai bukti.
-
-### Delete Otomatis Sesuai Regulasi
-
-Titik paling penting dalam *retention policy* adalah **akhir hidup data**. UU PDP mewajibkan penghapusan data pribadi setelah tujuan pemrosesan selesai — untuk *audit log* umumnya ditetapkan 3 tahun — sementara GDPR memberi *right to erasure* yang lebih cepat untuk individu. Proses **delete otomatis** wajib dijadwalkan, bukan diserahkan pada ingatan admin: entri yang melewati batas *archive* dihapus sesuai jadwal, dan penghapusan itu sendiri dicatat dalam *log* (jejak penghapusan adalah bagian dari bukti kepatuhan). Kantor yang lupa menjadwalkan penghapusan berisiko ganda: denda karena melanggar prinsip *data minimization*, atau biaya *storage* yang terus mengalir tanpa nilai.
-
----
-
-## 7. Privacy-Preserving Logging: Mencatat Tanpa Mencuri Panggung
-
-### Pseudonim dan Hak Individu
-
-*Audit log* menyimpan data pribadi pekerja secara struktural — menyimpan *user_id* mentah berbulan-bulan adalah mimpi buruk *privacy*. Solusinya **pseudonymization**: untuk keperluan analisis non-forensik (misalnya laporan pemakaian bulanan), *user_id* diganti dengan *hash*; identitas asli hanya direkonstruksi oleh *Proxy Admin* saat investigasi resmi. Lapisan kedua adalah **differential privacy** untuk analisis agregat: ketika laporan "rata-rata prompt per user per minggu" dihasilkan, *noise* matematis ditambahkan agar angka individual tidak dapat ditelusuri balik — laporan tetap berguna, individu tetap terlindungi.
-
-Terakhir, **right to erasure**: seorang karyawan bisa meminta log-nya dihapus (hak yang diberikan UU PDP dan GDPR). Mekanisme *opt-out* ini harus berjalan dalam hitungan hari, dan proses penghapusannya menciptakan entri audit baru — paradoks yang indah: *audit trail* bahkan merekam pelaksanaan hak atas *audit trail* itu sendiri.
-
-### Claude Fable 5 dan Otomasi Review Compliance
-
-Beban audit manual bisa dikurangi dengan otomasi dari sisi model. **Claude Fable 5** membawa *safety classifiers* built-in yang secara otomatis **menandai log yang mencurigakan untuk review compliance** — setiap interaksi menghasilkan *audit log* terstruktur, dan pola mencurigakan (misalnya pertanyaan berulang tentang data nasabah dari satu departemen) diklasifikasikan untuk perhatian manusia. Efeknya: *compliance officer* tidak lagi membaca ribuan baris log, melainkan hanya *sample* yang ditandai — kualitas review naik, jam kerja turun. Namun seperti semua otomasi, *classifier* bisa salah arah; keputusan final tetap di tangan manusia, dan *false positive*-nya ikut dievaluasi pada *review* berkala.
-
----
-
-## 8. Tabel Wajib: Skema, Strategi, dan Retensi
 
 ### Tabel 1: Skema Audit Log
 
@@ -124,6 +92,24 @@ Skema berikut adalah *kontrak* antara sistem dan auditor — setiap request haru
 
 Perhatikan tiga kolom yang paling sering dilupakan implementor: **prompt_hash** (bukan prompt mentah — *privacy by design*), **dlp_verdict** (jembatan ke Bab 8.5 yang menunjukkan data melewati pemeriksaan keamanan), dan **signature** (bukti integritas). Tanpa ketiganya, sebuah "*audit log*" hanyalah *log aplikasi* biasa — dan auditor yang paham akan menemukan kekurangannya dalam lima menit. Skema ini juga menekankan variabel *token count* (prompt_length dan response_length) karena auditor menolak klaim biaya tanpa dasar token aktual.
 
+
+---
+
+## 4. Arsitektur Logging: Dari Permintaan hingga Arsip
+
+
+### Litelllm Logging ke PostgreSQL
+
+Titik awal pipeline adalah **LiteLLM** itu sendiri, yang punya *logging* bawaan: setiap request/response dapat langsung ditulis ke PostgreSQL bersama metadata (user, model, cost). Ini *jalur utama* untuk kantor di bawah 50 user — sederhana, sudah teruji, dan cukup untuk kebutuhan harian. Di atasnya, pengaturan `turn_off_message_logging: false` memastikan isi pesan tercatat, bukan hanya jumlah token (lihat Tutorial A di Seksi 8).
+
+### Fluentd sebagai Aggregator
+
+Mengapa perlu **Fluentd** jika LiteLLM sudah menulis ke PostgreSQL? Karena *log* tidak berhenti di satu tujuan. *Aggregator* Fluentd membaca *log* dari sumber, menambah metadata lingkungan (hostname, environment), lalu **menyalinnya ke beberapa tujuan sekaligus**: MinIO untuk *warm storage*, Elasticsearch untuk pencarian, dan *cold storage* untuk arsip jangka panjang. Pola *copy* ini adalah kunci skalabilitas: setiap entri ditulis satu kali, tetapi tersedia di semua lapisan *storage* tanpa duplikasi kerja manual.
+
+### Storage Berjenjang dan SIEM
+
+*Storage* dibagi tiga lapisan: **hot** (0-30 hari) di PostgreSQL untuk akses cepat; **warm** (31-90 hari) di MinIO yang *S3-compatible*; **cold** (91-365 hari) hingga **archive** (1-3 tahun) di *cold storage* berbiaya rendah. Sementara itu, **Wazuh atau ELK Stack** menganalisis *log* untuk *alerting* — misalnya lonjakan pemakaian dari satu user, atau pola prompt yang berulang dari alamat IP yang sama. Kombinasi ini memisahkan dua kebutuhan yang sering tertukar: *penyimpanan* (murah dan besar) versus *kueri* (mahal dan cepat) — SIEM hanya menampung indeks + *alert*, bukan replika *log* mentah.
+
 ### Tabel 2: Perbandingan Logging Strategy
 
 Lima strategi berikut sering dicampur — pahami kekuatan masing-masing sebelum menyusun pipeline kantor Anda.
@@ -137,6 +123,33 @@ Lima strategi berikut sering dicampur — pahami kekuatan masing-masing sebelum 
 | **TimescaleDB** | Append-only, time-series | Learning curve | Tamper-evident requirement |
 
 Pola yang terbaca: *LiteLLM DB Logging* adalah *default* yang baik untuk kantor di bawah 50 user — tetapi *PostgreSQL bisa penuh* jika *log* dibiarkan menumpuk tanpa retensi, karena *log* request/response tumbuh jauh lebih cepat daripada data bisnis biasa. *Fluentd + MinIO* mengangkat batas itu dengan menyimpan ke *object storage* murah yang *S3-compatible* — diperlukan begitu volume melewati 10 GB/hari, mudah dicapai oleh 40 user yang rajin memakai AI. *ELK* dan *Wazuh* bukan pengganti *storage*, melainkan lapisan analisis: ELK untuk pencarian *full-text* yang cepat, Wazuh untuk *alerting* berbasis aturan keamanan. Sedangkan *TimescaleDB* hanya dipilih jika *tamper-evident* menjadi kebutuhan formal — misalnya menjelang *audit* ISO 27001 — karena *append-only* mempersulit (dan merekam) setiap perubahan.
+
+
+---
+
+## 5. Tamper-Evident Logging: Membuat Log yang Tidak Bisa Digorek
+
+
+### Append-Only dan Penandatanganan HMAC
+
+Masalah klasik *audit log* adalah pemiliknya sendiri: admin database bisa saja mengubah entri untuk menutupi kesalahan. *Tamper-evident logging* menutup celah ini dengan dua mekanisme. Pertama, **append-only storage** — gunakan *database* time-series seperti TimescaleDB atau mekanisme *write-once* sehingga entri hanya bisa ditambahkan, bukan diubah atau dihapus; bahkan operator yang berbuat curang harus meninggalkan jejak. Kedua, **cryptographic signing**: setiap entri log ditandatangani dengan **HMAC-SHA256** menggunakan kunci rahasia yang disimpan terpisah dari database — konfigurasi, bukan data. Nilai *signature* dihitung dari seluruh isi entri, sehingga perubahan satu karakter pun membuat verifikasi gagal.
+
+### Verifikasi Berkala dan Nilainya di Mata Auditor
+
+*Signature* hanya berarti jika diverifikasi. Kantor yang sehat menjalankan **verifikasi berkala**: *script* membuka file log, menghitung ulang HMAC setiap entri, dan melaporkan entri yang tidak cocok — pada Tutorial C (Seksi 8) Anda akan mendapatkan *script* siap pakai untuk tugas ini. Rutinitas verifikasi ini menghasilkan artefak yang sangat disukai auditor: bukti bahwa organisasi memiliki **proses penyelidikan integritas log**, bukan sekadar klaim. Ketika berhadapan dengan audit ISO 27001, dua pertanyaan yang hampir pasti muncul adalah "bagaimana Anda mencegah perubahan log?" dan "kapan terakhir kali Anda memverifikasi?" — jawaban untuk keduanya lahir dari seksi ini.
+
+---
+
+## 6. Kebijakan Retensi: Kapan Memanas, Kapan Mendingin, Kapan Menghapus
+
+
+### Empat Tier Penyimpanan
+
+*Audit log* tidak bisa disimpan selamanya di satu tempat: *storage* mahal, dan hukum menentukan kapan sesuatu harus dihapus. Solusinya adalah **retensi berjenjang** empat *tier* (rincian di Tabel 3, Seksi 3): **Hot** (0-30 hari, PostgreSQL, akses < 1 detik), **Warm** (31-90 hari, MinIO, akses < 5 detik dengan kompresi Gzip ~70%), **Cold** (91-365 hari, MinIO/Glacier, akses < 1 menit, enkripsi + KMS), dan **Archive** (1-3 tahun, tape/*cold storage*, akses > 1 jam, kompresi Zstd ~90%). Semakin tua *log*, semakin lambat aksesnya dan semakin terkompresi — mencerminkan kebutuhan nyata: data lama hampir tak pernah dibaca, tetapi terkadang harus muncul sebagai bukti.
+
+### Delete Otomatis Sesuai Regulasi
+
+Titik paling penting dalam *retention policy* adalah **akhir hidup data**. UU PDP mewajibkan penghapusan data pribadi setelah tujuan pemrosesan selesai — untuk *audit log* umumnya ditetapkan 3 tahun — sementara GDPR memberi *right to erasure* yang lebih cepat untuk individu. Proses **delete otomatis** wajib dijadwalkan, bukan diserahkan pada ingatan admin: entri yang melewati batas *archive* dihapus sesuai jadwal, dan penghapusan itu sendiri dicatat dalam *log* (jejak penghapusan adalah bagian dari bukti kepatuhan). Kantor yang lupa menjadwalkan penghapusan berisiko ganda: denda karena melanggar prinsip *data minimization*, atau biaya *storage* yang terus mengalir tanpa nilai.
 
 ### Tabel 3: Kebijakan Retensi Log
 
@@ -161,29 +174,21 @@ Dua *trade-off* yang disengaja terlihat di sini. *Trade-off* pertama: **harga vs
 
 ---
 
-## 9. Diagram & Visualisasi
 
-### Diagram 1: Pipeline Audit Logging
+---
 
-Berikut perjalanan satu permintaan dari pengguna hingga tiba di empat tujuan penyimpanan.
+## 7. Privacy-Preserving Logging: Mencatat Tanpa Mencuri Panggung
 
-```mermaid
-flowchart LR
-    PROMPT[User Prompt] --> LITELM[LiteLLM Proxy]
-    LITELM --> VLLM[vLLM]
-    VLLM --> RESPONSE[LLM Response]
-    LITELM --> AUDIT[Audit Log Generator]
-    AUDIT --> META[Add Metadata\nuser, dept, model, cost]
-    META --> HASH[Prompt Hashing\nSHA-256]
-    HASH --> SIGN[Cryptographic Sign\nHMAC-SHA256]
-    SIGN --> HOT[(PostgreSQL\nHot Storage 30d)]
-    HOT --> FLUENT[Fluentd Aggregator]
-    FLUENT --> WARM[(MinIO\nWarm Storage 90d)]
-    FLUENT --> COLD[(Cold Storage\n1-3 Year)]
-    FLUENT --> SIEM[Wazuh / ELK\nAlerting & Analysis]
-```
 
-Diagram ini menunjukkan urutan yang tidak boleh dibalik: **metadata → hash → sign → store**. Metadata dilengkapi lebih dulu (siapa, kapan, model, biaya), lalu prompt di-hash, baru seluruh entri ditandatangani — *signature* mencakup metadata dan *hash*, sehingga mengubah salah satu saja langsung terdeteksi. Perhatikan bahwa *hot storage* (PostgreSQL) adalah satu-satunya tujuan langsung; *warm*, *cold*, dan SIEM semuanya dicapai *melalui Fluentd* — pola *fan-out* yang menjaga konsistensi: satu entri, banyak konsumen, tanpa sinkronisasi manual.
+### Pseudonim dan Hak Individu
+
+*Audit log* menyimpan data pribadi pekerja secara struktural — menyimpan *user_id* mentah berbulan-bulan adalah mimpi buruk *privacy*. Solusinya **pseudonymization**: untuk keperluan analisis non-forensik (misalnya laporan pemakaian bulanan), *user_id* diganti dengan *hash*; identitas asli hanya direkonstruksi oleh *Proxy Admin* saat investigasi resmi. Lapisan kedua adalah **differential privacy** untuk analisis agregat: ketika laporan "rata-rata prompt per user per minggu" dihasilkan, *noise* matematis ditambahkan agar angka individual tidak dapat ditelusuri balik — laporan tetap berguna, individu tetap terlindungi.
+
+Terakhir, **right to erasure**: seorang karyawan bisa meminta log-nya dihapus (hak yang diberikan UU PDP dan GDPR). Mekanisme *opt-out* ini harus berjalan dalam hitungan hari, dan proses penghapusannya menciptakan entri audit baru — paradoks yang indah: *audit trail* bahkan merekam pelaksanaan hak atas *audit trail* itu sendiri.
+
+### Claude Fable 5 dan Otomasi Review Compliance
+
+Beban audit manual bisa dikurangi dengan otomasi dari sisi model. **Claude Fable 5** membawa *safety classifiers* built-in yang secara otomatis **menandai log yang mencurigakan untuk review compliance** — setiap interaksi menghasilkan *audit log* terstruktur, dan pola mencurigakan (misalnya pertanyaan berulang tentang data nasabah dari satu departemen) diklasifikasikan untuk perhatian manusia. Efeknya: *compliance officer* tidak lagi membaca ribuan baris log, melainkan hanya *sample* yang ditandai — kualitas review naik, jam kerja turun. Namun seperti semua otomasi, *classifier* bisa salah arah; keputusan final tetap di tangan manusia, dan *false positive*-nya ikut dievaluasi pada *review* berkala.
 
 ### Diagram 2: Alur Compliance Audit
 
@@ -202,7 +207,11 @@ Garis ini menghubungkan setiap kontrol yang dibahas sub-bab ini: setiap perminta
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Konfigurasi Audit Logging di LiteLLM
 
@@ -373,7 +382,8 @@ Perhatikan detail penting di *code*: `hmac.compare_digest` digunakan alih-alih p
 
 ---
 
-## 11. Studi Kasus: Audit Trail untuk Sertifikasi ISO 27001
+## 9. Studi Kasus: Audit Trail untuk Sertifikasi ISO 27001
+
 
 **Latar.** PT Asuransi Digital — perusahaan asuransi dengan 45 karyawan — sedang berjalan menuju **sertifikasi ISO 27001:2022**. Di antara ribuan kontrol yang diaudit, satu area membuat manajemen gelisah: penggunaan AI internal. Auditor membutuhkan **bukti** bahwa AI tidak digunakan untuk memproses data nasabah tanpa kontrol. Tanpa *audit trail*, klaim "kami punya kebijakan AI" tidak bernilai apa pun di mata auditor — ia perlu melihat *jejak*, bukan mendengar *janji*.
 
@@ -385,7 +395,8 @@ Perhatikan detail penting di *code*: `hmac.compare_digest` digunakan alih-alih p
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

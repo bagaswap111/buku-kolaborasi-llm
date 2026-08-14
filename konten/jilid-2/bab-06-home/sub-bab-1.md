@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Membedakan secara fundamental antara sistem LLM *personal* (1 user), *Home Assistant* (4-8 user), dan *small office* (9-20 user) — dari sisi concurrency, uptime, daya, hingga biaya
@@ -19,6 +20,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Definisi Home AI Assistant
 
+
 **Home AI Assistant** bukan sekadar "LLM di rumah". Ia adalah sistem inferensi lokal yang melayani 4-8 anggota keluarga secara simultan — dengan karakter operasional yang sangat berbeda dari server kantor. Ini penting dipahami sejak awal: persis seperti tidak mungkin mengelola keluarga dengan SOP perusahaan, sistem LLM rumahan juga tidak boleh dirancang dengan mentalitas *datacenter*.
 
 Karakteristik unik sistem ini mudah diingat melalui tiga kata kunci. Pertama, **concurrency rendah** — meskipun rumah dihuni delapan orang, sangat jarang delapan orang melakukan *prompt* secara bersamaan; lonjakan paling realistis hanya 2-3 pengguna pada jam sibuk. Kedua, **prioritas latensi sedang** — respons 5-10 detik masih sangat bisa diterima untuk pertanyaan PR, resep masak, atau ringkasan dokumen; keluarga bukan bursa saham. Ketiga, **kebutuhan uptime yang fleksibel** — tidak ada alasan sistem menyala 24/7 saat seluruh penghuni tidur; uptime 99,999% adalah jawaban untuk masalah yang tidak dimiliki rumah tangga.
@@ -28,85 +30,6 @@ Akibatnya, banyak fasilitas yang wajib di kantor justru tidak perlu ada di rumah
 Ada sebuah uji sederhana untuk menguji mentalitas desain ini: tanyakan, "siapa yang mematikan server ini?" Jika jawabannya adalah ayah yang harus membuka terminal untuk me-restart setiap kali lampu indikator berkedip, sistem itu milik seorang *engineer* — bukan keluarga. Sistem rumahan yang sehat berjalan di latar belakang kehidupan rumah: menyala saat dibutuhkan, tidur saat semua tidur, dan tidak pernah menuntut perhatian pada jam-jam tersibuk rumah tangga — yang justru biasanya merupakan puncak pemakaian asisten.
 
 Analoginya bisa didekatkan dengan mesin fotokopi: di kantor, mesin fotokopi dioperasikan petugas khusus, dihitung per lembar, dan dirawat kontrak servis. Di rumah, mesin fotokopi itu cukup diletakkan di pojok ruang kerja — semua orang tahu cara memakainya, tidak ada yang menghitung, dan siapa pun bisa mengganti tinta. Home AI Assistant dirancang untuk jadi mesin fotokopi itu: cukup berguna sehingga dipakai setiap hari, cukup sederhana sehingga tidak pernah menjadi "pekerjaan" bagi penghuninya.
-
----
-
-## 3. Pilar Desain Sistem
-
-Lima pilar berikut adalah konstitusi dari setiap Home AI Assistant yang sehat. Jika satu pilar dilanggar, sistem akan terasa "salah" — seperti resep masakan yang bahannya benar tetapi takarannya keliru.
-
-### Low Power: 15-30W saat Idle
-
-Server kantor diam-diam menyedot 300W selama 24 jam — sekitar 7,2 kWh per hari hanya untuk "berpikir kosong". Di rumah, server seperti itu akan tampak begitu menyakitkan di tagihan listrik bulanan. Karena itu pilar pertama menuntut konsumsi **15-30W saat idle**, dengan GPU tidur (*sleep*) di malam hari. Dampak praktisnya: arsitektur hardware harus hemat daya sejak awal, dan *auto shutdown* GPU pada jam tidur keluarga adalah fitur wajib, bukan kemewahan.
-
-### High Privacy: Semua Data Tinggal di Rumah
-
-Pilar kedua adalah **privasi tinggi**: data keluarga — percakapan anak, catatan medis, dokumen pajak, jadwal kerja orang tua — tidak boleh meninggalkan rumah. Inilah pembeda paling kontras dengan asisten cloud: risiko *data leakage* bukan lagi tanggung jawab vendor di luar sana, melainkan sepenuhnya menjadi keunggulan arsitektur. Dengan inference lokal, tidak ada yang "mendengarkan" percakapan dapur, karena gelombang suara hanya berubah jadi tensor di dalam server keluarga.
-
-### Local-first Networking: Tidak Bergantung Internet
-
-Pilar ketiga: **jaringan local-first** — DNS lokal, akses *LAN-only*. LLM server harus tetap bisa melayani keluarga meski koneksi internet rumah mati. Ini bukan sekadar preferensi: jika sistem bergantung pada *cloud*, maka *outage* ISP menjadi *outage* asisten keluarga. Desain ini juga yang membuat sistem tetap cepat: tidak ada *round-trip* keluar rumah, tidak ada antrean di server orang lain.
-
-### Intermiten Availability: Boleh Mati Malam Hari
-
-Pilar keempat adalah paradoks yang paling sulit dipahami orang *enterprise*: **ketersediaan intermiten** justru diinginkan. Sistem boleh mati tengah malam saat semua tidur, dan menyala kembali saat keluarga bangun. Tidak hanya menghemat listrik — jadwal mati-hidup ini juga memperpanjang umur komponen dan memberi "waktu istirahat" bagi perangkat yang sebenarnya tidak dirancang untuk berputar tanpa henti.
-
-### Ease of Maintenance: Bisa Diurus oleh Non-IT
-
-Pilar kelima menutup rangkaian: **kemudahan perawatan**. Yang mengurus server ini bukan administrator sistem, melainkan anggota keluarga yang mungkin sehari-harinya guru atau dokter. Artinya: pembaruan harus otomatis atau satu-klik, *backup* harus terjadwal tanpa perintah manual, dan dokumentasi harus bisa dipahami orang awam. Sistem yang membutuhkan *troubleshooting* SSH setiap minggu akan segera ditinggalkan — bukan karena rusak, tetapi karena lelah.
-
-Praktik perawatan yang paling sering dilupakan adalah **backup mingguan manual** — justru karena di konteks keluarga tidak ada tim IT yang mengingatkannya. Pilihannya sederhana: *cron job* yang menyalin folder model penting dan vector store ke HDD eksternal setiap Minggu malam, atau *snapshot* otomatis di NAS rumah. Data yang paling berharga bukan modelnya — model bisa diunduh ulang — melainkan dokumen keluarga di ChromaDB dan konfigurasi server. Backup mingguan adalah asuransi termurah yang bisa dibeli keluarga ini.
-
-Kelima pilar ini juga menjadi lensa evaluasi yang berguna: sebelum menambah komponen apa pun (GPU kedua, RAG baru, perangkat suara), tanyakan lima pertanyaan — berapa watt ekstra? data siapa yang terlibat? bergantung internetkah? boleh mati kapan? siapa yang memeliharanya? Jika jawaban salah satu pertanyaan membuat gelisah, komponen itu layak ditunda. Inilah yang membedakan *Home Assistant* yang tumbuh sehat dari *homelab* yang menumpuk perangkat tanpa arah.
-
----
-
-## 4. Load Pattern Analysis
-
-Sebelum menentukan hardware dan SLA, kita harus membaca ritme harian keluarga. Sama seperti arsitek membaca pola lalu lintas sebelum mendesain jalan, perancang Home AI Assistant harus membaca **pola beban** sebelum mendesain sistem.
-
-Faktanya sederhana namun menentukan: *peak hours* terjadi pada **18:00-21:00** — saat semua anggota pulang, anak-anak minta bantuan PR, dan orang tua menanyakan resep masak atau mengecek jadwal keluarga. Sementara itu, *low traffic* mutlak terjadi pada **00:00-06:00** ketika seluruh rumah tertidur — inilah jendela emas untuk *auto-shutdown* GPU. Di luar dua jendela itu, beban mengalun rendah: pagi hari sibuk singkat untuk tugas sekolah, siang nyaris sepi, sore mulai berangsur naik.
-
-Yang sering disalahpahami adalah angka *concurrent users*: meskipun rumah berisi 8 orang, pada puncaknya pun hanya **maksimal 2-3 orang** yang mengetik pertanyaan di saat bersamaan. Ini karena interaksi asisten di rumah bersifat *interleaved* — bergantian, bukan serempak — berbeda dengan kantor yang melempar 10 *request* sekaligus dari dashboard tim. Dengan kata lain, sistem yang mampu melayani 3 sesi paralel dengan nyaman sudah memasok *buffer* yang aman bagi seluruh penghuni rumah.
-
-Jenis query juga berpola. Sebagian besar permintaan keluarga adalah **pendek** — *prompt* di bawah 100 token — dan bersifat **instruksional**: "buatkan daftar belanja", "jelaskan fotosintesis untuk kelas 6", "resep ayam goreng". Sangat jarang anggota keluarga menulis *creative writing* panjang lebar. Implikasinya: *prefill* (pemrosesan prompt) ringan, sedangkan *generation* mendominasi — pola yang sangat cocok untuk model 7-14B dengan kuantisasi, yang justru unggul pada *throughput* bertoken pendek-sedang. Temuan *Demystifying SLM for Edge Deployment* [4] menunjukkan bahwa model kecil di *edge* mengalami keterbatasan *in-context learning* pada tugas kompleks — tetapi untuk query instruksional keluarga, model kelas 7-14B berada jauh di dalam zona nyamannya.
-
-Pola ini sekaligus menjawab pertanyaan abadi: apakah *Home Assistant* butuh GPU kelas atas? Dengan *prompt* pendek dan *KV-cache* kecil, model 7-14B di GPU 12-24 GB akan menyelesaikan sebagian besar *prefill* dalam hitungan milidetik. Beban GPU yang sesungguhnya baru terasa saat 2-3 sesi *streaming* berjalan bersamaan di jam makan malam — artinya, investasi yang paling tepat bukan pada kartu tercepat, melainkan pada kapasitas *KV-cache* yang cukup untuk tiga sesi paralel, plus jadwal tidur GPU yang tegas pada jam-jam sepi (00:00-06:00). Seluruh perhitungan ini, dari *memory footprint* hingga konsumsi energi per *request*, dirangkum dengan baik oleh survei SLM di [3].
-
----
-
-## 5. Komponen Sistem
-
-Setiap sistem tersusun dari empat lini komponen yang bekerja seperti dapur yang terorganisir: ada yang memasak, yang menyimpan bahan, yang menjadi kurir, dan yang mencatat pesanan.
-
-**LLM Server** — jantung sistem, diisi oleh **Ollama** atau **vLLM**. Untuk skala keluarga, Ollama cukup karena concurrency rendah; vLLM masuk akal jika nanti ada rencana skala naik atau banyak pengguna *power*. **RAG Pipeline** — rak buku keluarga berbentuk vektor, memakai **ChromaDB** lokal yang menyimpan dokumen keluarga: buku pelajaran, jurnal medis, dokumentasi proyek, hingga kumpulan resep. **Smart Home Bridge** — jika keluarga menggunakan otomasi rumah, **Home Assistant** dengan *custom integration* HACS menjadi penghubung antara perintah bahasa alami dan perangkat fisik. **Voice Interface** — bersifat opsional: **Whisper** untuk *speech-to-text* dan **Piper** untuk *text-to-speech*, memberi keluarga antarmuka yang paling alami: bicara.
-
-Peran setiap komponen perlu dilihat relatif terhadap arsitektur modular-agent yang diusulkan *Harmony* [2]: bukan satu model raksasa yang melakukan segalanya, melainkan LLM pusat yang mengarahkan tugas—deteksi maksud, pencarian konteks, pemilihan aksi—ke modul-modul khusus.
-
-Bagi keluarga yang baru pindah dari asisten cloud, ada godaan untuk memasang semuanya sekaligus dalam satu akhir pekan. Resist. Urutan adopsi yang bijak adalah bertahap: mulai dari LLM server plus Open WebUI selama satu-dua minggu (keluarga terbiasa, model dipilih), lalu tambahkan RAG ketika keluarga mulai bertanya tentang dokumen pribadi, dan pasang Home Assistant hanya bila rumah sudah memiliki perangkat pintar yang benar-benar dipakai tiap hari. Setiap lapisan menambah nilai — tetapi juga menambah satu titik yang harus dipelihara, dan setiap lapisan yang dipasang terlalu dini biasanya yang pertama ditinggalkan.
-
-### Tabel Komponen Sistem Home Assistant
-
-| Komponen | Peran | Teknologi Pilihan | Kapan Dibutuhkan |
-|:---|:---|:---|:---|
-| **LLM Server** | Inferensi utama, melayani semua user | Ollama / vLLM | Selalu |
-| **RAG Pipeline** | Menyimpan & mencari dokumen keluarga | ChromaDB lokal | Ada dokumen privat yang perlu dirujuk |
-| **Smart Home Bridge** | Kontrol perangkat fisik via bahasa alami | Home Assistant + HACS | Keluarga punya lampu/AC/IR smart |
-| **Voice Interface** | Input suara & respons lisan | Whisper (STT) + Piper (TTS) | Opsional — untuk anak dan dapur |
-
----
-
-## 6. Topologi Jaringan yang Sehat
-
-Topologi jaringan adalah "denah rumah" bagi sistem ini: semuanya berada dalam satu atap — **LAN**. LLM server tinggal di jaringan lokal (misalnya `192.168.1.100`), diakses lewat **mDNS** (misalnya `raspberrypi.local` atau `llm-server.local`) atau *static DHCP reservation* agar IP tidak berubah. Setiap perangkat — TV, tablet, laptop, *smart speaker* — mengakses server melalui **Open WebUI** atau *REST API* lokal, tanpa melewati internet sama sekali.
-
-Aturan emasnya satu kalimat: **tidak ada *port forwarding*** ke WAN. Jika keluarga membutuhkan akses dari luar rumah (ayah berpergian, anak di sekolah), gunakan **Tailscale** atau **WireGuard** — terowongan pribadi yang menembus internet tanpa membuka satu pun lubang di router. Ini bukan pembatasan, melainkan pembebasan: jaringan keluarga bisa dijangkau dari mana pun tanpa mengundang dunia luar masuk.
-
-Sebuah catatan praktis untuk rumah yang baru pindah ISP: pastikan router modem ISP tidak "menabrak" subnet internal. Banyak ISP Indonesia memberi modem dengan subnet `192.168.100.0/24` yang berkonflik dengan LAN rumah — akibatnya beberapa perangkat kartu bergantian *online-offline*. Solusi yang tenang: set modem ISP ke mode *bridge*, dan biarkan router keluarga (OpenWrt/pfSense) yang mengelola seluruh subnet dan VLAN. Detail kecil ini mencegah salah satu *troubleshooting* paling membingungkan di jaringan rumahan.
-
----
-
-## 7. Tabel Wajib
 
 ### Tabel 1: Perbandingan Skala Deployment
 
@@ -131,38 +54,6 @@ Rentang daya dan biaya ketiga skala ini lebih mudah dibaca sebagai batang — pe
 
 Perhatikan dua kolom yang paling sering salah dikelola. Pertama, **power budget**: dari ~100-300W saat *running* pada sistem personal, *Home Assistant* menuntut idle rendah 30-100W — tuntutan yang tidak pernah ada di kantor 300-600W. Kedua, **IAM**: keluarga cukup dengan *family account* sederhana, sementara kantor butuh SSO/OAuth. Artinya, membeli solusi kantor lalu "mengecilkannya" untuk rumah adalah kesalahan arah — yang benar adalah mendesain dari kebutuhan rumah itu sendiri. Studi *Small Language Models: Survey, Measurements, and Insights* [3] menegaskan bahwa karakterisasi beban kerja yang tepat (token/s, *memory footprint*, konsumsi energi) menentukan kelayakan *edge deployment* — dan keluarga adalah kasus penggunaan *edge* paling jujur.
 
-### Tabel 2: Rekomendasi Hardware per Skenario Keluarga
-
-Setelah memahami skala, tabel berikut membantu memilih titik awal hardware berdasarkan komposisi keluarga dan prioritas.
-
-| Skenario | Rekomendasi | Model Ideal | Total Estimasi |
-|:---|:---|:---|:---:|
-| **Keluarga kecil (4 org), budget hemat** | Mac Mini M4 24GB + Ollama | Llama-3.1-8B Q4_K_M | ~Rp 20jt |
-| **Keluarga besar (6-8 org), performa** | PC RTX 4090 24GB + vLLM | Llama-3.1-70B Q3_K_M | ~Rp 45jt |
-| **Keluarga dengan smart home** | Homelab: Mini PC + RTX 3090 used + Home Assistant | Qwen-2.5-14B Q4_K_M | ~Rp 30jt |
-| **Lowest power (24/7 on)** | Mac Mini M4 Pro 48GB + Ollama | Llama-3.1-8B Q5_K_M | ~Rp 35jt |
-
-Pola yang muncul: ukuran keluarga menentukan model, dan model menentukan hardware. Empat orang dengan anggaran ketat dapat diselesaikan Mac Mini M4 24GB; enam sampai delapan orang yang ingin kualitas tertinggi butuh RTX 4090 untuk menampung Llama-3.1-70B dalam Q3_K_M. Skenario ketiga adalah jalan tengah yang paling populer di Indonesia — *homelab* dengan *used* RTX 3090 yang juga menjadi tulang punggung Home Assistant. Skenario keempat, 24/7, menyerahkan segalanya pada efisiensi Apple Silicon. Tidak ada jawaban universal; yang ada adalah jawaban yang cocok dengan keluarga Anda.
-
-Praktik terbaik dari ketiga pilihan pertama: jangan membeli hardware "untuk masa depan". Keluarga yang memulai dengan Mac Mini 24GB untuk model 8B lalu berencana naik ke 70B setahun kemudian akan membayar dua kali — jauh lebih baik menetapkan ukuran keluarga dan model maksimum yang masuk akal sejak awal, lalu memilih skenario tepat di atasnya. Hardware rumah tunduk pada aturan rumah: beli sesuai kebutuhan hari ini, bukan sesuai khayalan setahun lagi.
-
-### Tabel 3: Service SLA Target
-
-Terakhir, kita menetapkan kontrak kinerja — angka-angka ini adalah "janji" sistem terhadap keluarga, dan menjadi acuan verifikasi saat *stress test* pada praktikum di akhir sub-bab ini.
-
-| Metrik | Target | Notes |
-|:---|:---:|:---|
-| **Time to First Token** | < 2 detik | Untuk model 7-14B |
-| **Peak Response Time** | < 8 detik | Saat 3 user bersamaan |
-| **Uptime Harian** | 16 jam (06:00-22:00) | Mati otomatis malam hari |
-| **Max Concurrent Sessions** | 3 | Buffer untuk 8 anggota |
-| **Power Consumption (idle)** | < 30W | GPU dalam keadaan sleep |
-
-Target di atas selaras dengan studi kelayakan *On-Device LLM for Home Assistant* [1], yang mengukur bahwa LLM 8-bit di perangkat 8GB RAM CPU-only mampu menjalankan *intent detection* dan *response generation* dalam seekor rumah tanpa GPU dedikasi. Bedanya: di sana *budget* latensinya dipaksa sekecil mungkin karena keterbatasan perangkat; di sini target <2 detik TTFT dan <8 detik *peak response* adalah kompromi yang manusiawi — cukup cepat agar anak tidak kehilangan sabar, cukup longgar agar hardware tidak perlu mahal. Inilah SLA yang lahir dari dinamika keluarga, bukan dari kontrak *enterprise*.
-
----
-
-## 8. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur Home AI Assistant
 
@@ -198,6 +89,119 @@ Yang langsung terlihat dari diagram ini adalah prinsip *local-first*: garis putu
 
 Dari sudut pandang pengguna, diagram ini bisa disederhanakan menjadi satu kalimat: apa pun perangkatnya, keluarga selalu "berbicara" dengan satu pintu yang sama di dalam rumah. Konsistensi ini bukan kebetulan — ia lahir dari keputusan desain bahwa semua *user device* berbicara dalam satu protokol (HTTP/WebSocket ke Open WebUI atau REST API lokal), sehingga menambah perangkat baru (smartwatch anak, tablet kedua) tidak pernah menuntut perubahan arsitektur. Sistem yang dirancang baik adalah sistem yang membuat pengguna tidak perlu tahu cara kerjanya.
 
+
+---
+
+## 3. Pilar Desain Sistem
+
+
+Lima pilar berikut adalah konstitusi dari setiap Home AI Assistant yang sehat. Jika satu pilar dilanggar, sistem akan terasa "salah" — seperti resep masakan yang bahannya benar tetapi takarannya keliru.
+
+### Low Power: 15-30W saat Idle
+
+Server kantor diam-diam menyedot 300W selama 24 jam — sekitar 7,2 kWh per hari hanya untuk "berpikir kosong". Di rumah, server seperti itu akan tampak begitu menyakitkan di tagihan listrik bulanan. Karena itu pilar pertama menuntut konsumsi **15-30W saat idle**, dengan GPU tidur (*sleep*) di malam hari. Dampak praktisnya: arsitektur hardware harus hemat daya sejak awal, dan *auto shutdown* GPU pada jam tidur keluarga adalah fitur wajib, bukan kemewahan.
+
+### High Privacy: Semua Data Tinggal di Rumah
+
+Pilar kedua adalah **privasi tinggi**: data keluarga — percakapan anak, catatan medis, dokumen pajak, jadwal kerja orang tua — tidak boleh meninggalkan rumah. Inilah pembeda paling kontras dengan asisten cloud: risiko *data leakage* bukan lagi tanggung jawab vendor di luar sana, melainkan sepenuhnya menjadi keunggulan arsitektur. Dengan inference lokal, tidak ada yang "mendengarkan" percakapan dapur, karena gelombang suara hanya berubah jadi tensor di dalam server keluarga.
+
+### Local-first Networking: Tidak Bergantung Internet
+
+Pilar ketiga: **jaringan local-first** — DNS lokal, akses *LAN-only*. LLM server harus tetap bisa melayani keluarga meski koneksi internet rumah mati. Ini bukan sekadar preferensi: jika sistem bergantung pada *cloud*, maka *outage* ISP menjadi *outage* asisten keluarga. Desain ini juga yang membuat sistem tetap cepat: tidak ada *round-trip* keluar rumah, tidak ada antrean di server orang lain.
+
+### Intermiten Availability: Boleh Mati Malam Hari
+
+Pilar keempat adalah paradoks yang paling sulit dipahami orang *enterprise*: **ketersediaan intermiten** justru diinginkan. Sistem boleh mati tengah malam saat semua tidur, dan menyala kembali saat keluarga bangun. Tidak hanya menghemat listrik — jadwal mati-hidup ini juga memperpanjang umur komponen dan memberi "waktu istirahat" bagi perangkat yang sebenarnya tidak dirancang untuk berputar tanpa henti.
+
+### Ease of Maintenance: Bisa Diurus oleh Non-IT
+
+Pilar kelima menutup rangkaian: **kemudahan perawatan**. Yang mengurus server ini bukan administrator sistem, melainkan anggota keluarga yang mungkin sehari-harinya guru atau dokter. Artinya: pembaruan harus otomatis atau satu-klik, *backup* harus terjadwal tanpa perintah manual, dan dokumentasi harus bisa dipahami orang awam. Sistem yang membutuhkan *troubleshooting* SSH setiap minggu akan segera ditinggalkan — bukan karena rusak, tetapi karena lelah.
+
+Praktik perawatan yang paling sering dilupakan adalah **backup mingguan manual** — justru karena di konteks keluarga tidak ada tim IT yang mengingatkannya. Pilihannya sederhana: *cron job* yang menyalin folder model penting dan vector store ke HDD eksternal setiap Minggu malam, atau *snapshot* otomatis di NAS rumah. Data yang paling berharga bukan modelnya — model bisa diunduh ulang — melainkan dokumen keluarga di ChromaDB dan konfigurasi server. Backup mingguan adalah asuransi termurah yang bisa dibeli keluarga ini.
+
+Kelima pilar ini juga menjadi lensa evaluasi yang berguna: sebelum menambah komponen apa pun (GPU kedua, RAG baru, perangkat suara), tanyakan lima pertanyaan — berapa watt ekstra? data siapa yang terlibat? bergantung internetkah? boleh mati kapan? siapa yang memeliharanya? Jika jawaban salah satu pertanyaan membuat gelisah, komponen itu layak ditunda. Inilah yang membedakan *Home Assistant* yang tumbuh sehat dari *homelab* yang menumpuk perangkat tanpa arah.
+
+---
+
+## 4. Load Pattern Analysis
+
+
+Sebelum menentukan hardware dan SLA, kita harus membaca ritme harian keluarga. Sama seperti arsitek membaca pola lalu lintas sebelum mendesain jalan, perancang Home AI Assistant harus membaca **pola beban** sebelum mendesain sistem.
+
+Faktanya sederhana namun menentukan: *peak hours* terjadi pada **18:00-21:00** — saat semua anggota pulang, anak-anak minta bantuan PR, dan orang tua menanyakan resep masak atau mengecek jadwal keluarga. Sementara itu, *low traffic* mutlak terjadi pada **00:00-06:00** ketika seluruh rumah tertidur — inilah jendela emas untuk *auto-shutdown* GPU. Di luar dua jendela itu, beban mengalun rendah: pagi hari sibuk singkat untuk tugas sekolah, siang nyaris sepi, sore mulai berangsur naik.
+
+Yang sering disalahpahami adalah angka *concurrent users*: meskipun rumah berisi 8 orang, pada puncaknya pun hanya **maksimal 2-3 orang** yang mengetik pertanyaan di saat bersamaan. Ini karena interaksi asisten di rumah bersifat *interleaved* — bergantian, bukan serempak — berbeda dengan kantor yang melempar 10 *request* sekaligus dari dashboard tim. Dengan kata lain, sistem yang mampu melayani 3 sesi paralel dengan nyaman sudah memasok *buffer* yang aman bagi seluruh penghuni rumah.
+
+Jenis query juga berpola. Sebagian besar permintaan keluarga adalah **pendek** — *prompt* di bawah 100 token — dan bersifat **instruksional**: "buatkan daftar belanja", "jelaskan fotosintesis untuk kelas 6", "resep ayam goreng". Sangat jarang anggota keluarga menulis *creative writing* panjang lebar. Implikasinya: *prefill* (pemrosesan prompt) ringan, sedangkan *generation* mendominasi — pola yang sangat cocok untuk model 7-14B dengan kuantisasi, yang justru unggul pada *throughput* bertoken pendek-sedang. Temuan *Demystifying SLM for Edge Deployment* [4] menunjukkan bahwa model kecil di *edge* mengalami keterbatasan *in-context learning* pada tugas kompleks — tetapi untuk query instruksional keluarga, model kelas 7-14B berada jauh di dalam zona nyamannya.
+
+Pola ini sekaligus menjawab pertanyaan abadi: apakah *Home Assistant* butuh GPU kelas atas? Dengan *prompt* pendek dan *KV-cache* kecil, model 7-14B di GPU 12-24 GB akan menyelesaikan sebagian besar *prefill* dalam hitungan milidetik. Beban GPU yang sesungguhnya baru terasa saat 2-3 sesi *streaming* berjalan bersamaan di jam makan malam — artinya, investasi yang paling tepat bukan pada kartu tercepat, melainkan pada kapasitas *KV-cache* yang cukup untuk tiga sesi paralel, plus jadwal tidur GPU yang tegas pada jam-jam sepi (00:00-06:00). Seluruh perhitungan ini, dari *memory footprint* hingga konsumsi energi per *request*, dirangkum dengan baik oleh survei SLM di [3].
+
+### Tabel 2: Rekomendasi Hardware per Skenario Keluarga
+
+Setelah memahami skala, tabel berikut membantu memilih titik awal hardware berdasarkan komposisi keluarga dan prioritas.
+
+| Skenario | Rekomendasi | Model Ideal | Total Estimasi |
+|:---|:---|:---|:---:|
+| **Keluarga kecil (4 org), budget hemat** | Mac Mini M4 24GB + Ollama | Llama-3.1-8B Q4_K_M | ~Rp 20jt |
+| **Keluarga besar (6-8 org), performa** | PC RTX 4090 24GB + vLLM | Llama-3.1-70B Q3_K_M | ~Rp 45jt |
+| **Keluarga dengan smart home** | Homelab: Mini PC + RTX 3090 used + Home Assistant | Qwen-2.5-14B Q4_K_M | ~Rp 30jt |
+| **Lowest power (24/7 on)** | Mac Mini M4 Pro 48GB + Ollama | Llama-3.1-8B Q5_K_M | ~Rp 35jt |
+
+Pola yang muncul: ukuran keluarga menentukan model, dan model menentukan hardware. Empat orang dengan anggaran ketat dapat diselesaikan Mac Mini M4 24GB; enam sampai delapan orang yang ingin kualitas tertinggi butuh RTX 4090 untuk menampung Llama-3.1-70B dalam Q3_K_M. Skenario ketiga adalah jalan tengah yang paling populer di Indonesia — *homelab* dengan *used* RTX 3090 yang juga menjadi tulang punggung Home Assistant. Skenario keempat, 24/7, menyerahkan segalanya pada efisiensi Apple Silicon. Tidak ada jawaban universal; yang ada adalah jawaban yang cocok dengan keluarga Anda.
+
+Praktik terbaik dari ketiga pilihan pertama: jangan membeli hardware "untuk masa depan". Keluarga yang memulai dengan Mac Mini 24GB untuk model 8B lalu berencana naik ke 70B setahun kemudian akan membayar dua kali — jauh lebih baik menetapkan ukuran keluarga dan model maksimum yang masuk akal sejak awal, lalu memilih skenario tepat di atasnya. Hardware rumah tunduk pada aturan rumah: beli sesuai kebutuhan hari ini, bukan sesuai khayalan setahun lagi.
+
+
+---
+
+## 5. Komponen Sistem
+
+
+Setiap sistem tersusun dari empat lini komponen yang bekerja seperti dapur yang terorganisir: ada yang memasak, yang menyimpan bahan, yang menjadi kurir, dan yang mencatat pesanan.
+
+**LLM Server** — jantung sistem, diisi oleh **Ollama** atau **vLLM**. Untuk skala keluarga, Ollama cukup karena concurrency rendah; vLLM masuk akal jika nanti ada rencana skala naik atau banyak pengguna *power*. **RAG Pipeline** — rak buku keluarga berbentuk vektor, memakai **ChromaDB** lokal yang menyimpan dokumen keluarga: buku pelajaran, jurnal medis, dokumentasi proyek, hingga kumpulan resep. **Smart Home Bridge** — jika keluarga menggunakan otomasi rumah, **Home Assistant** dengan *custom integration* HACS menjadi penghubung antara perintah bahasa alami dan perangkat fisik. **Voice Interface** — bersifat opsional: **Whisper** untuk *speech-to-text* dan **Piper** untuk *text-to-speech*, memberi keluarga antarmuka yang paling alami: bicara.
+
+Peran setiap komponen perlu dilihat relatif terhadap arsitektur modular-agent yang diusulkan *Harmony* [2]: bukan satu model raksasa yang melakukan segalanya, melainkan LLM pusat yang mengarahkan tugas—deteksi maksud, pencarian konteks, pemilihan aksi—ke modul-modul khusus.
+
+Bagi keluarga yang baru pindah dari asisten cloud, ada godaan untuk memasang semuanya sekaligus dalam satu akhir pekan. Resist. Urutan adopsi yang bijak adalah bertahap: mulai dari LLM server plus Open WebUI selama satu-dua minggu (keluarga terbiasa, model dipilih), lalu tambahkan RAG ketika keluarga mulai bertanya tentang dokumen pribadi, dan pasang Home Assistant hanya bila rumah sudah memiliki perangkat pintar yang benar-benar dipakai tiap hari. Setiap lapisan menambah nilai — tetapi juga menambah satu titik yang harus dipelihara, dan setiap lapisan yang dipasang terlalu dini biasanya yang pertama ditinggalkan.
+
+### Tabel Komponen Sistem Home Assistant
+
+| Komponen | Peran | Teknologi Pilihan | Kapan Dibutuhkan |
+|:---|:---|:---|:---|
+| **LLM Server** | Inferensi utama, melayani semua user | Ollama / vLLM | Selalu |
+| **RAG Pipeline** | Menyimpan & mencari dokumen keluarga | ChromaDB lokal | Ada dokumen privat yang perlu dirujuk |
+| **Smart Home Bridge** | Kontrol perangkat fisik via bahasa alami | Home Assistant + HACS | Keluarga punya lampu/AC/IR smart |
+| **Voice Interface** | Input suara & respons lisan | Whisper (STT) + Piper (TTS) | Opsional — untuk anak dan dapur |
+
+---
+
+## 6. Topologi Jaringan yang Sehat
+
+
+Topologi jaringan adalah "denah rumah" bagi sistem ini: semuanya berada dalam satu atap — **LAN**. LLM server tinggal di jaringan lokal (misalnya `192.168.1.100`), diakses lewat **mDNS** (misalnya `raspberrypi.local` atau `llm-server.local`) atau *static DHCP reservation* agar IP tidak berubah. Setiap perangkat — TV, tablet, laptop, *smart speaker* — mengakses server melalui **Open WebUI** atau *REST API* lokal, tanpa melewati internet sama sekali.
+
+Aturan emasnya satu kalimat: **tidak ada *port forwarding*** ke WAN. Jika keluarga membutuhkan akses dari luar rumah (ayah berpergian, anak di sekolah), gunakan **Tailscale** atau **WireGuard** — terowongan pribadi yang menembus internet tanpa membuka satu pun lubang di router. Ini bukan pembatasan, melainkan pembebasan: jaringan keluarga bisa dijangkau dari mana pun tanpa mengundang dunia luar masuk.
+
+Sebuah catatan praktis untuk rumah yang baru pindah ISP: pastikan router modem ISP tidak "menabrak" subnet internal. Banyak ISP Indonesia memberi modem dengan subnet `192.168.100.0/24` yang berkonflik dengan LAN rumah — akibatnya beberapa perangkat kartu bergantian *online-offline*. Solusi yang tenang: set modem ISP ke mode *bridge*, dan biarkan router keluarga (OpenWrt/pfSense) yang mengelola seluruh subnet dan VLAN. Detail kecil ini mencegah salah satu *troubleshooting* paling membingungkan di jaringan rumahan.
+
+### Tabel 3: Service SLA Target
+
+Terakhir, kita menetapkan kontrak kinerja — angka-angka ini adalah "janji" sistem terhadap keluarga, dan menjadi acuan verifikasi saat *stress test* pada praktikum di akhir sub-bab ini.
+
+| Metrik | Target | Notes |
+|:---|:---:|:---|
+| **Time to First Token** | < 2 detik | Untuk model 7-14B |
+| **Peak Response Time** | < 8 detik | Saat 3 user bersamaan |
+| **Uptime Harian** | 16 jam (06:00-22:00) | Mati otomatis malam hari |
+| **Max Concurrent Sessions** | 3 | Buffer untuk 8 anggota |
+| **Power Consumption (idle)** | < 30W | GPU dalam keadaan sleep |
+
+Target di atas selaras dengan studi kelayakan *On-Device LLM for Home Assistant* [1], yang mengukur bahwa LLM 8-bit di perangkat 8GB RAM CPU-only mampu menjalankan *intent detection* dan *response generation* dalam seekor rumah tanpa GPU dedikasi. Bedanya: di sana *budget* latensinya dipaksa sekecil mungkin karena keterbatasan perangkat; di sini target <2 detik TTFT dan <8 detik *peak response* adalah kompromi yang manusiawi — cukup cepat agar anak tidak kehilangan sabar, cukup longgar agar hardware tidak perlu mahal. Inilah SLA yang lahir dari dinamika keluarga, bukan dari kontrak *enterprise*.
+
+---
+
+
 ### Gambar 2: Alur Satu Percakapan Keluarga
 
 Untuk memahami mengapa SLA di atas realistis, lihatlah perjalanan satu pertanyaan sederhana dari anak kelas 6 SD.
@@ -222,7 +226,11 @@ Bagi pembaca yang ingin mengamati alur ini secara langsung, buka saja *Dashboard
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Setup VLAN Keluarga untuk Isolasi Anak
 
@@ -306,7 +314,8 @@ Jika waktu respons semua sesi tetap di bawah 8 detik, sistem lolos SLA Tabel 3. 
 
 ---
 
-## 10. Studi Kasus: Keluarga Pratama (5 Anggota)
+## 8. Studi Kasus: Keluarga Pratama (5 Anggota)
+
 
 **Profil.** Keluarga Pratama beranggotakan lima orang: Ayah seorang *engineer* yang butuh *coding assistant*, Ibu seorang dokter yang butuh transkrip rekam medis, dan tiga anak usia SD-SMP yang rutin minta bantuan PR. Permintaan mereka tidak bisa dilayani satu model universal dengan jawaban generik — perlu konteks pribadi, dan itu berarti RAG.
 
@@ -326,7 +335,8 @@ Jika waktu respons semua sesi tetap di bawah 8 detik, sistem lolos SLA Tabel 3. 
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

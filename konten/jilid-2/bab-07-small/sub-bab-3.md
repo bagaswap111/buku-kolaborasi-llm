@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menginstal dan mengonfigurasi **Open WebUI** sebagai platform multi-user untuk kantor 9-20 orang
@@ -19,6 +20,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Mengapa Open WebUI untuk Small Office?
 
+
 ### Wajah yang Sama untuk Semua Orang
 
 Open WebUI adalah alternatif ChatGPT yang **self-hosted** dengan dukungan multi-user penuh — dan di antara semua platform UI kolaboratif, ia menawarkan paket paling lengkap untuk kantor kecil [1]. Fitur kuncinya tepat menyasar kebutuhan skala ini: **RBAC** (kontrol peran), **shared channels**, **RAG bawaan**, dan **model switching** antar backend. Ketika 15 developer memakai jendela yang sama, *support* menjadi satu laporan tunggal, bukan 15 tiket di 15 layanan.
@@ -28,53 +30,6 @@ Perbandingannya dengan alternatif membuat pilihan ini hampir otomatis: **Text Ge
 ### Dari Pengguna ke Tim
 
 Yang membedakan platform kolaboratif dari sekadar UI adalah **kehidupan sosial** di dalamnya. Riwayat percakapan seorang developer bukan barang pribadi — ia adalah aset tim: jawaban atas cara me-deploy layanan X jam 9 pagi menyelamatkan orang lain dari menanyakannya jam 11. Riset tentang asisten LLM multi-user bahkan menunjukkan bahwa peran ganda *intent detection* dan *response generation* bekerja lebih baik ketika antarmuka memahami konteks bersama [5]. Open WebUI mewujudkan ini lewat *workspace* dan *channel* yang akan kita bangun di Tutorial B.
-
----
-
-## 3. Arsitektur Deployment
-
-Arsitektur yang disarankan untuk kantor kecil: **Open WebUI sebagai frontend**, terhubung ke dua kelas backend — **Ollama API** untuk model kecil cepat dan **endpoint vLLM** berbasis OpenAI-compatible untuk model besar di workstation multi-GPU. Data pengguna dan riwayat chat disimpan di **SQLite** saat mulai (atau langsung **PostgreSQL** bila tim sudah di atas 15 orang — lihat pembelajaran studi kasus), dengan **Redis** untuk *session management* yang baru diperlukan di atas 20 user.
-
-Untuk *identity*, Open WebUI bisa diarahkan sebagai *forward auth* ke **Authentik** atau penyedia OAuth eksternal — pola yang dibahas detail di Bab 7.6. Diagram pada Seksi 8 memvisualisasikan semua alur ini; poin terpenting yang perlu diingat sejak awal: **Open WebUI adalah jendela, bukan mesin** — semua keputusan komputasi tetap milik backend, sehingga membangun ulang front-end tidak pernah menyentuh model.
-
----
-
-## 4. Multi-User Features
-
-### Registrasi Internal dengan Approval
-
-Tidak seperti layanan publik yang membuka pintu untuk semua, kantor kecil membutuhkan pintu berpenjaga. Dengan **registrasi internal**, pengguna mendaftar melalui halaman login dengan nama dan email perusahaan, namun akun berstatus **pending** sampai admin menyetujui lewat panel. Pengguna pertama yang mendaftar otomatis menjadi **admin** — ini mengunci kendali di tangan tim IT sejak hari pertama. Alur ini digambarkan di Gambar 2, dan pengaturan kuncinya adalah variabel `ENABLE_SIGNUP=True` yang dikombinasikan dengan *approval* manual — bukan `False` yang memaksa admin membuatkan akun satu per satu (melelahkan) tetapi juga bukan pintu terbuka.
-
-### Workspaces, Channels, dan Role
-
-Tiga mekanisme kolaborasi bekerja berdampingan: **workspaces** memisahkan ruang per tim (misalnya "Frontend Team", "Backend Team", "DevOps") lengkap dengan daftar model yang relevan untuk tim tersebut; **channels** adalah ruang chat bersama yang persisten — tempat diskusi seperti "general-ai" dan "tanya-sop" hidup terus-menerus; dan **role-based access** (Admin, User, Viewer) menentukan siapa bisa mengubah konfigurasi, siapa hanya bertanya. Struktur ini meniru cara kantor kecil bekerja sehari-hari — dan justru karena itu terasa alami bagi penggunanya.
-
-### Global Knowledge
-
-Fitur **Global Knowledge** menjadikan Open WebUI lebih dari sekadar chat: *knowledge base* bersama yang diunggah admin bisa diakses semua pengguna tanpa setiap orang membangun RAG-nya sendiri. Ini menjadi jembatan ke Bab 7.4 — di mana sumber pengetahuan diperluas dari dokumen terunggah menjadi pipeline Qdrant terhubung penuh.
-
----
-
-## 5. Integrasi dengan Multi-GPU Backend
-
-Satu kekuatan Open WebUI yang sering kurang dihargai: kemampuannya terhubung ke **banyak backend sekaligus** — Ollama, vLLM, maupun server mana pun yang menyediakan API OpenAI-compatible (Bukti nyata yang membuat Bab 7.2 berharga: workstation dua GPU bisa melayani model besar vLLM, sementara Ollama menyediakan model kecil untuk *completion* cepat).
-
-Dari sini muncul dua pola produksi. **Load balancing**: *request* dari Open WebUI diarahkan ke backend yang tepat berdasarkan beban — model besar untuk pertanyaan kompleks, model kecil untuk *completion*. **Model fallback**: ketika model besar sedang sibuk memproses jawaban panjang, *request* berikutnya otomatis dialihkan ke model kecil sehingga tidak ada pengguna yang menunggu lama. Pola *routing* semacam ini adalah tema penelitian aktif — MixLLM menunjukkan bahwa *dynamic routing* antar model meningkatkan kualitas dan efisiensi sekaligus [6].
-
----
-
-## 6. Keamanan
-
-Keamanan front-end menentukan kepercayaan: jika admin datang dan bertanya "siapa yang mengakses apa?", sistem harus bisa menjawab. Empat lapisan yang disarankan:
-
-1. **HTTPS wajib** — akses kantor lewat sertifikat *self-signed* (LAN) atau Let's Encrypt (VPN), diterminasi di Nginx *reverse proxy* dari Bab 7.1.
-2. **Environment variables untuk *secret management*** — `WEBUI_SECRET_KEY` dan password database tidak pernah di-*hardcode* di file (lihat Template 3), dikelola lewat `.env` yang tidak masuk git.
-3. **Audit logging** — Open WebUI mencatat siapa mengakses model apa dan kapan; aktifkan sejak hari pertama, bukan setelah ada insiden.
-4. **Rate limiting per user** — membatasi *request* per menit per akun mencegah satu pengguna memonopoli GPU dan membuat 19 rekan kerjanya kelaparan (Tutorial C).
-
----
-
-## 7. Tabel Wajib
 
 ### Tabel 1: Perbandingan Platform Collaborative UI
 
@@ -93,6 +48,7 @@ Sebelum menetapkan keputusan, bandingkan empat kandidat platform pada dimensi ya
 
 Analisis kolom per kolom menunjukkan pembeda tunggal: Open WebUI adalah satu-satunya platform dengan **semua kotak tercentang** untuk kebutuhan kantor — termasuk kombinasi langka *registrasi+approval*, *audit log*, dan *SSO*. Langflow menarik untuk *prototyping* alur visual, tetapi tanpa *multi-user* ia tetap alat pribadi. Kesimpulan praktis: Open WebUI untuk produksi, Langflow untuk laboratorium eksperimen di mesin terpisah.
 
+
 ### Tabel 2: Resource Usage Open WebUI
 
 Kabar baik bagi kantor kecil: Open WebUI sangat ringan. Tabel ini membantu Anda merencanakan di mana ia akan duduk — di VPS terpisah atau *container* di server GPU.
@@ -110,25 +66,6 @@ Kabar baik bagi kantor kecil: Open WebUI sangat ringan. Tabel ini membantu Anda 
 
 Kisaran 2 GB sampai 16 GB RAM adalah salah satu alasan Open WebUI bisa hidup berdampingan dengan vLLM di server yang sama. Perhatikan kolom terakhir: pada 20 user, PostgreSQL yang *recommended* berubah menjadi *wajib*, dan Redis mulai hadir — bukan karena fitur Open WebUI membutuhkannya, tetapi karena *session* 20 orang yang aktif menyebabkan satu database tunggal kelelahan.
 
-### Tabel 3: Konfigurasi Environment Variable
-
-Berikut peta variabel yang akan Anda atur di deployment — setiap baris adalah keputusan arsitektur tersendiri.
-
-| Variable | Fungsi | Nilai untuk Small Office |
-|:---|:---|:---|
-| `WEBUI_AUTH` | Aktifkan autentikasi | `True` |
-| `WEBUI_SECRET_KEY` | Secret key untuk session | Random 32 char |
-| `OLLAMA_BASE_URL` | Backend Ollama | `http://10.0.0.100:11434` |
-| `OPENAI_API_BASE_URL` | Backend vLLM | `http://10.0.0.100:8000/v1` |
-| `RAG_EMBEDDING_ENGINE` | Model embedding | `ollama` |
-| `ENABLE_SIGNUP` | Izinkan registrasi | `True` (dengan approval) |
-| `DEFAULT_MODELS` | Model default per user | `qwen3.6:27b` |
-
-Bacaan penting: `ENABLE_SIGNUP=True` saja tidak cukup — nilainya baru aman karena **kebijakan approval admin** aktif (Seksi 4). `OPENAI_API_BASE_URL` yang menunjuk ke `http://10.0.0.100:8000/v1` adalah jembatan ke workstation vLLM dari Bab 7.2 — perhatikan format `/v1` yang wajib untuk kompatibilitas OpenAI. `WEBUI_SECRET_KEY` acak 32 karakter dibangkitkan sekali dan disimpan di `.env`, bukan di file compose.
-
----
-
-## 8. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur Open WebUI di Small Office
 
@@ -168,6 +105,33 @@ graph TB
 
 Bacaan diagram: semua pengguna — developer hingga project manager — masuk lewat satu gerbang Open WebUI. Di belakangnya tiga jalur: **data** (PostgreSQL untuk riwayat, Redis untuk sesi, Qdrant untuk vektor), **komputasi** (vLLM untuk model besar di dua GPU, Ollama untuk model kecil), dan **identitas** (Authentik yang meneruskan ke Google Workspace). Pengguna di sebelah kiri tidak pernah melihat vLLM langsung — mereka hanya tahu "ada satu tempat untuk bertanya". Inilah keindahan *collaborative UI*: kerumitan di belakang, kesederhanaan di depan.
 
+
+---
+
+## 3. Arsitektur Deployment
+
+
+Arsitektur yang disarankan untuk kantor kecil: **Open WebUI sebagai frontend**, terhubung ke dua kelas backend — **Ollama API** untuk model kecil cepat dan **endpoint vLLM** berbasis OpenAI-compatible untuk model besar di workstation multi-GPU. Data pengguna dan riwayat chat disimpan di **SQLite** saat mulai (atau langsung **PostgreSQL** bila tim sudah di atas 15 orang — lihat pembelajaran studi kasus), dengan **Redis** untuk *session management* yang baru diperlukan di atas 20 user.
+
+Untuk *identity*, Open WebUI bisa diarahkan sebagai *forward auth* ke **Authentik** atau penyedia OAuth eksternal — pola yang dibahas detail di Bab 7.6. Diagram pada Seksi 2 memvisualisasikan semua alur ini; poin terpenting yang perlu diingat sejak awal: **Open WebUI adalah jendela, bukan mesin** — semua keputusan komputasi tetap milik backend, sehingga membangun ulang front-end tidak pernah menyentuh model.
+
+---
+
+## 4. Multi-User Features
+
+
+### Registrasi Internal dengan Approval
+
+Tidak seperti layanan publik yang membuka pintu untuk semua, kantor kecil membutuhkan pintu berpenjaga. Dengan **registrasi internal**, pengguna mendaftar melalui halaman login dengan nama dan email perusahaan, namun akun berstatus **pending** sampai admin menyetujui lewat panel. Pengguna pertama yang mendaftar otomatis menjadi **admin** — ini mengunci kendali di tangan tim IT sejak hari pertama. Alur ini digambarkan di Gambar 2, dan pengaturan kuncinya adalah variabel `ENABLE_SIGNUP=True` yang dikombinasikan dengan *approval* manual — bukan `False` yang memaksa admin membuatkan akun satu per satu (melelahkan) tetapi juga bukan pintu terbuka.
+
+### Workspaces, Channels, dan Role
+
+Tiga mekanisme kolaborasi bekerja berdampingan: **workspaces** memisahkan ruang per tim (misalnya "Frontend Team", "Backend Team", "DevOps") lengkap dengan daftar model yang relevan untuk tim tersebut; **channels** adalah ruang chat bersama yang persisten — tempat diskusi seperti "general-ai" dan "tanya-sop" hidup terus-menerus; dan **role-based access** (Admin, User, Viewer) menentukan siapa bisa mengubah konfigurasi, siapa hanya bertanya. Struktur ini meniru cara kantor kecil bekerja sehari-hari — dan justru karena itu terasa alami bagi penggunanya.
+
+### Global Knowledge
+
+Fitur **Global Knowledge** menjadikan Open WebUI lebih dari sekadar chat: *knowledge base* bersama yang diunggah admin bisa diakses semua pengguna tanpa setiap orang membangun RAG-nya sendiri. Ini menjadi jembatan ke Bab 7.4 — di mana sumber pengetahuan diperluas dari dokumen terunggah menjadi pipeline Qdrant terhubung penuh.
+
 ### Gambar 2: Flow Registrasi dan Approval Admin
 
 ```mermaid
@@ -187,7 +151,51 @@ Diagram urutan ini adalah *kebijakan pintu* sistem Anda: setiap akun baru melewa
 
 ---
 
-## 9. Tutorial / Hands-On
+
+---
+
+## 5. Integrasi dengan Multi-GPU Backend
+
+
+Satu kekuatan Open WebUI yang sering kurang dihargai: kemampuannya terhubung ke **banyak backend sekaligus** — Ollama, vLLM, maupun server mana pun yang menyediakan API OpenAI-compatible (Bukti nyata yang membuat Bab 7.2 berharga: workstation dua GPU bisa melayani model besar vLLM, sementara Ollama menyediakan model kecil untuk *completion* cepat).
+
+Dari sini muncul dua pola produksi. **Load balancing**: *request* dari Open WebUI diarahkan ke backend yang tepat berdasarkan beban — model besar untuk pertanyaan kompleks, model kecil untuk *completion*. **Model fallback**: ketika model besar sedang sibuk memproses jawaban panjang, *request* berikutnya otomatis dialihkan ke model kecil sehingga tidak ada pengguna yang menunggu lama. Pola *routing* semacam ini adalah tema penelitian aktif — MixLLM menunjukkan bahwa *dynamic routing* antar model meningkatkan kualitas dan efisiensi sekaligus [6].
+
+---
+
+## 6. Keamanan
+
+
+Keamanan front-end menentukan kepercayaan: jika admin datang dan bertanya "siapa yang mengakses apa?", sistem harus bisa menjawab. Empat lapisan yang disarankan:
+
+1. **HTTPS wajib** — akses kantor lewat sertifikat *self-signed* (LAN) atau Let's Encrypt (VPN), diterminasi di Nginx *reverse proxy* dari Bab 7.1.
+2. **Environment variables untuk *secret management*** — `WEBUI_SECRET_KEY` dan password database tidak pernah di-*hardcode* di file (lihat Template 3), dikelola lewat `.env` yang tidak masuk git.
+3. **Audit logging** — Open WebUI mencatat siapa mengakses model apa dan kapan; aktifkan sejak hari pertama, bukan setelah ada insiden.
+4. **Rate limiting per user** — membatasi *request* per menit per akun mencegah satu pengguna memonopoli GPU dan membuat 19 rekan kerjanya kelaparan (Tutorial C).
+
+### Tabel 3: Konfigurasi Environment Variable
+
+Berikut peta variabel yang akan Anda atur di deployment — setiap baris adalah keputusan arsitektur tersendiri.
+
+| Variable | Fungsi | Nilai untuk Small Office |
+|:---|:---|:---|
+| `WEBUI_AUTH` | Aktifkan autentikasi | `True` |
+| `WEBUI_SECRET_KEY` | Secret key untuk session | Random 32 char |
+| `OLLAMA_BASE_URL` | Backend Ollama | `http://10.0.0.100:11434` |
+| `OPENAI_API_BASE_URL` | Backend vLLM | `http://10.0.0.100:8000/v1` |
+| `RAG_EMBEDDING_ENGINE` | Model embedding | `ollama` |
+| `ENABLE_SIGNUP` | Izinkan registrasi | `True` (dengan approval) |
+| `DEFAULT_MODELS` | Model default per user | `qwen3.6:27b` |
+
+Bacaan penting: `ENABLE_SIGNUP=True` saja tidak cukup — nilainya baru aman karena **kebijakan approval admin** aktif (Seksi 4). `OPENAI_API_BASE_URL` yang menunjuk ke `http://10.0.0.100:8000/v1` adalah jembatan ke workstation vLLM dari Bab 7.2 — perhatikan format `/v1` yang wajib untuk kompatibilitas OpenAI. `WEBUI_SECRET_KEY` acak 32 karakter dibangkitkan sekali dan disimpan di `.env`, bukan di file compose.
+
+---
+
+
+---
+
+## 7. Tutorial / Hands-On
+
 
 ### Tutorial 1: Deploy Open WebUI dengan Docker Compose + PostgreSQL
 
@@ -331,7 +339,8 @@ Skrip ini menjaga keseimbangan keadilan: 30 *request*/menit per akun sangat long
 
 ---
 
-## 10. Studi Kasus: PT CodeCraft — Deploy Open WebUI untuk 15 Developer
+## 8. Studi Kasus: PT CodeCraft — Deploy Open WebUI untuk 15 Developer
+
 
 PT CodeCraft adalah *software house* dengan 15 developer yang terbagi dalam tiga tim: Frontend (5 orang), Backend (6), DevOps (4). Masalahnya bukan kualitas AI-nya — tetapi kekacauan akses: sebagian developer memakai akun ChatGPT pribadi, sebagian memakai *crack* plugin IDE, dan pertanyaan yang sama didokumentasikan ulang oleh tiga orang berbeda. PT CodeCraft memutuskan satu platform terpusat.
 
@@ -343,7 +352,8 @@ PT CodeCraft adalah *software house* dengan 15 developer yang terbagi dalam tiga
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

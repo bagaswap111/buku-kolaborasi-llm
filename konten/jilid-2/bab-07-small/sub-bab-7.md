@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Mengimplementasikan **fair sharing GPU** agar satu pengguna tidak memonopoli sumber daya
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Masalah "Noisy Neighbor" di GPU Sharing
 
+
 ### Satu Pengguna, GPU Lumpuh Total
 
 Fenomena yang paling ditakuti admin GPU kantor dijuluki **noisy neighbor** — tetangga berisik yang memakai fasilitas bersama secara berlebihan. Di dunia LLM, wujudnya konkret: satu pengguna mengirim dokumen panjang 16.000 token atau meminta model 70B dijalankan, dan dalam sekejap seluruh VRAM tersedot untuk *KV cache* permintaannya. Pengguna lain yang sedang asyik ber-chat tiba-tiba menerima *timeout*, bahkan *out-of-memory* (OOM) karena tidak ada sisa VRAM untuk konteks mereka. Yang paling menyakitkan: si penyebab tidak menyadari apa-apa — dari sisinya, semuanya berjalan mulus.
@@ -27,157 +29,6 @@ Di small office dengan 9-20 pengguna, masalah ini bukan teori. Pada jam sibuk, 5
 ### Prinsip Dasar: Alokasi, Bukan Anarki
 
 Inti dari semua solusi adalah satu perubahan pola pikir: GPU bukan milik siapa pun secara eksklusif, melainkan **sumber daya bersama yang dialokasikan**. Seperti AC kantor yang diatur thermostat pusat — bukan tombol individual — setiap permintaan harus melewati gerbang yang memutuskan: layak diproses sekarang, masuk antrean, atau ditolak dengan halus (HTTP 429). Sepanjang sub-bab ini, Anda akan membangun tiga lapis gerbang: **scheduling** di vLLM (seksi 3), **quota** di gerbang API (seksi 4), dan **isolasi** antar kelompok pengguna (seksi 5).
-
----
-
-## 3. Mekanisme Resource Allocation di vLLM
-
-### PagedAttention: Memori yang Dipinjam, Bukan Diserahkan
-
-Fondasi pertama vLLM adalah **PagedAttention** [1] — inovasi yang meminjam konsep *paging* dari sistem operasi untuk memori GPU. Alih-alih mengalokasikan KV cache kontinu untuk setiap permintaan, vLLM memecahnya menjadi *page* kecil yang dialokasikan **on-demand**. Konsekuensinya luar biasa bagi pengguna ramai: permintaan yang tiba-tiba sadar konteksnya membengkak tidak lagi merebut semua VRAM yang tersisa — ia hanya meminjam halaman-halaman tambahan, dan membebaskannya saat selesai. Inilah alasan mengapa vLLM dapat melayani banyak permintaan bersamaan pada GPU yang sama tanpa saling membunuh.
-
-### Empat Knob Utama
-
-Setiap *instance* vLLM memiliki empat pengaturan yang menjadi *dashboard* kendali Anda:
-
-- **`--max-num-seqs`** — membatasi jumlah *sequence* concurrent per GPU. Ini *speed bump* utama: berapa banyak percakapan yang boleh aktif bersamaan. Dari sini, *schedule*r memilih permintaan mana yang jalan lebih dulu.
-- **`--gpu-memory-utilization`** — persentase VRAM yang boleh dipakai vLLM. Menyisakan 10-15% memberi ruang napas untuk *overhead* — CUDA context, model lain, dan lonjakan tak terduga.
-- **`--max-model-len`** — memotong panjang konteks maksimum. Konteks 32K yang "gratis" sebenarnya menyandera VRAM besar; memotong ke 8K menyelamatkan tim Anda dari KV cache raksasa.
-- **`--enable-prefix-caching`** — menyimpan KV *cache* untuk prefix prompt yang sama. Ketika 10 karyawan bertanya dengan instruksi sistem yang identik, sebagian besar komputasi tidak perlu diulang.
-
-Ditambah `--num-scheduler-steps` dan `--max-num-batched-tokens` untuk mengatur seberapa halus *batch* dipotong — semakin kecil potongannya, semakin adil pembagiannya ke banyak pengguna.
-
-### Continuous Batching: Antrean yang Mengalir
-
-Mekanisme penjadwalan vLLM disebut **continuous batching**: permintaan tidak menunggu *batch* penuh, tetapi masuk ke *waiting queue* dan diproses per-potongan dalam *running batch*. Begitu satu permintaan selesai, slotnya langsung diisi permintaan berikutnya — seperti antrean taksi yang selalu terisi begitu satu taksi berangkat. Hasilnya, GPU tidak pernah menganggur menunggu antrean penuh, dan setiap pengguna mendapat giliran dalam hitungan detik. *Knob scheduling* di atas mengontrol seberapa agresif pengisian slot ini.
-
----
-
-## 4. Rate Limiting dan User Quota
-
-### Sulit Dibatasi? Batasi Permintaannya
-
-*Scheduling* di vLLM mengelola GPU, tetapi bukan pengguna. Untuk itu kita butuh gerbang kedua: **rate limiting**. Konsepnya sederhana — setiap pengguna diizinkan maksimal N permintaan per menit; sisanya menerima jawaban halus `429 Too Many Requests` atau masuk antrean. Di Open WebUI, pengaturan ini bisa dipasang langsung; di arsitektur yang lebih tegas, *reverse proxy* Nginx yang berdiri di depan vLLM (Langkah 2) menjadi polisi lalu lintas yang tidak bisa dihindari — semua permintaan, dari klien apa pun, wajib melewatinya.
-
-Melengkapi *rate limit* per menit adalah **token quota per pengguna per hari** — kebijakan pemakaian yang adil (*fair usage policy*). Tidak semua kontribusi ke GPU setara: satu pertanyaan chat pendek memakan ratusan token, sementara *batch* ringkasan dokumen bisa memakan puluhan ribu. Quota harian memastikan pemakaian tetap seimbang antar departemen, sekaligus memberi admin data untuk menaikkan jatah tim yang benar-benar membutuhkannya.
-
-### Priority: Admin Lebih Dulu, Bukan Semua Setara
-
-Tidak semua permintaan lahir setara. Saat server produksi mengirim permintaan *monitoring* atau CI/CD mengeksekusi pipeline, menundanya demi antrean chat santai adalah keputusan yang salah. **Priority queue** menjawabnya: permintaan diklasifikasikan saat masuk — *Admin/Service* ke antrean tinggi, pengguna reguler menengah, *Viewer* dan tugas batch ke rendah — lalu *scheduler* mengambil dari antrean prioritas tertinggi lebih dulu (lihat Diagram 1). Untuk small office, aturan yang sehat adalah: **prioritas mengalahkan jumlah** — satu permintaan admin melompati lima permintaan viewer, bukan menyapu seluruh antrean.
-
----
-
-## 5. Multi-Tenant Scheduling
-
-### Time-Sharing vs Space-Sharing
-
-Ketika dua kelompok pengguna butuh model berbeda, Anda menghadapi dua pola dasar. **Time-sharing**: satu GPU dipakai bergantian oleh model besar dan kecil — sederhana, semua model tersedia, tetapi ada *latency* saat *model switching*; cocok bila hanya ada 1-2 model. **Space-sharing**: GPU dipisah secara fisik — GPU 0 khusus untuk *coding assistant* (Tabby + DeepSeek-Coder), GPU 1 untuk chat/RAG — dengan *isolasi sempurna* dan tanpa *interference*, tetapi alokasi tidak fleksibel karena satu kartu tidak bisa membantu kartu lain di saat sibuk. Studi kasus di seksi 10 akan menunjukkan bahwa untuk small office dengan dua kartu, space-sharing sering menjadi pemenang yang sederhana dan efektif.
-
-### Varian Modern: Multi-LoRA dan Prism
-
-Dua pendekatan yang lebih mutakhir layak dikenal. **vLLM Multi-LoRA** memuat banyak adapter sekaligus — tim engineering dan tim finance memakai satu model dasar yang sama dengan *adapter* berbeda — tanpa perlu me-reload model, sehingga pergantian peran tim hampir instan. Dan **Prism** [2], kerangka dari riset 2025, melakukan *coordination* memori lintas model: beberapa model berbagi satu GPU dengan cara yang jauh lebih pintar daripada sekadar bergantian — memungkinkan *utilisasi* tinggi dan fleksibilitas alokasi, dengan ongkos kompleksitas tuning yang tidak kecil. Untuk small office, urutan adopsi yang bijak: mulai dari space-sharing, naik ke Multi-LoRA bila kebutuhan tim mulai beragam, dan baru menjajaki Prism bila sudah ada energi DevOps untuk tuning.
-
----
-
-## 6. Monitoring dan Alerting
-
-Tanpa mata, semua pengaturan di atas buta. **Monitoring** GPU dan antrean adalah lapisan penutup yang mengubah "tampaknya lancar" menjadi "terbukti lancar". Empat metrik yang wajib dipantau: **VRAM usage** (sisa memori adalah nyawa layanan), **GPU utilization** (kartu menganggur 20% berarti ada headroom, 98% berarti sudah waktunya naik kelas), **queue length** (antrean membengkak menandakan *bottleneck*), dan *request per user* (untuk mendeteksi pemakaian abnormal sejak dini). Dengan Prometheus mengekspor metrik vLLM dan Grafana merangkainya, dashboard multi-user menjadi jendela kaca kantor: siapa memakai berapa, kapan lonjakannya, dan di mana batasnya.
-
-Agar dashboard tidak menjadi *poster* yang tidak pernah dilihat, pasang **alert** pada dua ambang kritis: VRAM di atas 90% dan antrean di atas 50 pending. Alert ini bukan sekadar sirene — ia adalah sinyal tindakan: turunkan `--max-model-len`, pindahkan sebagian pengguna ke model lebih kecil, atau naikkan *rate limit* per pengguna. Tanpa deduksi tindakan ini, alert hanyalah teriakan yang diabaikan.
-
----
-
-## 7. Tabel Perbandingan dan Sizing
-
-### Tabel 1: Perbandingan Strategi Resource Allocation
-
-Empat strategi bersaing untuk menjadi fondasi tata kelola GPU Anda:
-
-| Strategi | Kelebihan | Kekurangan | Cocok Untuk |
-|:---|:---|:---|:---|
-| **Time-sharing** | Sederhana, semua model available | Latency tinggi saat switching | 1-2 model saja |
-| **Space-sharing (GPU fisik)** | Isolasi sempurna, no interference | Resource tidak fleksibel | 2+ model heavy |
-| **vLLM Max Num Seqs** | Fair batching, predictable | Throughput capped | Banyak user kecil |
-| **Priority Queue** | Admin/service dulu | Kompleksitas setup | Production critical |
-| **Prism Cross-Model** | Utilisasi tinggi, fleksibel | Kompleks, butuh tuning | Multi-LLM heavy |
-
-Pembacaan yang jujur: tidak ada strategi yang menang di semua dimensi — setiap pilihan membeli satu keunggulan dengan mengorbankan yang lain. Small office yang baru mulai sebaiknya menggabungkan **space-sharing** (isolasi per use case, murah dan mudah dimengerti) dengan **vLLM max-num-seqs** (keadilan di dalam setiap kartu), lalu menambahkan **priority queue** begitu ada layanan yang sensitif waktu. Prism adalah aspirasi, bukan titik awal.
-
-### Tabel 2: Konfigurasi vLLM untuk Small Office
-
-Berikut adalah nilai *default* yang terbukti masuk akal untuk lingkungan 9-20 pengguna:
-
-| Parameter | Nilai | Fungsi |
-|:---|:---:|:---|
-| `--gpu-memory-utilization` | 0.85-0.90 | Sisakan 10-15% VRAM untuk overhead |
-| `--max-num-seqs` | 32-64 | Maks sequence concurrent per GPU |
-| `--max-model-len` | 8192 | Potong context panjang untuk hemat VRAM |
-| `--num-scheduler-steps` | 8 | Scheduling lebih halus untuk banyak user |
-| `--enable-prefix-caching` | true | Cache KV untuk prompt berulang |
-| `--max-num-batched-tokens` | 4096 | Maks token per batch |
-
-Perhatikan logika di balik setiap angka. `--gpu-memory-utilization 0.85-0.90` mengakui bahwa GPU juga menjalankan CUDA context dan proses lain — meminta 100% berarti menggantung karung di tepi jurang. `--max-num-seqs 32-64` adalah terjemahan aturan praktis "2-4 antrean per pengguna aktif". Dan `--enable-prefix-caching true` adalah penghemat paling sunyi: antrean 50 permintaan dengan prefix sistem yang sama tidak perlu dikomputasi ulang 50 kali.
-
-### Tabel 3: Estimasi VRAM per User (Model 14B Q4_K_M)
-
-Sebelum mengatur *knob*, Anda harus tahu batas fisiknya. Tabel ini memetakan kebutuhan VRAM model dense 14B (weights ~8 GB Q4_K_M + overhead 0,5 GB + KV cache per user) terhadap jumlah pengguna dan panjang konteks:
-
-| Context Length | 1 User | 5 Users | 10 Users | 20 Users |
-|:---|:---:|:---:|:---:|:---:|
-| **4K** | ~8 GB | ~10 GB | ~13 GB | ~18 GB |
-| **8K** | ~9 GB | ~14 GB | ~19 GB | ~29 GB (OOM) |
-| **16K** | ~11 GB | ~19 GB | ~30 GB (OOM) | OOM |
-| **32K** | ~15 GB | ~30 GB (OOM) | OOM | OOM |
-
-> Asumsi: model 14B Q4_K_M (~8GB weights) + 0.5GB overhead + KV cache per user. Di 2x RTX 4090 (48GB total), max aman: 10 user pada 8K context.
-
-Tabel ini mengajarkan pelajaran yang mahal jika terlambat dipahami: **konteks tumbuh lebih cepat daripada pengguna**. Menambah konteks dari 8K ke 32K meningkatkan konsumsi per pengguna hampir dua kali lipat, sementara menggandakan pengguna hanya menambah secara linear. Pada 2× RTX 4090 (48 GB total), titik aman berada di **10 pengguna dengan konteks 8K** — di luar itu, Anda bukan menghadapi *bottleneck*, melainkan tembok. Inilah mengapa `--max-model-len` adalah *knob* paling penting untuk ditekan.
-
-![Kurva pertumbuhan estimasi VRAM model 14B Q4_K_M terhadap jumlah pengguna pada empat panjang konteks](../../assets/images/bab-07-small/sub-bab-7/vram-per-user.png)
-
-*Gambar 7.7-1 — Konteks 4K dan 8K tetap di bawah 30 GB bahkan untuk 20 pengguna, sementara kurva 16K terputus di 10 pengguna (~30 GB) dan 32K di 5 pengguna (~30 GB) karena OOM setelahnya. Garis konteks yang "gratis" justru menyandera VRAM paling cepat — itulah alasan `--max-model-len` menjadi knob paling penting.*
-
-### Tabel 4: Estimasi VRAM per User — Model Baru (MoE & Granular)
-
-Generasi model MoE mengubah papan permainan: karena hanya parameter aktif yang dikomputasi, pengguna lebih banyak dapat dilayani per GB:
-
-| Model | Parameter | 1 User | 5 Users | 10 Users | 20 Users |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **DeepSeek V4 Flash Q4** | 284B/13B aktif | ~10 GB | ~16 GB | ~24 GB | ~38 GB |
-| **Mistral Large 3 Q3** | 675B/41B aktif | ~18 GB | ~28 GB | ~42 GB | OOM |
-| **Qwen3.6-27B Q4** | 27B | ~16 GB | ~24 GB | ~36 GB | OOM |
-| **Ministral 3 14B Q4** | 14B | ~8 GB | ~12 GB | ~17 GB | ~26 GB |
-
-> Asumsi Tabel 4: model MoE menggunakan memori sesuai parameter aktif. DeepSeek V4 Flash (13B aktif) ~10 GB weights di Q4. Mistral Large 3 (41B aktif) ~24 GB weights di Q3.
-
-Bacaan paling menarik ada pada baris **DeepSeek V4 Flash**: dengan hanya ~10 GB weights di Q4, ia melayani 20 pengguna dalam ~38 GB — hampir menyamai model 14B dense pada konteks yang sama, padahal kualitasnya kelas jauh lebih tinggi. Ini adalah argumen kuat untuk memilih MoE sebagai model utama multi-user. Sebaliknya, Mistral Large 3 memboroskan VRAM pada concurrency 20 — nilai Q4 faktualnya perlu diverifikasi dengan pengukuran vLLM di lingkungan Anda sendiri sebelum dijadikan model server utama.
-
----
-
-## 8. Diagram & Visualisasi
-
-### Diagram 1: Alur Request dengan Priority Queue
-
-Berikut diagram *brain* tata kelola GPU Anda — dari permintaan masuk hingga respons keluar:
-
-```mermaid
-graph TB
-    REQ[All Requests] --> CLASSIFIER[User Classifier]
-    CLASSIFIER -->|Admin/Dev| HIGH[High Priority Queue]
-    CLASSIFIER -->|Regular User| NORMAL[Normal Queue]
-    CLASSIFIER -->|Viewer| LOW[Low Priority Queue]
-    
-    HIGH --> SCHEDULER[vLLM Scheduler]
-    NORMAL --> SCHEDULER
-    LOW --> SCHEDULER
-    
-    SCHEDULER -->|Continuous Batching| GPU[GPU Cluster]
-    GPU --> RESPONSE[Response]
-    
-    MONITOR[Monitor: VRAM, Queue Length] -.-> SCHEDULER
-```
-
-Diagram ini memperlihatkan tiga gagasan kunci. **Pertama**, klasifikasi terjadi sekali di gerbang masuk — *User Classifier* menandai setiap permintaan berdasarkan peran dari Bab 7.6. **Kedua**, tiga antrean terpisah menjaga kepentingan: permintaan admin tidak pernah menunggu permintaan viewer. **Ketiga**, loop umpan balik dari *Monitor* ke *Scheduler* (garis putus-putus) adalah otomatisasi paling berharga — ketika VRAM menipis, scheduler bisa menahan permintaan baru sebelum sistem limbung, bukan setelahnya.
 
 ### Diagram 2: Space-Sharing Dua GPU untuk Dua Tim
 
@@ -203,7 +54,165 @@ Mengapa pola ini juara? Karena ia menghapus konflik antar beban kerja yang berbe
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 3. Mekanisme Resource Allocation di vLLM
+
+
+### PagedAttention: Memori yang Dipinjam, Bukan Diserahkan
+
+Fondasi pertama vLLM adalah **PagedAttention** [1] — inovasi yang meminjam konsep *paging* dari sistem operasi untuk memori GPU. Alih-alih mengalokasikan KV cache kontinu untuk setiap permintaan, vLLM memecahnya menjadi *page* kecil yang dialokasikan **on-demand**. Konsekuensinya luar biasa bagi pengguna ramai: permintaan yang tiba-tiba sadar konteksnya membengkak tidak lagi merebut semua VRAM yang tersisa — ia hanya meminjam halaman-halaman tambahan, dan membebaskannya saat selesai. Inilah alasan mengapa vLLM dapat melayani banyak permintaan bersamaan pada GPU yang sama tanpa saling membunuh.
+
+### Empat Knob Utama
+
+Setiap *instance* vLLM memiliki empat pengaturan yang menjadi *dashboard* kendali Anda:
+
+- **`--max-num-seqs`** — membatasi jumlah *sequence* concurrent per GPU. Ini *speed bump* utama: berapa banyak percakapan yang boleh aktif bersamaan. Dari sini, *schedule*r memilih permintaan mana yang jalan lebih dulu.
+- **`--gpu-memory-utilization`** — persentase VRAM yang boleh dipakai vLLM. Menyisakan 10-15% memberi ruang napas untuk *overhead* — CUDA context, model lain, dan lonjakan tak terduga.
+- **`--max-model-len`** — memotong panjang konteks maksimum. Konteks 32K yang "gratis" sebenarnya menyandera VRAM besar; memotong ke 8K menyelamatkan tim Anda dari KV cache raksasa.
+- **`--enable-prefix-caching`** — menyimpan KV *cache* untuk prefix prompt yang sama. Ketika 10 karyawan bertanya dengan instruksi sistem yang identik, sebagian besar komputasi tidak perlu diulang.
+
+Ditambah `--num-scheduler-steps` dan `--max-num-batched-tokens` untuk mengatur seberapa halus *batch* dipotong — semakin kecil potongannya, semakin adil pembagiannya ke banyak pengguna.
+
+### Continuous Batching: Antrean yang Mengalir
+
+Mekanisme penjadwalan vLLM disebut **continuous batching**: permintaan tidak menunggu *batch* penuh, tetapi masuk ke *waiting queue* dan diproses per-potongan dalam *running batch*. Begitu satu permintaan selesai, slotnya langsung diisi permintaan berikutnya — seperti antrean taksi yang selalu terisi begitu satu taksi berangkat. Hasilnya, GPU tidak pernah menganggur menunggu antrean penuh, dan setiap pengguna mendapat giliran dalam hitungan detik. *Knob scheduling* di atas mengontrol seberapa agresif pengisian slot ini.
+
+### Tabel 1: Perbandingan Strategi Resource Allocation
+
+Empat strategi bersaing untuk menjadi fondasi tata kelola GPU Anda:
+
+| Strategi | Kelebihan | Kekurangan | Cocok Untuk |
+|:---|:---|:---|:---|
+| **Time-sharing** | Sederhana, semua model available | Latency tinggi saat switching | 1-2 model saja |
+| **Space-sharing (GPU fisik)** | Isolasi sempurna, no interference | Resource tidak fleksibel | 2+ model heavy |
+| **vLLM Max Num Seqs** | Fair batching, predictable | Throughput capped | Banyak user kecil |
+| **Priority Queue** | Admin/service dulu | Kompleksitas setup | Production critical |
+| **Prism Cross-Model** | Utilisasi tinggi, fleksibel | Kompleks, butuh tuning | Multi-LLM heavy |
+
+Pembacaan yang jujur: tidak ada strategi yang menang di semua dimensi — setiap pilihan membeli satu keunggulan dengan mengorbankan yang lain. Small office yang baru mulai sebaiknya menggabungkan **space-sharing** (isolasi per use case, murah dan mudah dimengerti) dengan **vLLM max-num-seqs** (keadilan di dalam setiap kartu), lalu menambahkan **priority queue** begitu ada layanan yang sensitif waktu. Prism adalah aspirasi, bukan titik awal.
+
+
+### Tabel 2: Konfigurasi vLLM untuk Small Office
+
+Berikut adalah nilai *default* yang terbukti masuk akal untuk lingkungan 9-20 pengguna:
+
+| Parameter | Nilai | Fungsi |
+|:---|:---:|:---|
+| `--gpu-memory-utilization` | 0.85-0.90 | Sisakan 10-15% VRAM untuk overhead |
+| `--max-num-seqs` | 32-64 | Maks sequence concurrent per GPU |
+| `--max-model-len` | 8192 | Potong context panjang untuk hemat VRAM |
+| `--num-scheduler-steps` | 8 | Scheduling lebih halus untuk banyak user |
+| `--enable-prefix-caching` | true | Cache KV untuk prompt berulang |
+| `--max-num-batched-tokens` | 4096 | Maks token per batch |
+
+Perhatikan logika di balik setiap angka. `--gpu-memory-utilization 0.85-0.90` mengakui bahwa GPU juga menjalankan CUDA context dan proses lain — meminta 100% berarti menggantung karung di tepi jurang. `--max-num-seqs 32-64` adalah terjemahan aturan praktis "2-4 antrean per pengguna aktif". Dan `--enable-prefix-caching true` adalah penghemat paling sunyi: antrean 50 permintaan dengan prefix sistem yang sama tidak perlu dikomputasi ulang 50 kali.
+
+
+---
+
+## 4. Rate Limiting dan User Quota
+
+
+### Sulit Dibatasi? Batasi Permintaannya
+
+*Scheduling* di vLLM mengelola GPU, tetapi bukan pengguna. Untuk itu kita butuh gerbang kedua: **rate limiting**. Konsepnya sederhana — setiap pengguna diizinkan maksimal N permintaan per menit; sisanya menerima jawaban halus `429 Too Many Requests` atau masuk antrean. Di Open WebUI, pengaturan ini bisa dipasang langsung; di arsitektur yang lebih tegas, *reverse proxy* Nginx yang berdiri di depan vLLM (Langkah 2) menjadi polisi lalu lintas yang tidak bisa dihindari — semua permintaan, dari klien apa pun, wajib melewatinya.
+
+Melengkapi *rate limit* per menit adalah **token quota per pengguna per hari** — kebijakan pemakaian yang adil (*fair usage policy*). Tidak semua kontribusi ke GPU setara: satu pertanyaan chat pendek memakan ratusan token, sementara *batch* ringkasan dokumen bisa memakan puluhan ribu. Quota harian memastikan pemakaian tetap seimbang antar departemen, sekaligus memberi admin data untuk menaikkan jatah tim yang benar-benar membutuhkannya.
+
+### Priority: Admin Lebih Dulu, Bukan Semua Setara
+
+Tidak semua permintaan lahir setara. Saat server produksi mengirim permintaan *monitoring* atau CI/CD mengeksekusi pipeline, menundanya demi antrean chat santai adalah keputusan yang salah. **Priority queue** menjawabnya: permintaan diklasifikasikan saat masuk — *Admin/Service* ke antrean tinggi, pengguna reguler menengah, *Viewer* dan tugas batch ke rendah — lalu *scheduler* mengambil dari antrean prioritas tertinggi lebih dulu (lihat Diagram 1). Untuk small office, aturan yang sehat adalah: **prioritas mengalahkan jumlah** — satu permintaan admin melompati lima permintaan viewer, bukan menyapu seluruh antrean.
+
+### Tabel 3: Estimasi VRAM per User (Model 14B Q4_K_M)
+
+Sebelum mengatur *knob*, Anda harus tahu batas fisiknya. Tabel ini memetakan kebutuhan VRAM model dense 14B (weights ~8 GB Q4_K_M + overhead 0,5 GB + KV cache per user) terhadap jumlah pengguna dan panjang konteks:
+
+| Context Length | 1 User | 5 Users | 10 Users | 20 Users |
+|:---|:---:|:---:|:---:|:---:|
+| **4K** | ~8 GB | ~10 GB | ~13 GB | ~18 GB |
+| **8K** | ~9 GB | ~14 GB | ~19 GB | ~29 GB (OOM) |
+| **16K** | ~11 GB | ~19 GB | ~30 GB (OOM) | OOM |
+| **32K** | ~15 GB | ~30 GB (OOM) | OOM | OOM |
+
+> Asumsi: model 14B Q4_K_M (~8GB weights) + 0.5GB overhead + KV cache per user. Di 2x RTX 4090 (48GB total), max aman: 10 user pada 8K context.
+
+Tabel ini mengajarkan pelajaran yang mahal jika terlambat dipahami: **konteks tumbuh lebih cepat daripada pengguna**. Menambah konteks dari 8K ke 32K meningkatkan konsumsi per pengguna hampir dua kali lipat, sementara menggandakan pengguna hanya menambah secara linear. Pada 2× RTX 4090 (48 GB total), titik aman berada di **10 pengguna dengan konteks 8K** — di luar itu, Anda bukan menghadapi *bottleneck*, melainkan tembok. Inilah mengapa `--max-model-len` adalah *knob* paling penting untuk ditekan.
+
+![Kurva pertumbuhan estimasi VRAM model 14B Q4_K_M terhadap jumlah pengguna pada empat panjang konteks](../../assets/images/bab-07-small/sub-bab-7/vram-per-user.png)
+
+*Gambar 7.7-1 — Konteks 4K dan 8K tetap di bawah 30 GB bahkan untuk 20 pengguna, sementara kurva 16K terputus di 10 pengguna (~30 GB) dan 32K di 5 pengguna (~30 GB) karena OOM setelahnya. Garis konteks yang "gratis" justru menyandera VRAM paling cepat — itulah alasan `--max-model-len` menjadi knob paling penting.*
+
+
+### Tabel 4: Estimasi VRAM per User — Model Baru (MoE & Granular)
+
+Generasi model MoE mengubah papan permainan: karena hanya parameter aktif yang dikomputasi, pengguna lebih banyak dapat dilayani per GB:
+
+| Model | Parameter | 1 User | 5 Users | 10 Users | 20 Users |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **DeepSeek V4 Flash Q4** | 284B/13B aktif | ~10 GB | ~16 GB | ~24 GB | ~38 GB |
+| **Mistral Large 3 Q3** | 675B/41B aktif | ~18 GB | ~28 GB | ~42 GB | OOM |
+| **Qwen3.6-27B Q4** | 27B | ~16 GB | ~24 GB | ~36 GB | OOM |
+| **Ministral 3 14B Q4** | 14B | ~8 GB | ~12 GB | ~17 GB | ~26 GB |
+
+> Asumsi Tabel 4: model MoE menggunakan memori sesuai parameter aktif. DeepSeek V4 Flash (13B aktif) ~10 GB weights di Q4. Mistral Large 3 (41B aktif) ~24 GB weights di Q3.
+
+Bacaan paling menarik ada pada baris **DeepSeek V4 Flash**: dengan hanya ~10 GB weights di Q4, ia melayani 20 pengguna dalam ~38 GB — hampir menyamai model 14B dense pada konteks yang sama, padahal kualitasnya kelas jauh lebih tinggi. Ini adalah argumen kuat untuk memilih MoE sebagai model utama multi-user. Sebaliknya, Mistral Large 3 memboroskan VRAM pada concurrency 20 — nilai Q4 faktualnya perlu diverifikasi dengan pengukuran vLLM di lingkungan Anda sendiri sebelum dijadikan model server utama.
+
+---
+
+
+### Diagram 1: Alur Request dengan Priority Queue
+
+Berikut diagram *brain* tata kelola GPU Anda — dari permintaan masuk hingga respons keluar:
+
+```mermaid
+graph TB
+    REQ[All Requests] --> CLASSIFIER[User Classifier]
+    CLASSIFIER -->|Admin/Dev| HIGH[High Priority Queue]
+    CLASSIFIER -->|Regular User| NORMAL[Normal Queue]
+    CLASSIFIER -->|Viewer| LOW[Low Priority Queue]
+    
+    HIGH --> SCHEDULER[vLLM Scheduler]
+    NORMAL --> SCHEDULER
+    LOW --> SCHEDULER
+    
+    SCHEDULER -->|Continuous Batching| GPU[GPU Cluster]
+    GPU --> RESPONSE[Response]
+    
+    MONITOR[Monitor: VRAM, Queue Length] -.-> SCHEDULER
+```
+
+Diagram ini memperlihatkan tiga gagasan kunci. **Pertama**, klasifikasi terjadi sekali di gerbang masuk — *User Classifier* menandai setiap permintaan berdasarkan peran dari Bab 7.6. **Kedua**, tiga antrean terpisah menjaga kepentingan: permintaan admin tidak pernah menunggu permintaan viewer. **Ketiga**, loop umpan balik dari *Monitor* ke *Scheduler* (garis putus-putus) adalah otomatisasi paling berharga — ketika VRAM menipis, scheduler bisa menahan permintaan baru sebelum sistem limbung, bukan setelahnya.
+
+
+---
+
+## 5. Multi-Tenant Scheduling
+
+
+### Time-Sharing vs Space-Sharing
+
+Ketika dua kelompok pengguna butuh model berbeda, Anda menghadapi dua pola dasar. **Time-sharing**: satu GPU dipakai bergantian oleh model besar dan kecil — sederhana, semua model tersedia, tetapi ada *latency* saat *model switching*; cocok bila hanya ada 1-2 model. **Space-sharing**: GPU dipisah secara fisik — GPU 0 khusus untuk *coding assistant* (Tabby + DeepSeek-Coder), GPU 1 untuk chat/RAG — dengan *isolasi sempurna* dan tanpa *interference*, tetapi alokasi tidak fleksibel karena satu kartu tidak bisa membantu kartu lain di saat sibuk. Studi kasus di seksi 8 akan menunjukkan bahwa untuk small office dengan dua kartu, space-sharing sering menjadi pemenang yang sederhana dan efektif.
+
+### Varian Modern: Multi-LoRA dan Prism
+
+Dua pendekatan yang lebih mutakhir layak dikenal. **vLLM Multi-LoRA** memuat banyak adapter sekaligus — tim engineering dan tim finance memakai satu model dasar yang sama dengan *adapter* berbeda — tanpa perlu me-reload model, sehingga pergantian peran tim hampir instan. Dan **Prism** [2], kerangka dari riset 2025, melakukan *coordination* memori lintas model: beberapa model berbagi satu GPU dengan cara yang jauh lebih pintar daripada sekadar bergantian — memungkinkan *utilisasi* tinggi dan fleksibilitas alokasi, dengan ongkos kompleksitas tuning yang tidak kecil. Untuk small office, urutan adopsi yang bijak: mulai dari space-sharing, naik ke Multi-LoRA bila kebutuhan tim mulai beragam, dan baru menjajaki Prism bila sudah ada energi DevOps untuk tuning.
+
+---
+
+## 6. Monitoring dan Alerting
+
+
+Tanpa mata, semua pengaturan di atas buta. **Monitoring** GPU dan antrean adalah lapisan penutup yang mengubah "tampaknya lancar" menjadi "terbukti lancar". Empat metrik yang wajib dipantau: **VRAM usage** (sisa memori adalah nyawa layanan), **GPU utilization** (kartu menganggur 20% berarti ada headroom, 98% berarti sudah waktunya naik kelas), **queue length** (antrean membengkak menandakan *bottleneck*), dan *request per user* (untuk mendeteksi pemakaian abnormal sejak dini). Dengan Prometheus mengekspor metrik vLLM dan Grafana merangkainya, dashboard multi-user menjadi jendela kaca kantor: siapa memakai berapa, kapan lonjakannya, dan di mana batasnya.
+
+Agar dashboard tidak menjadi *poster* yang tidak pernah dilihat, pasang **alert** pada dua ambang kritis: VRAM di atas 90% dan antrean di atas 50 pending. Alert ini bukan sekadar sirene — ia adalah sinyal tindakan: turunkan `--max-model-len`, pindahkan sebagian pengguna ke model lebih kecil, atau naikkan *rate limit* per pengguna. Tanpa deduksi tindakan ini, alert hanyalah teriakan yang diabaikan.
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Konfigurasi vLLM dengan Resource Limits
 
@@ -346,7 +355,8 @@ Perilaku yang pantas dicermati dari kode ini adalah **mekanisme starvation guard
 
 ---
 
-## 10. Studi Kasus: Fair GPU Sharing di Kantor 18 Developer
+## 8. Studi Kasus: Fair GPU Sharing di Kantor 18 Developer
+
 
 **Skenario.** Kantor dengan 18 developer memiliki dua server GPU, masing-masing dengan RTX 4090 24 GB. Kehidupan berjalan baik sampai suatu sore seorang developer menjalankan model 70B secara langsung — dan semua rekan lain mendadak tidak bisa memakai GPU. *Timeout* beruntun, layanan chat mogok, dan "siapa itu?" menjadi pertanyaan yang diulang sepanjang minggu.
 
@@ -360,7 +370,8 @@ Perilaku yang pantas dicermati dari kode ini adalah **mekanisme starvation guard
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

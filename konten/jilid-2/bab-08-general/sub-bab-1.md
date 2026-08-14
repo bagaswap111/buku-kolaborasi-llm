@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa sistem LLM general office (21-50 user) menuntut **redundansi**, **audit logs**, **scalability**, dan **uptime tinggi** — empat pilar yang tidak wajib pada skala home maupun small office
@@ -19,15 +20,31 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Definisi General Office AI System
 
+
 Dalam taksonomi skala buku ini, **general office** adalah lapisan ketiga setelah home (4-8 user) dan small office (9-20 user). Sistem AI pada skala ini melayani **21-50 karyawan secara simultan** dengan tingkat konkurensi *peak* 5-15 user — dan melonjak hingga 25 user saat rapat bersama. Jumlah ini bukan sekadar angka: ia menandakan bahwa sistem tidak lagi melayani satu-dua pengguna "suka-suka", melainkan menjadi bagian dari alur kerja organisasi yang tidak boleh berhenti.
 
 Karakteristik yang paling membedakan: **multi-departemen**. Dalam satu organisasi berukuran ini, kita menemukan HR yang menyusun kontrak kerja, Finance yang meminta analisis laporan keuangan, Engineering yang menggunakan *coding assistant*, dan Legal yang merangkum dokumen perjanjian. Konsekuensi langsungnya adalah **data sensitif yang bercampur** dalam satu sistem: data gaji, data kesehatan karyawan, kontrak vendor, hingga kode sumber proprietary. Bercampurnya kelas data ini mengubah segalanya — dari sekadar "model mana yang dipakai" menjadi pertanyaan "siapa boleh melihat apa, dan jejak apa yang ditinggalkan".
 
 Perbedaan fundamental dari asisten rumah tangga pun tegas. Sistem home boleh mati malam hari, boleh diakses tanpa login, dan boleh tidak meninggalkan jejak. Sistem general office memiliki empat tuntutan wajib: **SSO (Single Sign-On)** agar akses terpusat dan bisa dicabut sewaktu-waktu, **audit trail** yang merekam siapa bertanya apa, **RBAC (Role-Based Access Control)** yang memisahkan hak akses antardepartemen, **auto-scaling** agar kapasitas mengikuti beban, serta **operasi 24/7** karena karyawan boleh bekerja larut malam atau di akhir pekan. Tanpa kelima hal ini, sistem yang dibangun hanyalah "home assistant dengan karyawan banyak" — dan itu adalah resep bencana operasional dan hukum.
 
+### Tabel 2: SLA Target General Office
+
+| Metrik | Target | Metode Pengukuran |
+|:---|:---:|:---|
+| **TTFT P50** | < 1 detik | Prometheus + cAdvisor |
+| **TTFT P99** | < 3 detik | Distributed tracing (OpenTelemetry) |
+| **Throughput per GPU** | > 1000 req/jam | vLLM metrics endpoint |
+| **Uptime Tahunan** | 99.999% | Uptime Kuma / Grafana |
+| **Max Concurrent** | 20 session | Rate limiter (LiteLLM) |
+| **Recovery Time (failover)** | < 30 detik | Health check script |
+
+Kedua metrik pertama layak dibaca bersama. **TTFT P50 di bawah 1 detik** berarti sebagian besar pengguna mendapatkan token pertama nyaris seketika — persepsi "responsif" di mata karyawan ditentukan metrik ini. Namun angka P50 saja menipu: **P99 di bawah 3 detik** menjamin bahwa bahkan pada *burst* 25 user, pengguna paling tidak beruntung pun tidak menunggu lebih lama dari 3 detik. Keduanya diukur dengan alat berbeda — P50 cukup lewat aggregasi Prometheus, sedangkan P99 yang akurat memerlukan *distributed tracing* (OpenTelemetry) untuk menelusuri latensi per-hop. Catatan penting: *throughput* 1000 request/jam per GPU adalah angka pejalan yang dicapai dengan batching efisien (PagedAttention) — tanpa batching, GPU kelas enterprise hanya melayani sebagian kecil dari angka itu [2].
+
+
 ---
 
 ## 3. Empat Pilar Karakteristik Sistem
+
 
 ### 3.1 Redundansi: Tidak Ada Titik Tunggal Kegagalan
 
@@ -45,45 +62,7 @@ Pilar ketiga adalah kemampuan menambah **node GPU secara horizontal tanpa downti
 
 Pilar terakhir, dan yang paling sering disalahpahami: **100% uptime**. Tentu saja angka 100% secara matematis mustahil; yang dimaksud adalah target **five-nines (99.999%)** — maksimal 5 menit *downtime* dalam setahun, sedikit lebih lama dari waktu menyeduh satu cangkir kopi. Untuk mencapai angka ini, sistem memerlukan **failover otomatis**: *health check* dieksekusi setiap 5 detik, dan ketika satu komponen dinyatakan mati, lalu lintas dialihkan ke komponen cadangan dalam waktu kurang dari 30 detik. Bandingkan dengan skala home yang cukup hidup 16 jam sehari — jangankan lima sembilan, 99% pun tidak pernah dihitung. Pada general office, setiap detik mati berarti karyawan berhenti bekerja, dan itu terkonversi langsung menjadi biaya.
 
----
-
-## 4. Load Pattern Analysis
-
-Perancangan kapasitas yang tepat dimulai dari memahami kapan dan bagaimana sistem dipakai. Data *load pattern* kantor harus dianalisis sebelum memilih GPU, karena kesalahan membaca pola ini berujung pada *over-provisioning* (membeli kapasitas yang tidak terpakai) atau *under-provisioning* (antrean panjang di jam sibuk).
-
-**Jam puncak** (*peak hours*) terkonsentrasi pada dua jendela: **08:00-11:00** dan **13:00-16:00** — jam kerja standar ketika semua departemen aktif. Sebaliknya, antara **20:00-06:00** sistem nyaris sepi (*near-zero*). Kurva beban harian ini berbentuk dua punuk (*bimodal*), bukan garis datar — dan justru bentuk inilah yang membuat **auto-scaling** sangat menguntungkan: kapasitas penuh hanya dibutuhkan sekitar 6-8 jam dari 24 jam, sisanya bisa dipangkas.
-
-**Komposisi query** juga khas kantor. Sekitar **40%** trafik adalah *RAG (Retrieval-Augmented Generation)* atas dokumen internal — kontrak, SOP, kebijakan HR — yang menuntut vektor database dan konteks dokumen panjang. **30%** adalah *coding assistant* untuk tim engineering. **20%** adalah *data analysis* — karyawan meminta merangkum laporan keuangan atau membandingkan spreadsheet. Sisanya **10%** adalah *general use* (menulis surat, menyusun email, brainstorming).
-
-**Karakter query** di skala ini berbeda jauh dari skala home: prompt berukuran **500-2000 token** (dokumen lampiran, transkrip rapat), bersifat *multi-turn conversation* (percakapan bolak-balik yang menahan *context window* terus terbuka), dan berorientasi analitis — bukan sekadar tanya-jawab pendek. Dampaknya terhadap perancangan jelas: model harus menyediakan *context window* besar, KV cache harus dikelola efisien, dan latensi antar-turn harus tetap di bawah ambang SLA meskipun percakapan berjalan panjang. Konkurensi puncak 5-15 user simultan dengan *burst* hingga **25 saat meeting bersama**, dan setiap permintaan mengonsumsi VRAM — itulah sebabnya perhitungan kebutuhan GPU di Bab 8.2 selalu menyertakan faktor pengali konkurensi.
-
----
-
-## 5. Arsitektur High-Level
-
-Jika empat pilar di atas adalah "apa", maka bagian ini adalah "bagaimana". Arsitektur general office terdiri dari lima lapisan yang tersusun seperti piramida, dan setiap lapisan memiliki strategi redundansinya sendiri:
-
-1. **Load Balancer (HAProxy/Nginx)** — pintu masuk tunggal semua trafik. Berjalan *active-active* di dua node dengan *virtual IP* yang dijaga *keepalived*.
-2. **API Gateway (LiteLLM/Kong)** — gerbang kebijakan: *rate limiting*, *cost tracking*, *routing* ke model yang tepat, dan autentikasi. Berjalan sebagai tiga replika *active-active* sehingga kegagalan satu replika tidak terasa sama sekali (*failover* < 1 detik).
-3. **LLM Cluster (K3s)** — inti komputasi: dua atau lebih node GPU yang menjalankan vLLM. Strategi *active-passive*: satu node melayani beban utama, node lain siap mengambil alih dalam waktu kurang dari 30 detik.
-4. **Storage Layer** — tiga sistem yang saling melengkapi: **MinIO** untuk objek (bobot model, dokumen), **Qdrant** untuk vektor (basis data RAG dengan *replication factor* 3), dan **PostgreSQL Patroni** untuk metadata dan audit log.
-5. **Observability** — **Prometheus, Grafana, dan Loki** yang memantau kesehatan setiap lapisan, mengumpulkan metrik SLA, dan memicu *alert*.
-
-Arah aliran data bersifat satu arah dari atas ke bawah — pengguna → *balancer* → *gateway* → klaster → storage — sementara lapisan observability mengintip semua lapisan dari samping tanpa menjadi bagian jalur kritis. *Health check* dijalankan setiap 5 detik di seluruh lapisan, dan *auto-failover* ditargetkan selesai dalam waktu kurang dari 30 detik. Detail interkoneksi ini divisualisasikan pada Gambar 1 di seksi Diagram.
-
----
-
-## 6. Compliance & Regulatory
-
-Pilar yang sering terlupakan ketika membahas kinerja adalah kewajiban hukum. Sistem LLM general office memproses data pribadi karyawan dalam skala yang cukup besar — dan itu menarik perhatian tiga kerangka regulasi sekaligus. **ISO 27001** menuntut sistem manajemen keamanan informasi dengan bukti terdokumentasi, yang diwujudkan lewat audit trail dan kontrol akses; **GDPR** (jika perusahaan punya eksposur Uni Eropa) menuntut hak *data subject* dan akuntabilitas pemrosesan; dan khusus untuk Indonesia, **UU Pelindungan Data Pribadi (UU No. 27 Tahun 2022)** mewajibkan pemroses data menjaga kerahasiaan dan akuntabilitas.
-
-Dua kebijakan teknis yang harus ditegakkan. Pertama, **data residency**: seluruh data LLM — dokumen, embeddings, prompt, hasil — wajib berada di server *on-premise* atau cloud lokal Indonesia (misalnya region Jakarta), karena mengirim data ke luar negeri tanpa dasar hukum berarti melanggar UU PDP. Kedua, **retention policy**: **log sistem disimpan minimal 1 tahun** (untuk kepentingan audit dan investigasi), sementara **prompt disimpan 90 hari**. Setelah masa itu, data dimusnahkan secara otomatis. Kebijakan inilah yang kemudian diterjemahkan menjadi konfigurasi teknis — TTL di Loki, *cleanup job* di PostgreSQL, dan *data classification* di LiteLLM.
-
----
-
-## 7. Tabel Wajib
-
-Pada seksi ini kita membandingkan tiga skala yang sudah disinggung di awal, lalu menurunkan target SLA dan komponen redundansi menjadi angka yang bisa dimonitor.
+Pada sub-bab ini kita membandingkan tiga skala yang sudah disinggung di awal, lalu menurunkan target SLA dan komponen redundansi menjadi angka yang bisa dimonitor.
 
 ### Tabel 1: Perbandingan Karakteristik per Skala
 
@@ -102,39 +81,49 @@ Tabel ini menunjukkan bahwa setiap perpindahan skala menaikkan tuntutan secara n
 
 *Gambar 8.1-1 — Rentang biaya melebar dari Rp 25-45 jt (home) ke Rp 200-500 jt+ (general office), hampir 10x lipat di titik tengah — kenaikan ini membeli redundansi penuh tiga lapisan (LB + GPU + storage) yang wajib pada skala 21-50 user.*
 
-### Tabel 2: SLA Target General Office
-
-| Metrik | Target | Metode Pengukuran |
-|:---|:---:|:---|
-| **TTFT P50** | < 1 detik | Prometheus + cAdvisor |
-| **TTFT P99** | < 3 detik | Distributed tracing (OpenTelemetry) |
-| **Throughput per GPU** | > 1000 req/jam | vLLM metrics endpoint |
-| **Uptime Tahunan** | 99.999% | Uptime Kuma / Grafana |
-| **Max Concurrent** | 20 session | Rate limiter (LiteLLM) |
-| **Recovery Time (failover)** | < 30 detik | Health check script |
-
-Kedua metrik pertama layak dibaca bersama. **TTFT P50 di bawah 1 detik** berarti sebagian besar pengguna mendapatkan token pertama nyaris seketika — persepsi "responsif" di mata karyawan ditentukan metrik ini. Namun angka P50 saja menipu: **P99 di bawah 3 detik** menjamin bahwa bahkan pada *burst* 25 user, pengguna paling tidak beruntung pun tidak menunggu lebih lama dari 3 detik. Keduanya diukur dengan alat berbeda — P50 cukup lewat aggregasi Prometheus, sedangkan P99 yang akurat memerlukan *distributed tracing* (OpenTelemetry) untuk menelusuri latensi per-hop. Catatan penting: *throughput* 1000 request/jam per GPU adalah angka pejalan yang dicapai dengan batching efisien (PagedAttention) — tanpa batching, GPU kelas enterprise hanya melayani sebagian kecil dari angka itu [2].
-
-### Tabel 3: Komponen Redundansi
-
-| Layer | Komponen | Redundansi Strategi | Failover Time |
-|:---|:---|:---|:---:|
-| **Network** | Dual ISP + BGP | Active-active | < 5 detik |
-| **Load Balancer** | HAProxy (2 node) | Active-passive (keepalived) | < 10 detik |
-| **API Gateway** | LiteLLM (3 replica) | Active-active | < 1 detik |
-| **LLM Inference** | vLLM (2+ node GPU) | Active-passive | < 30 detik |
-| **Storage (Vector DB)** | Qdrant cluster | Replication factor 3 | < 60 detik |
-| **Database** | PostgreSQL Patroni | Streaming replication | < 30 detik |
-
-Bacaan penting dari tabel ini: *failover time* terkumpul secara **berurutan**, bukan paralel. Jika GPU mati (30 detik) lalu Qdrant kehilangan satu replika (60 detik berikutnya), total waktu pemulihan bisa menembus hitungan menit. Karena itu, urutan prioritas optimasi adalah: pastikan lapisan yang paling sering gagal (storage dan inference, yang punya komponen bergerak paling banyak) memiliki *recovery time* terendah, dan jangan pernah menaruh dua titik kegagalan potensial dalam satu jalur kritis. Strategi *active-active* lebih dipilih ketika *failover* harus tanpa jeda (LB, gateway, jaringan), sementara *active-passive* cukup untuk lapisan yang boleh menunda beberapa detik (inference) [3][4].
-
-![Failover tercepat ada di API Gateway (< 1 detik) dan Network (< 5 detik), sementara Storage Vector DB paling lambat (< 60 detik) — skala log menegaskan urutan prioritas optimasi](../../assets/images/bab-08-general/sub-bab-1/waktu-failover-per-lapisan.png)
-
-*Gambar 8.1-2 — Lapisan yang dilindungi *active-active* (gateway < 1 dtk, network < 5 dtk) pulih jauh lebih cepat daripada lapisan *stateful* (Qdrant < 60 dtk); karena waktu ini terakumulasi berurutan, storage dan inference adalah sasaran optimasi pertama.*
 
 ---
 
-## 8. Diagram & Visualisasi
+## 4. Load Pattern Analysis
+
+
+Perancangan kapasitas yang tepat dimulai dari memahami kapan dan bagaimana sistem dipakai. Data *load pattern* kantor harus dianalisis sebelum memilih GPU, karena kesalahan membaca pola ini berujung pada *over-provisioning* (membeli kapasitas yang tidak terpakai) atau *under-provisioning* (antrean panjang di jam sibuk).
+
+**Jam puncak** (*peak hours*) terkonsentrasi pada dua jendela: **08:00-11:00** dan **13:00-16:00** — jam kerja standar ketika semua departemen aktif. Sebaliknya, antara **20:00-06:00** sistem nyaris sepi (*near-zero*). Kurva beban harian ini berbentuk dua punuk (*bimodal*), bukan garis datar — dan justru bentuk inilah yang membuat **auto-scaling** sangat menguntungkan: kapasitas penuh hanya dibutuhkan sekitar 6-8 jam dari 24 jam, sisanya bisa dipangkas.
+
+**Komposisi query** juga khas kantor. Sekitar **40%** trafik adalah *RAG (Retrieval-Augmented Generation)* atas dokumen internal — kontrak, SOP, kebijakan HR — yang menuntut vektor database dan konteks dokumen panjang. **30%** adalah *coding assistant* untuk tim engineering. **20%** adalah *data analysis* — karyawan meminta merangkum laporan keuangan atau membandingkan spreadsheet. Sisanya **10%** adalah *general use* (menulis surat, menyusun email, brainstorming).
+
+**Karakter query** di skala ini berbeda jauh dari skala home: prompt berukuran **500-2000 token** (dokumen lampiran, transkrip rapat), bersifat *multi-turn conversation* (percakapan bolak-balik yang menahan *context window* terus terbuka), dan berorientasi analitis — bukan sekadar tanya-jawab pendek. Dampaknya terhadap perancangan jelas: model harus menyediakan *context window* besar, KV cache harus dikelola efisien, dan latensi antar-turn harus tetap di bawah ambang SLA meskipun percakapan berjalan panjang. Konkurensi puncak 5-15 user simultan dengan *burst* hingga **25 saat meeting bersama**, dan setiap permintaan mengonsumsi VRAM — itulah sebabnya perhitungan kebutuhan GPU di Bab 8.2 selalu menyertakan faktor pengali konkurensi.
+
+### Gambar 2: Grafik Beban Harian
+
+Grafik *line chart* beban harian menampilkan sumbu X jam 00:00-23:59 dan sumbu Y jumlah *request* per jam. Dua puncak terlihat jelas — **08:00-11:00 dan 13:00-16:00** — sementara kurva menukik mendekati nol pada **20:00-06:00**. Pola tersebut dirangkum dalam diagram berikut:
+
+```mermaid
+flowchart TD
+    N[00:00-06:00\nNear-Zero\nmaintenance window] --> P1[08:00-11:00\nPeak 1\noffice hours]
+    P1 --> L[12:00-13:00\nlunch dip]
+    L --> P2[13:00-16:00\nPeak 2\noffice hours]
+    P2 --> E[20:00-06:00\nNear-Zero\nbackup & updates]
+```
+
+Pembelajaran operasional dari grafik ini: jadwalkan *maintenance* dan *rolling update* pada jendela near-zero, gunakan jendela yang sama untuk *cron job* pemeliharaan vektor database, dan atur *cooldown* HPA agar pod tidak naik-turun pada transisi jam makan siang.
+
+
+---
+
+## 5. Arsitektur High-Level
+
+
+Jika empat pilar di atas adalah "apa", maka bagian ini adalah "bagaimana". Arsitektur general office terdiri dari lima lapisan yang tersusun seperti piramida, dan setiap lapisan memiliki strategi redundansinya sendiri:
+
+1. **Load Balancer (HAProxy/Nginx)** — pintu masuk tunggal semua trafik. Berjalan *active-active* di dua node dengan *virtual IP* yang dijaga *keepalived*.
+2. **API Gateway (LiteLLM/Kong)** — gerbang kebijakan: *rate limiting*, *cost tracking*, *routing* ke model yang tepat, dan autentikasi. Berjalan sebagai tiga replika *active-active* sehingga kegagalan satu replika tidak terasa sama sekali (*failover* < 1 detik).
+3. **LLM Cluster (K3s)** — inti komputasi: dua atau lebih node GPU yang menjalankan vLLM. Strategi *active-passive*: satu node melayani beban utama, node lain siap mengambil alih dalam waktu kurang dari 30 detik.
+4. **Storage Layer** — tiga sistem yang saling melengkapi: **MinIO** untuk objek (bobot model, dokumen), **Qdrant** untuk vektor (basis data RAG dengan *replication factor* 3), dan **PostgreSQL Patroni** untuk metadata dan audit log.
+5. **Observability** — **Prometheus, Grafana, dan Loki** yang memantau kesehatan setiap lapisan, mengumpulkan metrik SLA, dan memicu *alert*.
+
+Arah aliran data bersifat satu arah dari atas ke bawah — pengguna → *balancer* → *gateway* → klaster → storage — sementara lapisan observability mengintip semua lapisan dari samping tanpa menjadi bagian jalur kritis. *Health check* dijalankan setiap 5 detik di seluruh lapisan, dan *auto-failover* ditargetkan selesai dalam waktu kurang dari 30 detik. Detail interkoneksi ini divisualisasikan pada Gambar 1 di seksi Diagram.
 
 ### Gambar 1: Arsitektur High-Level General Office
 
@@ -206,19 +195,35 @@ graph TB
 
 Diagram ini memperlihatkan satu prinsip utama: **setiap panah tebal (aliran data) selalu memiliki jalur alternatif**. Perhatikan dua ISP yang sama-sama menuju HAProxy, tiga replika LiteLLM yang saling bercabang ke node GPU, dan storage yang menerima aliran dari semua node. Sementara itu, lapisan Observability (panah putus-putus) tidak pernah berada dalam jalur data — ia hanya *mengawasi*. Inilah perbedaan fundamental arsitektur enterprise: dalam sistem home, Prometheus mungkin tidak ada sama sekali; di sini, kegagalan satu komponen tidak pernah memutus rantai permintaan, dan kegagalan apa pun langsung terlihat di dashboard.
 
-### Gambar 2: Grafik Beban Harian
 
-Grafik *line chart* beban harian menampilkan sumbu X jam 00:00-23:59 dan sumbu Y jumlah *request* per jam. Dua puncak terlihat jelas — **08:00-11:00 dan 13:00-16:00** — sementara kurva menukik mendekati nol pada **20:00-06:00**. Pola tersebut dirangkum dalam diagram berikut:
+---
 
-```mermaid
-flowchart TD
-    N[00:00-06:00\nNear-Zero\nmaintenance window] --> P1[08:00-11:00\nPeak 1\noffice hours]
-    P1 --> L[12:00-13:00\nlunch dip]
-    L --> P2[13:00-16:00\nPeak 2\noffice hours]
-    P2 --> E[20:00-06:00\nNear-Zero\nbackup & updates]
-```
+## 6. Compliance & Regulatory
 
-Pembelajaran operasional dari grafik ini: jadwalkan *maintenance* dan *rolling update* pada jendela near-zero, gunakan jendela yang sama untuk *cron job* pemeliharaan vektor database, dan atur *cooldown* HPA agar pod tidak naik-turun pada transisi jam makan siang.
+
+Pilar yang sering terlupakan ketika membahas kinerja adalah kewajiban hukum. Sistem LLM general office memproses data pribadi karyawan dalam skala yang cukup besar — dan itu menarik perhatian tiga kerangka regulasi sekaligus. **ISO 27001** menuntut sistem manajemen keamanan informasi dengan bukti terdokumentasi, yang diwujudkan lewat audit trail dan kontrol akses; **GDPR** (jika perusahaan punya eksposur Uni Eropa) menuntut hak *data subject* dan akuntabilitas pemrosesan; dan khusus untuk Indonesia, **UU Pelindungan Data Pribadi (UU No. 27 Tahun 2022)** mewajibkan pemroses data menjaga kerahasiaan dan akuntabilitas.
+
+Dua kebijakan teknis yang harus ditegakkan. Pertama, **data residency**: seluruh data LLM — dokumen, embeddings, prompt, hasil — wajib berada di server *on-premise* atau cloud lokal Indonesia (misalnya region Jakarta), karena mengirim data ke luar negeri tanpa dasar hukum berarti melanggar UU PDP. Kedua, **retention policy**: **log sistem disimpan minimal 1 tahun** (untuk kepentingan audit dan investigasi), sementara **prompt disimpan 90 hari**. Setelah masa itu, data dimusnahkan secara otomatis. Kebijakan inilah yang kemudian diterjemahkan menjadi konfigurasi teknis — TTL di Loki, *cleanup job* di PostgreSQL, dan *data classification* di LiteLLM.
+
+### Tabel 3: Komponen Redundansi
+
+| Layer | Komponen | Redundansi Strategi | Failover Time |
+|:---|:---|:---|:---:|
+| **Network** | Dual ISP + BGP | Active-active | < 5 detik |
+| **Load Balancer** | HAProxy (2 node) | Active-passive (keepalived) | < 10 detik |
+| **API Gateway** | LiteLLM (3 replica) | Active-active | < 1 detik |
+| **LLM Inference** | vLLM (2+ node GPU) | Active-passive | < 30 detik |
+| **Storage (Vector DB)** | Qdrant cluster | Replication factor 3 | < 60 detik |
+| **Database** | PostgreSQL Patroni | Streaming replication | < 30 detik |
+
+Bacaan penting dari tabel ini: *failover time* terkumpul secara **berurutan**, bukan paralel. Jika GPU mati (30 detik) lalu Qdrant kehilangan satu replika (60 detik berikutnya), total waktu pemulihan bisa menembus hitungan menit. Karena itu, urutan prioritas optimasi adalah: pastikan lapisan yang paling sering gagal (storage dan inference, yang punya komponen bergerak paling banyak) memiliki *recovery time* terendah, dan jangan pernah menaruh dua titik kegagalan potensial dalam satu jalur kritis. Strategi *active-active* lebih dipilih ketika *failover* harus tanpa jeda (LB, gateway, jaringan), sementara *active-passive* cukup untuk lapisan yang boleh menunda beberapa detik (inference) [3][4].
+
+![Failover tercepat ada di API Gateway (< 1 detik) dan Network (< 5 detik), sementara Storage Vector DB paling lambat (< 60 detik) — skala log menegaskan urutan prioritas optimasi](../../assets/images/bab-08-general/sub-bab-1/waktu-failover-per-lapisan.png)
+
+*Gambar 8.1-2 — Lapisan yang dilindungi *active-active* (gateway < 1 dtk, network < 5 dtk) pulih jauh lebih cepat daripada lapisan *stateful* (Qdrant < 60 dtk); karena waktu ini terakumulasi berurutan, storage dan inference adalah sasaran optimasi pertama.*
+
+---
+
 
 ### Gambar 3: Dashboard Grafana SLA Monitoring
 
@@ -226,7 +231,11 @@ Dashboard Grafana menampilkan lima panel inti sebagai *cockpit* pemantauan: **Up
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Setup HAProxy untuk Load Balancing LLM Gateway
 
@@ -342,7 +351,8 @@ Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len
 
 ---
 
-## 10. Studi Kasus: PT Karya Digital — General Office 35 Karyawan
+## 8. Studi Kasus: PT Karya Digital — General Office 35 Karyawan
+
 
 **Profil.** PT Karya Digital adalah startup teknologi dengan 35 karyawan: Engineering 15, Operations 10, Finance 5, dan Legal 5. Mereka butuh AI asisten untuk empat tugas inti: *coding assistant* untuk engineer, analisis kontrak untuk legal, review laporan keuangan untuk finance, dan knowledge base HR untuk operasional. Keputusan pertama mereka: semua data harus berada di server sendiri, karena kontrak vendor dan laporan keuangan tidak boleh keluar kantor.
 
@@ -354,7 +364,8 @@ Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

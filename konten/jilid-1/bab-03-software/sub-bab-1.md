@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan arsitektur Ollama secara berlapis: *HTTP API* → *Scheduler* → *Runner* → *Inference Engine*, lengkap dengan alasan mengapa setiap lapisan dipisahkan
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Arsitektur Sistem Ollama: Kondektur Orkestra Berlapis
+
 
 Bayangkan sebuah restoran besar: tamu datang, pelayan mencatat pesanan di meja depan, koki mengatur urutan masakan, dan setiap hidangan dimasak oleh juru masak spesialis di dapur yang terpisah. Ollama bekerja dengan pola yang persis sama. Sistem ini dirancang sebagai tumpukan berlapis (*layered system*) yang terdiri dari **API Layer** berbasis *Gin HTTP*, lapisan **Orchestration** berupa *Scheduler*, dan lapisan **Execution** yang menjalankan llama.cpp atau MLX.
 
@@ -39,9 +41,30 @@ Pada lapisan paling atas, Gin juga menangani *request concurrency*: banyak klien
 
 Bagi administrator, dua variabel lingkungan menjadi tombol kendali penting: **`OLLAMA_HOST`** untuk mengubah alamat bind server (misalnya `0.0.0.0:11434` agar bisa diakses mesin lain dalam satu jaringan — tentu dengan pertimbangan keamanan), dan **`OLLAMA_MAX_LOADED_MODELS`** untuk membatasi berapa model boleh hidup bersamaan. Dua pengaturan ini, ditambah *keep-alive*, membentuk segitiga kebijakan memori: seberapa banyak model menetap, berapa lama mereka bertahan, dan berapa besar memori yang rela dikorbankan.
 
+### Gambar 1: Arsitektur Internal Ollama
+
+Diagram berikut menggambarkan perjalanan sebuah *request* dari klien hingga kembali sebagai respons.
+
+```mermaid
+graph TB
+    Client[Client HTTP Request] --> API[Gin HTTP API Layer]
+    API --> ROUTE[routes.go: /api/generate /api/chat]
+    ROUTE --> SCHED[sched.go: Scheduler]
+    SCHED --> LLMSRV[llama_server.go: LlamaServer subprocess]
+    LLMSRV --> GGUF[GGUF Model File]
+    LLMSRV --> INF[llama.cpp Inference Engine]
+    INF --> KV[KV Cache Management]
+    INF --> SAMP[Sampling: temperature, top-p, min-p]
+    INF --> Client
+```
+
+Perhatikan alurnya: *request* masuk lewat Gin, dipetakan *route*, lalu diserahkan ke *scheduler*. Scheduler yang memutuskan kapan model dimuat sebagai *subprocess*; sekali `LlamaServer` hidup, ia membaca file GGUF dan menjalankan *inference* dengan dua komponen pendamping — *KV cache* agar konteks tidak dihitung ulang, dan *sampling* untuk memilih token berikutnya. Yang menarik, alur berakhir kembali ke `Client`: dalam mode *streaming*, token pertama bisa keluar bahkan sebelum generasi selesai, membentuk sirkuit responsif yang terasa instan di mata pengguna.
+
+
 ---
 
 ## 3. Model Library & Blob Storage: Gudang Model Berbasis Konten
+
 
 Ketika Anda menjalankan `ollama pull`, apa yang sebenarnya diunduh? Ollama menyimpan setiap model sebagai *layout* berkas di `~/.ollama/models/blobs/` — bukan satu file utuh, melainkan kumpulan **blob** (potongan data biner) yang diidentifikasi berdasarkan isinya.
 
@@ -59,6 +82,7 @@ Secara konseptual, Ollama bertindak seperti Git untuk model: ada *registry* temp
 
 ## 4. Modelfile Language: Resep Racikan Model
 
+
 Jika blob adalah bahan mentah di gudang, **Modelfile** adalah resepnya. Modelfile adalah satu file teks sederhana (berformat seperti *Dockerfile*) yang mendefinisikan bagaimana sebuah model dibentuk. Kesederhanaan inilah yang membuat kustomisasi model di Ollama tidak memerlukan keahlian *machine learning* sama sekali.
 
 ### FROM, PARAMETER, dan TEMPLATE
@@ -72,40 +96,6 @@ Instruksi pertama, **FROM**, menentukan *base model* — bisa nama model lokal a
 Selain tiga instruksi inti, Modelfile mendukung **SYSTEM** untuk menyematkan *system prompt* bawaan (kepribadian model), **LICENSE** untuk melampirkan lisensi model (penting bila Anda mendistribusikan model turunan), **MESSAGES** untuk menyisipkan contoh percakapan sebagai *few-shot* bawaan, dan **ADAPTER** untuk menempelkan *LoRA adapter* hasil *fine-tuning* ke *base model*. Kombinasi FROM + PARAMETER + TEMPLATE + SYSTEM yang tepat mampu mengubah satu model generik menjadi asisten spesifik — penulis surat resmi, pembuat kode berkomentar Indonesia, atau juru bicara merek — hanya lewat belasan baris teks.
 
 Satu kebiasaan yang perlu dibangun sejak awal: **perlakukan Modelfile seperti kode sumber**. Simpan dalam repository, beri komentar pada tiap blok, dan versi-kan nama model dengan *tag* (`my-coder:v1`, `my-coder:v2`). Karena `ollama create` membaca file teks, seluruh konfigurasi model Anda bisa direproduksi di mesin lain hanya dengan menyalin satu file — inilah yang membuat Ollama unggul dibandingkan aplikasi yang mengunci konfigurasi di dalam *database* antarmuka grafisnya. Tim bisa me-review Modelfile seperti me-review *pull request*: perubahan *temperature*, *system prompt*, dan *template* menjadi artefak yang terlacak, bukan keputusan yang hilang dalam satu klik.
-
----
-
-## 5. Execution Backend: Mesin di Balik Layar
-
-Ollama bukan *inference engine*; ia adalah **pengemudi** yang memilih mesin yang tepat untuk setiap model. Mesin utama adalah **llama.cpp** — implementasi C++ dari Georgi Gerganov yang menjadi standar de facto eksekusi model **GGUF** di seluruh ekosistem. Mesin ini mendukung hampir semua perangkat: GPU NVIDIA via CUDA, GPU AMD via ROCm, GPU Apple via Metal, hingga CPU murni. Karena itulah hampir semua model yang diunduh melalui `ollama pull` adalah file GGUF yang dijalankan llama.cpp.
-
-Perlu ditegaskan di sini: **GGUF bukanlah sebuah model, melainkan format kemasan**. Ia menyimpan bobot yang sudah dikuantisasi (misalnya 4-bit atau 8-bit), *tokenizer*, arsitektur, dan metadata lain dalam satu berkas yang bisa dibaca langsung oleh llama.cpp. Karena formatnya standar, file GGUF yang sama bisa dijalankan oleh Ollama, LM Studio, llama.cpp murni, maupun GPT4All — inilah "bahasa bersama" yang membuat ekosistem model lokal tidak terpecah-pecah. Bila model favorit Anda hanya tersedia dalam format safetensors dari Hugging Face, konversi ke GGUF bisa dilakukan dengan *script* llama.cpp, dan hasilnya langsung bisa dipakai di Ollama.
-
-Untuk pengguna Apple Silicon, Ollama menyediakan *runner* eksperimental berbasis **MLX** — *framework* machine learning buatan Apple yang memanfaatkan *unified memory* secara lebih langsung. MLX bisa lebih cepat pada chip M-series untuk model tertentu, tetapi statusnya masih *experimental*; jangan heran jika sebuah model tampil dua kali di library dengan tanda backend berbeda. Terakhir, ada *backend* khusus **image generation** untuk model difusi seperti Flux — Ollama tidak hanya melayani teks, tetapi juga menggambar. Pemilihan backend dilakukan **otomatis** berdasarkan tipe model: arsitektur encoder-decoder multimodal, *dense decoder*, atau *diffusion* — pengguna cukup memilih model, Ollama yang menebak mesinnya.
-
----
-
-## 6. GPU Management & Scheduling
-
-Saat Anda pertama kali menjalankan model, Ollama melakukan *probe* perangkat keras: mendeteksi GPU NVIDIA (CUDA), AMD (ROCm), atau Apple (Metal) secara otomatis. Hasil deteksi ini menentukan dua hal: berapa lapisan model yang bisa di-*offload* ke **VRAM**, dan berapa besar memori sistem yang tersisa untuk bagian yang tidak muat. Scheduler lalu mengalokasikan **layer offload** secara dinamis — tidak harus semua lapisan masuk GPU; jika VRAM menipis, sebagian lapisan ditarik kembali ke CPU tanpa Anda perlu mengonfigurasi apa pun.
-
-Jika dua model diminta bersamaan, scheduler menilai prioritas: model yang sedang melayani *streaming* dipertahankan, model yang sudah lama tidak dipakai boleh dikeluarkan dari memori untuk memberi tempat model baru. Perilaku ini bisa dikontrol via parameter `num_gpu` (berapa lapisan maksimum yang di-offload) dan `OLLAMA_MAX_LOADED_MODELS` (berapa model boleh hidup bersamaan). Dengan kata lain, Ollama memperlakukan VRAM seperti meja kerja terbatas: ia mengatur posisi duduk setiap "pekerja" (lapisan model) agar semua tugas tetap berjalan, meski harus bergantian.
-
-Ada satu detail lagi yang membuat *scheduling* Ollama terasa "manusiawi": **estimasi kebutuhan memori dilakukan sebelum load**. Scheduler membaca *metadata* model (ukuran bobot, ukuran KV cache untuk konteks default) lalu memutuskan apakah model muat di VRAM yang tersisa; jika tidak, lapisan-lapisan teratas yang paling banyak dipakai ditempatkan di GPU dan sisanya di CPU. Proses ini menghasilkan pola khas: jika Anda menjalankan model yang "pas-pasan" dengan VRAM, *inference* tetap bekerja — hanya saja lebih lambat di lapisan yang jatuh ke CPU. Memahami pola ini membantu menjelaskan kenapa menggeser parameter `num_ctx` ke nilai besar bisa membuat model yang tadinya mulus menjadi tersendat: konteks yang lebih panjang berarti KV cache lebih besar, sisa VRAM menyusut, dan lapisan mulai "tumpah" ke CPU.
-
----
-
-## 7. Ollama API & Integrasi
-
-Antarmuka utama Ollama bagi pengembang adalah **REST API** di `http://localhost:11434`. Tiga *endpoint* yang paling sering digunakan: `/api/generate` untuk *completion* satu arah, `/api/chat` untuk percakapan dengan pesan ber-*role* (`system`, `user`, `assistant`), dan `/api/embeddings` untuk menghasilkan vektor teks — bahan baku *retrieval-augmented generation* (RAG) dan pencarian semantik. Semua *endpoint* mendukung *streaming*, sehingga token bisa tampil satu per satu seperti mengetik.
-
-Yang membuat Ollama populer di ekosistem developer adalah **endpoint kompatibel OpenAI**: `http://localhost:11434/v1/chat/completions`. Karena bentuknya identik dengan API OpenAI, aplikasi yang ditulis untuk ChatGPT API bisa dialihkan ke Ollama hanya dengan mengganti *base URL* — tanpa mengubah satu baris kode pun. Inilah jembatan yang menghubungkan Ollama dengan **Open WebUI** (antarmuka web mirip ChatGPT), **LangChain**, dan puluhan *framework* lain yang sudah berbicara bahasa OpenAI. Satu gerbang, dua bahasa API: bahasa asli Ollama untuk kontrol penuh, dan bahasa OpenAI untuk kompatibilitas universal.
-
-Pola integrasi yang sama berlaku di hampir semua *framework* modern: tentukan *base URL*, set model, lalu sisanya mengikuti konvensi OpenAI. Untuk *embedding*, *endpoint* `/api/embeddings` (atau padanan OpenAI-nya) menyediakan vektor teks yang bisa disimpan di *vector database* untuk pencarian semantik — fondasi dari aplikasi RAG skala kecil hingga menengah yang seluruhnya berjalan lokal. Kombinasi *chat* + *embedding* inilah yang membuat satu instalasi Ollama mampu menjadi *backend* tunggal untuk sistem *question answering* dokumen perusahaan, tanpa membayar satu sen pun biaya API eksternal.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: Perbandingan Parameter Modelfile
 
@@ -128,6 +118,18 @@ Gambar berikut memetakan nilai *default* keenam parameter ke dua kelompok fungsi
 
 Pola yang muncul dari tabel ini: parameter sampling (`temperature`, `top_p`) mengontrol *rasa* keluaran, sedangkan parameter eksekusi (`num_ctx`, `num_gpu`) mengontrol *kemampuan* — seberapa banyak konteks yang bisa dipegang dan seberapa banyak komputasi yang dijalankan di GPU. Nilai *default* `temperature 0.8` memang relatif kreatif, cocok untuk percakapan umum; untuk tugas yang menuntut presisi seperti coding atau analisis data, turunkan ke 0,2-0,4. `num_gpu` dengan nilai -1 berarti "semua lapisan ke GPU", dan inilah yang paling sering digunakan pengguna desktop.
 
+
+---
+
+## 5. Execution Backend: Mesin di Balik Layar
+
+
+Ollama bukan *inference engine*; ia adalah **pengemudi** yang memilih mesin yang tepat untuk setiap model. Mesin utama adalah **llama.cpp** — implementasi C++ dari Georgi Gerganov yang menjadi standar de facto eksekusi model **GGUF** di seluruh ekosistem. Mesin ini mendukung hampir semua perangkat: GPU NVIDIA via CUDA, GPU AMD via ROCm, GPU Apple via Metal, hingga CPU murni. Karena itulah hampir semua model yang diunduh melalui `ollama pull` adalah file GGUF yang dijalankan llama.cpp.
+
+Perlu ditegaskan di sini: **GGUF bukanlah sebuah model, melainkan format kemasan**. Ia menyimpan bobot yang sudah dikuantisasi (misalnya 4-bit atau 8-bit), *tokenizer*, arsitektur, dan metadata lain dalam satu berkas yang bisa dibaca langsung oleh llama.cpp. Karena formatnya standar, file GGUF yang sama bisa dijalankan oleh Ollama, LM Studio, llama.cpp murni, maupun GPT4All — inilah "bahasa bersama" yang membuat ekosistem model lokal tidak terpecah-pecah. Bila model favorit Anda hanya tersedia dalam format safetensors dari Hugging Face, konversi ke GGUF bisa dilakukan dengan *script* llama.cpp, dan hasilnya langsung bisa dipakai di Ollama.
+
+Untuk pengguna Apple Silicon, Ollama menyediakan *runner* eksperimental berbasis **MLX** — *framework* machine learning buatan Apple yang memanfaatkan *unified memory* secara lebih langsung. MLX bisa lebih cepat pada chip M-series untuk model tertentu, tetapi statusnya masih *experimental*; jangan heran jika sebuah model tampil dua kali di library dengan tanda backend berbeda. Terakhir, ada *backend* khusus **image generation** untuk model difusi seperti Flux — Ollama tidak hanya melayani teks, tetapi juga menggambar. Pemilihan backend dilakukan **otomatis** berdasarkan tipe model: arsitektur encoder-decoder multimodal, *dense decoder*, atau *diffusion* — pengguna cukup memilih model, Ollama yang menebak mesinnya.
+
 ### Tabel 2: Perbandingan Backend Ollama
 
 Bandingkan tiga *execution backend* Ollama berikut sebelum memilih model dan perangkat target Anda.
@@ -143,6 +145,29 @@ Bandingkan tiga *execution backend* Ollama berikut sebelum memilih model dan per
 
 Pelajaran dari tabel ini: untuk pengguna Linux/Windows dengan kartu NVIDIA, llama.cpp adalah pilihan utama dan satu-satunya yang realistis; untuk pengguna Mac M-series yang menginginkan *throughput* maksimal, MLX patut dicoba meski berstatus *experimental*; dan bagi yang ingin menghasilkan gambar, backend difusi adalah jawabannya. Ollama memilih backend secara otomatis, tetapi memahami perbedaannya membantu Anda membaca mengapa kecepatan token/s bisa berbeda antara dua model yang ukurannya sama.
 
+
+---
+
+## 6. GPU Management & Scheduling
+
+
+Saat Anda pertama kali menjalankan model, Ollama melakukan *probe* perangkat keras: mendeteksi GPU NVIDIA (CUDA), AMD (ROCm), atau Apple (Metal) secara otomatis. Hasil deteksi ini menentukan dua hal: berapa lapisan model yang bisa di-*offload* ke **VRAM**, dan berapa besar memori sistem yang tersisa untuk bagian yang tidak muat. Scheduler lalu mengalokasikan **layer offload** secara dinamis — tidak harus semua lapisan masuk GPU; jika VRAM menipis, sebagian lapisan ditarik kembali ke CPU tanpa Anda perlu mengonfigurasi apa pun.
+
+Jika dua model diminta bersamaan, scheduler menilai prioritas: model yang sedang melayani *streaming* dipertahankan, model yang sudah lama tidak dipakai boleh dikeluarkan dari memori untuk memberi tempat model baru. Perilaku ini bisa dikontrol via parameter `num_gpu` (berapa lapisan maksimum yang di-offload) dan `OLLAMA_MAX_LOADED_MODELS` (berapa model boleh hidup bersamaan). Dengan kata lain, Ollama memperlakukan VRAM seperti meja kerja terbatas: ia mengatur posisi duduk setiap "pekerja" (lapisan model) agar semua tugas tetap berjalan, meski harus bergantian.
+
+Ada satu detail lagi yang membuat *scheduling* Ollama terasa "manusiawi": **estimasi kebutuhan memori dilakukan sebelum load**. Scheduler membaca *metadata* model (ukuran bobot, ukuran KV cache untuk konteks default) lalu memutuskan apakah model muat di VRAM yang tersisa; jika tidak, lapisan-lapisan teratas yang paling banyak dipakai ditempatkan di GPU dan sisanya di CPU. Proses ini menghasilkan pola khas: jika Anda menjalankan model yang "pas-pasan" dengan VRAM, *inference* tetap bekerja — hanya saja lebih lambat di lapisan yang jatuh ke CPU. Memahami pola ini membantu menjelaskan kenapa menggeser parameter `num_ctx` ke nilai besar bisa membuat model yang tadinya mulus menjadi tersendat: konteks yang lebih panjang berarti KV cache lebih besar, sisa VRAM menyusut, dan lapisan mulai "tumpah" ke CPU.
+
+---
+
+## 7. Ollama API & Integrasi
+
+
+Antarmuka utama Ollama bagi pengembang adalah **REST API** di `http://localhost:11434`. Tiga *endpoint* yang paling sering digunakan: `/api/generate` untuk *completion* satu arah, `/api/chat` untuk percakapan dengan pesan ber-*role* (`system`, `user`, `assistant`), dan `/api/embeddings` untuk menghasilkan vektor teks — bahan baku *retrieval-augmented generation* (RAG) dan pencarian semantik. Semua *endpoint* mendukung *streaming*, sehingga token bisa tampil satu per satu seperti mengetik.
+
+Yang membuat Ollama populer di ekosistem developer adalah **endpoint kompatibel OpenAI**: `http://localhost:11434/v1/chat/completions`. Karena bentuknya identik dengan API OpenAI, aplikasi yang ditulis untuk ChatGPT API bisa dialihkan ke Ollama hanya dengan mengganti *base URL* — tanpa mengubah satu baris kode pun. Inilah jembatan yang menghubungkan Ollama dengan **Open WebUI** (antarmuka web mirip ChatGPT), **LangChain**, dan puluhan *framework* lain yang sudah berbicara bahasa OpenAI. Satu gerbang, dua bahasa API: bahasa asli Ollama untuk kontrol penuh, dan bahasa OpenAI untuk kompatibilitas universal.
+
+Pola integrasi yang sama berlaku di hampir semua *framework* modern: tentukan *base URL*, set model, lalu sisanya mengikuti konvensi OpenAI. Untuk *embedding*, *endpoint* `/api/embeddings` (atau padanan OpenAI-nya) menyediakan vektor teks yang bisa disimpan di *vector database* untuk pencarian semantik — fondasi dari aplikasi RAG skala kecil hingga menengah yang seluruhnya berjalan lokal. Kombinasi *chat* + *embedding* inilah yang membuat satu instalasi Ollama mampu menjadi *backend* tunggal untuk sistem *question answering* dokumen perusahaan, tanpa membayar satu sen pun biaya API eksternal.
+
 ### Tabel 3: Perintah Dasar Manajemen Ollama
 
 | Perintah | Fungsi | Contoh |
@@ -157,26 +182,6 @@ Kelima perintah ini adalah "daur hidup" sebuah model: `pull` untuk membeli bahan
 
 ---
 
-## 9. Diagram & Visualisasi
-
-### Gambar 1: Arsitektur Internal Ollama
-
-Diagram berikut menggambarkan perjalanan sebuah *request* dari klien hingga kembali sebagai respons.
-
-```mermaid
-graph TB
-    Client[Client HTTP Request] --> API[Gin HTTP API Layer]
-    API --> ROUTE[routes.go: /api/generate /api/chat]
-    ROUTE --> SCHED[sched.go: Scheduler]
-    SCHED --> LLMSRV[llama_server.go: LlamaServer subprocess]
-    LLMSRV --> GGUF[GGUF Model File]
-    LLMSRV --> INF[llama.cpp Inference Engine]
-    INF --> KV[KV Cache Management]
-    INF --> SAMP[Sampling: temperature, top-p, min-p]
-    INF --> Client
-```
-
-Perhatikan alurnya: *request* masuk lewat Gin, dipetakan *route*, lalu diserahkan ke *scheduler*. Scheduler yang memutuskan kapan model dimuat sebagai *subprocess*; sekali `LlamaServer` hidup, ia membaca file GGUF dan menjalankan *inference* dengan dua komponen pendamping — *KV cache* agar konteks tidak dihitung ulang, dan *sampling* untuk memilih token berikutnya. Yang menarik, alur berakhir kembali ke `Client`: dalam mode *streaming*, token pertama bisa keluar bahkan sebelum generasi selesai, membentuk sirkuit responsif yang terasa instan di mata pengguna.
 
 ### Gambar 2: Alur Lifecycle Request dan Keep-Alive
 
@@ -204,7 +209,11 @@ Diagram ini menjawab pertanyaan klasik "kenapa prompt pertama lambat, kedua cepa
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Membuat Modelfile Kustom
 
@@ -325,7 +334,8 @@ Jika total RAM/VRAM cukup, ketiga model akan dimuat bersamaan dan masing-masing 
 
 ---
 
-## 11. Studi Kasus: Setup Ollama untuk Team Coding Assistant
+## 9. Studi Kasus: Setup Ollama untuk Team Coding Assistant
+
 
 Bayangkan sebuah perusahaan software di Jakarta dengan lima developer yang sehari-hari mengerjakan sistem ERP. Setiap developer ingin memakai asisten AI untuk menulis dan meninjau kode, tetapi perusahaan melarang kode bisnis dikirim ke API cloud — masalah keamanan yang tidak bisa ditawar. Solusinya: Ollama di satu server internal.
 
@@ -337,7 +347,8 @@ Bayangkan sebuah perusahaan software di Jakarta dengan lima developer yang sehar
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

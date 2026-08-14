@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Membandingkan **total biaya kepemilikan** (TCO) tiga jalur utama workstation LLM: PC rakitan, Mac Studio/Mac Mini, dan laptop AI
@@ -18,61 +19,10 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Empat Kategori Budget untuk LLM Workstation
 
+
 Dunia workstation LLM rumahan terbagi menjadi empat kelas ekonomi yang cukup jelas. Di level **ekonomis (Rp 5–15 juta)**, pilihan realistis adalah laptop atau PC *CUDA-less* dengan *inference* CPU-only — cukup untuk model 3–8B yang sudah dikuantisasi, dengan kecepatan yang menuntut kesabaran tetapi tetap berguna untuk tugas ringan. Naik ke **menengah (Rp 15–35 juta)**, Anda memasuki zona yang paling populer: PC dengan RTX 3090 *used*, Mac Mini M4 Pro, atau laptop AI *mid-range*. Di sini GPU 24GB membuka pintu ke model 13B yang nyaman dan 70B yang dipangkas. **Tinggi (Rp 35–75 juta)** adalah wilayah RTX 4090, Mac Studio M2 Ultra, atau dua RTX 3090 — di sini model 70B menjadi realistis dan *multi-tasking* terasa bebas. Terakhir, **flagship (di atas Rp 75 juta)** menampung *multi-GPU workstation*, Mac Studio konfigurasi maksimal, hingga perangkat *server-grade* — untuk mereka yang menjadikan LLM lokal sebagai alat produksi sungguhan, bukan sekadar hobi.
 
 Pembagian ini penting bukan untuk memberi label status, melainkan untuk mengatur ekspektasi: setiap level memiliki model maksimum yang masuk akal, biaya listrik yang berbeda, dan *upgrade path* yang berbeda pula. Sebagian besar pembaca buku ini — dan sebagian besar pengguna LLM lokal dunia — akan hidup di dua level pertama.
-
----
-
-## 3. PC Rakitan: Performa Terbaik per Rupiah
-
-Bagi mereka yang tidak takut obeng dan manual BIOS, **PC rakitan** adalah juara rasio harga-performansi. Kelebihannya tegas: *performa terbaik per rupiah*, *upgrade path* yang jelas (ganti GPU tanpa ganti seluruh mesin), dan dukungan **semua framework** — CUDA, llama.cpp, vLLM, PyTorch — tanpa kecuali. Komunitasnya juga yang paling besar, sehingga setiap masalah sudah punya jawaban di forum.
-
-Kekurangannya sama tegasnya: konsumsi daya tinggi yang menerjemahkan langsung ke tagihan listrik, kebisingan fan yang mengganggu di ruang kerja, kebutuhan ruang fisik, dan kerawanan *thermal issue* — persis topik Sub-bab 2.8. Ada tiga komponen kunci yang menentukan: **GPU** yang harus menyedot 30–50% dari seluruh budget (jangan pelit di sini), **PSU** dengan kapasitas 1200W+ jika Anda berencana multi-GPU, dan **motherboard** dengan jumlah *PCIe lanes* yang cukup untuk GPU dan perangkat lain. PC rakitan adalah pilihan bagi orang yang memprioritaskan kecepatan mentah, senang *oprek*, dan ingin setiap rupiah bekerja maksimal.
-
----
-
-## 4. Mac Studio dan Mac Mini: Senyap untuk Model Besar
-
-Di kutub yang berlawanan berdiri ekosistem Apple. Keunggulan utamanya adalah **unified memory** — hingga **192GB** di Mac Studio — yang berarti model 70B+ bisa dimuat sepenuhnya tanpa *offloading* yang menyiksa. Tambahkan kebisuan total (tidak ada fan GPU), konsumsi daya rendah, dan *form factor* sekecil kotak makan siang, dan Anda mendapatkan mesin yang bisa dinyalakan 24/7 tanpa mengganggu siapa pun — termasuk tetangga kos Anda.
-
-Kekurangannya adalah **harga premium per unit performa**: untuk kecepatan *inference* per detik, Mac Studio kalah dengan PC GPU sekelasnya, dan *memory*-nya terbatas di 192GB — model yang lebih besar dari itu (misalnya Mistral Large 3 yang 675B) tidak mungkin. Tidak ada *upgrade* sama sekali: apa yang Anda beli adalah apa yang Anda miliki selamanya. Cocok untuk pengguna yang prioritasnya **model besar (70B+)**, bukan kecepatan maksimal, dan yang menempatkan ketenangan serta efisiensi daya di atas segalanya. Penelitian Liu dkk. (2025) bahkan menunjukkan bahwa *cluster* Mac Studio bisa menjadi alternatif rasional untuk model MoE besar, dengan analisis biaya yang bersaing dengan mesin DGX kelas server [3].
-
----
-
-## 5. Laptop AI: AI di Saku Anda
-
-Level terakhir, **laptop AI**, adalah pilihan portabel. Kelebihannya jelas: bisa dibawa ke kampus, kantor, atau kafe; *all-in-one* tanpa *peripheral* tambahan; NPU terintegrasi untuk tugas AI ringan (lihat Sub-bab 2.9); dan konsumsi daya yang jauh di bawah PC desktop. Untuk mahasiswa atau pekerja yang membutuhkan AI di perjalanan, ini satu-satunya pilihan yang masuk akal.
-
-Namun, mari jujur soal keterbatasannya. GPU laptop adalah versi yang sudah "dicekik": dengan *Max-Q* dan *TGP* (Total Graphics Power) rendah, RTX 4090 laptop pun hanya memiliki **VRAM maksimal 16GB** — setengah dari RTX 3090 desktop bekas yang lebih murah. Dan karena *form factor*-nya sempit, laptop gaming **cepat throttle** — panas menumpuk di ruang yang tidak punya tempat untuk dibuang, persis mekanisme yang dijelaskan di Sub-bab 2.8. Laptop AI cocok untuk *casual LLM* dan pekerjaan produktivitas, bukan untuk menjadi *workhorse* inferensi. Jika prioritas Anda portabilitas dan Anda sudah memiliki laptop untuk kerja, jalan ini masuk akal — dengan ekspektasi yang realistis.
-
----
-
-## 6. Perhitungan TCO dan Break-Even dengan Cloud
-
-### Total Cost of Ownership
-
-Harga stiker hardware hanyalah permulaan. **TCO** (Total Cost of Ownership) menjumlahkan biaya hardware + biaya listrik selama 3 tahun + biaya pemeliharaan (*upgrade*, *repaste*, penggantian fan). Untuk konteks Indonesia, tarif listrik PLN per kWh (tarif reguler 2026, sekitar Rp 1.600/kWh) menjadi komponen yang tidak bisa diabaikan: PC RTX 3090 yang menyala 8 jam sehari bisa menyedot sekitar Rp 2,3 juta per tahun, sementara Mac Mini yang senyap hanya sekitar Rp 400 ribu.
-
-### Break-Even dengan Cloud
-
-Pertanyaan besar kemudian menjadi: kapan biaya lokal lebih murah daripada berlangganan API? Untuk **heavy user** — mereka yang mengonsumsi sekitar 500.000 token per hari — RTX 3090 *used* bisa mencapai titik *break-even* dalam sekitar 8 bulan dibandingkan memakai OpenAI GPT-4o sepanjang waktu. Setelah itu, semua yang Anda proses adalah "gratis". Bagi pengguna ringan yang hanya 50.000 token per hari, hitungannya berbalik: berlangganan cloud seharga beberapa ratus ribu per bulan bisa jadi lebih ekonomis daripada modal puluhan juta di muka. Perhitungan lengkapnya akan Anda praktikkan di Tutorial 1 dan 2.
-
----
-
-## 7. Matriks Keputusan
-
-Jika semua data di atas diringkas menjadi satu peta, hasilnya adalah matriks keputusan sederhana:
-
-- **Pilih PC rakitan** jika prioritas Anda performa tertinggi, Anda menikmati proses *oprek*, dan budget ketat ingin ditekan demi performa maksimum per rupiah.
-- **Pilih Mac Studio** (atau Mac Mini) jika Anda butuh model besar (70B+), memprioritaskan ketenangan ruang kerja, dan berencana menjalankan mesin 24/7.
-- **Pilih laptop** jika portabilitas adalah segalanya, kebutuhan inferensi Anda *casual*, dan Anda tidak ingin mengganti laptop kerja yang sudah ada.
-
-Ketiga jalur itu sah. Yang tidak sah adalah membeli Mac Studio untuk kecepatan maksimal, atau laptop gaming dengan harapan menjalankan 70B — kekecewaan biasanya berawal dari ketidakcocokan prioritas, bukan dari hardware yang buruk.
-
----
-
-## 8. Tabel Referensi
 
 ### Tabel 1: Konfigurasi Workstation LLM per Budget
 
@@ -100,6 +50,25 @@ Berikut empat paket konfigurasi lengkap — dari ekonomis hingga flagship — be
 
 Perhatikan jurang antar level yang paling mengejutkan: *TCO 3 tahun* level "tinggi" (Rp 65 jt) hampir dua kali lipat level "menengah" (Rp 30 jt), padahal selisih harga komponennya hanya Rp 25 jt — selisih itu adalah biaya listrik RTX 4090 yang jauh lebih rakus dan *AIO cooling* yang mahal. Sementara itu, lompatan terbesar dalam kapabilitas terjadi antara level menengah dan tinggi: dari "70B Q3 yang tersiksa" menjadi "70B yang nyaman" — dan level flagship baru membuka pintu ke model frontier DeepSeek V4 Flash Q4 (284B) yang selama ini hanya ada di cloud. Strategi umum yang disarankan: masuk di level menengah dengan RTX 3090 *used*, lalu *upgrade path* ke 2x GPU (48GB VRAM) — jalur yang lebih murah daripada langsung membangun flagship dari nol. Klasifikasi model-maksimum per konfigurasi ini merujuk survey *edge LLM* dari Qu dkk. (2024) [2].
 
+
+---
+
+## 3. PC Rakitan: Performa Terbaik per Rupiah
+
+
+Bagi mereka yang tidak takut obeng dan manual BIOS, **PC rakitan** adalah juara rasio harga-performansi. Kelebihannya tegas: *performa terbaik per rupiah*, *upgrade path* yang jelas (ganti GPU tanpa ganti seluruh mesin), dan dukungan **semua framework** — CUDA, llama.cpp, vLLM, PyTorch — tanpa kecuali. Komunitasnya juga yang paling besar, sehingga setiap masalah sudah punya jawaban di forum.
+
+Kekurangannya sama tegasnya: konsumsi daya tinggi yang menerjemahkan langsung ke tagihan listrik, kebisingan fan yang mengganggu di ruang kerja, kebutuhan ruang fisik, dan kerawanan *thermal issue* — persis topik Sub-bab 2.8. Ada tiga komponen kunci yang menentukan: **GPU** yang harus menyedot 30–50% dari seluruh budget (jangan pelit di sini), **PSU** dengan kapasitas 1200W+ jika Anda berencana multi-GPU, dan **motherboard** dengan jumlah *PCIe lanes* yang cukup untuk GPU dan perangkat lain. PC rakitan adalah pilihan bagi orang yang memprioritaskan kecepatan mentah, senang *oprek*, dan ingin setiap rupiah bekerja maksimal.
+
+---
+
+## 4. Mac Studio dan Mac Mini: Senyap untuk Model Besar
+
+
+Di kutub yang berlawanan berdiri ekosistem Apple. Keunggulan utamanya adalah **unified memory** — hingga **192GB** di Mac Studio — yang berarti model 70B+ bisa dimuat sepenuhnya tanpa *offloading* yang menyiksa. Tambahkan kebisuan total (tidak ada fan GPU), konsumsi daya rendah, dan *form factor* sekecil kotak makan siang, dan Anda mendapatkan mesin yang bisa dinyalakan 24/7 tanpa mengganggu siapa pun — termasuk tetangga kos Anda.
+
+Kekurangannya adalah **harga premium per unit performa**: untuk kecepatan *inference* per detik, Mac Studio kalah dengan PC GPU sekelasnya, dan *memory*-nya terbatas di 192GB — model yang lebih besar dari itu (misalnya Mistral Large 3 yang 675B) tidak mungkin. Tidak ada *upgrade* sama sekali: apa yang Anda beli adalah apa yang Anda miliki selamanya. Cocok untuk pengguna yang prioritasnya **model besar (70B+)**, bukan kecepatan maksimal, dan yang menempatkan ketenangan serta efisiensi daya di atas segalanya. Penelitian Liu dkk. (2025) bahkan menunjukkan bahwa *cluster* Mac Studio bisa menjadi alternatif rasional untuk model MoE besar, dengan analisis biaya yang bersaing dengan mesin DGX kelas server [3].
+
 ### Tabel 2: PC Rakitan vs Mac Studio vs Laptop
 
 Untuk pembaca yang bingung membandingkan tiga dunia berbeda, tabel berikut menyandingkannya secara langsung pada kisaran budget yang sebanding.
@@ -118,6 +87,29 @@ Untuk pembaca yang bingung membandingkan tiga dunia berbeda, tabel berikut menya
 | **Software Support** | Semua framework | MLX, llama.cpp, Ollama | Terbatas (VRAM kecil) |
 
 Tiga wawasan dari perbandingan ini. Pertama, PC rakitan unggul telak di kecepatan — 85 t/s untuk 7B dan 16 t/s untuk 70B — tetapi harus "membayar" Rp 2,3 juta listrik per tahun dan kebisingan yang mengiringi. Kedua, Mac Mini M4 Pro adalah studi kasus kontradiksi yang menarik: *unified memory*-nya 48GB (dua kali VRAM RTX 3090), tetapi kecepatannya hanya 40 t/s untuk 7B — dan untuk 70B hanya 8 t/s, karena *memory bandwidth*-nya lebih rendah daripada GDDR6X RTX 3090. Dengan kata lain, **Mac unggul di kapasitas, PC unggul di kecepatan** — dan laptop berada di posisi tersulit: tidak bisa memuat 70B sama sekali karena 8GB yang terbatas. Ketiga, untuk pekerjaan 24/7 yang mementingkan ketenangan dan listrik, Mac Mini menang telak — konsumsi 60W vs 350W berarti dalam 3 tahun menghemat ~Rp 5,7 juta hanya dari listrik [3][4][5].
+
+
+---
+
+## 5. Laptop AI: AI di Saku Anda
+
+
+Level terakhir, **laptop AI**, adalah pilihan portabel. Kelebihannya jelas: bisa dibawa ke kampus, kantor, atau kafe; *all-in-one* tanpa *peripheral* tambahan; NPU terintegrasi untuk tugas AI ringan (lihat Sub-bab 2.9); dan konsumsi daya yang jauh di bawah PC desktop. Untuk mahasiswa atau pekerja yang membutuhkan AI di perjalanan, ini satu-satunya pilihan yang masuk akal.
+
+Namun, mari jujur soal keterbatasannya. GPU laptop adalah versi yang sudah "dicekik": dengan *Max-Q* dan *TGP* (Total Graphics Power) rendah, RTX 4090 laptop pun hanya memiliki **VRAM maksimal 16GB** — setengah dari RTX 3090 desktop bekas yang lebih murah. Dan karena *form factor*-nya sempit, laptop gaming **cepat throttle** — panas menumpuk di ruang yang tidak punya tempat untuk dibuang, persis mekanisme yang dijelaskan di Sub-bab 2.8. Laptop AI cocok untuk *casual LLM* dan pekerjaan produktivitas, bukan untuk menjadi *workhorse* inferensi. Jika prioritas Anda portabilitas dan Anda sudah memiliki laptop untuk kerja, jalan ini masuk akal — dengan ekspektasi yang realistis.
+
+---
+
+## 6. Perhitungan TCO dan Break-Even dengan Cloud
+
+
+### Total Cost of Ownership
+
+Harga stiker hardware hanyalah permulaan. **TCO** (Total Cost of Ownership) menjumlahkan biaya hardware + biaya listrik selama 3 tahun + biaya pemeliharaan (*upgrade*, *repaste*, penggantian fan). Untuk konteks Indonesia, tarif listrik PLN per kWh (tarif reguler 2026, sekitar Rp 1.600/kWh) menjadi komponen yang tidak bisa diabaikan: PC RTX 3090 yang menyala 8 jam sehari bisa menyedot sekitar Rp 2,3 juta per tahun, sementara Mac Mini yang senyap hanya sekitar Rp 400 ribu.
+
+### Break-Even dengan Cloud
+
+Pertanyaan besar kemudian menjadi: kapan biaya lokal lebih murah daripada berlangganan API? Untuk **heavy user** — mereka yang mengonsumsi sekitar 500.000 token per hari — RTX 3090 *used* bisa mencapai titik *break-even* dalam sekitar 8 bulan dibandingkan memakai OpenAI GPT-4o sepanjang waktu. Setelah itu, semua yang Anda proses adalah "gratis". Bagi pengguna ringan yang hanya 50.000 token per hari, hitungannya berbalik: berlangganan cloud seharga beberapa ratus ribu per bulan bisa jadi lebih ekonomis daripada modal puluhan juta di muka. Perhitungan lengkapnya akan Anda praktikkan di Tutorial 1 dan 2.
 
 ### Tabel 3: Perbandingan Biaya per Juta Token — Lokal vs Cloud
 
@@ -146,7 +138,19 @@ Angka-angka ini menceritakan dua cerita. Cerita pertama: **inferensi lokal 40–
 
 ---
 
-## 9. Diagram & Visualisasi
+
+---
+
+## 7. Matriks Keputusan
+
+
+Jika semua data di atas diringkas menjadi satu peta, hasilnya adalah matriks keputusan sederhana:
+
+- **Pilih PC rakitan** jika prioritas Anda performa tertinggi, Anda menikmati proses *oprek*, dan budget ketat ingin ditekan demi performa maksimum per rupiah.
+- **Pilih Mac Studio** (atau Mac Mini) jika Anda butuh model besar (70B+), memprioritaskan ketenangan ruang kerja, dan berencana menjalankan mesin 24/7.
+- **Pilih laptop** jika portabilitas adalah segalanya, kebutuhan inferensi Anda *casual*, dan Anda tidak ingin mengganti laptop kerja yang sudah ada.
+
+Ketiga jalur itu sah. Yang tidak sah adalah membeli Mac Studio untuk kecepatan maksimal, atau laptop gaming dengan harapan menjalankan 70B — kekecewaan biasanya berawal dari ketidakcocokan prioritas, bukan dari hardware yang buruk.
 
 ### Diagram 1: Peta Keputusan Pemilihan Hardware
 
@@ -171,7 +175,11 @@ Alur diagram ini mencerminkan prioritas berlapis yang dibahas di seluruh sub-bab
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial 1: Kalkulator TCO untuk Keputusan Pembelian
 
@@ -302,7 +310,8 @@ Kesalahan paling umum yang dicegah checklist ini: membeli motherboard yang slot 
 
 ---
 
-## 11. Studi Kasus: Memilih Workstation AI dengan Budget Rp 30 Juta
+## 9. Studi Kasus: Memilih Workstation AI dengan Budget Rp 30 Juta
+
 
 **Skenario.** Seorang *developer* web — sebut saja Raka — sudah jenuh membayar langganan ChatGPT sebesar US$20 per bulan dan ingin beralih ke LLM lokal untuk *coding assistant* dan RAG dokumen internal. Budget-nya sekali bayar: **Rp 30 juta**, tanpa biaya bulanan. Tiga opsi masuk meja:
 
@@ -320,7 +329,8 @@ Kesalahan paling umum yang dicegah checklist ini: membeli motherboard yang slot 
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

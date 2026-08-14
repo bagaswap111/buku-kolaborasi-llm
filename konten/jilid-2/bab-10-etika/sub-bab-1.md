@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan penyebab halusinasi LLM dari perspektif bisnis — *knowledge gap*, *memorization error*, *reasoning error*, dan *instruction misalignment*
@@ -18,15 +19,50 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Fenomena Halusinasi dan Dampaknya pada Bisnis
 
+
 Bayangkan Anda mempekerjakan seorang analis yang luar biasa rajin, fasih berbicara, tetapi sesekali mengarang angka tanpa sepengetahuan siapa pun — dan melakukannya dengan nada suara yang sama meyakinkannya seperti ketika ia menyampaikan fakta yang benar. Itulah gambaran paling jujur tentang LLM yang berhalusinasi. Secara teknis, *hallucination* didefinisikan sebagai konten yang dihasilkan model dan tampak faktual, tetapi tidak berdasar pada data yang terverifikasi — definisi yang dirumuskan Huang et al. dalam survei komprehensifnya [1][5]. Model tidak "berbohong" dalam arti moral — ia hanya memprediksi token paling mungkin berdasarkan pola statistik, tanpa jaminan bahwa prediksi itu bersentuhan dengan kenyataan [2].
 
 Dampaknya terhadap bisnis tidak main-main. Satu jawaban salah pada sistem *customer service* bisa berujung komplain beruntun; satu klausul yang dikarang oleh model pada *review* kontrak bisa membatalkan perjanjian senilai miliaran rupiah; satu kode produksi yang mengandung bug dari asisten coding bisa merusak sistem yang sedang berjalan. Estimasi Gartner pada 2024 menempatkan biaya rata-rata satu insiden halusinasi serius di lingkungan *enterprise* pada angka lebih dari $100.000 — mencakup kerugian langsung, upaya remediasi, hingga kerusakan reputasi merek. Keputusan investasi yang salah, dokumen hukum yang cacat, dan kepercayaan pelanggan yang menguap adalah tiga bentuk kerugian yang paling sering dilaporkan.
 
 Yang membuat masalah ini rumit adalah deteksinya. Halusinasi tidak selalu berbentuk jawaban yang jelas-jelas absurd; yang paling berbahaya justru yang *plausible* — angka yang masuk akal, tanggal yang cocok, nama pejabat yang nyata tetapi pernyataannya keliru. Karena *fluency* (kelancaran bahasa) model sangat tinggi, manusia cenderung menerima output begitu saja tanpa verifikasi — sebuah bias yang dimanfaatkan oleh kelemahan teknis ini. Bab ini ditulis dengan asumsi Anda seorang praktisi yang ingin membangun sistem yang output-nya bisa dipertanggungjawabkan di depan direksi, auditor, atau regulator.
 
+### Tabel 1: Perbandingan Teknik Mitigasi Halusinasi
+
+Berikut peta lengkap tujuh teknik mitigasi — mulai dari yang termurah hingga termahal, beserta *use case* terbaiknya:
+
+| Teknik | Kategori | Kompleksitas Implementasi | Efektivitas | Biaya Tambahan | Use Case Terbaik |
+|:---|:---|:---:|:---:|:---:|:---|
+| **RAG (Retrieval-Augmented Generation)** | Retrieval-based | Sedang | Sangat Tinggi | Medium (vector DB + retriever) | QA dokumen bisnis, customer support |
+| **Knowledge Graph Augmentation** | Retrieval-based | Tinggi | Tinggi | Tinggi (KG construction) | Data relasional, knowledge management |
+| **Constrained Decoding** | Decoding-based | Rendah-Sedang | Sedang-Tinggi | Rendah | Output terstruktur (JSON, format laporan) |
+| **Self-Correction / Self-Refine** | Reasoning-based | Rendah | Sedang | Rendah (extra inference pass) | Creative writing, analisis kompleks |
+| **Fine-tuning on Grounded Data** | Training-based | Tinggi | Tinggi | Tinggi (dataset + training) | Domain spesifik (legal, medis) |
+| **Guardrails / Content Filters** | Post-processing | Rendah | Rendah-Sedang | Rendah | Safety-critical applications |
+| **Constitutional Classifiers (Fable 5)** | Built-in | Rendah (built-in) | **Sangat Tinggi** | Tidak ada | Fintech, legal, medis |
+
+Analisis: tidak ada senjata tunggal yang memadai. Perhatikan bahwa teknik yang paling efektif (fine-tuning dan KG) justru yang paling mahal, sementara yang termurah (*guardrails*) hanya efektivitas sedang. Untuk tim kecil, kombinasi paling rasional adalah RAG + *constrained decoding* + *guardrails* — biaya medium, cakupan luas. *Constitutional classifiers* adalah pengecualian menarik: sangat efektif dengan biaya nol, tetapi hanya tersedia pada model proprietary tertentu dan membawa *trade-off* penolakan permintaan yang tadi dibahas.
+
+
+### Tabel 3: Matriks Risiko Halusinasi per Sektor Bisnis
+
+Peta ini menjawab pertanyaan "seberapa keras kita harus bertahan?" — tergantung sektor Anda:
+
+| Sektor | Toleransi Risiko | Teknik Minimum | Teknik Optimal | Konsekuensi Halusinasi |
+|:---|:---:|:---|:---|:---|
+| **Keuangan** | Sangat Rendah | RAG + Guardrails | RAG + KG + Constrained Decoding | Kerugian finansial, regulasi |
+| **Kesehatan** | Sangat Rendah | RAG + Fine-tuning domain | Full stack (RAG+KG+Guardrail+Self-Correction) | Risiko keselamatan pasien |
+| **Legal** | Sangat Rendah | RAG + Constrained Decoding | RAG + KG + Human-in-the-loop | Gugatan hukum |
+| **E-commerce** | Sedang | RAG dasar | RAG + Guardrails | Customer experience buruk |
+| **Marketing** | Tinggi | Prompt engineering | RAG opsional + Self-Correction | Reputasi merek minor |
+| **Internal Tools** | Rendah-Sedang | RAG dasar | RAG + Evaluasi sampling | Produktivitas turun |
+
+Analisis: pola yang jelas terlihat — semakin dekat aplikasi dengan konsekuensi fisik atau finansial langsung (pasien, uang, gugatan), semakin lengkap tumpukan mitigasinya, dan *human-in-the-loop* menjadi kata kunci di sektor legal. Sebaliknya, sektor marketing yang kerugiannya bersifat reputasi ringan cukup memakai *self-correction* dan *prompt engineering* — menghabiskan anggaran untuk full stack di sini adalah pemborosan. Prinsip *risk-based* ini juga yang dipakai untuk memilih model pada Tabel 2.
+
+
 ---
 
 ## 3. Taksonomi Halusinasi: Empat Akar Masalah
+
 
 Sebelum memilih senjata, kita harus mengenali musuhnya. Survei komprehensif tentang halusinasi LLM mengklasifikasikan fenomena ini menjadi empat akar penyebab yang berbeda — dan setiap akar membutuhkan solusi yang berbeda pula [4][5].
 
@@ -44,6 +80,7 @@ Keempat akar ini jarang muncul sendiri-sendiri; dalam satu sistem produksi, Anda
 
 ## 4. Retrieval-Augmented Generation (RAG) sebagai Grounding Utama
 
+
 Kerangka RAG pertama kali diusulkan oleh Lewis et al. pada 2020 — arsitektur yang menggabungkan *retriever* dan *generator*, sehingga model tidak perlu menyimpan semua pengetahuan di dalam parameternya [1]. Alur kerjanya sederhana namun revolusioner: sebuah *query* masuk, *retriever* mencari dokumen paling relevan dari basis pengetahuan yang sudah diindeks, konteks hasil pencarian digabungkan dengan pertanyaan, lalu *generator* (LLM) menyusun jawaban hanya berdasarkan konteks tersebut. Dengan cara ini, jawaban "dibumikan" (*grounded*) pada dokumen yang bisa diverifikasi — bukan pada memori model.
 
 Untuk dokumen bisnis, strategi *chunking* — cara memotong dokumen menjadi potongan-potongan kecil sebelum diindeks — menentukan kualitas retrieval. Dua pendekatan utama: *fixed-size chunking* yang memotong dokumen berdasarkan jumlah token tetap (misal 512 token), dan *semantic chunking* yang memotong berdasarkan batas makna (akhir paragraf atau akhir ide). Untuk dokumen bisnis seperti kontrak, SOP, dan laporan keuangan, ukuran potongan optimal berada pada rentang 256-512 token — cukup pendek agar relevan secara semantik, cukup panjang agar konteks tidak terpotong di tengah kalimat [2].
@@ -52,9 +89,29 @@ Kualitas retrieval dievaluasi dengan tiga metrik standar: *precision@k* (berapa 
 
 Studi kasus paling umum di dunia nyata: *grounding* dokumen SOP perusahaan untuk sistem *ticketing* internal, *grounding* kontrak dan perjanjian untuk *review* otomatis, serta *grounding* laporan keuangan untuk asisten analis. Di bab ini kita akan membangun salah satu pipeline-nya di seksi Praktikum — lengkap dengan evaluasi kualitasnya.
 
+### Gambar 1: Pipeline Grounding Data dengan RAG
+
+Diagram berikut adalah tulang punggung seluruh sub-bab ini — alur data dari pertanyaan pengguna hingga output final, lengkap dengan putaran verifikasi:
+
+```mermaid
+graph TB
+    USER[User Query] --> RET[Retriever]
+    KB[(Knowledge Base\nDocuments/Vectors)] --> RET
+    RET --> CONTEXT[Context Augmentation]
+    CONTEXT --> LLM[LLM Generator]
+    LLM --> GUARD[Guardrails Validator]
+    GUARD -->|Lolos| OUT[Final Output]
+    GUARD -->|Gagal| RET
+    KG[(Knowledge Graph)] --> LLM
+```
+
+Perhatikan dua detail penting pada diagram ini. Pertama, *guardrails validator* menempati posisi gerbang terakhir: output yang gagal validasi tidak dibuang mentah-mentah, melainkan **dikirim kembali ke retriever** untuk pencarian konteks yang lebih baik — inilah loop *retrieval refinement* yang membuat sistem semakin jarang salah seiring waktu. Kedua, garis putus-putus dari *knowledge graph* ke LLM menandakan jalur fakta terstruktur yang berjalan paralel dengan konteks dokumen — kombinasi naratif (dokumen) dan relasional (KG) yang membuat jawaban kuat secara faktual sekaligus bernuansa [1][3][7].
+
+
 ---
 
 ## 5. Knowledge Graph Augmentation: Grounding Terstruktur
+
 
 Jika RAG memberi model "buku", *knowledge graph* (KG) memberi model "peta hubungan antar fakta". KG merepresentasikan data sebagai simpul (*entities*) dan relasi (*relations*) — misalnya `Produk --(memiliki)--> Suku Bunga`, `Nasabah --(menandatangani)--> Kontrak`. Survei Agarwal et al. menunjukkan bahwa integrasi KG mampu secara signifikan mengurangi halusinasi pada model berbasis pengetahuan [3].
 
@@ -66,6 +123,7 @@ Kapan KG lebih unggul daripada RAG vektor murni? Ketika pertanyaan menuntut agre
 
 ## 6. Constitutional Classifiers: Arsitektur yang Aman sejak Desain
 
+
 Sebagian besar mitigasi yang dibahas sejauh ini adalah *eksternal* — lapisan di luar model yang menambahkan konteks atau menyaring output. Pada Juni 2026, Anthropic meluncurkan Claude Fable 5 dengan pendekatan berbeda: *constitutional classifiers* yang **tertanam di dalam arsitektur model**, bukan dipasang sebagai *post-processing* di belakangnya [6]. Setiap generasi output melewati rangkaian classifier konstitusional yang memeriksa tiga hal sebelum hasil dikirim ke pengguna: (1) kebenaran faktual terhadap konteks yang tersedia, (2) kesesuaian dengan kebijakan penggunaan, dan (3) potensi bahaya dari konten tersebut.
 
 Implikasi bisnisnya menarik. Untuk aplikasi fintech atau legal, Fable 5 dapat **menolak** (*decline*) permintaan yang tidak memiliki *grounding* data yang cukup — alih-alih menjawab dengan tebakan, model mengaku tidak bisa menjawab. Ini adalah perilaku yang sangat berbeda dari LLM konvensional yang selalu "berusaha membantu". Secara kuantitatif, Fable 5 mencatat *hallucination rate* **1,8%** dengan *false refusal rate* di bawah 2% pada *query* bisnis yang sah [6]. Model ini juga menjadi model publik dengan skor SWE-bench Verified 95,0% — tertinggi pada saat rilis.
@@ -75,6 +133,7 @@ Namun ada *trade-off* yang harus dipahami pimpinan teknis: Fable 5 menolak sekit
 ---
 
 ## 7. Constrained Decoding, Guardrails, dan Self-Correction
+
 
 Tiga teknik berikut bekerja di sisi *decoding* dan *post-processing* — mengendalikan bentuk dan validitas output tanpa mengubah pengetahuan model.
 
@@ -88,6 +147,7 @@ Tiga teknik berikut bekerja di sisi *decoding* dan *post-processing* — mengend
 
 ## 8. Peta Halusinasi Model Terbaru: Angka yang Harus Anda Tahu
 
+
 Sebelum memilih model untuk produksi, pimpinan teknis sebaiknya membaca data *hallucination rate* pada benchmark TruthfulQA. Angka-angka berikut diambil dari laporan resmi dan *model card* masing-masing vendor pada 2026 [6][7][13][14][15]:
 
 **DeepSeek V4 Pro** (1,6 triliun parameter total, 49 miliar aktif, lisensi MIT) mencatat *hallucination rate* **4,2%** — lebih rendah dari rata-rata model open-source yang berada di **6,8%**. Arsitektur MoE yang memisahkan pengetahuan per *expert* dinilai berkontribusi pada presisi faktual ini, dan konteks 1 juta token memungkinkan *grounding* data yang lebih lengkap [7]. **DeepSeek V4 Flash** (13 miliar aktif) berada di **5,1%** — lebih tinggi dari Pro, tetapi masih kompetitif untuk ukurannya. **Mistral Large 3** (675B total, 41B aktif, Apache 2.0) mencatat **3,8%**; *granular MoE routing*-nya membantu presisi faktual, dan lisensi Apache 2.0 memudahkan audit oleh tim internal [14]. **Qwen3.7-Max** mencatat **4,0%** — desain *agent-centric* yang mengoptimalkan routing untuk tugas multi-langkah menekan halusinasi pada *workflow* yang panjang [15].
@@ -95,36 +155,6 @@ Sebelum memilih model untuk produksi, pimpinan teknis sebaiknya membaca data *ha
 Di kubu proprietary: **GPT-5.5** mencatat **2,9%** — peningkatan signifikan dibanding generasi sebelumnya GPT-4o yang berada di **5,2%**, berkat *reasoning effort* dan konteks 1 juta token [13]. **Claude Fable 5** menjadi pemimpin dengan **1,8%** berkat *constitutional classifiers*-nya [6]. Sebagai pembanding, Llama 3.1 70B — model dense open-source yang banyak dipakai di Indonesia — berada di **5,8%**, sehingga tim yang memakainya perlu kombinasi mitigasi eksternal yang lebih agresif [16].
 
 Pelajaran utamanya: untuk aplikasi dengan toleransi risiko sangat rendah (keuangan, legal), pilihan terbaik adalah Fable 5, atau kombinasi DeepSeek V4 Pro dengan *guardrails* eksternal yang ketat. Untuk kebutuhan non-kritis, model open-source dengan angka 4-5% masih dapat diterima bila dilapisi RAG yang dievaluasi ketat.
-
----
-
-## 9. Evaluasi Grounding dan Akurasi: Mengukur, Bukan Menebak
-
-Mitigasi tanpa pengukuran hanyalah kepercayaan. Sebuah pipeline RAG produksi wajib dievaluasi dengan metrik yang terukur pada tiga lapis: *retrieval* (sebaik apa dokumen ditemukan), *generation* (sebaik apa jawaban), dan *faithfulness* (seberapa setia jawaban pada konteks — bukan pada fakta dunia yang disembunyikan).
-
-Metrik inti meliputi **Faithfulness** — proporsi klaim dalam jawaban yang didukung oleh konteks, diukur dengan CLAIMDECOMP atau RAGAS; **Answer Correctness** — kesesuaian jawaban dengan jawaban acuan, umumnya memakai F1 adaptif atau varian BLEU; dan **Context Recall** — seberapa lengkap konteks relevan yang berhasil diambil *retriever* bagi setiap pertanyaan [4][9]. Benchmark akademik yang kerap dipakai: **TruthfulQA** (kebenaran faktual), **HaluEval** (deteksi halusinasi), **FELM** (faktualitas pada tugas instruksi), dan **RAGAS** sebagai kerangka evaluasi pipeline RAG secara utuh [9].
-
-Terakhir, yang sering dilupakan oleh tim teknis: evaluasi otomatis tidak menggantikan *human judgment*. Proses bisnis yang sehat mencakup *review* berkala — misalnya *sampling* mingguan 10% output aktual yang dinilai oleh *domain expert*. Skor *human acceptability* di atas 95% dan *hallucination rate* di bawah 5% adalah patokan realistis untuk *deployment* produksi. Rincian metrik dan targetnya disajikan pada Tabel 4.
-
----
-
-## 10. Tabel Wajib
-
-### Tabel 1: Perbandingan Teknik Mitigasi Halusinasi
-
-Berikut peta lengkap tujuh teknik mitigasi — mulai dari yang termurah hingga termahal, beserta *use case* terbaiknya:
-
-| Teknik | Kategori | Kompleksitas Implementasi | Efektivitas | Biaya Tambahan | Use Case Terbaik |
-|:---|:---|:---:|:---:|:---:|:---|
-| **RAG (Retrieval-Augmented Generation)** | Retrieval-based | Sedang | Sangat Tinggi | Medium (vector DB + retriever) | QA dokumen bisnis, customer support |
-| **Knowledge Graph Augmentation** | Retrieval-based | Tinggi | Tinggi | Tinggi (KG construction) | Data relasional, knowledge management |
-| **Constrained Decoding** | Decoding-based | Rendah-Sedang | Sedang-Tinggi | Rendah | Output terstruktur (JSON, format laporan) |
-| **Self-Correction / Self-Refine** | Reasoning-based | Rendah | Sedang | Rendah (extra inference pass) | Creative writing, analisis kompleks |
-| **Fine-tuning on Grounded Data** | Training-based | Tinggi | Tinggi | Tinggi (dataset + training) | Domain spesifik (legal, medis) |
-| **Guardrails / Content Filters** | Post-processing | Rendah | Rendah-Sedang | Rendah | Safety-critical applications |
-| **Constitutional Classifiers (Fable 5)** | Built-in | Rendah (built-in) | **Sangat Tinggi** | Tidak ada | Fintech, legal, medis |
-
-Analisis: tidak ada senjata tunggal yang memadai. Perhatikan bahwa teknik yang paling efektif (fine-tuning dan KG) justru yang paling mahal, sementara yang termurah (*guardrails*) hanya efektivitas sedang. Untuk tim kecil, kombinasi paling rasional adalah RAG + *constrained decoding* + *guardrails* — biaya medium, cakupan luas. *Constitutional classifiers* adalah pengecualian menarik: sangat efektif dengan biaya nol, tetapi hanya tersedia pada model proprietary tertentu dan membawa *trade-off* penolakan permintaan yang tadi dibahas.
 
 ### Tabel 2: Perbandingan Hallucination Rate Model Terbaru (TruthfulQA)
 
@@ -147,56 +177,6 @@ Angka pada tabel ini membantu Anda menilai model mana yang butuh pelapis mitigas
 
 Analisis: gap antara model proprietary terbaik (1,8%) dan open-source menengah (5,8%) hampir tiga kali lipat — tetapi gap ini bisa ditutup secara arsitektural. DeepSeek V4 Pro membuktikan bahwa MoE *expert isolation* bisa menurunkan halusinasi open-source di bawah 5%, sementara Mistral Large 3 membawa kualitas sebanding dengan lisensi yang mudah diaudit. Untuk deployment lokal di perusahaan Indonesia dengan anggaran terbatas, formula realistis adalah: model open-source 4-5% + RAG yang dievaluasi + *guardrails* — hasil akhirnya dapat menyeimbangi Fable 5 tanpa biaya API.
 
-### Tabel 3: Matriks Risiko Halusinasi per Sektor Bisnis
-
-Peta ini menjawab pertanyaan "seberapa keras kita harus bertahan?" — tergantung sektor Anda:
-
-| Sektor | Toleransi Risiko | Teknik Minimum | Teknik Optimal | Konsekuensi Halusinasi |
-|:---|:---:|:---|:---|:---|
-| **Keuangan** | Sangat Rendah | RAG + Guardrails | RAG + KG + Constrained Decoding | Kerugian finansial, regulasi |
-| **Kesehatan** | Sangat Rendah | RAG + Fine-tuning domain | Full stack (RAG+KG+Guardrail+Self-Correction) | Risiko keselamatan pasien |
-| **Legal** | Sangat Rendah | RAG + Constrained Decoding | RAG + KG + Human-in-the-loop | Gugatan hukum |
-| **E-commerce** | Sedang | RAG dasar | RAG + Guardrails | Customer experience buruk |
-| **Marketing** | Tinggi | Prompt engineering | RAG opsional + Self-Correction | Reputasi merek minor |
-| **Internal Tools** | Rendah-Sedang | RAG dasar | RAG + Evaluasi sampling | Produktivitas turun |
-
-Analisis: pola yang jelas terlihat — semakin dekat aplikasi dengan konsekuensi fisik atau finansial langsung (pasien, uang, gugatan), semakin lengkap tumpukan mitigasinya, dan *human-in-the-loop* menjadi kata kunci di sektor legal. Sebaliknya, sektor marketing yang kerugiannya bersifat reputasi ringan cukup memakai *self-correction* dan *prompt engineering* — menghabiskan anggaran untuk full stack di sini adalah pemborosan. Prinsip *risk-based* ini juga yang dipakai untuk memilih model pada Tabel 2.
-
-### Tabel 4: Benchmark Metrik Grounding
-
-Terakhir, patokan kuantitatif yang bisa dipakai sebagai *service level objective* (SLO) pipeline Anda:
-
-| Metrik | Definisi | Range | Target Bisnis | Tools |
-|:---|:---|:---:|:---:|:---|
-| **Faithfulness** | Proporsi klaim yang didukung konteks | 0-1 | >0.9 | CLAIMDECOMP, RAGAS |
-| **Answer Relevancy** | Relevansi jawaban terhadap query | 0-1 | >0.85 | RAGAS |
-| **Context Precision@k** | Presisi dokumen relevan di top-k | 0-1 | >0.8 | LlamaIndex, LangChain |
-| **Hallucination Rate** | % output mengandung fakta tidak berdasar | 0-100% | <5% | HaluEval, SelfCheckGPT |
-| **Human Acceptability** | % output disetujui domain expert | 0-100% | >95% | Review manual sampling |
-
-Analisis: empat metrik pertama menutup sisi teknis, tetapi metrik kelima — *human acceptability* — adalah pengingat bahwa angka otomatis tidak selalu mencerminkan kualitas nyata. Faithfulness 0,95 yang dicapai dengan jawaban yang aman tetapi tidak berguna ("data tidak tersedia dalam konteks") selalu kalah dari jawaban yang benar-benar membantu dengan faithfulness 0,91. Karena itu target bisnis pada tabel ini bukan batas akhir: jadikan lima metrik ini dashboard mingguan, dan biarkan *domain expert* yang me-review sampling menentukan apakah pipeline "layak dipromosikan" atau perlu disetel kembali [4][9].
-
----
-
-## 11. Diagram & Visualisasi
-
-### Gambar 1: Pipeline Grounding Data dengan RAG
-
-Diagram berikut adalah tulang punggung seluruh sub-bab ini — alur data dari pertanyaan pengguna hingga output final, lengkap dengan putaran verifikasi:
-
-```mermaid
-graph TB
-    USER[User Query] --> RET[Retriever]
-    KB[(Knowledge Base\nDocuments/Vectors)] --> RET
-    RET --> CONTEXT[Context Augmentation]
-    CONTEXT --> LLM[LLM Generator]
-    LLM --> GUARD[Guardrails Validator]
-    GUARD -->|Lolos| OUT[Final Output]
-    GUARD -->|Gagal| RET
-    KG[(Knowledge Graph)] --> LLM
-```
-
-Perhatikan dua detail penting pada diagram ini. Pertama, *guardrails validator* menempati posisi gerbang terakhir: output yang gagal validasi tidak dibuang mentah-mentah, melainkan **dikirim kembali ke retriever** untuk pencarian konteks yang lebih baik — inilah loop *retrieval refinement* yang membuat sistem semakin jarang salah seiring waktu. Kedua, garis putus-putus dari *knowledge graph* ke LLM menandakan jalur fakta terstruktur yang berjalan paralel dengan konteks dokumen — kombinasi naratif (dokumen) dan relasional (KG) yang membuat jawaban kuat secara faktual sekaligus bernuansa [1][3][7].
 
 ### Gambar 2: Taksonomi Halusinasi dan Peta Mitigasi
 
@@ -218,7 +198,39 @@ Gambar ini adalah semacam *triage*: saat halusinasi terdeteksi di produksi, lang
 
 ---
 
-## 12. Praktikum / Hands-On
+
+---
+
+## 9. Evaluasi Grounding dan Akurasi: Mengukur, Bukan Menebak
+
+
+Mitigasi tanpa pengukuran hanyalah kepercayaan. Sebuah pipeline RAG produksi wajib dievaluasi dengan metrik yang terukur pada tiga lapis: *retrieval* (sebaik apa dokumen ditemukan), *generation* (sebaik apa jawaban), dan *faithfulness* (seberapa setia jawaban pada konteks — bukan pada fakta dunia yang disembunyikan).
+
+Metrik inti meliputi **Faithfulness** — proporsi klaim dalam jawaban yang didukung oleh konteks, diukur dengan CLAIMDECOMP atau RAGAS; **Answer Correctness** — kesesuaian jawaban dengan jawaban acuan, umumnya memakai F1 adaptif atau varian BLEU; dan **Context Recall** — seberapa lengkap konteks relevan yang berhasil diambil *retriever* bagi setiap pertanyaan [4][9]. Benchmark akademik yang kerap dipakai: **TruthfulQA** (kebenaran faktual), **HaluEval** (deteksi halusinasi), **FELM** (faktualitas pada tugas instruksi), dan **RAGAS** sebagai kerangka evaluasi pipeline RAG secara utuh [9].
+
+Terakhir, yang sering dilupakan oleh tim teknis: evaluasi otomatis tidak menggantikan *human judgment*. Proses bisnis yang sehat mencakup *review* berkala — misalnya *sampling* mingguan 10% output aktual yang dinilai oleh *domain expert*. Skor *human acceptability* di atas 95% dan *hallucination rate* di bawah 5% adalah patokan realistis untuk *deployment* produksi. Rincian metrik dan targetnya disajikan pada Tabel 4.
+
+### Tabel 4: Benchmark Metrik Grounding
+
+Terakhir, patokan kuantitatif yang bisa dipakai sebagai *service level objective* (SLO) pipeline Anda:
+
+| Metrik | Definisi | Range | Target Bisnis | Tools |
+|:---|:---|:---:|:---:|:---|
+| **Faithfulness** | Proporsi klaim yang didukung konteks | 0-1 | >0.9 | CLAIMDECOMP, RAGAS |
+| **Answer Relevancy** | Relevansi jawaban terhadap query | 0-1 | >0.85 | RAGAS |
+| **Context Precision@k** | Presisi dokumen relevan di top-k | 0-1 | >0.8 | LlamaIndex, LangChain |
+| **Hallucination Rate** | % output mengandung fakta tidak berdasar | 0-100% | <5% | HaluEval, SelfCheckGPT |
+| **Human Acceptability** | % output disetujui domain expert | 0-100% | >95% | Review manual sampling |
+
+Analisis: empat metrik pertama menutup sisi teknis, tetapi metrik kelima — *human acceptability* — adalah pengingat bahwa angka otomatis tidak selalu mencerminkan kualitas nyata. Faithfulness 0,95 yang dicapai dengan jawaban yang aman tetapi tidak berguna ("data tidak tersedia dalam konteks") selalu kalah dari jawaban yang benar-benar membantu dengan faithfulness 0,91. Karena itu target bisnis pada tabel ini bukan batas akhir: jadikan lima metrik ini dashboard mingguan, dan biarkan *domain expert* yang me-review sampling menentukan apakah pipeline "layak dipromosikan" atau perlu disetel kembali [4][9].
+
+---
+
+
+---
+
+## 10. Praktikum / Hands-On
+
 
 ### Langkah 1: Membangun RAG Sederhana dengan LlamaIndex
 
@@ -332,7 +344,8 @@ Perhatikan dua strategi penanganan kegagalan pada script ini: `on_fail="fix"` (p
 
 ---
 
-## 13. Studi Kasus: Grounding Customer Support LLM untuk Perusahaan Fintech
+## 11. Studi Kasus: Grounding Customer Support LLM untuk Perusahaan Fintech
+
 
 **Profil.** Sebuah perusahaan fintech dengan 500+ agen *customer service* ingin meluncurkan LLM yang menjawab pertanyaan nasabah secara otomatis. Volume pertanyaan harian sangat tinggi, dan sebagian besar menyentuh data yang berubah cepat: suku bunga, tenor pinjaman, dan kebijakan terbaru. Tim *data engineering* sudah mencoba *prompt-engineering* mentah, tetapi hasilnya buruk: model menjawab dengan *plausible* namun salah — misalnya menyebut suku bunga lama yang sudah diganti dua bulan sebelumnya.
 
@@ -346,7 +359,8 @@ Perhatikan dua strategi penanganan kegagalan pada script ini: `on_fail="fix"` (p
 
 ---
 
-## 14. Referensi
+## 12. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

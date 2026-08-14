@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan pergeseran dari *scaling law* menuju *data quality law* dan mengapa model kecil kini bisa menyaingi model raksasa lama
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Dari Scaling Law ke Data Quality Law
 
+
 ### Era "Semakin Besar Semakin Baik"
 
 Periode 2020–2023 dipenuhi satu mantra: *bigger is better*. GPT-3 berparameter 175B, PaLM 540B, hingga LLaMA 65B — kompetisi diukur dari jumlah parameter dan token latih, seperti balapan yang hanya menghitung kapasitas mesin tanpa peduli kualitas jalan. *Scaling law* Chinchilla (2022) bahkan memberi formula baku: performa ditentukan oleh kombinasi parameter dan token pelatihan, seolah-olah lebih banyak selalu lebih baik.
@@ -28,11 +30,29 @@ Tahun 2024–2025 menandai titik balik. **Phi-3 (3,8B)** — model kecil dari Mi
 
 Implikasi tahun 2026 tegas: model 3–7B kini bisa mencapai performa yang pada 2023 hanya dimiliki model 70B. *Scaling law* tidak mati, tetapi titik gravitasinya bergeser — dari sekadar menambah parameter ke *data quality* dan *training efficiency*. Ini adalah kabar paling menggembirakan untuk ekosistem lokal: Anda tidak lagi perlu menabung bertahun-tahun demi GPU raksasa.
 
-Buktinya bisa Anda lihat langsung pada Tabel 2 di seksi 8: Phi-4 dengan 14 miliar parameter mencetak MMLU 84,8%, sementara LLaMA-1 65B — model dengan 4,6× lebih banyak parameter — hanya 63,4% tiga tahun sebelumnya. Selisih 21 poin persentase itu tidak datang dari ukuran, melainkan dari cara data latih disusun: bersih, terstruktur, dan penuh penalaran. Bagi pembaca buku ini, ada satu lapis makna lagi: jika data berkualitas adalah kunci, maka kurasi data berbahasa Indonesia yang baik menjadi senjata kompetitif — bukan ukuran model.
+Buktinya bisa Anda lihat langsung pada Tabel 2 di seksi 3: Phi-4 dengan 14 miliar parameter mencetak MMLU 84,8%, sementara LLaMA-1 65B — model dengan 4,6× lebih banyak parameter — hanya 63,4% tiga tahun sebelumnya. Selisih 21 poin persentase itu tidak datang dari ukuran, melainkan dari cara data latih disusun: bersih, terstruktur, dan penuh penalaran. Bagi pembaca buku ini, ada satu lapis makna lagi: jika data berkualitas adalah kunci, maka kurasi data berbahasa Indonesia yang baik menjadi senjata kompetitif — bukan ukuran model.
+
+### Gambar 1: Timeline Evolusi Model
+
+Berikut linimasa perjalanan *small-but-mighty* — dari "GPT-3.5 masih superior" hingga prediksi AI di setiap perangkat:
+
+```mermaid
+timeline
+    title Roadmap Small-but-Mighty (SLM)
+    2023 : LLaMA-1 (7B-65B) : GPT-3.5 masih superior
+    2024 : Phi-3 (3.8B) = GPT-3.5 : Llama-3 (8B-405B)
+    2025 : Phi-4 (14B) > GPT-4o-mini : DeepSeek R1
+    2026 : Gemma 4, Qwen 3 : SLM 14B = GPT-4o
+    2027 : Prediksi: 7B MoE = GPT-5 : AI di setiap perangkat
+```
+
+Perhatikan arah panah kualitatifnya: di 2023, model kecil hanya bisa mengekor; di 2024, Phi-3 menyamai GPT-3.5; di 2025, Phi-4 melampaui GPT-4o-mini; dan di 2026, SLM 14B setara GPT-4o. Setiap tahun, titik "paritas" bergeser ke parameter yang lebih kecil — tren yang menjadi dasar seluruh strategi di bab ini.
+
 
 ---
 
 ## 3. SLM (Small Language Models) Dominan 2026
+
 
 ### Parade Model Kecil
 
@@ -45,56 +65,6 @@ Di sisi model besar *open-weight*: **DeepSeek V4 Pro** (1,6T MoE, 49B aktif, *sp
 Model *closed-source* juga memanjakan pengguna konteks panjang: **GPT-5.5** menawarkan konteks 1M dengan *reasoning effort* bertingkat (low/medium/high/xhigh); **Claude Fable 5** dari kelas "Mythos" Anthropic membawa konteks 1M, *safety classifiers*, dan skor SWE-bench 95%; **Gemini 2.5 Pro** menawarkan konteks 1M dengan *thinking mode* multimodal sejak GA Juni 2025. Yang penting bagi pembaca buku ini: hampir semua model di atas — kecuali yang melebihi ~300 GB parameter — dapat dijalankan di RTX 4090 24 GB dengan kuantisasi.
 
 Pola yang perlu dicatat dari parade ini: **semakin kecil, semakin terbuka**. Kelas SLM (1–14B) hampir semuanya *open-weight* dengan lisensi permisif (Apache 2.0, MIT), kelas menengah MoE (22–49B aktif) terbelah antara *open-weight* dan proprietary, sementara kelas teratas 1M-token didominasi model tertutup. Bagi pengguna lokal, ini berarti pilihan terbaik Anda di 2026 bukan lagi model "kelas dua" — melainkan model kelas menengah yang justru dirancang agar bisa dijalankan sendiri.
-
----
-
-## 4. Tren Arsitektur 2026
-
-### MoE Menjadi Default
-
-Hampir semua model *frontier* 2026 adalah **Mixture-of-Experts (MoE)**. Alasannya ekonomi komputasi yang tegas: dengan *sparsity*, hanya sebagian kecil parameter yang aktif per token — DeepSeek V4 Pro hanya mengaktifkan 49B dari 1,6T, dan Mistral Large 3 hanya 41B dari 675B. Anda mendapat kualitas model raksasa dengan biaya komputasi model kecil. Ini adalah perubahan arsitektur paling fundamental sejak Transformer.
-
-### Multimodal, Konteks Raksasa, dan "Berpikir"
-
-Tiga tren lain berjalan paralel. **Multimodal native** — model yang sejak awal dilatih untuk gambar, teks, dan audio — menjadi standar pada Gemma 4, GPT-5.5, dan Claude Fable 5. **Context window raksasa** — 1M hingga 10M token pada Llama 4 dan Gemini 2.5 — menuntut teknik manajemen konteks yang dibahas di Bab 1.7. Dan **reasoning model** — o1, o3, DeepSeek R1 — memperkenalkan paradigma "berpikir sebelum menjawab", meluangkan *token berpikir* ekstra untuk masalah sulit.
-
-### Spekulasi di Balik Layar
-
-Terakhir, **speculative decoding** kini menjadi *default* di vLLM dan TGI: sebuah model kecil "menerka" beberapa token di muka, lalu model utama hanya memverifikasinya — mempercepat inferensi hingga sekitar **2×** tanpa kehilangan kualitas output. Teknik-teknik ini membuat model 2026 terasa jauh lebih cepat daripada ukuran filenya.
-
-Perpaduan keempat tren ini menciptakan efek gabungan yang sulit dibayangkan tiga tahun lalu: model MoE multimodal dengan konteks 1 juta token, kemampuan berpikir sebelum menjawab, dan kecepatan *serving* dua kali lipat — semuanya tersedia dalam paket *open-weight* yang bisa diunduh gratis. Yang berubah bukan hanya angka spesifikasi, tetapi asumsi dasarnya: "model bagus harus mahal dan eksklusif" telah runtuh, digantikan oleh ekosistem di mana model kelas *frontier* dan perangkat kelas menengah bertemu di titik yang semakin dekat.
-
----
-
-## 5. Dampak untuk Ekosistem Lokal
-
-Perubahan ini menghantam ekosistem lokal dengan cara yang sangat praktis. SLM dalam Q4_K_M kini sangat kecil: model 7B sekitar **~4 GB** dan model 3B hanya **~2 GB** — muat di laptop 8 GB sekalipun. Model 70B dalam Q3_K_M (~30 GB) di satu RTX 4090 sudah menjadi pemandangan biasa, bukan lagi angan-angan.
-
-Perangkat *edge* — *smartphone*, Raspberry Pi, laptop tanpa GPU — kini menjadi target utama vendor. **Apple Silicon** tetap dominan berkat *unified memory* yang membuat model 26B–70B berjalan tanpa bermain-main dengan *offload*; sementara tren **AI PC** dengan NPU (Qualcomm X Elite, Intel Core Ultra) mengisyaratkan bahwa "komputer yang bisa menjalankan AI" akan menjadi standar, bukan fitur premium.
-
-Bagi pengguna di Indonesia, dampaknya ganda. Di satu sisi, perangkat yang sudah ada — laptop sehari-hari dengan RAM 8–16 GB — tiba-tiba menjadi cukup untuk model berkualitas GPT-3.5/4o-mini level, menghapus hambatan biaya masuk terbesar. Di sisi lain, lonjakan model *multilingual-native* berarti kualitas bahasa Indonesia model lokal meningkat drastis tanpa *fine-tuning* tambahan — dan bila dibutuhkan, *fine-tuning* kecil telah menjadi murah seperti dibahas di Bab 1.8.
-
----
-
-## 6. Prediksi 2026–2027
-
-Melihat laju yang ada, beberapa prediksi wajar diajukan. Pertama, model lokal akan **menyamai kualitas GPT-4 level pada parameter 7B** — lengkap dengan kuantisasi yang kehilangan kualitas hampir nol berkat teknik baru seperti SpQR dan AQLM. Kedua, *fine-tuning* akan semakin mudah karena **data sintetis** berkualitas tinggi dapat diproduksi otomatis oleh model besar. Ketiga, tokenizer akan menjadi *multilingual-native* dengan *vocabulary* melampaui 256K, menguntungkan bahasa seperti Indonesia yang selama ini kurang terwakili. Terakhir, harga GPU diperkirakan turun, tetapi *unified memory* Mac kemungkinan tetap premium — jadi pilihan platform harus disesuaikan dengan kebutuhan riil, bukan gengsi.
-
-Perlu kejujuran: prediksi adalah prediksi. Tren yang menjadi dasarnya — kurva MMLU per parameter dari tahun ke tahun, tingkat adopsi MoE, dan biaya *inference* per token — terukur dan konsisten, tetapi kejutan industri (model *disruptif*, krisis komputasi, regulasi) bisa mengubah arah kapan saja. Perlakukan bagian ini sebagai arah angin, bukan peta jalan yang kaku: prinsip yang dipegang — kualitas data di atas ukuran, arsitektur MoE sebagai standar, dan kebutuhan hardware yang menurun — jauh lebih tahan banting daripada tanggal spesifiknya.
-
----
-
-## 7. Rekomendasi Strategi
-
-Bagi pembaca yang ingin bertindak: **sekarang (2026)**, investasikan pada model 7–14B dalam Q4_K_M dengan Mac atau RTX 4090 — rasio performa-per-rupiah terbaik ada di kelas ini. **Untuk 2027**, siapkan jalur *upgrade* ke model MoE dengan *multi-GPU*, dengan ekspektasi kualitas GPT-4 level di kelas 14B.
-
-Dua prinsip yang lebih penting dari membeli GPU: **jangan over-invest di hardware mahal** — tren SLM justru menurunkan kebutuhan hardware setiap tahun; dan **fokuslah pada data pipeline** (RAG + *fine-tuning*) karena kualitas sistem Anda ditentukan oleh data, bukan ukuran model. Hardware bisa menua; data pipeline terus memberi nilai.
-
-Sebagai penutup, satu saran praktis: tetapkan tanggal "audit tahunan". Setiap tahun, tanyakan dua hal — apakah model terbaik yang bisa saya jalankan di hardware saat ini sudah naik kelas? Dan apakah kebutuhan saya benar-benar membutuhkan *upgrade*? Pola dari Tabel 3 menunjukkan bahwa jawaban kedua sering kali "belum", karena performa naik lebih cepat daripada harga. Dengan disiplin ini, Anda menikmati buah dari *data quality law* — performa yang terus menanjak — tanpa ikut membayar iuran balap parameter.
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel 1: SLM Terbaru 2025–2026
 
@@ -127,6 +97,7 @@ Grafik berikut mengurutkan model dari MMLU tertinggi ke terendah, dengan GSM8K s
 
 *Gambar 1.10-1 — GPT-5.5 dan Claude Fable 5 memuncaki MMLU (91,2% dan 90,8%), tetapi di kelas open-weight, DeepSeek V4 Pro (87,5%) dan Qwen 3 (86,8%) berdiri hampir setara — dengan parameter aktif jauh lebih sedikit.*
 
+
 ### Tabel 2: Perbandingan SLM vs LLM Lama (MMLU)
 
 Untuk merasakan lompatan generasi, bandingkan model 2026 dengan lawan 2023:
@@ -139,6 +110,46 @@ Untuk merasakan lompatan generasi, bandingkan model 2026 dengan lawan 2023:
 | Llama-3.2 3B | 3.2B | 63.4% | GPT-2 1.5B | 1.5B | 32.4% | 2x performa di 2x size |
 
 Kisah yang tersirat sangat dramatis: **Gemma 4 26B mengalahkan GPT-3.5 dengan 6,7× lebih sedikit parameter**, dan Phi-4 menembus 84,8% MMLU dengan parameter 4,6× lebih sedikit daripada LLaMA-1 65B yang hanya 63,4%. Dalam tiga tahun, efisiensi parameter meningkat lima hingga tujuh kali lipat — inilah yang membuat budget Rp 30 juta relevan lagi.
+
+
+---
+
+## 4. Tren Arsitektur 2026
+
+
+### MoE Menjadi Default
+
+Hampir semua model *frontier* 2026 adalah **Mixture-of-Experts (MoE)**. Alasannya ekonomi komputasi yang tegas: dengan *sparsity*, hanya sebagian kecil parameter yang aktif per token — DeepSeek V4 Pro hanya mengaktifkan 49B dari 1,6T, dan Mistral Large 3 hanya 41B dari 675B. Anda mendapat kualitas model raksasa dengan biaya komputasi model kecil. Ini adalah perubahan arsitektur paling fundamental sejak Transformer.
+
+### Multimodal, Konteks Raksasa, dan "Berpikir"
+
+Tiga tren lain berjalan paralel. **Multimodal native** — model yang sejak awal dilatih untuk gambar, teks, dan audio — menjadi standar pada Gemma 4, GPT-5.5, dan Claude Fable 5. **Context window raksasa** — 1M hingga 10M token pada Llama 4 dan Gemini 2.5 — menuntut teknik manajemen konteks yang dibahas di Bab 1.7. Dan **reasoning model** — o1, o3, DeepSeek R1 — memperkenalkan paradigma "berpikir sebelum menjawab", meluangkan *token berpikir* ekstra untuk masalah sulit.
+
+### Spekulasi di Balik Layar
+
+Terakhir, **speculative decoding** kini menjadi *default* di vLLM dan TGI: sebuah model kecil "menerka" beberapa token di muka, lalu model utama hanya memverifikasinya — mempercepat inferensi hingga sekitar **2×** tanpa kehilangan kualitas output. Teknik-teknik ini membuat model 2026 terasa jauh lebih cepat daripada ukuran filenya.
+
+Perpaduan keempat tren ini menciptakan efek gabungan yang sulit dibayangkan tiga tahun lalu: model MoE multimodal dengan konteks 1 juta token, kemampuan berpikir sebelum menjawab, dan kecepatan *serving* dua kali lipat — semuanya tersedia dalam paket *open-weight* yang bisa diunduh gratis. Yang berubah bukan hanya angka spesifikasi, tetapi asumsi dasarnya: "model bagus harus mahal dan eksklusif" telah runtuh, digantikan oleh ekosistem di mana model kelas *frontier* dan perangkat kelas menengah bertemu di titik yang semakin dekat.
+
+---
+
+## 5. Dampak untuk Ekosistem Lokal
+
+
+Perubahan ini menghantam ekosistem lokal dengan cara yang sangat praktis. SLM dalam Q4_K_M kini sangat kecil: model 7B sekitar **~4 GB** dan model 3B hanya **~2 GB** — muat di laptop 8 GB sekalipun. Model 70B dalam Q3_K_M (~30 GB) di satu RTX 4090 sudah menjadi pemandangan biasa, bukan lagi angan-angan.
+
+Perangkat *edge* — *smartphone*, Raspberry Pi, laptop tanpa GPU — kini menjadi target utama vendor. **Apple Silicon** tetap dominan berkat *unified memory* yang membuat model 26B–70B berjalan tanpa bermain-main dengan *offload*; sementara tren **AI PC** dengan NPU (Qualcomm X Elite, Intel Core Ultra) mengisyaratkan bahwa "komputer yang bisa menjalankan AI" akan menjadi standar, bukan fitur premium.
+
+Bagi pengguna di Indonesia, dampaknya ganda. Di satu sisi, perangkat yang sudah ada — laptop sehari-hari dengan RAM 8–16 GB — tiba-tiba menjadi cukup untuk model berkualitas GPT-3.5/4o-mini level, menghapus hambatan biaya masuk terbesar. Di sisi lain, lonjakan model *multilingual-native* berarti kualitas bahasa Indonesia model lokal meningkat drastis tanpa *fine-tuning* tambahan — dan bila dibutuhkan, *fine-tuning* kecil telah menjadi murah seperti dibahas di Bab 1.8.
+
+---
+
+## 6. Prediksi 2026–2027
+
+
+Melihat laju yang ada, beberapa prediksi wajar diajukan. Pertama, model lokal akan **menyamai kualitas GPT-4 level pada parameter 7B** — lengkap dengan kuantisasi yang kehilangan kualitas hampir nol berkat teknik baru seperti SpQR dan AQLM. Kedua, *fine-tuning* akan semakin mudah karena **data sintetis** berkualitas tinggi dapat diproduksi otomatis oleh model besar. Ketiga, tokenizer akan menjadi *multilingual-native* dengan *vocabulary* melampaui 256K, menguntungkan bahasa seperti Indonesia yang selama ini kurang terwakili. Terakhir, harga GPU diperkirakan turun, tetapi *unified memory* Mac kemungkinan tetap premium — jadi pilihan platform harus disesuaikan dengan kebutuhan riil, bukan gengsi.
+
+Perlu kejujuran: prediksi adalah prediksi. Tren yang menjadi dasarnya — kurva MMLU per parameter dari tahun ke tahun, tingkat adopsi MoE, dan biaya *inference* per token — terukur dan konsisten, tetapi kejutan industri (model *disruptif*, krisis komputasi, regulasi) bisa mengubah arah kapan saja. Perlakukan bagian ini sebagai arah angin, bukan peta jalan yang kaku: prinsip yang dipegang — kualitas data di atas ukuran, arsitektur MoE sebagai standar, dan kebutuhan hardware yang menurun — jauh lebih tahan banting daripada tanggal spesifiknya.
 
 ### Tabel 3: Prediksi Kebutuhan Hardware per Tahun
 
@@ -162,23 +173,17 @@ Grafik berikut memvisualisasikan dua kolom terakhir tabel — perhatikan bagaima
 
 ---
 
-## 9. Diagram & Visualisasi
 
-### Gambar 1: Timeline Evolusi Model
+---
 
-Berikut linimasa perjalanan *small-but-mighty* — dari "GPT-3.5 masih superior" hingga prediksi AI di setiap perangkat:
+## 7. Rekomendasi Strategi
 
-```mermaid
-timeline
-    title Roadmap Small-but-Mighty (SLM)
-    2023 : LLaMA-1 (7B-65B) : GPT-3.5 masih superior
-    2024 : Phi-3 (3.8B) = GPT-3.5 : Llama-3 (8B-405B)
-    2025 : Phi-4 (14B) > GPT-4o-mini : DeepSeek R1
-    2026 : Gemma 4, Qwen 3 : SLM 14B = GPT-4o
-    2027 : Prediksi: 7B MoE = GPT-5 : AI di setiap perangkat
-```
 
-Perhatikan arah panah kualitatifnya: di 2023, model kecil hanya bisa mengekor; di 2024, Phi-3 menyamai GPT-3.5; di 2025, Phi-4 melampaui GPT-4o-mini; dan di 2026, SLM 14B setara GPT-4o. Setiap tahun, titik "paritas" bergeser ke parameter yang lebih kecil — tren yang menjadi dasar seluruh strategi di bab ini.
+Bagi pembaca yang ingin bertindak: **sekarang (2026)**, investasikan pada model 7–14B dalam Q4_K_M dengan Mac atau RTX 4090 — rasio performa-per-rupiah terbaik ada di kelas ini. **Untuk 2027**, siapkan jalur *upgrade* ke model MoE dengan *multi-GPU*, dengan ekspektasi kualitas GPT-4 level di kelas 14B.
+
+Dua prinsip yang lebih penting dari membeli GPU: **jangan over-invest di hardware mahal** — tren SLM justru menurunkan kebutuhan hardware setiap tahun; dan **fokuslah pada data pipeline** (RAG + *fine-tuning*) karena kualitas sistem Anda ditentukan oleh data, bukan ukuran model. Hardware bisa menua; data pipeline terus memberi nilai.
+
+Sebagai penutup, satu saran praktis: tetapkan tanggal "audit tahunan". Setiap tahun, tanyakan dua hal — apakah model terbaik yang bisa saya jalankan di hardware saat ini sudah naik kelas? Dan apakah kebutuhan saya benar-benar membutuhkan *upgrade*? Pola dari Tabel 3 menunjukkan bahwa jawaban kedua sering kali "belum", karena performa naik lebih cepat daripada harga. Dengan disiplin ini, Anda menikmati buah dari *data quality law* — performa yang terus menanjak — tanpa ikut membayar iuran balap parameter.
 
 ### Gambar 2: Peta SLM dan Hardware Target
 
@@ -209,7 +214,11 @@ Peta ini menegaskan pesan utama bab: hampir seluruh jajaran model 2026 — kecua
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Menjalankan SLM Terbaru di Laptop
 
@@ -298,7 +307,8 @@ Perhatikan bahwa untuk model MoE, yang dihitung adalah **parameter aktif** — Q
 
 ---
 
-## 11. Studi Kasus: Membangun AI Desktop 2026 dengan Budget Rp 30jt
+## 9. Studi Kasus: Membangun AI Desktop 2026 dengan Budget Rp 30jt
+
 
 **Skenario:** Seorang *freelancer developer* ingin membangun *workstation* AI untuk tiga kebutuhan: *coding assistant*, RAG, dan chat harian. Anggaran: Rp 30 juta. Tiga tahun lalu, angka ini hanya cukup untuk "masuk kelas" — hari ini, cukup untuk tampil di kelas atas.
 
@@ -318,7 +328,8 @@ Satu catatan praktis untuk mereka yang meniru langkah ini: alokasikan sebagian k
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

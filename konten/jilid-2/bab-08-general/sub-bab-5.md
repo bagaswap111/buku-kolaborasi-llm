@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Mengidentifikasi ancaman *data leakage* spesifik LLM di lingkungan *general office* dan skenario nyatanya
@@ -19,6 +20,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Ancaman Data Leakage pada LLM: Musuh yang Tidak Terlihat
 
+
 ### Karyawan yang Tidak Sengaja, Dampak yang Sangat Nyata
 
 Ancaman terbesar keamanan LLM di kantor bukanlah peretas dari luar, melainkan **karyawan yang tidak sengaja** — dan itu membuat masalahnya jauh lebih sulit ditangani, karena tidak ada niat jahat yang bisa disalahkan. Skala 21-50 user memperparah keadaan: cukup satu dari lima puluh orang yang menempelkankan *API key* ke prompt untuk menguji kode, dan satu *secret* produksi sudah duduk di log penyedia *cloud* di luar yurisdiksi perusahaan. Skenario nyata yang berulang di kantor: *engineer* men-*paste* kunci API ke prompt untuk "membantu debug", tim HR mengunggah CV pelamar tanpa *redaksi*, dan bagian keuangan mengetikkan nomor rekening pelanggan ke chatbot untuk meminta format laporan.
@@ -29,9 +31,26 @@ Yang membuat LLM berbeda dari aplikasi web biasa adalah **kemampuan model mengin
 
 *Data Loss Prevention* konvensional — yang menyaring email dan *upload* file — tidak cukup untuk LLM, karena **teks prompt adalah bentuk data yang tidak terstruktur dan tidak terduga**. *Email* punya lampiran dan penerima yang bisa diperiksa; prompt adalah kalimat bebas yang bisa mengandung rahasia di mana saja, dalam bentuk apapun, dengan konteks yang hanya dipahami manusia. Sebuah kalimat "tolong ringkas draf kesepakatan dengan Pak Budi Pakpahan tentang akuisisi PT Maju" memuat nama klien dan nilai gosip bisnis dalam satu napas — tanpa struktur yang bisa di-*parse* oleh aturan *firewall* biasa. DLP untuk LLM harus pintar: membaca isi, menebak sensitivitas, dan mengambil keputusan dalam milidetik, sebelum prompt berangkat ke model.
 
+### Tabel 1: Jenis Data Sensitif dan Deteksi
+
+Berikut kategorisasi data sensitif yang harus dikenali DLP kantor, beserta metode deteksi dan tindakan bawaan yang disarankan.
+
+| Kategori | Contoh | Metode Deteksi | Action Default |
+|:---|:---|:---|:---:|
+| **PII (Personal)** | NIK, Passport, Alamat | Regex + NER | BLOCK |
+| **Finance** | CC Number, Rekening | Luhn algorithm + Regex | BLOCK |
+| **Credential** | API Key, Password, Token | Regex pattern (sk-*, AKIA*) | BLOCK + Alert |
+| **Source Code** | Internal repo, proprietary | Classifier (fine-tuned) | WARN + LOG |
+| **Client Data** | Nama klien, kontrak | Vector similarity | WARN |
+| **Medical** | Diagnosis, rekam medis | NER medical entities | BLOCK |
+
+Tiga pola menonjol. Pertama, kategori dengan format baku dan risiko tinggi (PII, *finance*, *credential*, *medical*) memakai deteksi deterministik — *regex* dan *Luhn* — dengan tindakan BLOCK keras, karena salah lolos sekali saja sudah berakibat serius. Kedua, kategori dengan konteks tinggi (*source code*, *client data*) memakai deteksi semantik — *classifier* dan *vector similarity* — dengan tindakan WARN, karena keduanya terlalu sering *normal* untuk diblokir buta. Ketiga, *credential* adalah satu-satunya kategori yang *selalu* menambah *Alert* ke BLOCK: *API key* yang bocor bukan hanya insiden data, tetapi pintu masuk potensial bagi pihak luar — dan harus ditangani dengan *revoke* segera.
+
+
 ---
 
 ## 3. Arsitektur DLP untuk LLM: Dua Pemeriksa di Satu Jembatan
+
 
 ### Input Side: Pemeriksaan Sebelum Model Melihat
 
@@ -47,11 +66,53 @@ Pemeriksaan output juga menangkap kasus aneh yang sering lolos input: prompt tam
 
 ### Human-in-the-loop: Saat Mesin Tidak Yakin
 
-Tidak semua keputusan bisa diserahkan ke aturan otomatis. Kebijakan DLP menyediakan jalur **human-in-the-loop**: prompt yang terdeteksi mencurigakan tapi tidak jelas melanggar di-*hold* untuk *review* manual oleh tim keamanan atau atasan departemen. Ini adalah *safety valve* yang mencegah dua kesalahan sekaligus: memblokir prompt yang sah (merugikan produktivitas) dan meloloskan prompt sensitif (merugikan keamanan). *Review* manual juga menghasilkan umpan balik berharga: setiap keputusan manusia menjadi data pelatihan untuk menurunkan *false positive rate* classifier — praktik yang akan kita lihat efeknya di studi kasus konsultan hukum (Seksi 11).
+Tidak semua keputusan bisa diserahkan ke aturan otomatis. Kebijakan DLP menyediakan jalur **human-in-the-loop**: prompt yang terdeteksi mencurigakan tapi tidak jelas melanggar di-*hold* untuk *review* manual oleh tim keamanan atau atasan departemen. Ini adalah *safety valve* yang mencegah dua kesalahan sekaligus: memblokir prompt yang sah (merugikan produktivitas) dan meloloskan prompt sensitif (merugikan keamanan). *Review* manual juga menghasilkan umpan balik berharga: setiap keputusan manusia menjadi data pelatihan untuk menurunkan *false positive rate* classifier — praktik yang akan kita lihat efeknya di studi kasus konsultan hukum (Seksi 9).
+
+### Tabel 2: Perbandingan DLP Tools
+
+Setelah memahami teknik deteksi, pilih *tool* yang mewadahinya. Perbandingan berikut menyajikan opsi utama di pasar saat ini.
+
+| Tools | Input Inspection | Output Inspection | Self-hosted | Integrasi LLM | Harga |
+|:---|:---:|:---:|:---:|:---|:---|
+| **LLMGuard** | Ya | Ya | Ya | API-based | Gratis (OSS) |
+| **SafeGPT** | Ya (redaction) | Ya (filter) | Ya | Plugin | Gratis (OSS) |
+| **NeMo Guardrails** | Ya | Ya | Ya | LangChain/NVIDIA | Gratis (OSS) |
+| **QueryShield** | Ya (rephrase) | Tidak | Ya | REST API | Research |
+| **Guardrails AI** | Ya | Ya | Ya | SDK | OSS + Enterprise |
+| **Claude Fable 5 Classifiers** | Ya (built-in) | Ya (built-in) | Tidak (cloud) | API | Pay-per-use |
+
+Perhatikan pola *trade-off*: lima *tool* pertama semuanya *self-hosted* dan gratis — cocok untuk *general office* yang menginginkan data tetap di dalam perimeter — tetapi berbeda dalam kedalaman fitur. *LLMGuard* (dari LinkedIn) unggul sebagai *API-based scanner* generik dengan repertoar detektor luas, *SafeGPT* menonjol di *redaction* dua arah, *NeMo Guardrails* unggul di ekosistem LangChain/NVIDIA, dan *QueryShield* (karya riset NAACL) mempraktikkan *rephrasing* — mengubah *query* sensitif menjadi versi aman, bukan sekadar memblokir. Lainnya, *Claude Fable 5* adalah satu-satunya yang *cloud-only* dan *pay-per-use* — biaya ada, tetapi *classifier*-nya sudah *built-in* dan menyatu dengan pipeline model. Pilihan akhir tergantung satu pertanyaan: apakah kantor memproses mayoritas trafik via API Anthropic (pilih Fable 5 sebagai lapisan tambahan) atau via model on-premise (wajib pilih *tool self-hosted*).
+
+
+### Diagram 1: Pipeline DLP Input-Output
+
+Berikut alur keputusan menyeluruh — dari prompt pengguna, melewati dua pemeriksaan, hingga keputusan akhir.
+
+```mermaid
+flowchart TB
+    PROMPT[User Prompt] --> INPUT_INSPECT[Input Inspection]
+    INPUT_INSPECT -->|Clean| LLM[LLM Inference]
+    INPUT_INSPECT -->|Suspected| CLASSIFIER[DLP Classifier]
+    CLASSIFIER -->|BLOCK| REJECT[Reject + Log]
+    CLASSIFIER -->|WARN| CONFIRM[Konfirmasi User?]
+    CONFIRM -->|Ya| LLM
+    CONFIRM -->|Tidak| REJECT
+    LLM --> RESPONSE[LLM Response]
+    RESPONSE --> OUTPUT_INSPECT[Output Inspection]
+    OUTPUT_INSPECT -->|Clean| USER[Send to User]
+    OUTPUT_INSPECT -->|Violation| REDACT[Redact / Refuse]
+    REDACT --> USER
+    CLASSIFIER -->|LOG| SIEM[SIEM / Log]
+    OUTPUT_INSPECT --> SIEM
+```
+
+Empat alur keputusan di diagram ini layak dipahami pelan-pelan. Pertama, prompt **bersih** → langsung ke *inference* (jalur cepat untuk 90% trafik sah). Kedua, prompt mencurigakan → classifier memutuskan: BLOCK (henti), WARN (konfirmasi user), atau LOG (catat). Ketiga, respons model → *output inspection*: bersih dikirim, melanggar di-*redact* atau ditolak. Keempat, baik classifier maupun *output inspection* selalu menulis ke SIEM — tidak ada satu pun cabang yang berakhir tanpa jejak. Perhatikan bahwa *input inspection* dan *output inspection* digambarkan sebagai gerbang terpisah: keduanya tidak boleh dilewati, karena ancaman datang dari arah yang berbeda.
+
 
 ---
 
 ## 4. Teknik Deteksi: Lima Cara Membedakan Rahasia dari Obrolan Biasa
+
 
 ### Pattern Matching (Regex)
 
@@ -85,75 +146,18 @@ Namun *caution*-nya juga jelas: *classifier* ini hanya aktif untuk lalu lintas y
 
 ## 5. Policy Enforcement: Menjadi Tegas dengan Skala Penilaian
 
+
 ### Tiga Level Tindakan: BLOCK, WARN, LOG
 
 Setiap temuan deteksi harus berujung pada tindakan yang jelas. Kebijakan DLP mengategorikannya dalam **tiga level**: **BLOCK** — tolak prompt atau respons sepenuhnya, data tidak pernah diproses; **WARN** — izinkan dengan peringatan, biasanya dengan *konfirmasi user* atau catatan peringatan di layar; **LOG** — izinkan dan catat saja untuk *review* kemudian. Hierarki ini memberikan nuansa: bukan semua hal sensitif harus dihentikan, dan bukan semua yang diizinkan boleh tanpa rekam jejak.
 
-Kunci desainnya adalah memetakan **keparahan data ke keparahan tindakan**: data PII pribadi (NIK, medis) diblokir tanpa kompromi; data bisnis sensitif (kontrak, *source code*) diperingatkan; sedangkan hal-hal yang berbau internal (URL kantor) cukup dicatat. Pemetaan lengkapnya ada di Tabel 1 (Seksi 8).
+Kunci desainnya adalah memetakan **keparahan data ke keparahan tindakan**: data PII pribadi (NIK, medis) diblokir tanpa kompromi; data bisnis sensitif (kontrak, *source code*) diperingatkan; sedangkan hal-hal yang berbau internal (URL kantor) cukup dicatat. Pemetaan lengkapnya ada di Tabel 1 (Seksi 2).
 
 ### Aturan per Departemen: Konteks Menentukan Legalitas
 
 Sensitifitas bukan absolut — ia **relatif terhadap konteks kerja**. Kebijakan DLP yang baik merefleksikan hal ini: *Legal* boleh mengirim draf kontrak ke LLM untuk *review*, sementara *Marketing* tidak boleh menyentuh kontrak rahasia sama sekali; *HR* boleh memproses data kandidat dalam pipeline yang terisolasi, sementara departemen lain terlarang. Aturan per departemen ini menjadi *scope*-ing yang menjaga produktivitas: fakta yang sama **legal bagi satu tim dan ilegal bagi tim lain**, dan sistem harus menghormatinya.
 
 Granularitasnya bisa sangat halus: per *user*, per *group*, per *model*, per *jenis data*. Per *model* penting karena model on-premise dan model *cloud* memiliki risiko berbeda — data boleh masuk ke DeepSeek V4 Flash di GPU kantor, tetapi tidak boleh dikirim ke API eksternal. Per *user* memungkinkan *exception* individual bagi penanggung jawab data (mis. *Data Protection Officer*), sementara *group* menyalurkan aturan ke departemen secara keseluruhan. Semakin halus granularitas, semakin presisi keputusan — tetapi juga semakin kompleks konfigurasi; kantor 21-50 user biasanya mulai dari *per-group* sebelum menurunkan ke *per-user*.
-
----
-
-## 6. Response Sanitization: Membersihkan yang Keluar
-
-### Filter, Redaksi, dan Penolakan
-
-*Response sanitization* adalah cermin dari *input inspection* di sisi keluaran — dan menjalankan tiga mekanisme. **Filter output**: hapus PII dari respons sebelum dikirim ke pengguna, misalnya mengganti nomor telepon yang tanpa sengaja muncul dalam jawaban. **Redaction (data masking)**: ubah data sensitif menjadi bentuk tertutup — `Nama: ***`, `No. Kartu: 42** **** **** 1234` — sehingga informasi tetap bisa dibaca untuk tujuan kerja tanpa mengekspos nilainya. **Refusal**: tolak menghasilkan respons jika *query* mencurigakan — misalnya mengembalikan pesan terstandar "Permintaan Anda tidak dapat diproses karena memuat data sensitif."
-
-Penting untuk dicatat: *redaction* di output **tidak membuat insiden menjadi tidak terjadi**. Data sudah diproses model, berapapun bersihnya keluaran final; oleh karena itu *sanitization* hanyalah *lapisan terakhir*, bukan alasan untuk mengendurkan pemeriksaan input. Aturan praktis: ukur keberhasilan DLP dari prompt yang *tidak pernah* diproses, bukan dari respons yang *berhasil dibersihkan*.
-
----
-
-## 7. Incident Response: Ketika Kebijakan Gagal (dan Selalu Ada Kalanya)
-
-### Log ke SIEM dan Notifikasi Real-Time
-
-Tidak ada DLP yang sempurna — *false negative* pasti terjadi, dan *false positive* harus dikelola. Karena itu setiap keputusan DLP — BLOCK, WARN, LOG, maupun *missed detection* yang diperbaiki manual — harus **dicatat ke SIEM** (Splunk, Wazuh, atau ELK). Log ini menjadi dasar *incident response*: **notifikasi real-time ke tim keamanan via Slack/Email** saat aturan BLOCK tersentuh, sehingga insiden ditangani dalam hitungan menit, bukan ditemukan *ex post facto* dalam laporan bulanan. Detail integrasi SIEM dibahas pada Seksi 10 (Tutorial C) dan Bab 8.6.
-
-### Post-Mortem dan Metrik Kualitas
-
-Siklus ditutup dengan **post-mortem analysis**. Secara berkala, tim keamanan me-*review* prompt yang di-block: berapa yang memang benar melanggar, berapa yang salah diblokir (*false positive*), dan — yang lebih keras — berapa insiden yang lolos (*false negative*). Metrik kunci di sini adalah **false positive rate**: angka yang sehat di bawah 10%, dicapai dengan *fine-tuning* aturan dan classifier. Studi kasus di Seksi 11 menunjukkan lintasan nyatanya: dari 12% turun ke 5% setelah sebulan.
-
-Tujuan keseluruhan bukan menghentikan semua karyawan menggunakan AI — melainkan membuat sistem **pintar dan berani**: berani memblokir saat perlu, cukup percaya diri untuk meloloskan pekerjaan sah, dan terus belajar dari setiap keputusan manusia.
-
----
-
-## 8. Tabel Wajib: Data Sensitif, Tools, dan Aturan DLP
-
-### Tabel 1: Jenis Data Sensitif dan Deteksi
-
-Berikut kategorisasi data sensitif yang harus dikenali DLP kantor, beserta metode deteksi dan tindakan bawaan yang disarankan.
-
-| Kategori | Contoh | Metode Deteksi | Action Default |
-|:---|:---|:---|:---:|
-| **PII (Personal)** | NIK, Passport, Alamat | Regex + NER | BLOCK |
-| **Finance** | CC Number, Rekening | Luhn algorithm + Regex | BLOCK |
-| **Credential** | API Key, Password, Token | Regex pattern (sk-*, AKIA*) | BLOCK + Alert |
-| **Source Code** | Internal repo, proprietary | Classifier (fine-tuned) | WARN + LOG |
-| **Client Data** | Nama klien, kontrak | Vector similarity | WARN |
-| **Medical** | Diagnosis, rekam medis | NER medical entities | BLOCK |
-
-Tiga pola menonjol. Pertama, kategori dengan format baku dan risiko tinggi (PII, *finance*, *credential*, *medical*) memakai deteksi deterministik — *regex* dan *Luhn* — dengan tindakan BLOCK keras, karena salah lolos sekali saja sudah berakibat serius. Kedua, kategori dengan konteks tinggi (*source code*, *client data*) memakai deteksi semantik — *classifier* dan *vector similarity* — dengan tindakan WARN, karena keduanya terlalu sering *normal* untuk diblokir buta. Ketiga, *credential* adalah satu-satunya kategori yang *selalu* menambah *Alert* ke BLOCK: *API key* yang bocor bukan hanya insiden data, tetapi pintu masuk potensial bagi pihak luar — dan harus ditangani dengan *revoke* segera.
-
-### Tabel 2: Perbandingan DLP Tools
-
-Setelah memahami teknik deteksi, pilih *tool* yang mewadahinya. Perbandingan berikut menyajikan opsi utama di pasar saat ini.
-
-| Tools | Input Inspection | Output Inspection | Self-hosted | Integrasi LLM | Harga |
-|:---|:---:|:---:|:---:|:---|:---|
-| **LLMGuard** | Ya | Ya | Ya | API-based | Gratis (OSS) |
-| **SafeGPT** | Ya (redaction) | Ya (filter) | Ya | Plugin | Gratis (OSS) |
-| **NeMo Guardrails** | Ya | Ya | Ya | LangChain/NVIDIA | Gratis (OSS) |
-| **QueryShield** | Ya (rephrase) | Tidak | Ya | REST API | Research |
-| **Guardrails AI** | Ya | Ya | Ya | SDK | OSS + Enterprise |
-| **Claude Fable 5 Classifiers** | Ya (built-in) | Ya (built-in) | Tidak (cloud) | API | Pay-per-use |
-
-Perhatikan pola *trade-off*: lima *tool* pertama semuanya *self-hosted* dan gratis — cocok untuk *general office* yang menginginkan data tetap di dalam perimeter — tetapi berbeda dalam kedalaman fitur. *LLMGuard* (dari LinkedIn) unggul sebagai *API-based scanner* generik dengan repertoar detektor luas, *SafeGPT* menonjol di *redaction* dua arah, *NeMo Guardrails* unggul di ekosistem LangChain/NVIDIA, dan *QueryShield* (karya riset NAACL) mempraktikkan *rephrasing* — mengubah *query* sensitif menjadi versi aman, bukan sekadar memblokir. Lainnya, *Claude Fable 5* adalah satu-satunya yang *cloud-only* dan *pay-per-use* — biaya ada, tetapi *classifier*-nya sudah *built-in* dan menyatu dengan pipeline model. Pilihan akhir tergantung satu pertanyaan: apakah kantor memproses mayoritas trafik via API Anthropic (pilih Fable 5 sebagai lapisan tambahan) atau via model on-premise (wajib pilih *tool self-hosted*).
 
 ### Tabel 3: DLP Policy Rules Contoh
 
@@ -176,31 +180,32 @@ Pembelajaran dari tabel ini: *scope* dan *prioritas* bekerja sama. DLP-003 menan
 
 ---
 
-## 9. Diagram & Visualisasi
 
-### Diagram 1: Pipeline DLP Input-Output
+---
 
-Berikut alur keputusan menyeluruh — dari prompt pengguna, melewati dua pemeriksaan, hingga keputusan akhir.
+## 6. Response Sanitization: Membersihkan yang Keluar
 
-```mermaid
-flowchart TB
-    PROMPT[User Prompt] --> INPUT_INSPECT[Input Inspection]
-    INPUT_INSPECT -->|Clean| LLM[LLM Inference]
-    INPUT_INSPECT -->|Suspected| CLASSIFIER[DLP Classifier]
-    CLASSIFIER -->|BLOCK| REJECT[Reject + Log]
-    CLASSIFIER -->|WARN| CONFIRM[Konfirmasi User?]
-    CONFIRM -->|Ya| LLM
-    CONFIRM -->|Tidak| REJECT
-    LLM --> RESPONSE[LLM Response]
-    RESPONSE --> OUTPUT_INSPECT[Output Inspection]
-    OUTPUT_INSPECT -->|Clean| USER[Send to User]
-    OUTPUT_INSPECT -->|Violation| REDACT[Redact / Refuse]
-    REDACT --> USER
-    CLASSIFIER -->|LOG| SIEM[SIEM / Log]
-    OUTPUT_INSPECT --> SIEM
-```
 
-Empat alur keputusan di diagram ini layak dipahami pelan-pelan. Pertama, prompt **bersih** → langsung ke *inference* (jalur cepat untuk 90% trafik sah). Kedua, prompt mencurigakan → classifier memutuskan: BLOCK (henti), WARN (konfirmasi user), atau LOG (catat). Ketiga, respons model → *output inspection*: bersih dikirim, melanggar di-*redact* atau ditolak. Keempat, baik classifier maupun *output inspection* selalu menulis ke SIEM — tidak ada satu pun cabang yang berakhir tanpa jejak. Perhatikan bahwa *input inspection* dan *output inspection* digambarkan sebagai gerbang terpisah: keduanya tidak boleh dilewati, karena ancaman datang dari arah yang berbeda.
+### Filter, Redaksi, dan Penolakan
+
+*Response sanitization* adalah cermin dari *input inspection* di sisi keluaran — dan menjalankan tiga mekanisme. **Filter output**: hapus PII dari respons sebelum dikirim ke pengguna, misalnya mengganti nomor telepon yang tanpa sengaja muncul dalam jawaban. **Redaction (data masking)**: ubah data sensitif menjadi bentuk tertutup — `Nama: ***`, `No. Kartu: 42** **** **** 1234` — sehingga informasi tetap bisa dibaca untuk tujuan kerja tanpa mengekspos nilainya. **Refusal**: tolak menghasilkan respons jika *query* mencurigakan — misalnya mengembalikan pesan terstandar "Permintaan Anda tidak dapat diproses karena memuat data sensitif."
+
+Penting untuk dicatat: *redaction* di output **tidak membuat insiden menjadi tidak terjadi**. Data sudah diproses model, berapapun bersihnya keluaran final; oleh karena itu *sanitization* hanyalah *lapisan terakhir*, bukan alasan untuk mengendurkan pemeriksaan input. Aturan praktis: ukur keberhasilan DLP dari prompt yang *tidak pernah* diproses, bukan dari respons yang *berhasil dibersihkan*.
+
+---
+
+## 7. Incident Response: Ketika Kebijakan Gagal (dan Selalu Ada Kalanya)
+
+
+### Log ke SIEM dan Notifikasi Real-Time
+
+Tidak ada DLP yang sempurna — *false negative* pasti terjadi, dan *false positive* harus dikelola. Karena itu setiap keputusan DLP — BLOCK, WARN, LOG, maupun *missed detection* yang diperbaiki manual — harus **dicatat ke SIEM** (Splunk, Wazuh, atau ELK). Log ini menjadi dasar *incident response*: **notifikasi real-time ke tim keamanan via Slack/Email** saat aturan BLOCK tersentuh, sehingga insiden ditangani dalam hitungan menit, bukan ditemukan *ex post facto* dalam laporan bulanan. Detail integrasi SIEM dibahas pada Seksi 8 (Tutorial C) dan Bab 8.6.
+
+### Post-Mortem dan Metrik Kualitas
+
+Siklus ditutup dengan **post-mortem analysis**. Secara berkala, tim keamanan me-*review* prompt yang di-block: berapa yang memang benar melanggar, berapa yang salah diblokir (*false positive*), dan — yang lebih keras — berapa insiden yang lolos (*false negative*). Metrik kunci di sini adalah **false positive rate**: angka yang sehat di bawah 10%, dicapai dengan *fine-tuning* aturan dan classifier. Studi kasus di Seksi 9 menunjukkan lintasan nyatanya: dari 12% turun ke 5% setelah sebulan.
+
+Tujuan keseluruhan bukan menghentikan semua karyawan menggunakan AI — melainkan membuat sistem **pintar dan berani**: berani memblokir saat perlu, cukup percaya diri untuk meloloskan pekerjaan sah, dan terus belajar dari setiap keputusan manusia.
 
 ### Diagram 2: Alur Incident Response DLP
 
@@ -220,7 +225,11 @@ Siklus ini sengaja digambar *loop*, bukan garis lurus: setiap insiden memperbaik
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Setup LLMGuard untuk Input/Output Filtering
 
@@ -357,7 +366,8 @@ Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/
 
 ---
 
-## 11. Studi Kasus: Insiden DLP di Perusahaan Konsultan Hukum
+## 9. Studi Kasus: Insiden DLP di Perusahaan Konsultan Hukum
+
 
 **Latar.** Sebuah firma hukum konsultan dengan 35 karyawan baru saja menangani *merger & acquisition* besar. Suatu malam, seorang *partner* senior — dalam kondisi terburu-buru menyusun *term sheet* — **memasukkan draf kontrak M&A senilai $50 juta ke ChatGPT publik**, lengkap dengan nama klien dan nilai transaksi. Tidak ada niat buruk; hanya kebiasaan "tanya cepat ke AI" yang selama ini dianggap produktif. Keesokan harinya, tim IT mendapati bahwa informasi klien telah dikirim ke server OpenAI di Amerika Serikat — di luar kendali *governance* data firma.
 
@@ -373,7 +383,8 @@ Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

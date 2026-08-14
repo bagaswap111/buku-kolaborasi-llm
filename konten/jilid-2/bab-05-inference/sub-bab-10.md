@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan masalah mendasar autoregressive decoding — mengapa GPU menganggur padahal bisa bekerja lebih banyak
@@ -19,6 +20,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Masalah Autoregressive Decoding: GPU yang Malas karena Arsitektur
 
+
 ### Satu Forward Pass, Satu Token
 
 Model bahasa menghasilkan teks secara *autoregressive*: satu token pada satu waktu, setiap token baru bergantung pada semua token sebelumnya. Sifat ini membuat decoding membutuhkan satu forward pass per token — untuk menghasilkan 200 token, model harus mengeksekusi 200 forward pass yang berurutan. Ini bukan sekadar lambat; ini adalah pemborosan struktural. Pada setiap langkah, GPU hanya menghitung satu token baru, sementara seluruh bobot model — puluhan bahkan ratusan miliar parameter — harus dibaca ulang dari memori. Paradoksnya, GPU Anda seperti pembaca yang harus membuka ulang seluruh buku untuk menambahkan satu kata.
@@ -28,64 +30,6 @@ Model bahasa menghasilkan teks secara *autoregressive*: satu token pada satu wak
 Pengukuran menunjukkan bahwa pada fase decode, sekitar **90% waktu dihabiskan untuk loading weights** dari memori, bukan untuk melakukan komputasi — GPU "menganggur menunggu data". Inilah istilah teknisnya: fase decode bersifat *memory-bound*, bukan *compute-bound*. Dampaknya langsung terlihat: throughput token per detik dibatasi oleh *memory bandwidth* kartu, bukan oleh kekuatan FLOP-nya, sehingga GPU yang paling mahal pun hanya bekerja sepersepuluh kemampuannya. Pertanyaan yang kemudian muncul adalah pertanyaan yang membuka seluruh bab ini: *bagaimana kita bisa membuat GPU melakukan lebih banyak pekerjaan yang berguna per siklus pembacaan memori yang sama?* Jawaban yang elegan: bangkitkan beberapa token sekaligus dari sebuah model kecil yang murah, lalu biarkan model besar memverifikasi sekaligus dalam satu langkah.
 
 Karena property yang sama ini, ada ironi indah yang perlu disadari: draft model yang *jauh lebih kecil* menderita masalah memory-bound dengan proporsi yang sama — ia juga membaca seluruh bobotnya setiap langkah. Namun justru karena lebih kecil, beban pembacaannya jauh lebih ringan: draft 3B membaca 6 GB per langkah sementara target 70B membaca 140 GB — dua puluh kali lebih murah per langkah. Inilah mengapa "biaya spekulasi" nyaris selalu terbayar: meskipun draft harus berjalan K langkah untuk setiap satu langkah target, total bandwidth yang dibelanjakan draft (K × ukuran draft) tetap jauh lebih kecil daripada satu langkah target (ukuran target), selama K tidak ekstrem. Angka nyata dari Tabel C — draft 3B melayani 70B dengan speedup 3,2-3,5x — adalah bukti empiris dari aritmetika sederhana ini.
-
----
-
-## 3. Spekulasi Dasar: Draft dan Verify
-
-### Model Kecil Menulis, Model Besar Menyunting
-
-Ide dasar speculative decoding, dirumuskan oleh Leviathan et al. [1] dan Chen et al., bekerja dengan dua model. **Draft model** — model kecil yang jauh lebih murah dan cepat — membangkitkan K token secara autoregressive, satu per satu, dengan biaya per token yang sangat rendah. Kemudian **target model** — model besar yang menjadi sumber kebenaran — memverifikasi seluruh K token draft itu dalam **satu forward pass**. Kunci kecerdasannya ada pada prosedur penerimaan (*acceptance*): semua token draft yang cocok dengan prediksi target model diterima sekaligus; jika mismatch terjadi di posisi ke-i, token ke-1 hingga ke-(i-1) tetap diterima, token ke-i dihitung ulang dengan prediksi target, dan sisa draft dibuang. Dengan cara ini, output yang dihasilkan **identik secara matematis** dengan decoding autoregressive biasa — tidak ada satu token pun yang berbeda — hanya saja rata-rata bertambah lebih dari satu token per forward pass.
-
-### Acceptance Rate: Nyawa Spekulasi
-
-Ukuran yang menentukan semuanya adalah **acceptance rate**: persentase token draft yang diterima oleh target model. Jika draft model cerdas — menebak dengan akurat apa yang akan dipilih target — acceptance rate tinggi dan setiap forward pass target "membayar" beberapa token sekaligus. Jika draft model menebak sembarangan, hampir semua token ditolak, dan Anda hanya membuang komputasi dengan hasil lebih lambat dari decoding biasa. Inilah alasan pemilihan draft model tidak bisa asal: draft yang baik adalah draft yang hidup di "gaya berpikir" yang sama dengan target — idealnya dari keluarga arsitektur yang sama, seperti Llama-3.2-3B untuk melayani Llama-3.1-70B atau DeepSeek V4 Flash untuk V4 Pro. Spekulasi adalah investasi: Anda membayar komputasi draft kecil untuk membeli hak memverifikasi banyak token sekaligus.
-
-### Menghitung Keuntungan: Rumus di Balik Angka Speedup
-
-Untuk memahami mengapa angka speedup di Tabel B bisa berkisar 2x hingga 3,8x, ada satu rumus mental yang berguna: **jumlah token rata-rata per forward pass target ≈ 1 + (acceptance rate × K)**. Dengan K=4 dan acceptance 70%, rata-rata target menerima 1 + 2,8 = 3,8 token per langkah verifikasi — itulah yang menjelaskan angka 2,8 token/step pada Tabel B (perhatikan angka nyata sedikit di bawah perkiraan karena token yang ditolak di posisi akhir ikut mengurangi rata-rata). Dari rumus ini dua kesimpulan langsung: pertama, *gain bertambah hampir linear dengan K* selama acceptance rate tidak jatuh — itulah alasan orang mencoba K lebih besar; kedua, *begitu acceptance rate jatuh tajam* (seperti 70% → 44% saat K=8 pada vanilla), penambahan K justru mandul. Konfigurasi optimal adalah titik di mana hasil kali `acceptance rate × K` maksimum — bukan K terbesar, bukan acceptance tertinggi. Ukur keduanya secara berkala di produksi, dan Anda akan menemukan sweet spot yang mungkin berbeda dari default engine.
-
-### Mengapa Hasilnya Identik: Jaminan Matematis di Balik Spekulasi
-
-Satu kekhawatiran yang sering muncul sebelum adopsi: "apakah draft model meracuni kualitas jawaban?" Jawaban teoretisnya tegas: untuk mode *greedy decoding*, speculative decoding **lossless** — outputnya identik dengan decoding autoregressive biasa [1]. Argumennya berlapis. Pertama, mode *greedy* selalu memilih token dengan probabilitas tertinggi; karena target model adalah satu-satunya hakim akhir — token yang tidak cocok dengan prediksi target dihitung ulang menggunakan logit target — mustahil token yang tidak dipilih target lolos ke output. Kedua, pada *sampling* berdistribusi (dengan suhu atau top-p), skema verifikasi menggunakan distribusi target secara langsung, sehingga token yang dihasilkan mengikuti distribusi yang tepat dari target model — bukan perkiraan draft. Ketiga, token yang dibuang tidak pernah hilang secara informasi: seluruh sejarah prompt tetap utuh, dan perhitungan ulang dimulai dari posisi yang diamankan. Artinya, speculative decoding adalah *optimasi murni*: Anda membayar komputasi draft kecil, dan satu-satunya yang berubah adalah kecepatan, bukan isi. Perlu pengecualian jujur: metode seperti Medusa dengan pelatihan head tambahan menghasilkan distribusi yang "hampir identik", bukan identik — perbedaan ini biasanya tak kasatmata, tetapi penting bagi aplikasi yang menuntut determinisme penuh antar versi.
-
----
-
-## 4. Tree-based Speculative Inference: SpecInfer dan Akar Percabangan
-
-### Batas Jalur Tunggal
-
-Spekulasi linear — satu rangkaian K token draft — memiliki kelemahan struktural: ia hanya menebak satu jalan cerita. Jika draft model menebak token yang berbeda dari target di posisi ke-3, maka semua tebakan sesudahnya — yang seharusnya valid bergantung pada token ke-3 tersebut — ikut dibuang. Dengan kata lain, spekulasi linear adalah penjelajah yang memilih satu lorong gua; jika lorong itu buntu, seluruh perjalanan kembali ke awal. Ini membatasi acceptance rate secara alami, terutama pada teks dengan banyak kemungkinan kelanjutan.
-
-### Token Tree: Banyak Lorong dalam Satu Perjalanan
-
-**SpecInfer** [2] memecahkan batas ini dengan **token tree**: alih-alih satu jalur, draft model membangkitkan beberapa cabang (branching) — misalnya sebuah kalimat bisa diawali "the cat", "a dog", atau "an elephant" — membentuk pohon token dengan puluhan jalur potensial. Kuncinya, seluruh pohon dapat diverifikasi oleh target model dalam **satu forward pass** paralel: perhitungan bersama token-token yang berbagi prefix membuat verifikasi pohon tidak jauh lebih mahal daripada verifikasi satu jalur. Hasilnya adalah *coverage* yang jauh lebih tinggi — satu kesempatan yang tidak sempat diambil di cabang A mungkin tersedia di cabang B. Pengukuran SpecInfer menunjukkan speedup **1,5-2,8x** pada *distributed setting* dan **2,6-3,5x** pada *offloading setting* — dan yang mengejutkan, seluruhnya dengan output yang tetap identik dengan target model (lossless) [2]. Ini adalah free lunch: teks yang sama, dikirim lebih cepat.
-
-Selisih antara dua angka tersebut — *distributed* vs *offloading* — layak dipahami karena menentukan di lingkungan mana Anda akan beroperasi. Pada *distributed setting* (semua model di GPU), pasangan draft dan target bersaing untuk sumber daya GPU yang sama; dalam beberapa konfigurasi, draft malah menambah beban tanpa keuntungan besar, sehingga speedup terkendali di 1,5-2,8x. Pada *offloading setting* (draft dijalankan di perangkat terpisah, misalnya CPU atau GPU tambahan), draft tidak merebut bandwidth dari target sehingga keuntungannya lebih murni — hingga 3,5x. Implikasi praktisnya: jika GPU Anda penuh sesak dan tidak ada alokasi untuk draft, tempatkan draft di CPU atau GPU cadangan; jika model Anda berjalan di satu GPU dengan ruang kosong, jalankan draft di GPU yang sama untuk menghindari biaya transfer antar perangkat. Pemilihan tata letak draft adalah keputusan arsitektur — bukan detail pelengkap.
-
----
-
-## 5. Variasi Speculative Decoding: Banyak Jalan Menuju Token Cepat
-
-Spekulasi tidak harus selalu melibatkan dua model terpisah. **Medusa** [3] mengambil rute berbeda: alih-alih draft model, ia menempelkan beberapa *decoding head* tambahan pada model target itu sendiri — setiap head memprediksi posisi token berikutnya secara paralel sehingga satu forward pass menghasilkan beberapa kandidat token sekaligus. Tanpa model kedua, Medusa mencatat speedup **2,2-2,8x** dengan pelatihan tambahan hanya pada *head* saja (Medusa-1) atau seluruh model (Medusa-2). **Self-speculative decoding** [4] bahkan menghilangkan kebutuhan pelatihan: model yang sama bertindak sebagai draft dan target dengan cara melompati sebagian lapisan (*layer skipping*) saat menebak — draf datang dari versi "pendek" dirinya sendiri. **Eagle** menggunakan dua model LLM dengan mekanisme verifikasi spekulatif yang ditingkatkan. **Lookahead Decoding** meninggalkan model kedua sama sekali: ia membangun *N-gram* dari output yang sedang dihasilkan untuk menebak token berikutnya. Tidak semua metode setara — masing-masing bertukar antara kecepatan, kemurnian distribusi output (identik vs mendekati), dan biaya deployment (satu model vs dua) — keputusan yang akan kita bandingkan sistematis pada Tabel A.
-
-### Membedah Trade-off: Kapan Memilih Metode Mana?
-
-Panduan pemilihan metode dapat diringkas dalam tiga pertanyaan. Pertama, *apakah Anda bisa menambahkan model kedua?* Jika VRAM ketat atau manajemen dua model terasa berat, Medusa (pelatihan head) atau lookahead decoding (tanpa pelatihan) adalah kandidat utama; jika Anda memiliki VRAM cadangan — dan pedoman di Tabel C menunjukkan biayanya sering kecil — vanilla SpecDec atau SpecInfer memberi keamanan lossless. Kedua, *apakah output harus identik?* Dalam produksi yang dievaluasi (AB test, audit, compliance), pilih metode lossless; dalam chatbot bebas yang tidak pernah dibandingkan token-per-token, "hampir identik" cukup. Ketiga, *apakah trafik Anda panjang dan beragam?* Teks panjang dengan banyak kelanjutan potensial mendapat manfaat terbesar dari token tree (SpecInfer), yang menjelajah banyak cabang sekaligus; teks pendek yang deterministik (kode, JSON) cukup dilayani vanilla dengan K kecil. Catatan tambahan dari riset Sequoia [5]: konfigurasi optimal — jumlah token spekulasi, ukuran tree, dan bahkan kebutuhan draft model — sangat bergantung pada hardware (memory bandwidth ratio) dan beban nyata, sehingga mengukur acceptance rate di environment produksi sendiri lebih berharga daripada menyalin konfigurasi orang lain.
-
----
-
-## 6. Implementasi di Engine Inference Modern
-
-Untungnya, engineer tidak perlu mengimplementasikan semua ini dari nol. **vLLM** mendukung speculative decoding dengan bendera `--speculative-model`: tentukan model draft, jumlah token spekulasi, dan versi tensor parallelism untuk draft model — sisanya dikelola engine, termasuk metrik acceptance rate yang diekspos ke Prometheus. **TGI (Text Generation Inference)** juga mendukung speculative decoding dengan draft model untuk keluarga modelnya. **Aphrodite**, engine turunan vLLM untuk komunitas, mendukung berbagai metode speculative decoding sambil mempertahankan API yang sama. Pilihannya kini seputar: seberapa kompatibel draft model dengan model target Anda, dan seberapa besar VRAM tambahan yang bersedia Anda bayar — kedua dimensi itu kita hitung di Tabel C.
-
-### Kapan Speculative Decoding Tidak Membantu: Kejujuran Teknis
-
-Agar tidak ada pembaca yang terjebak euforia speedup, penting mengakui tiga kondisi di mana spekulasi gagal memberi manfaat. Pertama, **workload yang didominasi prefill**: jika trafik Anda berupa prompt raksasa dengan output pendek (misalnya klasifikasi dokumen 32K token dengan jawaban satu kata), yang menjadi bottleneck adalah prefill — komputasi — bukan decode; spekulasi tidak menyentuh prefill sama sekali, dan hasilnya nyaris nol. Kedua, **draft model yang tidak cocok**: tanpa kesamaan arsitektur dengan target, acceptance rate jatuh ke 30-40% dan overhead draft justru menelan lebih banyak waktu daripada yang dihemat verifikasi. Ketiga, **hardware yang sudah jenuh bandwidth**: pada GPU yang antrean memorinya sudah penuh oleh workload lain, draft model ikut berebut bandwidth — keuntungan spekulasi terkikis oleh kelangkaan sumber daya yang sama. Untuk memastikan Anda berada di sisi yang benar, selalu ukur *net speedup* di lingkungan produksi sendiri — bukan di benchmark — sebelum mengunci konfigurasi. Dan jangan lupa mencatat konfigurasi yang gagal: dokumentasi "yang sudah dicoba dan terbukti tidak bekerja" sama berharganya dengan resep yang berhasil.
-
----
-
-## 7. Tabel Wajib
 
 ### Tabel A: Perbandingan Metode Speculative Decoding
 
@@ -104,24 +48,6 @@ Keputusan pemilihan metode pada dasarnya adalah tiga sumbu: *jarak ke output asl
 
 Catatan penting tentang angka *speedup* pada kolom kedua: rentang seperti "2-3x" dan "1.5-3.5x" adalah rentang yang diukur pada *hardware dan workload* yang berbeda-beda — bukan jaminan performa universal. Faktor terbesarnya adalah rasio kecepatan draft terhadap target (semakin besar selisihnya, semakin besar potensi gain) dan kesesuaian draft terhadap teks yang dihasilkan. Karena itu, Tabel A sebaiknya dibaca sebagai *peta arah* (metode mana yang cenderung unggul di kondisi mana), sedangkan *angka final* harus diukur pada mesin dan trafik Anda sendiri — itulah fungsi Tutorial C pada bagian praktikum. Sikap ini mencegah dua kesalahan umum: memilih metode hanya karena angkanya paling besar, dan menolak metode karena benchmark orang lain tidak menjanjikan.
 
-### Tabel B: Benchmark Speculative Decoding (Llama-2-7B Target, Llama-7B Draft, A100)
-
-Data pengukuran nyata pada A100 — perhatikan bagaimana token per step rata-rata hampir selalu lebih besar daripada 1.
-
-| Konfigurasi | Tokens/Step Rata | Throughput (tok/s) | Speedup | Acceptance Rate |
-|:---|:---:|:---:|:---:|:---:|
-| Baseline (no spec) | 1.0 | 1,250 | 1.0x | - |
-| Vanilla (K=4) | 2.8 | 2,750 | 2.2x | 70% |
-| Vanilla (K=8) | 3.5 | 3,125 | 2.5x | 44% |
-| SpecInfer (tree K=4) | 3.2 | 3,400 | 2.7x | 80% |
-| SpecInfer (tree K=8) | 4.8 | 4,000 | 3.2x | 60% |
-| Medusa-1 (heads=4) | 3.0 | 3,000 | 2.4x | 75% |
-
-![Speculative decoding menaikkan throughput dari 1.250 tok/s (baseline) hingga 4.000 tok/s (SpecInfer tree K=8) — namun acceptance rate vanilla jatuh ke 44% saat K membesar, sementara token tree menjaganya di 60-80%](../../assets/images/bab-05-inference/sub-bab-10/benchmark-speculative-decoding.png)
-
-*Gambar 5.10-1 — Token tree mengubah permainan: pada K=8, SpecInfer mempertahankan acceptance 60% dengan 4,8 token/step, jauh melampaui vanilla (44%, 3,5 token/step) — menambah K tanpa batas mandul bila acceptance rate jatuh.*
-
-Dua pelajaran penting dari Tabel B. Pertama, *acceptance rate tidak turun secara linier saat K membesar* — K=8 pada vanilla hanya mendapat 44% penerimaan dibanding 70% pada K=4, karena semakin jauh draft menebak, semakin besar kemungkinan meleset. Ini menjelaskan mengapa menambah K tanpa batas tidak selalu bijak: ada K optimal per pasangan draft-target. Kedua, token tree mengubah permainan — pada K=8, SpecInfer mempertahankan penerimaan 60% dengan 4,8 token per step rata-rata, jauh melampaui vanilla 3,5. Untuk trafik produksi, aturan praktisnya: mulailah dari K=4-6 untuk vanilla, dan manfaatkan tree bila trafik Anda didominasi prompt yang beragam.
 
 ### Tabel C: Trade-off Ukuran Draft Model vs Speedup
 
@@ -141,7 +67,6 @@ Tabel C mengonfirmasi intuisi: draft model yang sangat mungil relatif terhadap t
 
 ---
 
-## 8. Diagram & Visualisasi
 
 ### Gambar 1: Alur Speculative Decoding
 
@@ -164,6 +89,63 @@ Diagram ini menunjukkan arsitektur dua-tahap yang menjadi inti bab ini: sisi ata
 
 Perhatikan juga simetri waktu yang dihasilkan: satu *forward pass* target pada dasarnya menggantikan beberapa langkah autoregressive — dan karena biaya forward pass hampir sama berapa pun panjang input (dalam batas panjang konteks), menerima 4 token sekaligus hampir semurah menerima 1 token. Inilah mengapa spekulasi terasa seperti "potongan harga": Anda membayar harga verifikasi yang sama, tetapi pulang membawa token 2-4x lebih banyak. Satu-satunya "pajak" yang harus dibayar adalah waktu yang dihabiskan draft model — yang seharusnya kecil, karena biaya draft sebanding dengan ukurannya yang jauh lebih kecil.
 
+
+---
+
+## 3. Spekulasi Dasar: Draft dan Verify
+
+
+### Model Kecil Menulis, Model Besar Menyunting
+
+Ide dasar speculative decoding, dirumuskan oleh Leviathan et al. [1] dan Chen et al., bekerja dengan dua model. **Draft model** — model kecil yang jauh lebih murah dan cepat — membangkitkan K token secara autoregressive, satu per satu, dengan biaya per token yang sangat rendah. Kemudian **target model** — model besar yang menjadi sumber kebenaran — memverifikasi seluruh K token draft itu dalam **satu forward pass**. Kunci kecerdasannya ada pada prosedur penerimaan (*acceptance*): semua token draft yang cocok dengan prediksi target model diterima sekaligus; jika mismatch terjadi di posisi ke-i, token ke-1 hingga ke-(i-1) tetap diterima, token ke-i dihitung ulang dengan prediksi target, dan sisa draft dibuang. Dengan cara ini, output yang dihasilkan **identik secara matematis** dengan decoding autoregressive biasa — tidak ada satu token pun yang berbeda — hanya saja rata-rata bertambah lebih dari satu token per forward pass.
+
+### Acceptance Rate: Nyawa Spekulasi
+
+Ukuran yang menentukan semuanya adalah **acceptance rate**: persentase token draft yang diterima oleh target model. Jika draft model cerdas — menebak dengan akurat apa yang akan dipilih target — acceptance rate tinggi dan setiap forward pass target "membayar" beberapa token sekaligus. Jika draft model menebak sembarangan, hampir semua token ditolak, dan Anda hanya membuang komputasi dengan hasil lebih lambat dari decoding biasa. Inilah alasan pemilihan draft model tidak bisa asal: draft yang baik adalah draft yang hidup di "gaya berpikir" yang sama dengan target — idealnya dari keluarga arsitektur yang sama, seperti Llama-3.2-3B untuk melayani Llama-3.1-70B atau DeepSeek V4 Flash untuk V4 Pro. Spekulasi adalah investasi: Anda membayar komputasi draft kecil untuk membeli hak memverifikasi banyak token sekaligus.
+
+### Menghitung Keuntungan: Rumus di Balik Angka Speedup
+
+Untuk memahami mengapa angka speedup di Tabel B bisa berkisar 2x hingga 3,8x, ada satu rumus mental yang berguna: **jumlah token rata-rata per forward pass target ≈ 1 + (acceptance rate × K)**. Dengan K=4 dan acceptance 70%, rata-rata target menerima 1 + 2,8 = 3,8 token per langkah verifikasi — itulah yang menjelaskan angka 2,8 token/step pada Tabel B (perhatikan angka nyata sedikit di bawah perkiraan karena token yang ditolak di posisi akhir ikut mengurangi rata-rata). Dari rumus ini dua kesimpulan langsung: pertama, *gain bertambah hampir linear dengan K* selama acceptance rate tidak jatuh — itulah alasan orang mencoba K lebih besar; kedua, *begitu acceptance rate jatuh tajam* (seperti 70% → 44% saat K=8 pada vanilla), penambahan K justru mandul. Konfigurasi optimal adalah titik di mana hasil kali `acceptance rate × K` maksimum — bukan K terbesar, bukan acceptance tertinggi. Ukur keduanya secara berkala di produksi, dan Anda akan menemukan sweet spot yang mungkin berbeda dari default engine.
+
+### Mengapa Hasilnya Identik: Jaminan Matematis di Balik Spekulasi
+
+Satu kekhawatiran yang sering muncul sebelum adopsi: "apakah draft model meracuni kualitas jawaban?" Jawaban teoretisnya tegas: untuk mode *greedy decoding*, speculative decoding **lossless** — outputnya identik dengan decoding autoregressive biasa [1]. Argumennya berlapis. Pertama, mode *greedy* selalu memilih token dengan probabilitas tertinggi; karena target model adalah satu-satunya hakim akhir — token yang tidak cocok dengan prediksi target dihitung ulang menggunakan logit target — mustahil token yang tidak dipilih target lolos ke output. Kedua, pada *sampling* berdistribusi (dengan suhu atau top-p), skema verifikasi menggunakan distribusi target secara langsung, sehingga token yang dihasilkan mengikuti distribusi yang tepat dari target model — bukan perkiraan draft. Ketiga, token yang dibuang tidak pernah hilang secara informasi: seluruh sejarah prompt tetap utuh, dan perhitungan ulang dimulai dari posisi yang diamankan. Artinya, speculative decoding adalah *optimasi murni*: Anda membayar komputasi draft kecil, dan satu-satunya yang berubah adalah kecepatan, bukan isi. Perlu pengecualian jujur: metode seperti Medusa dengan pelatihan head tambahan menghasilkan distribusi yang "hampir identik", bukan identik — perbedaan ini biasanya tak kasatmata, tetapi penting bagi aplikasi yang menuntut determinisme penuh antar versi.
+
+### Tabel B: Benchmark Speculative Decoding (Llama-2-7B Target, Llama-7B Draft, A100)
+
+Data pengukuran nyata pada A100 — perhatikan bagaimana token per step rata-rata hampir selalu lebih besar daripada 1.
+
+| Konfigurasi | Tokens/Step Rata | Throughput (tok/s) | Speedup | Acceptance Rate |
+|:---|:---:|:---:|:---:|:---:|
+| Baseline (no spec) | 1.0 | 1,250 | 1.0x | - |
+| Vanilla (K=4) | 2.8 | 2,750 | 2.2x | 70% |
+| Vanilla (K=8) | 3.5 | 3,125 | 2.5x | 44% |
+| SpecInfer (tree K=4) | 3.2 | 3,400 | 2.7x | 80% |
+| SpecInfer (tree K=8) | 4.8 | 4,000 | 3.2x | 60% |
+| Medusa-1 (heads=4) | 3.0 | 3,000 | 2.4x | 75% |
+
+![Speculative decoding menaikkan throughput dari 1.250 tok/s (baseline) hingga 4.000 tok/s (SpecInfer tree K=8) — namun acceptance rate vanilla jatuh ke 44% saat K membesar, sementara token tree menjaganya di 60-80%](../../assets/images/bab-05-inference/sub-bab-10/benchmark-speculative-decoding.png)
+
+*Gambar 5.10-1 — Token tree mengubah permainan: pada K=8, SpecInfer mempertahankan acceptance 60% dengan 4,8 token/step, jauh melampaui vanilla (44%, 3,5 token/step) — menambah K tanpa batas mandul bila acceptance rate jatuh.*
+
+Dua pelajaran penting dari Tabel B. Pertama, *acceptance rate tidak turun secara linier saat K membesar* — K=8 pada vanilla hanya mendapat 44% penerimaan dibanding 70% pada K=4, karena semakin jauh draft menebak, semakin besar kemungkinan meleset. Ini menjelaskan mengapa menambah K tanpa batas tidak selalu bijak: ada K optimal per pasangan draft-target. Kedua, token tree mengubah permainan — pada K=8, SpecInfer mempertahankan penerimaan 60% dengan 4,8 token per step rata-rata, jauh melampaui vanilla 3,5. Untuk trafik produksi, aturan praktisnya: mulailah dari K=4-6 untuk vanilla, dan manfaatkan tree bila trafik Anda didominasi prompt yang beragam.
+
+
+---
+
+## 4. Tree-based Speculative Inference: SpecInfer dan Akar Percabangan
+
+
+### Batas Jalur Tunggal
+
+Spekulasi linear — satu rangkaian K token draft — memiliki kelemahan struktural: ia hanya menebak satu jalan cerita. Jika draft model menebak token yang berbeda dari target di posisi ke-3, maka semua tebakan sesudahnya — yang seharusnya valid bergantung pada token ke-3 tersebut — ikut dibuang. Dengan kata lain, spekulasi linear adalah penjelajah yang memilih satu lorong gua; jika lorong itu buntu, seluruh perjalanan kembali ke awal. Ini membatasi acceptance rate secara alami, terutama pada teks dengan banyak kemungkinan kelanjutan.
+
+### Token Tree: Banyak Lorong dalam Satu Perjalanan
+
+**SpecInfer** [2] memecahkan batas ini dengan **token tree**: alih-alih satu jalur, draft model membangkitkan beberapa cabang (branching) — misalnya sebuah kalimat bisa diawali "the cat", "a dog", atau "an elephant" — membentuk pohon token dengan puluhan jalur potensial. Kuncinya, seluruh pohon dapat diverifikasi oleh target model dalam **satu forward pass** paralel: perhitungan bersama token-token yang berbagi prefix membuat verifikasi pohon tidak jauh lebih mahal daripada verifikasi satu jalur. Hasilnya adalah *coverage* yang jauh lebih tinggi — satu kesempatan yang tidak sempat diambil di cabang A mungkin tersedia di cabang B. Pengukuran SpecInfer menunjukkan speedup **1,5-2,8x** pada *distributed setting* dan **2,6-3,5x** pada *offloading setting* — dan yang mengejutkan, seluruhnya dengan output yang tetap identik dengan target model (lossless) [2]. Ini adalah free lunch: teks yang sama, dikirim lebih cepat.
+
+Selisih antara dua angka tersebut — *distributed* vs *offloading* — layak dipahami karena menentukan di lingkungan mana Anda akan beroperasi. Pada *distributed setting* (semua model di GPU), pasangan draft dan target bersaing untuk sumber daya GPU yang sama; dalam beberapa konfigurasi, draft malah menambah beban tanpa keuntungan besar, sehingga speedup terkendali di 1,5-2,8x. Pada *offloading setting* (draft dijalankan di perangkat terpisah, misalnya CPU atau GPU tambahan), draft tidak merebut bandwidth dari target sehingga keuntungannya lebih murni — hingga 3,5x. Implikasi praktisnya: jika GPU Anda penuh sesak dan tidak ada alokasi untuk draft, tempatkan draft di CPU atau GPU cadangan; jika model Anda berjalan di satu GPU dengan ruang kosong, jalankan draft di GPU yang sama untuk menghindari biaya transfer antar perangkat. Pemilihan tata letak draft adalah keputusan arsitektur — bukan detail pelengkap.
+
 ### Gambar 2: Token Tree SpecInfer
 
 Bentuk token tree — satu akar, banyak cabang, semuanya diverifikasi sekaligus:
@@ -185,7 +167,33 @@ Batasan yang jujur dari pendekatan tree juga perlu disebut: pohon yang terlalu l
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 5. Variasi Speculative Decoding: Banyak Jalan Menuju Token Cepat
+
+
+Spekulasi tidak harus selalu melibatkan dua model terpisah. **Medusa** [3] mengambil rute berbeda: alih-alih draft model, ia menempelkan beberapa *decoding head* tambahan pada model target itu sendiri — setiap head memprediksi posisi token berikutnya secara paralel sehingga satu forward pass menghasilkan beberapa kandidat token sekaligus. Tanpa model kedua, Medusa mencatat speedup **2,2-2,8x** dengan pelatihan tambahan hanya pada *head* saja (Medusa-1) atau seluruh model (Medusa-2). **Self-speculative decoding** [4] bahkan menghilangkan kebutuhan pelatihan: model yang sama bertindak sebagai draft dan target dengan cara melompati sebagian lapisan (*layer skipping*) saat menebak — draf datang dari versi "pendek" dirinya sendiri. **Eagle** menggunakan dua model LLM dengan mekanisme verifikasi spekulatif yang ditingkatkan. **Lookahead Decoding** meninggalkan model kedua sama sekali: ia membangun *N-gram* dari output yang sedang dihasilkan untuk menebak token berikutnya. Tidak semua metode setara — masing-masing bertukar antara kecepatan, kemurnian distribusi output (identik vs mendekati), dan biaya deployment (satu model vs dua) — keputusan yang akan kita bandingkan sistematis pada Tabel A.
+
+### Membedah Trade-off: Kapan Memilih Metode Mana?
+
+Panduan pemilihan metode dapat diringkas dalam tiga pertanyaan. Pertama, *apakah Anda bisa menambahkan model kedua?* Jika VRAM ketat atau manajemen dua model terasa berat, Medusa (pelatihan head) atau lookahead decoding (tanpa pelatihan) adalah kandidat utama; jika Anda memiliki VRAM cadangan — dan pedoman di Tabel C menunjukkan biayanya sering kecil — vanilla SpecDec atau SpecInfer memberi keamanan lossless. Kedua, *apakah output harus identik?* Dalam produksi yang dievaluasi (AB test, audit, compliance), pilih metode lossless; dalam chatbot bebas yang tidak pernah dibandingkan token-per-token, "hampir identik" cukup. Ketiga, *apakah trafik Anda panjang dan beragam?* Teks panjang dengan banyak kelanjutan potensial mendapat manfaat terbesar dari token tree (SpecInfer), yang menjelajah banyak cabang sekaligus; teks pendek yang deterministik (kode, JSON) cukup dilayani vanilla dengan K kecil. Catatan tambahan dari riset Sequoia [5]: konfigurasi optimal — jumlah token spekulasi, ukuran tree, dan bahkan kebutuhan draft model — sangat bergantung pada hardware (memory bandwidth ratio) dan beban nyata, sehingga mengukur acceptance rate di environment produksi sendiri lebih berharga daripada menyalin konfigurasi orang lain.
+
+---
+
+## 6. Implementasi di Engine Inference Modern
+
+
+Untungnya, engineer tidak perlu mengimplementasikan semua ini dari nol. **vLLM** mendukung speculative decoding dengan bendera `--speculative-model`: tentukan model draft, jumlah token spekulasi, dan versi tensor parallelism untuk draft model — sisanya dikelola engine, termasuk metrik acceptance rate yang diekspos ke Prometheus. **TGI (Text Generation Inference)** juga mendukung speculative decoding dengan draft model untuk keluarga modelnya. **Aphrodite**, engine turunan vLLM untuk komunitas, mendukung berbagai metode speculative decoding sambil mempertahankan API yang sama. Pilihannya kini seputar: seberapa kompatibel draft model dengan model target Anda, dan seberapa besar VRAM tambahan yang bersedia Anda bayar — kedua dimensi itu kita hitung di Tabel C.
+
+### Kapan Speculative Decoding Tidak Membantu: Kejujuran Teknis
+
+Agar tidak ada pembaca yang terjebak euforia speedup, penting mengakui tiga kondisi di mana spekulasi gagal memberi manfaat. Pertama, **workload yang didominasi prefill**: jika trafik Anda berupa prompt raksasa dengan output pendek (misalnya klasifikasi dokumen 32K token dengan jawaban satu kata), yang menjadi bottleneck adalah prefill — komputasi — bukan decode; spekulasi tidak menyentuh prefill sama sekali, dan hasilnya nyaris nol. Kedua, **draft model yang tidak cocok**: tanpa kesamaan arsitektur dengan target, acceptance rate jatuh ke 30-40% dan overhead draft justru menelan lebih banyak waktu daripada yang dihemat verifikasi. Ketiga, **hardware yang sudah jenuh bandwidth**: pada GPU yang antrean memorinya sudah penuh oleh workload lain, draft model ikut berebut bandwidth — keuntungan spekulasi terkikis oleh kelangkaan sumber daya yang sama. Untuk memastikan Anda berada di sisi yang benar, selalu ukur *net speedup* di lingkungan produksi sendiri — bukan di benchmark — sebelum mengunci konfigurasi. Dan jangan lupa mencatat konfigurasi yang gagal: dokumentasi "yang sudah dicoba dan terbukti tidak bekerja" sama berharganya dengan resep yang berhasil.
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Speculative Decoding dengan vLLM
 
@@ -315,7 +323,8 @@ Satu siklus penyetelan yang disarankan: seminggu sekali, tinjau grafik acceptanc
 
 ---
 
-## 10. Studi Kasus: API Provider — Menghemat 40% Biaya GPU
+## 8. Studi Kasus: API Provider — Menghemat 40% Biaya GPU
+
 
 **Latar belakang.** Sebuah API provider melayani **500 request/detik** dengan Llama-3.1-70B di 8x H100. Masalahnya bukan pelanggan — mereka puas — melainkan neraca: biaya GPU sekitar **$200/jam**, dan throughput terbatas oleh memory bandwidth, bukan oleh permintaan.
 
@@ -331,7 +340,8 @@ Satu siklus penyetelan yang disarankan: seminggu sekali, tinjau grafik acceptanc
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

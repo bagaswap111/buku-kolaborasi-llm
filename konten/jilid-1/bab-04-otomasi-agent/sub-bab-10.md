@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Membangun pipeline otomasi lengkap: audio meeting → transkrip → rangkuman → *task tracker*
@@ -17,6 +18,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Problem: Meeting Overload
+
 
 ### Jam yang Hilang dalam Meeting
 
@@ -32,9 +34,10 @@ Solusinya adalah **pipeline otomatis yang berjalan sepenuhnya lokal**: audio dir
 
 ## 3. Pipeline End-to-End
 
+
 ### Alur Lengkap
 
-Pipeline ini memiliki tujuh tahap yang berurutan: **Audio → STT (Whisper) → Speaker Diarization → Rangkuman (LLM) → Ekstrak Action Items → Simpan ke Markdown → Integrasi Task Tracker**. Setiap tahap menghasilkan output yang menjadi input tahap berikutnya, membentuk rantai otomasi yang utuh. Diagram pada bagian 9 menggambarkan keseluruhan alur secara visual; Tutorial A pada bagian 10 memberikan implementasi Python lengkap dalam satu kelas.
+Pipeline ini memiliki tujuh tahap yang berurutan: **Audio → STT (Whisper) → Speaker Diarization → Rangkuman (LLM) → Ekstrak Action Items → Simpan ke Markdown → Integrasi Task Tracker**. Setiap tahap menghasilkan output yang menjadi input tahap berikutnya, membentuk rantai otomasi yang utuh. Diagram pada bagian 6 menggambarkan keseluruhan alur secara visual; Tutorial A pada bagian 8 memberikan implementasi Python lengkap dalam satu kelas.
 
 Perhatikan filosofi desain *pipeline* ini: pemisahan tanggung jawab yang ketat. Whisper tidak merangkum, LLM tidak mentranskripsi, dan *task tracker* tidak berpikir — setiap komponen melakukan satu pekerjaan dengan baik. Ini membuat pipeline mudah di-debug (jika transkrip jelek, masalahnya di Whisper, bukan di LLM) dan mudah di-upgrade (ganti Whisper dengan model lebih baik tanpa menyentuh tahap lain).
 
@@ -46,13 +49,14 @@ Keunggulan arsitektur ini dibandingkan layanan cloud seperti Otter.ai adalah ked
 
 ## 4. Komponen Pipeline
 
+
 ### Audio Capture: Sumber Bahan Baku
 
 Semua dimulai dari rekaman audio. Opsi yang umum digunakan: **Otter.ai** untuk mereka yang sudah menggunakannya di cloud, **QuickTime recording** di macOS untuk rekaman cepat, atau **Zoom lokal** yang menyimpan rekaman meeting otomatis ke folder tertentu. Apapun alatnya, aturannya sama: pastikan semua rekaman berakhir di satu folder pemantauan (misalnya `~/Documents/Meetings/Audio`) dalam format `.wav` atau `.m4a` — dua format yang didukung langsung oleh pipeline pada Tutorial A.
 
 ### STT: Whisper untuk Bahasa Indonesia
 
-**Whisper** dari OpenAI adalah tulang punggung *speech-to-text* pipeline ini. Model *medium* dan *large-v3* adalah pilihan utama untuk Bahasa Indonesia — keduanya mendukung bahasa secara native dengan parameter `language="id"`. Dari Tabel A di bagian 8: Whisper *medium* membutuhkan sekitar 5 GB memori dengan akurasi sekitar 9% *Word Error Rate* (WER), sementara *large-v3* menawarkan akurasi lebih baik (sekitar 7% WER) dengan biaya 10 GB memori dan waktu proses hampir dua kali lipat. Untuk meeting harian, *medium* biasanya merupakan titik keseimbangan yang baik [3].
+**Whisper** dari OpenAI adalah tulang punggung *speech-to-text* pipeline ini. Model *medium* dan *large-v3* adalah pilihan utama untuk Bahasa Indonesia — keduanya mendukung bahasa secara native dengan parameter `language="id"`. Dari Tabel A di bagian 4: Whisper *medium* membutuhkan sekitar 5 GB memori dengan akurasi sekitar 9% *Word Error Rate* (WER), sementara *large-v3* menawarkan akurasi lebih baik (sekitar 7% WER) dengan biaya 10 GB memori dan waktu proses hampir dua kali lipat. Untuk meeting harian, *medium* biasanya merupakan titik keseimbangan yang baik [3].
 
 ### Speaker Diarization: Siapa Bicara Kapan
 
@@ -68,47 +72,7 @@ Tahap keempat adalah pemisahan ulang: dari rangkuman prosa, ekstrak semua *actio
 
 ### Output: Markdown dan Integrasi Task Tracker
 
-Tahap terakhir menyimpan hasil sebagai **file Markdown** dengan *frontmatter* YAML (judul, tanggal, durasi, peserta) dan menuliskan *action items* terstruktur di bawah rangkuman. Format Markdown dipilih karena universal: bisa dibuka di editor apa pun, mudah dibaca manusia, dan mudah diproses script. Dari sini, integrasi ke *task tracker* — Taskwarrior, Todoist, Notion, atau Obsidian — dilakukan melalui API atau CLI masing-masing, seperti dibahas di Tabel C bagian 8.
-
----
-
-## 5. Format Output
-
-### Frontmatter Standar
-
-Setiap file hasil pipeline mengikuti format yang konsisten — ini bukan sekadar kerapian, melainkan desain yang membuat output bisa di-*parse* oleh alat lain. File dimulai dengan *frontmatter* YAML berisi `title`, `date`, `duration`, dan daftar `attendees`. Kemudian tiga bagian utama: **Key Points** (poin-poin diskusi dalam *bullet*), **Action Items** (tugas dengan pemilik dan *deadline*), dan referensi ke **Full Transcript** lengkap. Tutorial bagian 10 menghasilkan output persis dengan format ini; Tabel B memperlihatkan contoh lengkapnya.
-
-### Mengapa Struktur Ini Penting
-
-Format standar memberikan tiga keuntungan. Pertama, *action items* dengan format `[ ] tugas → deadline: tanggal` bisa dikenali oleh kode — sebuah *regex* sederhana cukup untuk mengekstraknya tanpa melibatkan LLM. Kedua, konsistensi format membuat file dari meeting yang berbeda bisa dibandingkan dan diagregasi — misalnya, rangkuman semua meeting minggu ini dalam satu tampilan. Ketiga, *frontmatter* memungkinkan integrasi langsung dengan alat seperti Obsidian yang membaca metadata YAML untuk menampilkan properti dokumen. Dengan kata lain: pilih format sekali, dan semua alat lain menyesuaikan.
-
----
-
-## 6. Scheduling: Membuat Pipeline Berjalan Sendiri
-
-### Cron dan Launchd
-
-Pipeline yang harus dijalankan manual bukanlah otomasi. Untuk membuatnya berjalan mandiri, gunakan **cron** (Linux) atau **launchd** (macOS). Dengan *cron*, satu baris konfigurasi — misalnya `0 18 * * 1-5` — menjalankan *batch process* setiap hari kerja pukul 18:00, tepat setelah rapat hari itu selesai. *Launchd* adalah pendekatan macOS yang lebih modern dengan `LaunchAgent` plist; keunggulannya adalah *monitoring* dan *restart* otomatis jika proses gagal. Keduanya melayani tujuan yang sama: memindahkan pipeline dari "sesuatu yang saya jalankan" menjadi "sesuatu yang berjalan".
-
-### Watchdog Folder dan Notifikasi
-
-Selain penjadwalan berbasis waktu, pipeline bisa dipicu oleh **peristiwa**: sebuah *watchdog* memantau folder audio dan memproses setiap berkas baru begitu muncul. Library `watchdog` (Python) atau `inotifywait` (Linux) melayani tujuan ini; di macOS, `fswatch` adalah alternatif native. Dengan *watchdog*, hasil rangkuman tersedia dalam hitungan menit setelah meeting berakhir, bukan menunggu jadwal malam. Setelah proses selesai, **terminal-notifier** di macOS menampilkan notifikasi — "Rangkuman selesai: Sprint_Planning_W24.md" — sehingga Anda tidak perlu memeriksa folder secara manual.
-
----
-
-## 7. Extending Workflow: Melampaui Rangkuman
-
-### Integrasi Notion, Obsidian, dan Kalender
-
-Pipeline dasar ini adalah fondasi yang bisa diperluas ke berbagai arah. **Notion** dan **Obsidian** dapat menjadi rumah permanen rangkuman: Obsidian via *local files* (format Markdown native), Notion via *REST API* dengan *Internal Integration token*. Dari *action items* yang sudah berformat JSON, Anda bisa **auto-create calendar events** untuk setiap *deadline* — memperbolehkan kalender Anda menampilkan tenggat tugas meeting secara otomatis. **Email draft** juga bisa dihasilkan — "berikut rangkuman meeting hari ini beserta tugas masing-masing" — dan dikirim ke peserta meeting dengan satu perintah.
-
-### Prinsip Modularitas
-
-Semua ekstensi di atas berbagi satu prinsip: jangan mengubah pipeline inti. Rangkuman dan JSON *action items* adalah output yang stabil; ekstensi hanya membaca output itu dan melakukan hal baru. Ingin menambah satu integrator Notion? Tulis script kecil yang membaca folder Markdown dan mengunggah ke Notion — tanpa menyentuh `meeting_pipeline.py`. Modularitas inilah yang membuat pipeline umur panjang: kebutuhan hari ini adalah rangkuman meeting, kebutuhan bulan depan mungkin adalah *dashboard* kepatuhan — dan keduanya berbagi fondasi yang sama.
-
----
-
-## 8. Tabel Perbandingan
+Tahap terakhir menyimpan hasil sebagai **file Markdown** dengan *frontmatter* YAML (judul, tanggal, durasi, peserta) dan menuliskan *action items* terstruktur di bawah rangkuman. Format Markdown dipilih karena universal: bisa dibuka di editor apa pun, mudah dibaca manusia, dan mudah diproses script. Dari sini, integrasi ke *task tracker* — Taskwarrior, Todoist, Notion, atau Obsidian — dilakukan melalui API atau CLI masing-masing, seperti dibahas di Tabel C bagian 4.
 
 ### Tabel A: Pipeline Components & Resource
 
@@ -128,6 +92,37 @@ Dari tabel ini, pesan utama tentang sumber daya: pipeline kelas ini berjalan nya
 ![Waktu proses dan kebutuhan memori setiap komponen pipeline meeting untuk satu jam audio](../../assets/images/bab-04-otomasi-agent/sub-bab-10/resource-waktu-pipeline.png)
 
 *Gambar 4.10-1 — Whisper large-v3 adalah komponen termahal (15 menit, 10 GB) sementara diarization menyusul (12 menit); total 25-35 menit dan ~16 GB memori membuat pipeline ideal dijalankan sebagai batch malam hari.*
+
+
+### Tabel C: Task Tracker Integration
+
+Terakhir, perbandingan lima platform *task tracker* yang dapat menjadi tujuan akhir *action items* — dari yang paling sederhana hingga yang paling enterprise.
+
+| Platform | API Method | Auth | Free Tier | Notes |
+|:---|:---|:---|:---:|:---|
+| **Taskwarrior** | CLI lokal | None | Ya | Setup paling mudah |
+| **Todoist** | REST API | OAuth | Ya (5 project) | Sync multi-device |
+| **Notion** | REST API | Internal Integration | Ya (personal) | Plus database |
+| **Obsidian** | Local files | None | Ya | Markdown native |
+| **ClickUp** | REST API | API Key | Ya (100MB) | Enterprise ready |
+
+Dari tabel ini, rekomendasi berbeda untuk kebutuhan berbeda. **Taskwarrior** adalah pilihan yang paling sederhana dan paling selaras dengan filosofi lokal bab ini: CLI murni, tanpa autentikasi, dan tanpa cloud — satu perintah `task add` sudah memasukkan tugas ke database lokal. **Obsidian** sempurna jika Anda sudah menggunakannya sebagai *knowledge base*: karena output pipeline sudah berbentuk Markdown, integrasinya hanya menyalin file ke vault. **Todoist** cocok ketika tim Anda tersebar di perangkat — OAuth dan sinkronisasi multi-device membuat tugas muncul di ponsel semua orang. **Notion** menambah kekuatan *database* — Anda bisa membuat *view* per orang, per minggu, atau per proyek. **ClickUp** adalah pilihan enterprise dengan batasan *free tier* 100 MB. Aturan praktis: mulai dari Taskwarrior untuk kebutuhan pribadi, naikkan ke Notion atau ClickUp ketika kolaborasi tim membutuhkannya [8].
+
+---
+
+
+---
+
+## 5. Format Output
+
+
+### Frontmatter Standar
+
+Setiap file hasil pipeline mengikuti format yang konsisten — ini bukan sekadar kerapian, melainkan desain yang membuat output bisa di-*parse* oleh alat lain. File dimulai dengan *frontmatter* YAML berisi `title`, `date`, `duration`, dan daftar `attendees`. Kemudian tiga bagian utama: **Key Points** (poin-poin diskusi dalam *bullet*), **Action Items** (tugas dengan pemilik dan *deadline*), dan referensi ke **Full Transcript** lengkap. Tutorial bagian 8 menghasilkan output persis dengan format ini; Tabel B memperlihatkan contoh lengkapnya.
+
+### Mengapa Struktur Ini Penting
+
+Format standar memberikan tiga keuntungan. Pertama, *action items* dengan format `[ ] tugas → deadline: tanggal` bisa dikenali oleh kode — sebuah *regex* sederhana cukup untuk mengekstraknya tanpa melibatkan LLM. Kedua, konsistensi format membuat file dari meeting yang berbeda bisa dibandingkan dan diagregasi — misalnya, rangkuman semua meeting minggu ini dalam satu tampilan. Ketiga, *frontmatter* memungkinkan integrasi langsung dengan alat seperti Obsidian yang membaca metadata YAML untuk menampilkan properti dokumen. Dengan kata lain: pilih format sekali, dan semua alat lain menyesuaikan.
 
 ### Tabel B: Format Structured Output
 
@@ -157,38 +152,21 @@ attendees: ["Alice", "Bob", "Charlie"]
 
 Analisis format ini: setiap elemen memiliki tujuan teknis yang jelas. *Frontmatter* YAML memungkinkan *parser* (dan alat seperti Obsidian) membaca metadata tanpa menyentuh isi dokumen. Format `- [ ] Nama: Tugas → deadline: X` pada *action items* adalah kunci integrasi — pola ini bisa dikenali *regex* sederhana, ditampilkan sebagai *checkbox* di editor Markdown, dan diterjemahkan ke Taskwarrior sebagai tugas dengan *due date*. Satu catatan penting: *deadline* dalam bentuk nama hari ("Jumat", "Hari ini") membutuhkan konversi ke tanggal aktual pada tahap integrasi — sebuah langkah kecil yang sering dilupakan dan menyebabkan tugas terlupakan. Struktur inilah yang membuat output pipeline bukan sekadar catatan, melainkan *actionable data* [1].
 
-### Tabel C: Task Tracker Integration
-
-Terakhir, perbandingan lima platform *task tracker* yang dapat menjadi tujuan akhir *action items* — dari yang paling sederhana hingga yang paling enterprise.
-
-| Platform | API Method | Auth | Free Tier | Notes |
-|:---|:---|:---|:---:|:---|
-| **Taskwarrior** | CLI lokal | None | Ya | Setup paling mudah |
-| **Todoist** | REST API | OAuth | Ya (5 project) | Sync multi-device |
-| **Notion** | REST API | Internal Integration | Ya (personal) | Plus database |
-| **Obsidian** | Local files | None | Ya | Markdown native |
-| **ClickUp** | REST API | API Key | Ya (100MB) | Enterprise ready |
-
-Dari tabel ini, rekomendasi berbeda untuk kebutuhan berbeda. **Taskwarrior** adalah pilihan yang paling sederhana dan paling selaras dengan filosofi lokal bab ini: CLI murni, tanpa autentikasi, dan tanpa cloud — satu perintah `task add` sudah memasukkan tugas ke database lokal. **Obsidian** sempurna jika Anda sudah menggunakannya sebagai *knowledge base*: karena output pipeline sudah berbentuk Markdown, integrasinya hanya menyalin file ke vault. **Todoist** cocok ketika tim Anda tersebar di perangkat — OAuth dan sinkronisasi multi-device membuat tugas muncul di ponsel semua orang. **Notion** menambah kekuatan *database* — Anda bisa membuat *view* per orang, per minggu, atau per proyek. **ClickUp** adalah pilihan enterprise dengan batasan *free tier* 100 MB. Aturan praktis: mulai dari Taskwarrior untuk kebutuhan pribadi, naikkan ke Notion atau ClickUp ketika kolaborasi tim membutuhkannya [8].
 
 ---
 
-## 9. Diagram: Pipeline End-to-End Meeting
+## 6. Scheduling: Membuat Pipeline Berjalan Sendiri
 
-Diagram berikut menggambarkan keseluruhan pipeline meeting otomasi — perhatikan urutan tahap yang membentuk rantai dari audio mentah hingga notifikasi selesai.
 
-```mermaid
-flowchart LR
-    A[Folder Audio\n.wav / .m4a] --> B[Whisper STT\nid language]
-    B --> C[Speaker Diarization\npyannote-audio]
-    C --> D[LLM Summarization\nDeepSeek V4 Flash]
-    D --> E[Action Items\nEkstrak JSON]
-    E --> F[Markdown Output\nfrontmatter + key points]
-    F --> G[Task Tracker\nTaskwarrior / Notion]
-    G --> H[Notifikasi\nterminal-notifier]
-```
+### Cron dan Launchd
 
-Diagram ini menunjukkan rantai tujuh tahap yang berurutan. Dimulai dari folder audio yang dipantau *watchdog*, pipeline mentranskripsi dengan Whisper (dengan parameter bahasa Indonesia), memisahkan pembicara dengan pyannote-audio, merangkum dengan LLM lokal, mengekstrak *action items* berformat JSON, menulis output Markdown, memasukkan tugas ke *task tracker*, dan menutupnya dengan notifikasi ke pengguna. Setiap tahap bergantung pada output tahap sebelumnya seperti rantai produksi. Keindahan desain ini: setiap *box* bisa diganti tanpa merusak yang lain — misalnya mengganti Whisper *medium* dengan *large-v3* hanya mengubah *box* kedua, sementara seluruh rantai tetap bekerja identik.
+Pipeline yang harus dijalankan manual bukanlah otomasi. Untuk membuatnya berjalan mandiri, gunakan **cron** (Linux) atau **launchd** (macOS). Dengan *cron*, satu baris konfigurasi — misalnya `0 18 * * 1-5` — menjalankan *batch process* setiap hari kerja pukul 18:00, tepat setelah rapat hari itu selesai. *Launchd* adalah pendekatan macOS yang lebih modern dengan `LaunchAgent` plist; keunggulannya adalah *monitoring* dan *restart* otomatis jika proses gagal. Keduanya melayani tujuan yang sama: memindahkan pipeline dari "sesuatu yang saya jalankan" menjadi "sesuatu yang berjalan".
+
+### Watchdog Folder dan Notifikasi
+
+Selain penjadwalan berbasis waktu, pipeline bisa dipicu oleh **peristiwa**: sebuah *watchdog* memantau folder audio dan memproses setiap berkas baru begitu muncul. Library `watchdog` (Python) atau `inotifywait` (Linux) melayani tujuan ini; di macOS, `fswatch` adalah alternatif native. Dengan *watchdog*, hasil rangkuman tersedia dalam hitungan menit setelah meeting berakhir, bukan menunggu jadwal malam. Setelah proses selesai, **terminal-notifier** di macOS menampilkan notifikasi — "Rangkuman selesai: Sprint_Planning_W24.md" — sehingga Anda tidak perlu memeriksa folder secara manual.
+
+Diagram berikut menggambarkan keseluruhan pipeline meeting otomasi — perhatikan urutan tahap yang membentuk rantai dari audio mentah hingga notifikasi selesai. ```mermaid flowchart LR A[Folder Audio\n.wav / .m4a] --> B[Whisper STT\nid language] B --> C[Speaker Diarization\npyannote-audio] C --> D[LLM Summarization\nDeepSeek V4 Flash] D --> E[Action Items\nEkstrak JSON] E --> F[Markdown Output\nfrontmatter + key points] F --> G[Task Tracker\nTaskwarrior / Notion] G --> H[Notifikasi\nterminal-notifier] ``` Diagram ini menunjukkan rantai tujuh tahap yang berurutan. Dimulai dari folder audio yang dipantau *watchdog*, pipeline mentranskripsi dengan Whisper (dengan parameter bahasa Indonesia), memisahkan pembicara dengan pyannote-audio, merangkum dengan LLM lokal, mengekstrak *action items* berformat JSON, menulis output Markdown, memasukkan tugas ke *task tracker*, dan menutupnya dengan notifikasi ke pengguna. Setiap tahap bergantung pada output tahap sebelumnya seperti rantai produksi. Keindahan desain ini: setiap *box* bisa diganti tanpa merusak yang lain — misalnya mengganti Whisper *medium* dengan *large-v3* hanya mengubah *box* kedua, sementara seluruh rantai tetap bekerja identik.
 
 ### Diagram Pelengkap: Trigger Scheduling
 
@@ -207,7 +185,24 @@ Diagram ini menunjukkan dua jalur menuju proses yang sama. Jalur atas berbasis j
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 7. Extending Workflow: Melampaui Rangkuman
+
+
+### Integrasi Notion, Obsidian, dan Kalender
+
+Pipeline dasar ini adalah fondasi yang bisa diperluas ke berbagai arah. **Notion** dan **Obsidian** dapat menjadi rumah permanen rangkuman: Obsidian via *local files* (format Markdown native), Notion via *REST API* dengan *Internal Integration token*. Dari *action items* yang sudah berformat JSON, Anda bisa **auto-create calendar events** untuk setiap *deadline* — memperbolehkan kalender Anda menampilkan tenggat tugas meeting secara otomatis. **Email draft** juga bisa dihasilkan — "berikut rangkuman meeting hari ini beserta tugas masing-masing" — dan dikirim ke peserta meeting dengan satu perintah.
+
+### Prinsip Modularitas
+
+Semua ekstensi di atas berbagi satu prinsip: jangan mengubah pipeline inti. Rangkuman dan JSON *action items* adalah output yang stabil; ekstensi hanya membaca output itu dan melakukan hal baru. Ingin menambah satu integrator Notion? Tulis script kecil yang membaca folder Markdown dan mengunggah ke Notion — tanpa menyentuh `meeting_pipeline.py`. Modularitas inilah yang membuat pipeline umur panjang: kebutuhan hari ini adalah rangkuman meeting, kebutuhan bulan depan mungkin adalah *dashboard* kepatuhan — dan keduanya berbagi fondasi yang sama.
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Full Pipeline Meeting Summarizer
 
@@ -393,7 +388,8 @@ Kode ini menunjukkan pola *idempotent batch* yang aman untuk dijalankan berulang
 
 ---
 
-## 11. Studi Kasus: Otomasi Meeting Management — Startup 10 Orang
+## 9. Studi Kasus: Otomasi Meeting Management — Startup 10 Orang
+
 
 **Latar:** Sebuah startup teknologi beranggotakan 10 orang di Jakarta menghabiskan rata-rata 15 jam per minggu untuk meeting — sekitar 1,5 jam per orang, setiap hari. Notulensi ditulis bergiliran oleh anggota tim, sering terlambat dua hari, dan *action items* sering hilang antar-sprint. Dua pertanyaan berulang di setiap meeting mingguan: "apa hasil meeting kemarin?" dan "siapa yang pegang tugas ini?".
 
@@ -407,7 +403,8 @@ Kode ini menunjukkan pola *idempotent batch* yang aman untuk dijalankan berulang
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

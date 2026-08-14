@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Mengintegrasikan **Google Workspace** atau **Microsoft 365** sebagai *identity provider* untuk platform AI small office
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa Identity Management Penting untuk Small Office?
+
 
 ### Dari Berbagi Password ke Single Sign-On
 
@@ -34,6 +36,7 @@ Integrasi identitas membawa tiga nilai yang langsung terasa di operasional haria
 
 ## 3. Arsitektur OAuth 2.0 dan OpenID Connect
 
+
 ### OIDC: Lapisan Identitas di Atas OAuth
 
 Sebelum menyentuh konfigurasi, pahami dulu dua standar yang akan saling bekerja sama. **OAuth 2.0** [1] adalah kerangka *authorization* — ia menjawab pertanyaan "bolehkah aplikasi ini mengakses sumber daya atas nama pengguna?", tanpa terlalu peduli siapa penggunanya. **OpenID Connect (OIDC)** [2] menambahkan lapisan *identity* di atasnya: token yang dikeluarkan kini berisi klaim tentang siapa pengguna — email, nama, dan kelompok — dalam bentuk **ID Token** yang dapat diverifikasi. Dalam praktik sehari-hari: OAuth memberi kunci lemari, OIDC memberi kartu identitas yang menyertainya.
@@ -45,96 +48,6 @@ Satu nuansa penting soal *scope*: Open WebUI hanya meminta apa yang benar-benar 
 ### PKCE: Pengaman Ekstra untuk Web dan Mobile
 
 Ancaman paling nyata pada alur OAuth adalah *authorization code interception* — kode yang dicegat di tengah perjalanan sebelum sempat ditukar dengan token. Jawaban standar industri adalah **PKCE** (*Proof Key for Code Exchange*) [5]: aplikasi membuat *code verifier* acak, hanya mengirim *challenge*-nya ke Google, lalu membuktikan kepemilikannya saat menukar kode. Karena penyerang tidak tahu verifier aslinya, kode curian menjadi tidak berguna. Untuk Open WebUI yang diakses dari browser di kantor, PKCE adalah pengaman wajib yang diaktifkan hampir tanpa biaya konfigurasi — dan menjadi syarat pertama *security checklist* Anda di seksi 6.
-
----
-
-## 4. Pilihan Identity Provider untuk Small Office
-
-### Cloud: Google Workspace dan Microsoft Entra ID
-
-**Google Workspace** adalah pilihan paling umum untuk startup Indonesia — gratis hingga **300 pengguna** di tier *Workspace Starter*, dan mayoritas karyawan sudah punya akunnya untuk email dan Docs. Dukungannya terhadap OIDC matang, *setup*-nya paling rendah kompleksitasnya, dan MFA sudah *built-in*. **Microsoft Entra ID** (dulu Azure AD) adalah pilihan natural bagi perusahaan yang hidup di Office 365: mendukung **SAML dan OIDC**, *conditional access*, serta sinkronisasi *SCIM* untuk grup. Kekurangan keduanya sama: Anda bergantung pada cloud pihak ketiga, dan pengaturan lebih dalam (misalnya *App Roles* untuk grup) membutuhkan penjelajahan konsol yang tidak selalu ramah.
-
-### Self-Hosted: Authentik dan Authelia
-
-Bagi kantor yang ingin merdeka sepenuhnya dari cloud, ada dua kandidat open source. **Authentik** adalah *identity provider* serba bisa yang menangani OIDC, SAML, dan LDAP sekaligus, dengan antarmuka yang modern — cocok sebagai *bridge* antara Google Workspace dan aplikasi internal, seperti yang akan dilihat di studi kasus. **Authelia** lebih ringan: cukup 1 core CPU dan 512 MB RAM, bisa menyatu dengan LDAP yang sudah ada — ideal jika kantor hanya butuh lapisan login tambahan tanpa ambisi integrasi rumit. Pilih Authentik bila Anda butuh kendali penuh dan mulai dari nol; pilih Authelia bila infrastruktur identitas sudah ada dan yang kurang hanya gerbangnya.
-
----
-
-## 5. RBAC dan Scope Management
-
-Memiliki IDP hanyalah setengah jalan; setengahnya lagi adalah memutuskan siapa boleh apa. **RBAC** memetakan peran ke hak akses secara eksplisit (lihat Tabel 3): **Super Admin** dengan akses total termasuk panel admin dan manajemen pengguna; **Developer** yang mendapat model coding plus RAG teknis; **Project Manager** yang mendapat model umum dan dokumen proyek; dan **Viewer** yang hanya boleh *chat* dengan akses baca. Pemetaan ini bisa diperluas menjadi *per-group pricing* — misalnya departemen yang memakai model besar dikenakan kuota berbeda — sehingga pemakaian GPU terkontrol sejak pintu masuk, selaras dengan tata kelola resource di Bab 7.7.
-
-Agar RBAC benar-benar efektif, IDP harus menyuplai kelompok pengguna ke Open WebUI — entah melalui *group sync* dari Google Workspace, *App Roles* di Entra ID, atau sinkronisasi LDAP dari Authentik. Begitu kelompok tersinkron, kebijakan di sisi aplikasi tinggal menyambungkannya ke peran. Inilah mengapa arsitektur pada Diagram 1 mencantumkan *groups* sebagai bagian dari informasi yang diekstrak dari ID Token: tanpa data kelompok, RBAC hanya menjadi teks di dokumen, bukan aturan yang berjalan.
-
-Ada satu kesalahan umum yang layak dihindari sejak awal: menerapkan RBAC hanya di lapisan antarmuka. Jika kebijakan akses hanya menyembunyikan tombol di UI, permintaan yang dipalsukan lewat API langsung tetap bisa menembus. Untuk platform AI, pastikan penegakan peran terjadi di sisi *backend* — misalnya saat mengirim request ke vLLM, periksa kembali role pengguna terhadap model yang diminta — sehingga matriks Tabel 3 berlaku juga bagi klien yang tidak memakai Open WebUI. Lapisan ganda ini (UI + API) adalah pembeda antara RBAC tampilan dan RBAC sungguhan.
-
----
-
-## 6. Security Considerations
-
-### HTTPS dan Higiene Token
-
-Aturan pertama integrasi OAuth di kantor: **HTTPS wajib** — *redirect URI* dari Google dan Microsoft tidak menerima alamat non-HTTPS kecuali `localhost`. Artinya, sebelum menyentuh lingkungan variabel, pastikan `ai.kantor.local` sudah disambangi lewat *reverse proxy* dengan sertifikat (misalnya Caddy atau Nginx + Let's Encrypt). Aturan kedua menyangkut higiene token: *client secret* disimpan hanya di sisi server (via *environment variable*), tidak pernah di kode klien; *access token* dan *refresh token* diperlakukan seperti kunci gudang — disimpan aman, dirotasi berkala, dan dicabut segera saat tidak terpakai.
-
-Pelajaran dari **insiden keamanan Vercel 2026** yang melibatkan *OAuth token* mengingatkan bahwa token yang bocor sekali bisa menghantam banyak layanan sekaligus. Untuk platform AI kantor, terjemahkan itu menjadi tiga kebiasaan: **revoke token** akun yang tidak aktif secara periodik, **monitor OAuth consent grants** di konsol Google/Azure setiap bulan — liat siapa yang memberi izin ke aplikasi apa — dan aktifkan **PKCE** sebagai jaring pengaman alur browser. Keamanan identitas bukan proyek sekali jadi, melainkan rutinitas bulanan seperti mengecek CCTV dan kunci gudang.
-
-Terakhir, satu pertimbangan yang sering terlambat disadari: **masa sesi**. Sesi login yang tidak pernah kedaluwarsa adalah pintu yang tidak pernah terkunci — jika sebuah laptop hilang, akses AI kantor ikut hilang bersama isinya. Atur masa sesi pendek (misalnya 8-24 jam) dan kombinasikan dengan MFA dari IDP agar login kembali tidak memberatkan. Bagi platform AI small office, keseimbangan yang sehat adalah: sesi kerja harian yang nyaman, tetapi penguncian otomatis yang tegas. Karyawan boleh lupa menutup tab; sistem tidak boleh lupa mengunci pintu.
-
----
-
-## 7. Tabel Perbandingan
-
-Empat tabel berikut merangkum keputusan yang Anda hadapi: memilih IDP, mengalokasikan sumber daya untuknya, dan memetakan peran pengguna. Gunakan ketiganya berurutan — pilih IDP, siapkan host, lalu terjemahkan struktur organisasi ke peran.
-
-### Tabel 1: Perbandingan Identity Provider
-
-Berikut peta perbandingan keempat kandidat IDP agar keputusan Anda berbasis fakta teknis, bukan kebiasaan semata.
-
-| Fitur | Google Workspace | Microsoft Entra ID | Authentik | Authelia |
-|:---|:---|:---|:---|:---|
-| **Tipe** | Cloud SaaS | Cloud SaaS | Self-hosted | Self-hosted |
-| **Harga** | Gratis (starter) | Berbayar | Gratis (OSS) | Gratis (OSS) |
-| **Protokol** | OIDC/OAuth 2 | OIDC, SAML | OIDC, SAML, LDAP | OIDC, LDAP |
-| **MFA** | Ya (built-in) | Ya (Conditional) | Ya (TOTP/WebAuthn) | Ya (TOTP) |
-| **RBAC** | Groups + OU | Groups + Roles | Groups | Groups |
-| **User Sync** | Real-time | SCIM | LDAP sync | LDAP sync |
-| **Self-hosted** | Tidak | Tidak | Ya | Ya |
-| **Kompleksitas Setup** | Rendah | Sedang | Sedang | Rendah |
-
-Membaca tabel ini, keputusan utama Anda sebenarnya hanya dua. Jika tim sudah hidup di Google Workspace — kondisi mayoritas startup Indonesia — integrasi langsung ke Google adalah jalan tercepat dengan kompleksitas terendah; Microsoft Entra ID baru masuk akal bila langganan Office 365 sudah ada dan kebutuhan *conditional access* muncul. Jika kantor menolak dependensi cloud untuk identitas, Authentik menawarkan keseimbangan fitur terbaik, sementara Authelia cocok sebagai lapisan ringan yang menyatu dengan LDAP yang sudah berjalan.
-
-### Tabel 2: Resource Identity Server
-
-Jika Anda memilih jalur self-hosted, alokasikan sumber daya sekecil ini untuk IDP:
-
-| Provider | CPU | RAM | Storage | Catatan |
-|:---|:---:|:---:|:---:|:---|
-| **Authentik (self-hosted)** | 2 core | 4 GB | 10 GB | Postgres + Redis |
-| **Authelia** | 1 core | 512 MB | 1 GB | SQLite/Redis |
-| **Google Workspace** | - | - | - | Cloud, tidak perlu server |
-
-Tabel ini menegaskan bahwa biaya identitas self-hosted nyaris nol — Authentik butuh 2 core dan 4 GB RAM karena menumpang database Postgres dan Redis, sementara Authelia cukup 512 MB. Keduanya bahkan bisa berbagi host dengan Open WebUI atau IDP server lain. Bandingkan dengan biaya tiket cloud tahunan; secara strategis, keputusan self-hosted IDP hampir selalu layak dipertimbangkan meski kompleksitas setup-nya "Sedang".
-
-![Sumber daya minimal server identitas self-hosted: RAM dan storage Authentik versus Authelia](../../assets/images/bab-07-small/sub-bab-6/resource-identity-server.png)
-
-*Gambar 7.6-1 — Authentik menuntut 8x RAM (4 GB vs 512 MB) dan 10x storage (10 GB vs 1 GB) karena membawa Postgres + Redis, sementara Authelia cukup satu core. Selisih ini tetap nol rupiah berlisensi — hanya berpengaruh saat menyewa VPS atau berbagi host.*
-
-### Tabel 3: Konfigurasi RBAC untuk Small Office
-
-Matriks peran berikut adalah cetak biru kebijakan akses yang akan Anda terjemahkan ke grup di IDP:
-
-| Role | Akses Model | Akses RAG | Upload File | Admin Panel | Manajemen User |
-|:---|:---|:---|:---|:---|:---:|
-| **Super Admin** | Semua | Semua | Ya | Ya | Ya |
-| **Developer** | Coding + General | Teknis | Ya | Tidak | Tidak |
-| **Project Manager** | General + Chat | Dokumen Proyek | Ya | Tidak | Tidak |
-| **Viewer** | Chat only | Read only | Tidak | Tidak | Tidak |
-
-Dua hal patut diperhatikan. Pertama, **minimalisasi hak**: *Viewer* bahkan tidak bisa mengunggah file — batasan yang meredam risiko kebocoran data dan pemborosan GPU sekaligus. Kedua, pemisahan domain RAG: *Developer* hanya menjangkau RAG teknis, *PM* hanya dokumen proyek, sehingga sebuah permintaan tidak pernah secara tidak sengaja menceburkan konteks kuangan ke model umum. Mulailah dari matriks ini, lalu sesuaikan kelompoknya saat tim bertumbuh.
-
----
-
-## 8. Diagram & Visualisasi
 
 ### Diagram 1: Flow OAuth 2.0 + OpenID Connect
 
@@ -160,6 +73,84 @@ sequenceDiagram
 
 Perhatikan dua detail penting dalam diagram ini. **Pertama**, kredensial pengguna (langkah 3-4) hanya berpindah antara browser dan Google — Open WebUI tidak pernah melihat password, sebuah prinsip yang membuat platform AI kantor Anda tidak perlu menyimpan rahasia pengguna sama sekali. **Kedua**, langkah 8-9 adalah titik di mana *identity* sungguhan terbentuk: verifikasi tanda tangan ID Token menggunakan kunci publik dari *issuer*, lalu ekstraksi email, nama, dan *groups* — kelompok inilah yang kemudian dipetakan ke peran RBAC pada Tabel 3.
 
+
+---
+
+## 4. Pilihan Identity Provider untuk Small Office
+
+
+### Cloud: Google Workspace dan Microsoft Entra ID
+
+**Google Workspace** adalah pilihan paling umum untuk startup Indonesia — gratis hingga **300 pengguna** di tier *Workspace Starter*, dan mayoritas karyawan sudah punya akunnya untuk email dan Docs. Dukungannya terhadap OIDC matang, *setup*-nya paling rendah kompleksitasnya, dan MFA sudah *built-in*. **Microsoft Entra ID** (dulu Azure AD) adalah pilihan natural bagi perusahaan yang hidup di Office 365: mendukung **SAML dan OIDC**, *conditional access*, serta sinkronisasi *SCIM* untuk grup. Kekurangan keduanya sama: Anda bergantung pada cloud pihak ketiga, dan pengaturan lebih dalam (misalnya *App Roles* untuk grup) membutuhkan penjelajahan konsol yang tidak selalu ramah.
+
+### Self-Hosted: Authentik dan Authelia
+
+Bagi kantor yang ingin merdeka sepenuhnya dari cloud, ada dua kandidat open source. **Authentik** adalah *identity provider* serba bisa yang menangani OIDC, SAML, dan LDAP sekaligus, dengan antarmuka yang modern — cocok sebagai *bridge* antara Google Workspace dan aplikasi internal, seperti yang akan dilihat di studi kasus. **Authelia** lebih ringan: cukup 1 core CPU dan 512 MB RAM, bisa menyatu dengan LDAP yang sudah ada — ideal jika kantor hanya butuh lapisan login tambahan tanpa ambisi integrasi rumit. Pilih Authentik bila Anda butuh kendali penuh dan mulai dari nol; pilih Authelia bila infrastruktur identitas sudah ada dan yang kurang hanya gerbangnya.
+
+Empat tabel berikut merangkum keputusan yang Anda hadapi: memilih IDP, mengalokasikan sumber daya untuknya, dan memetakan peran pengguna. Gunakan ketiganya berurutan — pilih IDP, siapkan host, lalu terjemahkan struktur organisasi ke peran.
+
+### Tabel 1: Perbandingan Identity Provider
+
+Berikut peta perbandingan keempat kandidat IDP agar keputusan Anda berbasis fakta teknis, bukan kebiasaan semata.
+
+| Fitur | Google Workspace | Microsoft Entra ID | Authentik | Authelia |
+|:---|:---|:---|:---|:---|
+| **Tipe** | Cloud SaaS | Cloud SaaS | Self-hosted | Self-hosted |
+| **Harga** | Gratis (starter) | Berbayar | Gratis (OSS) | Gratis (OSS) |
+| **Protokol** | OIDC/OAuth 2 | OIDC, SAML | OIDC, SAML, LDAP | OIDC, LDAP |
+| **MFA** | Ya (built-in) | Ya (Conditional) | Ya (TOTP/WebAuthn) | Ya (TOTP) |
+| **RBAC** | Groups + OU | Groups + Roles | Groups | Groups |
+| **User Sync** | Real-time | SCIM | LDAP sync | LDAP sync |
+| **Self-hosted** | Tidak | Tidak | Ya | Ya |
+| **Kompleksitas Setup** | Rendah | Sedang | Sedang | Rendah |
+
+Membaca tabel ini, keputusan utama Anda sebenarnya hanya dua. Jika tim sudah hidup di Google Workspace — kondisi mayoritas startup Indonesia — integrasi langsung ke Google adalah jalan tercepat dengan kompleksitas terendah; Microsoft Entra ID baru masuk akal bila langganan Office 365 sudah ada dan kebutuhan *conditional access* muncul. Jika kantor menolak dependensi cloud untuk identitas, Authentik menawarkan keseimbangan fitur terbaik, sementara Authelia cocok sebagai lapisan ringan yang menyatu dengan LDAP yang sudah berjalan.
+
+
+### Tabel 2: Resource Identity Server
+
+Jika Anda memilih jalur self-hosted, alokasikan sumber daya sekecil ini untuk IDP:
+
+| Provider | CPU | RAM | Storage | Catatan |
+|:---|:---:|:---:|:---:|:---|
+| **Authentik (self-hosted)** | 2 core | 4 GB | 10 GB | Postgres + Redis |
+| **Authelia** | 1 core | 512 MB | 1 GB | SQLite/Redis |
+| **Google Workspace** | - | - | - | Cloud, tidak perlu server |
+
+Tabel ini menegaskan bahwa biaya identitas self-hosted nyaris nol — Authentik butuh 2 core dan 4 GB RAM karena menumpang database Postgres dan Redis, sementara Authelia cukup 512 MB. Keduanya bahkan bisa berbagi host dengan Open WebUI atau IDP server lain. Bandingkan dengan biaya tiket cloud tahunan; secara strategis, keputusan self-hosted IDP hampir selalu layak dipertimbangkan meski kompleksitas setup-nya "Sedang".
+
+![Sumber daya minimal server identitas self-hosted: RAM dan storage Authentik versus Authelia](../../assets/images/bab-07-small/sub-bab-6/resource-identity-server.png)
+
+*Gambar 7.6-1 — Authentik menuntut 8x RAM (4 GB vs 512 MB) dan 10x storage (10 GB vs 1 GB) karena membawa Postgres + Redis, sementara Authelia cukup satu core. Selisih ini tetap nol rupiah berlisensi — hanya berpengaruh saat menyewa VPS atau berbagi host.*
+
+
+---
+
+## 5. RBAC dan Scope Management
+
+
+Memiliki IDP hanyalah setengah jalan; setengahnya lagi adalah memutuskan siapa boleh apa. **RBAC** memetakan peran ke hak akses secara eksplisit (lihat Tabel 3): **Super Admin** dengan akses total termasuk panel admin dan manajemen pengguna; **Developer** yang mendapat model coding plus RAG teknis; **Project Manager** yang mendapat model umum dan dokumen proyek; dan **Viewer** yang hanya boleh *chat* dengan akses baca. Pemetaan ini bisa diperluas menjadi *per-group pricing* — misalnya departemen yang memakai model besar dikenakan kuota berbeda — sehingga pemakaian GPU terkontrol sejak pintu masuk, selaras dengan tata kelola resource di Bab 7.7.
+
+Agar RBAC benar-benar efektif, IDP harus menyuplai kelompok pengguna ke Open WebUI — entah melalui *group sync* dari Google Workspace, *App Roles* di Entra ID, atau sinkronisasi LDAP dari Authentik. Begitu kelompok tersinkron, kebijakan di sisi aplikasi tinggal menyambungkannya ke peran. Inilah mengapa arsitektur pada Diagram 1 mencantumkan *groups* sebagai bagian dari informasi yang diekstrak dari ID Token: tanpa data kelompok, RBAC hanya menjadi teks di dokumen, bukan aturan yang berjalan.
+
+Ada satu kesalahan umum yang layak dihindari sejak awal: menerapkan RBAC hanya di lapisan antarmuka. Jika kebijakan akses hanya menyembunyikan tombol di UI, permintaan yang dipalsukan lewat API langsung tetap bisa menembus. Untuk platform AI, pastikan penegakan peran terjadi di sisi *backend* — misalnya saat mengirim request ke vLLM, periksa kembali role pengguna terhadap model yang diminta — sehingga matriks Tabel 3 berlaku juga bagi klien yang tidak memakai Open WebUI. Lapisan ganda ini (UI + API) adalah pembeda antara RBAC tampilan dan RBAC sungguhan.
+
+### Tabel 3: Konfigurasi RBAC untuk Small Office
+
+Matriks peran berikut adalah cetak biru kebijakan akses yang akan Anda terjemahkan ke grup di IDP:
+
+| Role | Akses Model | Akses RAG | Upload File | Admin Panel | Manajemen User |
+|:---|:---|:---|:---|:---|:---:|
+| **Super Admin** | Semua | Semua | Ya | Ya | Ya |
+| **Developer** | Coding + General | Teknis | Ya | Tidak | Tidak |
+| **Project Manager** | General + Chat | Dokumen Proyek | Ya | Tidak | Tidak |
+| **Viewer** | Chat only | Read only | Tidak | Tidak | Tidak |
+
+Dua hal patut diperhatikan. Pertama, **minimalisasi hak**: *Viewer* bahkan tidak bisa mengunggah file — batasan yang meredam risiko kebocoran data dan pemborosan GPU sekaligus. Kedua, pemisahan domain RAG: *Developer* hanya menjangkau RAG teknis, *PM* hanya dokumen proyek, sehingga sebuah permintaan tidak pernah secara tidak sengaja menceburkan konteks kuangan ke model umum. Mulailah dari matriks ini, lalu sesuaikan kelompoknya saat tim bertumbuh.
+
+---
+
+
 ### Diagram 2: Struktur RBAC per Departemen
 
 Pohon peran berikut menggambarkan kebijakan akses kecil yang bisa langsung diterapkan di kantor 15 orang.
@@ -180,7 +171,24 @@ Pohon ini menunjukkan dua prinsip RBAC yang baik: **pemisahan fungsi** — *Deve
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 6. Security Considerations
+
+
+### HTTPS dan Higiene Token
+
+Aturan pertama integrasi OAuth di kantor: **HTTPS wajib** — *redirect URI* dari Google dan Microsoft tidak menerima alamat non-HTTPS kecuali `localhost`. Artinya, sebelum menyentuh lingkungan variabel, pastikan `ai.kantor.local` sudah disambangi lewat *reverse proxy* dengan sertifikat (misalnya Caddy atau Nginx + Let's Encrypt). Aturan kedua menyangkut higiene token: *client secret* disimpan hanya di sisi server (via *environment variable*), tidak pernah di kode klien; *access token* dan *refresh token* diperlakukan seperti kunci gudang — disimpan aman, dirotasi berkala, dan dicabut segera saat tidak terpakai.
+
+Pelajaran dari **insiden keamanan Vercel 2026** yang melibatkan *OAuth token* mengingatkan bahwa token yang bocor sekali bisa menghantam banyak layanan sekaligus. Untuk platform AI kantor, terjemahkan itu menjadi tiga kebiasaan: **revoke token** akun yang tidak aktif secara periodik, **monitor OAuth consent grants** di konsol Google/Azure setiap bulan — liat siapa yang memberi izin ke aplikasi apa — dan aktifkan **PKCE** sebagai jaring pengaman alur browser. Keamanan identitas bukan proyek sekali jadi, melainkan rutinitas bulanan seperti mengecek CCTV dan kunci gudang.
+
+Terakhir, satu pertimbangan yang sering terlambat disadari: **masa sesi**. Sesi login yang tidak pernah kedaluwarsa adalah pintu yang tidak pernah terkunci — jika sebuah laptop hilang, akses AI kantor ikut hilang bersama isinya. Atur masa sesi pendek (misalnya 8-24 jam) dan kombinasikan dengan MFA dari IDP agar login kembali tidak memberatkan. Bagi platform AI small office, keseimbangan yang sehat adalah: sesi kerja harian yang nyaman, tetapi penguncian otomatis yang tegas. Karyawan boleh lupa menutup tab; sistem tidak boleh lupa mengunci pintu.
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Integrasi Google Workspace OAuth di Open WebUI
 
@@ -312,7 +320,8 @@ Checklist ini meniru apa yang dilakukan auditor: bukan "apakah login bekerja?", 
 
 ---
 
-## 10. Studi Kasus: Integrasi Google Workspace untuk Startup 15 Orang
+## 8. Studi Kasus: Integrasi Google Workspace untuk Startup 15 Orang
+
 
 **Skenario.** Sebuah startup SaaS dengan 15 karyawan hidup sepenuhnya di Google Workspace — email, Docs, dan Drive. Mereka membangun platform AI internal (Open WebUI + Tabby dari Bab 7.5) dan menghadapi keputusan: karyawan tidak mau lagi membuat akun baru; pimpinan tidak mau password bersama; dan saat ada yang keluar, akses harus hilang seketika tanpa menunggu manusia mengingatkan.
 
@@ -324,7 +333,8 @@ Checklist ini meniru apa yang dilakukan auditor: bukan "apakah login bekerja?", 
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi (Standar & Whitepaper)
 

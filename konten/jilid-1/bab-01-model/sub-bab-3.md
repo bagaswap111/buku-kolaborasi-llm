@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan perbedaan fundamental dense model dengan Mixture of Experts (MoE)
@@ -16,6 +17,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep Dasar Dense Model
+
 
 ### Arsitektur Seragam untuk Setiap Token
 
@@ -33,9 +35,38 @@ Model-model dense populer mencakup Llama-3 dalam varian 8B, 70B, dan 405B; Mistr
 
 Kelebihan utama dense model terletak pada lima aspek. Pertama, latensi deterministik — waktu per token hampir identik untuk input apa pun, tidak tergantung pada konten token. Kedua, deployment sederhana — tidak memerlukan expert parallelism atau routing logic yang kompleks. Ketiga, fine-tuning mudah — semua parameter dapat di-update dengan teknik standar seperti LoRA atau QLoRA tanpa perlu khawatir tentang load balance. Keempat, prediktabilitas hardware — kebutuhan VRAM langsung diketahui dari jumlah parameter dan presisi yang digunakan. Kelima, efisiensi batch processing tetap baik hingga ukuran batch tertentu.
 
+### Tabel A: Perbandingan Dense vs MoE — Model Populer
+
+| Model | Arsitektur | Total Param | Active Param | VRAM FP16 | VRAM Q4 | MMLU | GSM8K |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| Mistral 7B | Dense | 7.3B | 7.3B | 14 GB | 4.5 GB | 62.5% | 45.2% |
+| Llama-3 8B | Dense | 8.0B | 8.0B | 16 GB | 5.2 GB | 66.7% | 79.6% |
+| Llama-3 70B | Dense | 70.6B | 70.6B | 140 GB | 42 GB | 83.6% | 91.1% |
+| Mixtral 8x7B | MoE | 46.7B | 12.9B | 90 GB | 28 GB | 70.6% | 68.6% |
+| DeepSeek V2 | MoE | 236B | 21B | 470 GB | 140 GB | 78.5% | 85.5% |
+| DeepSeek V4 Pro | MoE | 1.6T | 49B | 3.2 TB | 950 GB | 87.5%* | 93.5%* |
+| DeepSeek V4 Flash | MoE | 284B | 13B | 560 GB | 160 GB | — | — |
+| Mistral Large 3 | MoE | 675B | 41B | 1.35 TB | 380 GB | 84.9% | 91.2% |
+| Qwen 1.5-32B | Dense | 32.8B | 32.8B | 66 GB | 20 GB | 74.6% | 72.3% |
+| DBRX | MoE | 132B | 36B | 260 GB | 78 GB | 73.7% | 72.8% |
+
+*\*MMLU-Pro untuk DeepSeek V4 Pro (MMLU standar tidak dipublikasikan).*
+
+Tabel A menunjukkan kontras yang jelas antara parameter total dan parameter aktif. Perhatikan bahwa Mixtral 8x7B dengan 12,9B aktif membutuhkan VRAM yang sama dengan dense model 50B (90 GB FP16), tetapi memberikan kualitas yang mendekati Llama-3 70B pada sebagian benchmark. DeepSeek V4 Flash dengan 13B aktif adalah contoh paling efisien dalam tabel — ia memberikan kapasitas model 284B tetapi dengan kebutuhan komputasi hanya setara 13B.
+
+![Perbandingan parameter total, parameter aktif, dan skor MMLU](../../assets/images/bab-01-model/sub-bab-3/dense-vs-moe-param.png)
+
+*Gambar 1.3-1 — model MoE tampil sebagai "tiang" biru muda yang tinggi dengan "tiang" aktif yang pendek; skor MMLU (garis merah) tidak terkait langsung dengan ukuran total.*
+
+![Kebutuhan VRAM FP16 vs Q4 untuk model dense dan MoE](../../assets/images/bab-01-model/sub-bab-3/vram-fp16-vs-q4.png)
+
+*Gambar 1.3-2 — kuantisasi Q4 memangkas VRAM 3-5x; pada model MoE besar, selisih ini menentukan apakah model bisa berjalan di satu node atau membutuhkan kluster.*
+
+
 ---
 
 ## 3. Konsep Dasar Mixture of Experts (MoE)
+
 
 ### Prinsip Sparse Activation
 
@@ -62,6 +93,7 @@ Evolusi jumlah expert menunjukkan tren yang jelas. Model MoE awal seperti Switch
 ---
 
 ## 4. Komponen MoE: Router, Experts, dan Load Balancing
+
 
 ### Router: Otak di Balik Seleksi Expert
 
@@ -91,9 +123,24 @@ Pendekatan yang lebih radikal adalah Expert Choice routing, di mana expert yang 
 
 Output akhir lapisan MoE dihitung sebagai `output = Σ_{i ∈ top-k} router_weight_i · FFN_i(x)`. Bobot router dari hasil softmax menentukan kontribusi relatif setiap expert. Untuk konfigurasi K=2, biasanya satu expert dominan dengan bobot 0,7-0,9, sementara expert lainnya berperan sebagai "pelengkap" dengan bobot 0,1-0,3. Bobot ini juga merupakan indikator kepercayaan router terhadap pilihannya — distribusi bobot yang merata (0,5/0,5) menandakan bahwa token berada di perbatasan dua domain, sementara bobot yang timpang menandakan token yang jelas termasuk dalam satu domain tertentu.
 
+### Tabel B: Trade-off Berdasarkan Skenario
+
+| Skenario | Pilihan Terbaik | Alasan |
+|:---|:---|:---|
+| **Single user, GPU 24GB** | Dense 7-8B Q4 | VRAM terbatas, MoE tidak muat |
+| **Multi-user server, 2x 24GB** | MoE (Mixtral Q4) | Throughput tinggi per user |
+| **Coding assistant lokal** | Dense 7-8B Q4_K_M | Latency rendah, respons cepat |
+| **Batch processing (RAG)** | MoE (DeepSeek) | Lebih efisien per token |
+| **Fine-tuning custom** | Dense (lebih mudah) | MoE butuh teknik khusus |
+| **Apple Silicon 48GB** | MoE Q4_K_M | Unified memory cukup besar |
+
+Tabel B menunjukkan bagaimana pilihan arsitektur sangat tergantung pada skenario penggunaan. Tidak ada arsitektur yang unggul dalam semua situasi — setiap pilihan melibatkan trade-off yang perlu dipertimbangkan berdasarkan prioritas Anda.
+
+
 ---
 
 ## 5. Kelebihan MoE Dibandingkan Dense
+
 
 ### Performa per FLOP yang Superior
 
@@ -121,6 +168,7 @@ Pipeline RAG (Retrieval-Augmented Generation) dengan batch processing besar — 
 
 ## 6. Kekurangan MoE
 
+
 ### Kebutuhan VRAM yang Besar
 
 Meskipun hanya 2 dari 8 expert yang aktif per token, seluruh expert harus berada di VRAM karena token yang berbeda dalam satu batch dapat mengaktifkan expert yang berbeda. Mixtral 8x7B membutuhkan sekitar 90 GB dalam FP16 — setara dengan dense model sekitar 50B — tetapi hanya 13B parameter yang benar-benar aktif. Sebagai perbandingan, dense 13B hanya membutuhkan sekitar 26 GB. Ini membatasi MoE pada GPU dengan VRAM besar. DeepSeek V4 Flash dengan 284B total dan 13B aktif masih membutuhkan 160 GB dalam format Q4 — hanya muat di server multi-GPU atau Apple Silicon dengan unified memory 192 GB atau lebih.
@@ -145,6 +193,7 @@ Ekosistem tooling untuk MoE masih belum sematang untuk dense model. Tidak semua 
 
 ## 7. Perbandingan di Ekosistem Lokal
 
+
 ### llama.cpp (Backend Ollama)
 
 llama.cpp menyediakan dukungan MoE melalui format GGUF, di mana semua parameter MoE disimpan dalam satu file dengan metadata expert mapping. Fitur utamanya meliputi offloading hybrid — sebagian expert dapat ditempatkan di GPU dan sisanya di CPU — K-quantization untuk MoE dari Q2_K hingga Q8_0 dengan per-expert quantization, dan kemampuan inference MoE tanpa GPU sama sekali. Keterbatasan utamanya adalah tidak mendukung expert parallelism multi-GPU (hanya satu GPU yang dapat digunakan). Dalam pengujian praktis, Mixtral 8x7B Q4_K_M mencapai sekitar 10 TPS di CPU 16-core dan 40 TPS di RTX 4090. Cocok untuk pengguna dengan satu GPU atau CPU-only, eksperimen lokal, dan pengguna Mac.
@@ -167,50 +216,6 @@ Pemilihan backend sangat tergantung pada hardware yang tersedia. Untuk GPU kelas
 
 Pengguna Apple Silicon dengan M2 Max 96GB memiliki keunggulan unified memory. Mixtral Q4_K_M via llama.cpp mencapai sekitar 30 TPS, dan DeepSeek V4 Flash Q4 pada 20 TPS. Sementara itu, pengguna dengan konfigurasi multi-GPU seperti 2 RTX 3090 (48GB total) dapat memanfaatkan vLLM untuk Mixtral Q4_K_M dengan throughput 180 TPS pada batch 8, atau DeepSeek V2 Q4 pada 70 TPS. Untuk pengguna rumahan dengan satu GPU, llama.cpp atau EXL2 adalah pilihan terbaik. Untuk server multi-user, vLLM adalah standar industri yang tidak tergantikan.
 
----
-
-## 8. Tabel Perbandingan
-
-### Tabel A: Perbandingan Dense vs MoE — Model Populer
-
-| Model | Arsitektur | Total Param | Active Param | VRAM FP16 | VRAM Q4 | MMLU | GSM8K |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Mistral 7B | Dense | 7.3B | 7.3B | 14 GB | 4.5 GB | 62.5% | 45.2% |
-| Llama-3 8B | Dense | 8.0B | 8.0B | 16 GB | 5.2 GB | 66.7% | 79.6% |
-| Llama-3 70B | Dense | 70.6B | 70.6B | 140 GB | 42 GB | 83.6% | 91.1% |
-| Mixtral 8x7B | MoE | 46.7B | 12.9B | 90 GB | 28 GB | 70.6% | 68.6% |
-| DeepSeek V2 | MoE | 236B | 21B | 470 GB | 140 GB | 78.5% | 85.5% |
-| DeepSeek V4 Pro | MoE | 1.6T | 49B | 3.2 TB | 950 GB | 87.5%* | 93.5%* |
-| DeepSeek V4 Flash | MoE | 284B | 13B | 560 GB | 160 GB | — | — |
-| Mistral Large 3 | MoE | 675B | 41B | 1.35 TB | 380 GB | 84.9% | 91.2% |
-| Qwen 1.5-32B | Dense | 32.8B | 32.8B | 66 GB | 20 GB | 74.6% | 72.3% |
-| DBRX | MoE | 132B | 36B | 260 GB | 78 GB | 73.7% | 72.8% |
-
-*\*MMLU-Pro untuk DeepSeek V4 Pro (MMLU standar tidak dipublikasikan).*
-
-Tabel A menunjukkan kontras yang jelas antara parameter total dan parameter aktif. Perhatikan bahwa Mixtral 8x7B dengan 12,9B aktif membutuhkan VRAM yang sama dengan dense model 50B (90 GB FP16), tetapi memberikan kualitas yang mendekati Llama-3 70B pada sebagian benchmark. DeepSeek V4 Flash dengan 13B aktif adalah contoh paling efisien dalam tabel — ia memberikan kapasitas model 284B tetapi dengan kebutuhan komputasi hanya setara 13B.
-
-![Perbandingan parameter total, parameter aktif, dan skor MMLU](../../assets/images/bab-01-model/sub-bab-3/dense-vs-moe-param.png)
-
-*Gambar 1.3-1 — model MoE tampil sebagai "tiang" biru muda yang tinggi dengan "tiang" aktif yang pendek; skor MMLU (garis merah) tidak terkait langsung dengan ukuran total.*
-
-![Kebutuhan VRAM FP16 vs Q4 untuk model dense dan MoE](../../assets/images/bab-01-model/sub-bab-3/vram-fp16-vs-q4.png)
-
-*Gambar 1.3-2 — kuantisasi Q4 memangkas VRAM 3-5x; pada model MoE besar, selisih ini menentukan apakah model bisa berjalan di satu node atau membutuhkan kluster.*
-
-### Tabel B: Trade-off Berdasarkan Skenario
-
-| Skenario | Pilihan Terbaik | Alasan |
-|:---|:---|:---|
-| **Single user, GPU 24GB** | Dense 7-8B Q4 | VRAM terbatas, MoE tidak muat |
-| **Multi-user server, 2x 24GB** | MoE (Mixtral Q4) | Throughput tinggi per user |
-| **Coding assistant lokal** | Dense 7-8B Q4_K_M | Latency rendah, respons cepat |
-| **Batch processing (RAG)** | MoE (DeepSeek) | Lebih efisien per token |
-| **Fine-tuning custom** | Dense (lebih mudah) | MoE butuh teknik khusus |
-| **Apple Silicon 48GB** | MoE Q4_K_M | Unified memory cukup besar |
-
-Tabel B menunjukkan bagaimana pilihan arsitektur sangat tergantung pada skenario penggunaan. Tidak ada arsitektur yang unggul dalam semua situasi — setiap pilihan melibatkan trade-off yang perlu dipertimbangkan berdasarkan prioritas Anda.
-
 ### Tabel C: Perbandingan Kecepatan Inference (RTX 4090, Q4_K_M)
 
 | Model | Arsitektur | TPS (single) | TPS (batch 8) | VRAM | Latency (TTFT) |
@@ -226,7 +231,11 @@ Tabel C mengkonfirmasi analisis sebelumnya: untuk single user, dense model membe
 
 ---
 
-## 9. Diagram
+
+---
+
+## 8. Diagram
+
 
 ### Arsitektur Dense vs MoE
 
@@ -252,7 +261,8 @@ graph LR
 
 ---
 
-## 10. Tutorial
+## 9. Tutorial
+
 
 ### Tutorial A: Menjalankan Dense vs MoE di Ollama
 
@@ -341,7 +351,8 @@ Jalankan skrip ini beberapa kali dan perhatikan bagaimana distribusi expert beru
 
 ---
 
-## 11. Studi Kasus: Memilih Arsitektur untuk API Server 8 User
+## 10. Studi Kasus: Memilih Arsitektur untuk API Server 8 User
+
 
 **Skenario:** Sebuah startup di Indonesia ingin men-deploy API LLM untuk 8 developer internal yang akan menggunakan model untuk coding assistance, summarization dokumen, dan Q&A teknis. Mereka memiliki 2 kartu RTX 3090 (masing-masing 24 GB, total 48 GB via NVLink).
 
@@ -355,7 +366,8 @@ Jalankan skrip ini beberapa kali dan perhatikan bagaimana distribusi expert beru
 
 ---
 
-## 12. Referensi
+## 11. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

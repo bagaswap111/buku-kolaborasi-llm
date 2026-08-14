@@ -7,6 +7,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan peran database vektor sebagai *memori jangka panjang* LLM dalam arsitektur *Retrieval-Augmented Generation* (RAG) korporat, serta perbedaan fundamentalnya dengan basis data relasional
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Peran Vector Database dalam RAG Korporat
+
 
 ### Memori Jangka Panjang untuk LLM
 
@@ -36,48 +38,6 @@ Tanggung jawab kita untuk mengkonfigurasinya muncul karena parameter ini menukar
 ### Mengapa Model Embedding Baru Mengubah Perhitungan
 
 Lompatan model embedding membawa dampak berantai pada infrastruktur. Benchmark internal menunjukkan **DeepSeek V4 Embedding** (2048 dimensi) meningkatkan *recall@10* hingga **5-8%** dibanding embedding 768 dimensi, tetapi konsekuensinya nyata: kebutuhan memori melonjak **2,7×** dan latensi kueri naik **30-50%** karena setiap vektor dua kali lebih panjang dan kalkulasi jarak dua kali lebih banyak. Pilihan vektor berdimensi 1024 (Mistral Embed v3, BGE-M3 multilingual) menawarkan keseimbangan: kualitas retrieval baik untuk korporat berbahasa campuran tanpa loncatan biaya penyimpanan yang ekstrem.
-
----
-
-## 3. Umur Panjang Tiga Kontestan
-
-### ChromaDB — Sederhana dan Ringan
-
-**ChromaDB** adalah database vektor *embedded* — berjalan di dalam proses aplikasi (in-process) dan menyimpan data ke disk secara persisten. Ini berarti **zero setup**: cukup `pip install chromadb`, dan dalam lima menit Anda sudah melakukan *semantic search* dokumen. API Python-nya intuitif, berada di jalur cepat menuju prototipe RAG.
-
-Namun kesederhanaan ini punya harga: ChromaDB tidak mendukung distribusi antar-server. Performanya menurun saat volume melewati **1 juta vektor**, karena indeks HNSW berjalan di memori proses tunggal dan penulisan berjalan *single-thread*. Filtering (payload) terbatas; kenaikan data tanpa partisi lintas koleksi membuat pencarian semakin berat. Jangan salah paham — bagi banyak tim ini justru ideal. Untuk *personal RAG*, demo, atau dataset kecil-menengah (<1M vektor), ChromaDB adalah kuda kerja yang tidak pernah meminta kopi.
-
-### Qdrant — Performa dengan Kesederhanaan Operasional
-
-**Qdrant** adalah database vektor berbasis *service* yang ditulis dalam **Rust** — satu *binary* mandiri, dapat berjalan *standalone* maupun *cluster*. Bentuk arsitekturnya memberi keseimbangan terbaik di kelas menengah: latensi *sub-10ms* pada jutaan vektor, filtering kaya dengan **payload indexing** (indeks pada metadata seperti harga, kategori, rating), dan dukungan **quantization** — *scalar* (INT8) maupun *product* — yang menekan kebutuhan memori drastis.
-
-Harga dari keseimbangan ini: *clustering* membutuhkan konfigurasi tambahan (distributed deployment belum *click-to-run*), dan footprint sistemnya lebih berat daripada ChromaDB (minimum ~4 GB RAM). Bagi tim produksi dengan dataset menengah-besar yang menuntut *rich filtering* — "cari produk yang paling mirip dengan X, harga 1-10 juta, rating >4,5" — Qdrant berjalan tanpa panggung yang rumit.
-
-### Milvus — Skala Korporat dengan Kompleksitas
-
-**Milvus** adalah arsitektur distribusi penuh: *cloud-native* dengan komponen terpisah — **proxy** (gerbang permintaan), **query node** (pencarian), **index node** (pembangun indeks), **data node** (penyimpanan), plus pendamping **etcd** (koordinasi metadata) dan **MinIO/S3** (penyimpanan objek). Arsitektur ini memberinya dua keunggulan khas korporat: **skalabilitas horizontal** hingga miliaran vektor dan **GPU indexing** yang memindahkan pembangunan indeks ke GPU.
-
-Semua kekuatan itu hadir dengan harga kompleksitas. *Deployment* minimum Milvus melibatkan tiga layanan atau lebih, konsumsi sumber daya tinggi (minimum ~8 GB RAM di mode *standalone*), dan kurva operasionalnya bukan untuk yang ingin "jalankan sekali jadi". Tidak mengherankan jika Milvus menjadi pilihan utama ketika beban kerja sudah jelas besar — >10 juta vektor, kebutuhan *high availability* (HA), *multi-tenant*, dan *hybrid search* (vektor + skalar) — tempat kompleksitas diinvestasikan kembali pada hasil.
-
----
-
-## 4. Panduan Migrasi & Interoperabilitas
-
-Rute migrasi antar database vektor tidak simetris. Dari **ChromaDB ke Qdrant**, jalurnya relatif mulus: ekspor data via Parquet, lalu impor ke Qdrant — perubahan API minimal karena keduanya punya konsep koleksi yang mirip. Sebaliknya, dari **Qdrant ke Milvus**, Anda harus menulis ulang *connector* karena format kueri dan model objeknya berbeda signifikan. Ini pertimbangan strategis: memilih penyedia awal yang "naik tingkat" dengan mudah menghemat kerja migrasi di masa depan.
-
-Interoperabilitas juga terjadi di level aplikasi. **Dify** dan **Flowise** — platform *low-code* RAG yang populer — mendukung ketiga database vektor; perbedaannya hanya pilihan *provider* pada konfigurasi. Di level *embedding*, ketiga DB menerima *array float32*, sehingga model apa pun (DeepSeek V4 Embedding, Mistral Embed v3, BGE-M3) dapat dipakai secara bergantian; beberapa mendukung *binary quantization* untuk memampatkan vektor hingga puluhan kali lipat dengan penurunan *recall* kecil — pilihan menarik untuk dataset raksasa.
-
----
-
-## 5. Benchmark & Sizing: Kapan Memilih yang Mana
-
-Ukuran dataset adalah pemisah paling jujur dalam memilih database vektor. Untuk dataset **kecil (<100K vektor)**, ChromaDB sudah lebih dari cukup — latensi di bawah 10ms dan tidak ada beban operasional sama sekali. Di band **medium (100K-5M vektor)**, Qdrant adalah zona nyamannya: kecepatan tinggi dengan kesederhanaan satu *binary*. Di band **besar (>5M vektor)**, Milvus unggul dalam *throughput* dan skalabilitas horizontal, tetapi menuntut infrastruktur khusus yang tidak setiap tim sanggupi.
-
-Di luar jumlah vektor, perhatikan faktor pengganda yang halus namun menentukan: parameter HNSW (*efConstruction*, *M*), pilihan **quantization**, dan efek **warm-up** — pengukuran latensi yang dilakukan segera setelah indeks dimuat akan bias; jalankan beberapa *query* dummy terlebih dahulu. Pola operasional Anda pun ikut menentukan: jika 95% permintaan adalah *top-k* sederhana tanpa filter, ChromaDB bisa melayani hingga jutaan vektor; jika permintaan selalu memfilter metadata, keunggulan *payload indexing* Qdrant atau *hybrid search* Milvus segera terlihat.
-
----
-
-## 6. Pertarungan Angka: Tabel Referensi
 
 ### Tabel 1: Dampak Dimensi Embedding pada Performa Vector DB
 
@@ -99,6 +59,7 @@ Dimensi embedding menentukan tiga biaya sekaligus — penyimpanan, latensi, dan 
 
 Analisis tabel ini menceritakan tiga kisah. Pertama, *recall* tidak monoton naik seiring dimensi: 3072 dimensi justru sedikit lebih rendah (0.96) daripada 2048 dimensi (0.97) — penambahan dimensi tanpa kualitas pelatihan embedding hanya menambah "dekorasi" yang tidak membantu pemisahan makna. Kedua, biaya penyimpanan naik hampir linear terhadap dimensi: 768 → 2048 berarti 2,7× ruang *(dari ~3 GB ke ~8 GB)*, persis konsisten dengan perbandingan dimensi. Ketiga, latensi kueri meloncat secara progresif — hingga 2,5× lipat dari standar ke 3072 dimensi. Konsekuensi praktisnya jelas: *recall@10* 0.97 dari DeepSeek V4 Embedding terasa sia-sia jika cache memori server Anda meluap; kompensasi dengan *scalar quantization* (INT8) adalah kunci (lihat Tabel 2).
 
+
 ### Tabel 2: Perbandingan Fitur Vector Database
 
 Setelah memahami trade-off dimensi, langkah berikutnya adalah membandingkan kemampuan tiap produk secara menyeluruh — dari bahasa pemrograman hingga dukungan GPU.
@@ -118,39 +79,6 @@ Setelah memahami trade-off dimensi, langkah berikutnya adalah membandingkan kema
 
 Tabel ini seperti membaca tiga profil karier yang berbeda. ChromaDB adalah "starter yang setia": bahasa Python, pemasangan sesederhana `pip`, dan RAM kecil — sempurna untuk tahap eksplorasi, tetapi tanpa kuantisasi dan GPU indexing, ia tidak memiliki senjata untuk beban berat. Qdrant adalah "eksekutif serba bisa": satu binary Rust yang kuat dengan dukungan kuantisasi dan filtering berindeks, tetapi *multi-tenancy*-nya berbasis koleksi sederhana, kurang cocok untuk aneka klien dengan izin berlapis. Milvus adalah "mesin raksasa": kuantisasi INT8/FP16, *GPU indexing*, *partition + RBAC* untuk *multi-tenant* berat — semua ditawarkan dengan syarat: konsumsi RAM minimum ~8 GB dan kompleksitas orkestrasi yang harus dipayungi tim operasional. Aturan praktisnya: jika *hardware* Anda satu server dan tim Anda kecil, semakin besar kompleksitas justru semakin merugikan.
 
-### Tabel 3: Benchmark Performa (100K vectors, 768-dim, HNSW, N=10 trials)
-
-Berikut angka performa yang dijaring dari benchmark independen pada dataset 100 ribu vektor berdimensi 768 dengan indeks HNSW — perhatikan jarak antar metrik yang tidak selalu sesuai stereotip.
-
-| Metrik | ChromaDB | Qdrant | Milvus |
-|:---|:---:|:---:|:---:|
-| **Query Latency (ms)** | 7.7-8.4 | 5.0-8.8 | 4.2-6.4 |
-| **Throughput (QPS)** | 35.7-41.9 | 37.1-54.0 | 42.9-53.6 |
-| **Recall@10** | 0.95-1.0 | 0.94-1.0 | 0.96-1.0 |
-| **Ingestion (s, 100K)** | 61.7 | 14.2 | 104.4 |
-| **Cold-start Latency (ms)** | 2.3 (minimal) | 12.5 (warm-up) | 8.1 (warm-up) |
-| **Memory (idle)** | ~2 GB | ~4 GB | ~6 GB |
-
-Pada skala 100 ribu vektor — panggung kecil bagi ketiganya — peta kekuatan mulai terlihat. Milvus memimpin *query latency* dan *throughput* (4.2-6.4 ms; hingga 53.6 QPS), Qdrant menjadi joki *ingestion* tercepat (14.2 detik untuk 100K — sekitar 4,3× lebih cepat dari ChromaDB dan 7,3× lebih cepat dari Milvus), sementara ChromaDB mencuri perhatian di *cold-start*: 2.3 ms *versus* ~12.5 ms Qdrant yang perlu *warm-up*. Menariknya, meskipun disebut "paling sederhana", memory idle ChromaDB (~2 GB) paling hemat dan *recall*-nya tetap kompetitif (0.95-1.0). Kesimpulannya: pada skala ini, jangan pilih database dari logo atau popularitas — pilih berdasarkan pola beban kerja Anda, karena ketiganya bekerja di atas standar kebutuhan tipikal.
-
-Perlu kejujuran metodologis: *range* pada kolom mencerminkan variasi antar *run* (N=10 trials); perbedaan 1-2 ms dengan rentang tumpang tindih sebaiknya tidak dianggap sebagai kemenangan meyakinkan. Pembacaan yang lebih berguna adalah melihat *throughput* dan perilaku *warm-up* — dimensi yang lebih relevan untuk perencanaan kapasitas produksi.
-
-### Tabel 4: Rekomendasi Berdasarkan Skala
-
-Rekomendasi pemilihan dibuat sederhana — pertimbangan per skala dari laptop pribadi hingga klaster Kubernetes.
-
-| Skala | Jumlah Vectors | Rekomendasi | Alasan | Estimasi Server |
-|:---|:---:|:---|:---|:---|
-| **Personal / Development** | <100K | ChromaDB | Zero setup, embedded | Laptop / Rp 5jt |
-| **Small Department** | 100K-1M | Qdrant | Performance + simple ops | VPS 8GB / Rp 300rb/bln |
-| **Medium Enterprise** | 1M-10M | Qdrant (cluster) | Filtering kaya, HA | 2-4 node / Rp 5-10jt/bln |
-| **Large Enterprise** | >10M | Milvus | Horizontal scaling, GPU | K8s cluster / Rp 20jt+/bln |
-
-Tabel ini menggambarkan prinsip "skala mengalahkan arsitektur". Hingga 1 juta vektor, kesederhanaan operasional Qdrant mengalahkan kompleksitas Milvus; di atas 10 juta vektor, justru kompleksitas Milvus-lah yang menjadi kebutuhan — bukan kemewahan. Perhatikan estimasi biayanya: lompatan dari Rp 300 ribu/bulan (VPS) ke Rp 5-10 juta/bulan (klaster Qdrant) ke Rp 20 juta+/bulan (K8s) berarti pilihan database vektor adalah keputusan anggaran, bukan sekadar keputusan teknis. Jika proyeksi pertumbuhan vektor Anda 5-10× dalam dua tahun — kalkulasikan biaya sekarang; migrasi terlambat selalu lebih mahal daripada antisipasi awal.
-
----
-
-## 7. Diagram Arsitektur
 
 ### Gambar 1: Arsitektur Perbandingan Vector DB
 
@@ -190,6 +118,82 @@ graph TB
 
 Bacaan diagram ini seperti membandingkan tiga jenis rumah. **ChromaDB** adalah gubuk studio: satu ruangan (proses aplikasi) tempat segalanya — data, indeks, dan logika — hidup bersama; muat untuk penghuni tunggal, tetapi perluasan berarti membangun rumah baru. **Qdrant** adalah rumah layanan: aplikasi berkomunikasi lewat REST/gRPC dengan server mandiri yang mengelola *segment* dan indeks HNSW; perbaikan dan pemeliharaan bisa dilakukan tanpa menyentuh penghuni (aplikasi). **Milvus** adalah kompleks apartemen dengan pembagian tugas: *proxy* adalah resepsionis, *query node* menyiapkan unit untuk ditempati pencari, *index node* membangun tangga indeks, *data node* mengelola gudang (MinIO/S3), dan *etcd* adalah papan koordinasi umum. Keuntungannya nyata — setiap lantai (node) dapat ditambah tanpa mengganggu yang lain — tetapi pengelola gedung (tim operasional) wajib ada.
 
+
+---
+
+## 3. Umur Panjang Tiga Kontestan
+
+
+### ChromaDB — Sederhana dan Ringan
+
+**ChromaDB** adalah database vektor *embedded* — berjalan di dalam proses aplikasi (in-process) dan menyimpan data ke disk secara persisten. Ini berarti **zero setup**: cukup `pip install chromadb`, dan dalam lima menit Anda sudah melakukan *semantic search* dokumen. API Python-nya intuitif, berada di jalur cepat menuju prototipe RAG.
+
+Namun kesederhanaan ini punya harga: ChromaDB tidak mendukung distribusi antar-server. Performanya menurun saat volume melewati **1 juta vektor**, karena indeks HNSW berjalan di memori proses tunggal dan penulisan berjalan *single-thread*. Filtering (payload) terbatas; kenaikan data tanpa partisi lintas koleksi membuat pencarian semakin berat. Jangan salah paham — bagi banyak tim ini justru ideal. Untuk *personal RAG*, demo, atau dataset kecil-menengah (<1M vektor), ChromaDB adalah kuda kerja yang tidak pernah meminta kopi.
+
+### Qdrant — Performa dengan Kesederhanaan Operasional
+
+**Qdrant** adalah database vektor berbasis *service* yang ditulis dalam **Rust** — satu *binary* mandiri, dapat berjalan *standalone* maupun *cluster*. Bentuk arsitekturnya memberi keseimbangan terbaik di kelas menengah: latensi *sub-10ms* pada jutaan vektor, filtering kaya dengan **payload indexing** (indeks pada metadata seperti harga, kategori, rating), dan dukungan **quantization** — *scalar* (INT8) maupun *product* — yang menekan kebutuhan memori drastis.
+
+Harga dari keseimbangan ini: *clustering* membutuhkan konfigurasi tambahan (distributed deployment belum *click-to-run*), dan footprint sistemnya lebih berat daripada ChromaDB (minimum ~4 GB RAM). Bagi tim produksi dengan dataset menengah-besar yang menuntut *rich filtering* — "cari produk yang paling mirip dengan X, harga 1-10 juta, rating >4,5" — Qdrant berjalan tanpa panggung yang rumit.
+
+### Milvus — Skala Korporat dengan Kompleksitas
+
+**Milvus** adalah arsitektur distribusi penuh: *cloud-native* dengan komponen terpisah — **proxy** (gerbang permintaan), **query node** (pencarian), **index node** (pembangun indeks), **data node** (penyimpanan), plus pendamping **etcd** (koordinasi metadata) dan **MinIO/S3** (penyimpanan objek). Arsitektur ini memberinya dua keunggulan khas korporat: **skalabilitas horizontal** hingga miliaran vektor dan **GPU indexing** yang memindahkan pembangunan indeks ke GPU.
+
+Semua kekuatan itu hadir dengan harga kompleksitas. *Deployment* minimum Milvus melibatkan tiga layanan atau lebih, konsumsi sumber daya tinggi (minimum ~8 GB RAM di mode *standalone*), dan kurva operasionalnya bukan untuk yang ingin "jalankan sekali jadi". Tidak mengherankan jika Milvus menjadi pilihan utama ketika beban kerja sudah jelas besar — >10 juta vektor, kebutuhan *high availability* (HA), *multi-tenant*, dan *hybrid search* (vektor + skalar) — tempat kompleksitas diinvestasikan kembali pada hasil.
+
+---
+
+## 4. Panduan Migrasi & Interoperabilitas
+
+
+Rute migrasi antar database vektor tidak simetris. Dari **ChromaDB ke Qdrant**, jalurnya relatif mulus: ekspor data via Parquet, lalu impor ke Qdrant — perubahan API minimal karena keduanya punya konsep koleksi yang mirip. Sebaliknya, dari **Qdrant ke Milvus**, Anda harus menulis ulang *connector* karena format kueri dan model objeknya berbeda signifikan. Ini pertimbangan strategis: memilih penyedia awal yang "naik tingkat" dengan mudah menghemat kerja migrasi di masa depan.
+
+Interoperabilitas juga terjadi di level aplikasi. **Dify** dan **Flowise** — platform *low-code* RAG yang populer — mendukung ketiga database vektor; perbedaannya hanya pilihan *provider* pada konfigurasi. Di level *embedding*, ketiga DB menerima *array float32*, sehingga model apa pun (DeepSeek V4 Embedding, Mistral Embed v3, BGE-M3) dapat dipakai secara bergantian; beberapa mendukung *binary quantization* untuk memampatkan vektor hingga puluhan kali lipat dengan penurunan *recall* kecil — pilihan menarik untuk dataset raksasa.
+
+---
+
+## 5. Benchmark & Sizing: Kapan Memilih yang Mana
+
+
+Ukuran dataset adalah pemisah paling jujur dalam memilih database vektor. Untuk dataset **kecil (<100K vektor)**, ChromaDB sudah lebih dari cukup — latensi di bawah 10ms dan tidak ada beban operasional sama sekali. Di band **medium (100K-5M vektor)**, Qdrant adalah zona nyamannya: kecepatan tinggi dengan kesederhanaan satu *binary*. Di band **besar (>5M vektor)**, Milvus unggul dalam *throughput* dan skalabilitas horizontal, tetapi menuntut infrastruktur khusus yang tidak setiap tim sanggupi.
+
+Di luar jumlah vektor, perhatikan faktor pengganda yang halus namun menentukan: parameter HNSW (*efConstruction*, *M*), pilihan **quantization**, dan efek **warm-up** — pengukuran latensi yang dilakukan segera setelah indeks dimuat akan bias; jalankan beberapa *query* dummy terlebih dahulu. Pola operasional Anda pun ikut menentukan: jika 95% permintaan adalah *top-k* sederhana tanpa filter, ChromaDB bisa melayani hingga jutaan vektor; jika permintaan selalu memfilter metadata, keunggulan *payload indexing* Qdrant atau *hybrid search* Milvus segera terlihat.
+
+### Tabel 3: Benchmark Performa (100K vectors, 768-dim, HNSW, N=10 trials)
+
+Berikut angka performa yang dijaring dari benchmark independen pada dataset 100 ribu vektor berdimensi 768 dengan indeks HNSW — perhatikan jarak antar metrik yang tidak selalu sesuai stereotip.
+
+| Metrik | ChromaDB | Qdrant | Milvus |
+|:---|:---:|:---:|:---:|
+| **Query Latency (ms)** | 7.7-8.4 | 5.0-8.8 | 4.2-6.4 |
+| **Throughput (QPS)** | 35.7-41.9 | 37.1-54.0 | 42.9-53.6 |
+| **Recall@10** | 0.95-1.0 | 0.94-1.0 | 0.96-1.0 |
+| **Ingestion (s, 100K)** | 61.7 | 14.2 | 104.4 |
+| **Cold-start Latency (ms)** | 2.3 (minimal) | 12.5 (warm-up) | 8.1 (warm-up) |
+| **Memory (idle)** | ~2 GB | ~4 GB | ~6 GB |
+
+Pada skala 100 ribu vektor — panggung kecil bagi ketiganya — peta kekuatan mulai terlihat. Milvus memimpin *query latency* dan *throughput* (4.2-6.4 ms; hingga 53.6 QPS), Qdrant menjadi joki *ingestion* tercepat (14.2 detik untuk 100K — sekitar 4,3× lebih cepat dari ChromaDB dan 7,3× lebih cepat dari Milvus), sementara ChromaDB mencuri perhatian di *cold-start*: 2.3 ms *versus* ~12.5 ms Qdrant yang perlu *warm-up*. Menariknya, meskipun disebut "paling sederhana", memory idle ChromaDB (~2 GB) paling hemat dan *recall*-nya tetap kompetitif (0.95-1.0). Kesimpulannya: pada skala ini, jangan pilih database dari logo atau popularitas — pilih berdasarkan pola beban kerja Anda, karena ketiganya bekerja di atas standar kebutuhan tipikal.
+
+Perlu kejujuran metodologis: *range* pada kolom mencerminkan variasi antar *run* (N=10 trials); perbedaan 1-2 ms dengan rentang tumpang tindih sebaiknya tidak dianggap sebagai kemenangan meyakinkan. Pembacaan yang lebih berguna adalah melihat *throughput* dan perilaku *warm-up* — dimensi yang lebih relevan untuk perencanaan kapasitas produksi.
+
+
+### Tabel 4: Rekomendasi Berdasarkan Skala
+
+Rekomendasi pemilihan dibuat sederhana — pertimbangan per skala dari laptop pribadi hingga klaster Kubernetes.
+
+| Skala | Jumlah Vectors | Rekomendasi | Alasan | Estimasi Server |
+|:---|:---:|:---|:---|:---|
+| **Personal / Development** | <100K | ChromaDB | Zero setup, embedded | Laptop / Rp 5jt |
+| **Small Department** | 100K-1M | Qdrant | Performance + simple ops | VPS 8GB / Rp 300rb/bln |
+| **Medium Enterprise** | 1M-10M | Qdrant (cluster) | Filtering kaya, HA | 2-4 node / Rp 5-10jt/bln |
+| **Large Enterprise** | >10M | Milvus | Horizontal scaling, GPU | K8s cluster / Rp 20jt+/bln |
+
+Tabel ini menggambarkan prinsip "skala mengalahkan arsitektur". Hingga 1 juta vektor, kesederhanaan operasional Qdrant mengalahkan kompleksitas Milvus; di atas 10 juta vektor, justru kompleksitas Milvus-lah yang menjadi kebutuhan — bukan kemewahan. Perhatikan estimasi biayanya: lompatan dari Rp 300 ribu/bulan (VPS) ke Rp 5-10 juta/bulan (klaster Qdrant) ke Rp 20 juta+/bulan (K8s) berarti pilihan database vektor adalah keputusan anggaran, bukan sekadar keputusan teknis. Jika proyeksi pertumbuhan vektor Anda 5-10× dalam dua tahun — kalkulasikan biaya sekarang; migrasi terlambat selalu lebih mahal daripada antisipasi awal.
+
+---
+
+
 ### Gambar 2: Grafik Perbandingan Latency per Jumlah Vectors
 
 Secara visual, pertumbuhan latensi ketiga database terhadap jumlah vektor (sumbu X berskala log) membentuk pola *line chart* dengan tiga kurva: **ChromaDB** relatif datar hingga sekitar 1 juta vektor, lalu menanjak curam; **Qdrant** naik linear landai seiring jumlah vektor; **Milvus** naik paling landai di semua skala berkat pemecahan pekerjaan ke banyak *query node*.
@@ -198,7 +202,11 @@ Membaca grafik ini mengubah intuisi: di wilayah mulai ~1 juta vektor, kurva Chro
 
 ---
 
-## 8. Tutorial / Hands-On
+
+---
+
+## 6. Tutorial / Hands-On
+
 
 ### Tutorial 1: Setup ChromaDB + RAG Sederhana
 
@@ -366,7 +374,8 @@ Catatan penting untuk pengguna *Apple Silicon*: variabel lingkungan `ETCD_UNSUPP
 
 ---
 
-## 9. Studi Kasus: Migrasi Vector DB di Perusahaan E-commerce (50M+ Produk)
+## 7. Studi Kasus: Migrasi Vector DB di Perusahaan E-commerce (50M+ Produk)
+
 
 **Latar Belakang.** Sebuah perusahaan e-commerce dengan lebih dari 50 juta produk meluncurkan *semantic search* — pengguna mengetik deskripsi longgar ("sepatu lari ringan untuk pria") dan sistem mencari produk paling relevan. Tim memulai dengan ChromaDB karena kecepatan pengembangan. Di 500 ribu produk, segalanya mulai retak: latensi kueri naik dari 8 ms menjadi 200 ms, dan *insertion* produk baru semakin lambat karena penulisan *single-thread*.
 
@@ -382,7 +391,8 @@ Catatan penting untuk pengguna *Apple Silicon*: variabel lingkungan `ETCD_UNSUPP
 
 ---
 
-## 10. Referensi
+## 8. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

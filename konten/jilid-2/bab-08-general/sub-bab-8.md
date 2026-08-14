@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Mengidentifikasi enam skenario kegagalan GPU dan memperkirakan dampaknya pada operasional general office
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Skenario Kegagalan
+
 
 ### GPU Hang: Driver Crash dan Proses Stuck
 
@@ -43,86 +45,6 @@ Di Indonesia, *power outage* bukan pertanyaan "jika" melainkan "kapan". Saat lis
 
 Satu faktor yang mengubah persamaan failover di 2026 adalah model MoE dengan *memory footprint* rendah. **DeepSeek V4 Flash** (284B total / 13B parameter aktif) membutuhkan VRAM hanya sekitar 10 GB dalam kuantisasi Q4, dan **Mistral Large 3** berlisensi Apache 2.0 dapat dijalankan bebas di multi-node tanpa biaya lisensi. Implikasinya nyata: ketika GPU utama bermasalah, Anda tidak harus menurunkan seluruh infrastruktur — cukup *reschedule* model ke GPU cadangan yang spesifikasinya lebih rendah — dan *RTO* (Recovery Time Objective) menjadi jauh lebih cepat karena model muat di satu GPU saja. Tabel dan studi kasus pada bab ini akan terus menyentuh keunggulan ini.
 
----
-
-## 3. Dampak pada User
-
-Dampak kegagalan pada pengguna ditentukan oleh satu variabel: berapa banyak jalur layanan yang tersisa. Pada konfigurasi **single GPU dengan cold standby**, satu GPU mati berarti *downtime* total selama 10-30 menit — tidak ada user yang bisa mengakses asisten AI sama sekali. Ini pengalaman terburuk yang harus dikomunikasikan dengan transparan: beri tahu user lewat status page, bukan membiarkan mereka menebak. Pada **multi-GPU cluster dengan HA (high availability)**, kegagalan satu node biasanya ditangani failover otomatis dalam waktu kurang dari 30 detik — user mungkin hanya merasakan *latency* naik sesaat, tanpa sadar bahwa layanan baru saja pindah rumah.
-
-Prinsip prioritas yang wajib dipegang: **model kritis harus failover pertama**. Model yang melayani aplikasi *customer-facing* (misalnya chatbot yang diakses perwakilan penjualan) mendapat hak prioritas atas model internal untuk *summarization* dokumen. Terakhir, tetapkan *SLA commitment* yang realistis dan terukur: untuk standar 99.999% *uptime*, total *downtime* maksimum hanya **5 menit per tahun**. Angka ini menyingkap kenyataan pahit — SLA tersebut hanya terpenuhi dengan strategi failover otomatis (warm standby ke atas), bukan dengan prosedur manual. Jika perusahaan Anda tidak punya anggaran untuk itu, turunkan SLA secara jujur menjadi 99.9% (sekitar 8,7 jam/tahun) dan kelola ekspektasi user sejak awal.
-
----
-
-## 4. Strategi Failover
-
-### Cold Standby: Cadangan yang Tidur
-
-*Cold standby* berarti GPU cadangan menyala secara fisik tetapi *idle* — tidak menjalankan model apa pun. Saat GPU utama mati, peralihan dilakukan manual atau otomatis melalui *Kubernetes taint*: node bermasalah ditandai, beban dijalankan ulang ke node cadangan, model di-*load* dari penyimpanan, dan layanan kembali. Proses *loading* model-lah yang membuat RTO-nya 5-15 menit — cukup cepat untuk uji coba fitur, cukup lambat untuk membuat user tidak sabar. Keunggulannya jelas: biaya tambahan hanya sekitar Rp 150-250 juta untuk GPU + server, dengan GPU idle lebih dari 90% waktu. Ini pilihan paling masuk akal untuk anggaran terbatas dengan 21-30 user.
-
-### Warm Standby: Cadangan yang Menunggu
-
-*Warm standby* meningkatkan satu level: GPU cadangan sudah menjalankan model — *replica* vLLM dengan 0 *request* — sehingga saat failover, hanya *load balancer* yang perlu mengalihkan trafik, tanpa menunggu model di-*load*. RTO turun drastis menjadi 30-60 detik dengan biaya tambahan Rp 250-400 juta (GPU idle sekitar 50% karena menanggung *replica*). Strategi ini adalah standar untuk 31-40 user: keseimbangan terbaik antara biaya dan kecepatan pulih. Satu catatan penting: *replica* yang menganggur tidak berarti gratis — ia tetap memakan listrik dan VRAM, dan versi modelnya harus tetap disinkronkan dengan model utama.
-
-### Active-Active: Semua GPU Melayani
-
-*Active-active* mengabaikan konsep "cadangan": semua GPU melayani trafik sekaligus. Ketika satu GPU mati, *load balancer* mengalihkan *request*-nya ke GPU lain yang masih hidup, dan RTO turun ke bawah 5 detik — pengguna yang tidak menengah pun mungkin tidak menyadarinya. Efisiensi GPU juga tertinggi (idle hanya sekitar 20%), tetapi biayanya paling besar: Rp 400-700 juta tambahan, plus kompleksitas tinggi karena manajemen *state* dan *session* lintas node harus rapi. Di sinilah teknik dari penelitian *fault-tolerant serving* — seperti *KV-cache streaming* pada DejaVu [1] dan *rescheduling* pada Llumnix [4] — memberi dasar teknis bagi sistem produksi. *Active-active* adalah pilihan premium untuk 41-50 user atau layanan yang SLA-nya tidak bisa ditawar.
-
-### Cloud Failover: Jaring Pengaman Eksternal
-
-Keempat, *cloud failover*: saat infrastruktur on-premise mati total (misalnya banjir atau listrik padam berkepanjangan), layanan dipindahkan ke GPU cloud seperti RunPod atau Vast.ai. RTO 2-5 menit dengan biaya *pay-per-use* — 0% GPU menganggur di rumah. Strategi ini paling masuk akal sebagai *hybrid*: on-premise untuk operasi harian, cloud sebagai jaring pengaman insidental, sekaligus jalur pengujian beban puncak. Kelemahannya: data berada di server pihak ketiga, sehingga *cloud failover* hanya boleh dipakai untuk workload yang tidak sensitif terhadap kebijakan data perusahaan (lihat pembahasan keamanan data di Bab 8.9).
-
----
-
-## 5. Disaster Recovery Plan
-
-### Backup Model Weights: Snapshot Harian di MinIO
-
-Model adalah aset yang paling sulit dipulihkan — unduh ulang 16-160 GB dari Hugging Face memakan waktu dan bergantung pada koneksi internet. *Disaster Recovery Plan* (DR plan) yang sehat memulai dari *snapshot* harian seluruh bobot model ke **MinIO** (object storage on-premise yang kompatibel S3) dengan **retensi 30 hari**. Snapshot ini bukan salinan mentah: simpan juga metadata versi model, format kuantisasi, dan konfigurasi serving yang cocok dengannya (berasal dari kanal *staging*, sesuai Bagian 7). Dengan begitu, *restore* di GPU cadangan menjadi operasi pembacaan lokal yang cepat, bukan unduhan dari internet.
-
-### Backup Database: Point-in-Time Recovery
-
-PostgreSQL dan Qdrant menyimpan *state* yang berubah setiap detik — tabel cache, vektor dokumen, metadata graph. Snapshot harian tidak cukup, karena Anda akan kehilangan seluruh perubahan hari itu. Solusinya adalah *WAL archiving* (Write-Ahead Log): setiap perubahan ditulis berurutan ke arsip WAL, memungkinkan *point-in-time recovery* — memulihkan database ke detik tepat sebelum insiden. Praktik yang baik: simpan WAL ke MinIO yang sama, lakukan *restore test* bulanan (database yang tidak pernah di-*restore* sama dengan database yang tidak punya backup), dan ukur *RPO* (Recovery Point Objective) aktual dari hasil uji tersebut.
-
-### Geographic Redundancy: Ketika On-Premise Mati Total
-
-Jika seluruh data center on-premise mati — tidak hanya satu GPU — redundansi geografis adalah jawaban terakhir. Prinsipnya sederhana: Kubernetes tidak peduli di mana node berada; dengan konfigurasi yang benar, beban dapat dipindahkan ke GPU cloud (RunPod, Vast.ai) dan layanan berjalan dari sana sementara infrastruktur primer diperbaiki. Agar ini benar-benar berfungsi saat dibutuhkan, dua hal wajib dipersiapkan sejak awal: konfigurasi kluster yang *cloud-ready* (image container, manifest, dan kredensial tersusun rapi), dan proses uji coba berkala — karena *runbook* yang tidak pernah diuji adalah dokumen fiksi.
-
-### Kontak Vendor: SLA 4 Jam Response
-
-DR plan yang lengkap tidak berakhir di infrastruktur; ia berakhir di telepon. Catat dan uji jalur komunikasi ke vendor: NVIDIA support untuk kartu GPU, vendor server tempat Anda membeli unit, dan penyedia storage jaringan. Standar yang dapat dinegosiasikan untuk general office adalah *SLA response 4 jam* — artinya dalam 4 jam sejak laporan, vendor baru mulai merespons, bukan menyelesaikan masalah. Hitung implikasi RTO: GPU physical failure (4 jam) hingga vendor datang menandakan bahwa *cold standby* adalah komponen wajib, bukan opsi — tidak ada perusahaan yang menunggu 4 jam untuk layanan asisten AI-nya.
-
----
-
-## 6. Monitoring & Alerting
-
-### Metrics GPU dan Service
-
-Anda tidak bisa memulihkan kegagalan yang tidak Anda ketahui. Lapisan pertama monitoring adalah *metrics* perangkat keras GPU — suhu, utilisasi memori, *power draw*, dan kecepatan fan — yang dibaca dari `nvidia-smi` dan diekspos ke **Prometheus** melalui *exporter*. Lapisan kedua adalah metrics layanan: *queue depth* vLLM, *TTFT (time-to-first-token)*, dan *error rate*, yang divisualisasikan di **Grafana**. Keduanya harus menyatu dalam satu *dashboard* karena keduanya saling menerangkan: *queue depth* yang memanjang bisa berarti trafik naik, tetapi bisa juga berarti GPU sedang *thermal throttle* dan melambat — tanpa kedua angka itu berdampingan, diagnosis salah arah.
-
-### Alerting: PagerDuty dan AlertManager
-
-Setiap metric yang naik tidak perlu membangunkan manusia. Aturan *alerting* dirancang bertingkat berdasarkan urgensi. **P1** (GPU mati, layanan turun) — kirim notifikasi langsung ke 3 orang via PagerDuty melalui integrasi dengan Prometheus *AlertManager*; harus dijawab dalam hitungan menit. **P3** (suhu GPU tinggi, tanda awal degradasi) — cukup email; tahu siapa yang bertanggung jawab, tetapi tidak perlu mengganggu jam tidur. Kunci keberhasilan *alerting* bukan jumlah alert, melainkan disiplin dua arah: alert P1 harus selalu bisa ditindaklanjuti (artinya *runbook* siap), dan alert yang tidak pernah berguna harus dihapus — *alert fatigue* adalah pembunuh diam-diam bagi responsivitas tim operasi.
-
----
-
-## 7. Preventive Maintenance
-
-### Jadwal Bulanan: Membersihkan Debu dan Memeriksa Fan
-
-Kegagalan GPU jarang terjadi tanpa pendahuluan; tugas *preventive maintenance* adalah menangkap tanda-tanda itu sebelum menjadi insiden. Jadwal bulanan mencakup tiga hal: membersihkan debu dari *filter* GPU (debu adalah isolator panas yang perlahan menaikkan suhu operasi), memeriksa putaran fan secara fisik, dan meninjau tren suhu di Grafana selama sebulan terakhir. Kegiatan ini nyaris selalu memerlukan downtime singkat sekitar 10 menit — jadwalkan di luar jam kerja, dokumentasikan dalam kalender preventif, dan jangan pernah melewatkannya: dalam praktik, GPU yang *thermal shutdown* hampir selalu punya riwayat suhu yang mencurigakan pada bulan-bulan sebelumnya.
-
-### Thermal Management: Target di Bawah 75C
-
-Aturan suhu yang berlaku untuk GPU data center modern: **target suhu operasi di bawah 75C**, dengan *throttle point* di sekitar **85C**. Di antara keduanya, GPU mulai menurunkan *clock* — *throughput* menurun tanpa Anda sadari, dan kualitas servis menurun lebih dulu daripada kegagalan. Jika tren suhu GPU menyentuh 80C secara konsisten, itu bukan masalah GPU; itu masalah ruang: aliran udara, posisi rack, atau kapasitas pendingin ruangan. Selesaikan akarnya (perbaikan aliran udara) daripada menekan gejalanya (menurunkan *power limit* dan kehilangan *throughput*).
-
-### Driver, Firmware, dan Staging
-
-**NVIDIA driver + CUDA toolkit** harus diperbarui terjadwal (sekitar setiap 3 bulan), tetapi peraturan yang tidak bisa ditawar: semua pembaruan driver diuji di *staging* dulu sebelum menyentuh produksi — satu versi driver baru yang bermasalah dengan workload Anda dapat menghabiskan durasi downtime sebesar insiden yang ingin Anda cegah. Firmware (BIOS server, BMC/iDRAC, firmware NIC) diperbarui per 6 bulan; keuntungannya, *update* firmware BMC tidak mengganggu layanan karena ia dapat *reboot* terpisah dari host OS. Terakhir, jadwal yang sering diabaikan: **DR drill** — uji coba pemulihan penuh setiap 6 bulan, yang akan Anda praktikkan langsung pada Bagian 10 (Tutorial C).
-
----
-
-## 8. Tabel Perbandingan
-
 ### Tabel 1: Skenario Kegagalan dan RTO/RPO
 
 Tabel berikut merangkum enam skenario kegagalan — cara deteksi, dampak, target *RTO* dan *RPO*, serta strategi penanganannya. Nilai RTO mengacu pada praktik *fault-tolerant serving* pada DejaVu (recovery cepat via KV-cache replica) dan Llumnix (rescheduling) [1][4].
@@ -142,6 +64,37 @@ Tabel berikut merangkum enam skenario kegagalan — cara deteksi, dampak, target
 
 Bacaan kunci dari tabel ini ada dua. Pertama, perhatikan kesenjangan RTO: *GPU Physical* butuh 4 jam — satu-satunya skenario yang tidak bisa dipangkas oleh software, karena menunggu penggantian fisik. Inilah mengapa *cold standby* (Bagian 4) adalah investasi minimum yang masuk akal: 4 jam downtime bukanlah insiden kecil, melainkan kehilangan produktivitas satu hari penuh bagi sebagian besar pengguna. Kedua, perhatikan RPO pada *Power Outage* (5 menit) dan *Storage Down* (1 menit) — satu-satunya skenario yang kehilangan data. Semua skenario lain memiliki RPO 0, artinya data aman asalkan database memakai *WAL archiving* dari Bagian 5.
 
+
+---
+
+## 3. Dampak pada User
+
+
+Dampak kegagalan pada pengguna ditentukan oleh satu variabel: berapa banyak jalur layanan yang tersisa. Pada konfigurasi **single GPU dengan cold standby**, satu GPU mati berarti *downtime* total selama 10-30 menit — tidak ada user yang bisa mengakses asisten AI sama sekali. Ini pengalaman terburuk yang harus dikomunikasikan dengan transparan: beri tahu user lewat status page, bukan membiarkan mereka menebak. Pada **multi-GPU cluster dengan HA (high availability)**, kegagalan satu node biasanya ditangani failover otomatis dalam waktu kurang dari 30 detik — user mungkin hanya merasakan *latency* naik sesaat, tanpa sadar bahwa layanan baru saja pindah rumah.
+
+Prinsip prioritas yang wajib dipegang: **model kritis harus failover pertama**. Model yang melayani aplikasi *customer-facing* (misalnya chatbot yang diakses perwakilan penjualan) mendapat hak prioritas atas model internal untuk *summarization* dokumen. Terakhir, tetapkan *SLA commitment* yang realistis dan terukur: untuk standar 99.999% *uptime*, total *downtime* maksimum hanya **5 menit per tahun**. Angka ini menyingkap kenyataan pahit — SLA tersebut hanya terpenuhi dengan strategi failover otomatis (warm standby ke atas), bukan dengan prosedur manual. Jika perusahaan Anda tidak punya anggaran untuk itu, turunkan SLA secara jujur menjadi 99.9% (sekitar 8,7 jam/tahun) dan kelola ekspektasi user sejak awal.
+
+---
+
+## 4. Strategi Failover
+
+
+### Cold Standby: Cadangan yang Tidur
+
+*Cold standby* berarti GPU cadangan menyala secara fisik tetapi *idle* — tidak menjalankan model apa pun. Saat GPU utama mati, peralihan dilakukan manual atau otomatis melalui *Kubernetes taint*: node bermasalah ditandai, beban dijalankan ulang ke node cadangan, model di-*load* dari penyimpanan, dan layanan kembali. Proses *loading* model-lah yang membuat RTO-nya 5-15 menit — cukup cepat untuk uji coba fitur, cukup lambat untuk membuat user tidak sabar. Keunggulannya jelas: biaya tambahan hanya sekitar Rp 150-250 juta untuk GPU + server, dengan GPU idle lebih dari 90% waktu. Ini pilihan paling masuk akal untuk anggaran terbatas dengan 21-30 user.
+
+### Warm Standby: Cadangan yang Menunggu
+
+*Warm standby* meningkatkan satu level: GPU cadangan sudah menjalankan model — *replica* vLLM dengan 0 *request* — sehingga saat failover, hanya *load balancer* yang perlu mengalihkan trafik, tanpa menunggu model di-*load*. RTO turun drastis menjadi 30-60 detik dengan biaya tambahan Rp 250-400 juta (GPU idle sekitar 50% karena menanggung *replica*). Strategi ini adalah standar untuk 31-40 user: keseimbangan terbaik antara biaya dan kecepatan pulih. Satu catatan penting: *replica* yang menganggur tidak berarti gratis — ia tetap memakan listrik dan VRAM, dan versi modelnya harus tetap disinkronkan dengan model utama.
+
+### Active-Active: Semua GPU Melayani
+
+*Active-active* mengabaikan konsep "cadangan": semua GPU melayani trafik sekaligus. Ketika satu GPU mati, *load balancer* mengalihkan *request*-nya ke GPU lain yang masih hidup, dan RTO turun ke bawah 5 detik — pengguna yang tidak menengah pun mungkin tidak menyadarinya. Efisiensi GPU juga tertinggi (idle hanya sekitar 20%), tetapi biayanya paling besar: Rp 400-700 juta tambahan, plus kompleksitas tinggi karena manajemen *state* dan *session* lintas node harus rapi. Di sinilah teknik dari penelitian *fault-tolerant serving* — seperti *KV-cache streaming* pada DejaVu [1] dan *rescheduling* pada Llumnix [4] — memberi dasar teknis bagi sistem produksi. *Active-active* adalah pilihan premium untuk 41-50 user atau layanan yang SLA-nya tidak bisa ditawar.
+
+### Cloud Failover: Jaring Pengaman Eksternal
+
+Keempat, *cloud failover*: saat infrastruktur on-premise mati total (misalnya banjir atau listrik padam berkepanjangan), layanan dipindahkan ke GPU cloud seperti RunPod atau Vast.ai. RTO 2-5 menit dengan biaya *pay-per-use* — 0% GPU menganggur di rumah. Strategi ini paling masuk akal sebagai *hybrid*: on-premise untuk operasi harian, cloud sebagai jaring pengaman insidental, sekaligus jalur pengujian beban puncak. Kelemahannya: data berada di server pihak ketiga, sehingga *cloud failover* hanya boleh dipakai untuk workload yang tidak sensitif terhadap kebijakan data perusahaan (lihat pembahasan keamanan data di Bab 8.9).
+
 ### Tabel 2: Perbandingan Strategi Failover
 
 Empat strategi failover dibandingkan dari sisi RTO, biaya tambahan, tingkat GPU idle, kompleksitas, dan kasus penggunaan yang tepat.
@@ -159,23 +112,6 @@ Empat strategi failover dibandingkan dari sisi RTO, biaya tambahan, tingkat GPU 
 
 Pola yang terlihat jelas: RTO yang semakin kecil selalu dibeli dengan biaya dan kompleksitas yang semakin besar. Tidak ada strategi yang "benar" secara absolut — yang benar adalah strategi yang selaras dengan SLA perusahaan (Bagian 3). Perusahaan 21-30 user yang baru memulai cukup mengambil *cold standby*; perusahaan 41-50 user dengan layanan *customer-facing* tidak punya pilihan selain *active-active*. Satu hal yang sering terlupakan: pilih strategi, lalu *uji* strategi itu berkala — RTO pada tabel ini adalah angka desain, dan angka sesungguhnya baru diketahui setelah DR drill pertama.
 
-### Tabel 3: Preventive Maintenance Schedule
-
-Jadwal *preventive maintenance* yang disarankan untuk general office, lengkap dengan frekuensi, durasi, penanggung jawab, dan dampaknya terhadap *downtime*.
-
-| Aktivitas | Frekuensi | Duration | Dilakukan Oleh | Impact |
-|:---|:---:|:---:|:---|:---|
-| **Check GPU temperature & fan** | Harian | 5 menit | Auto (Grafana) | None |
-| **Dust cleaning GPU filter** | Bulanan | 30 menit | Teknisi | Downtime 10 menit |
-| **NVIDIA driver update** | 3 bulan | 60 menit | DevOps | Downtime 30 menit (staging first) |
-| **BMC/iDRAC firmware** | 6 bulan | 30 menit | IT Admin | Reboot BMC only |
-| **Full disaster recovery drill** | 6 bulan | 120 menit | DevOps + IT | Simulasi total blackout |
-
-Tabel ini menegaskan satu prinsip: *preventive maintenance* yang baik itu bertingkat. Yang sering (harian) wajib otomatis dan tanpa dampak — pengecekan suhu dan fan manual setiap hari adalah pemborosan yang tidak berkelanjutan. Yang berdampak *downtime* (pembersihan debu, update driver) dijadwalkan jarang dan di luar jam kerja. Yang paling berat — DR drill full simulasi *blackout* selama 2 jam setiap 6 bulan — justru paling jarang dilewati, karena dialah satu-satunya latihan nyata yang membuat seluruh *runbook* terdokumentasi dan tim terlatih.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur Failover Active-Active
 
@@ -208,6 +144,75 @@ graph TB
 
 Tiga hal yang perlu diperhatikan dari diagram ini. Pertama, pada operasi normal, HAProxy membagi trafik ke kedua node secara paralel — tidak ada node "utama". Kedua, saat failover, node yang masih hidup menerima seluruh trafik (garis putus-putus), sementara *cold standby* dinaikkan statusnya menjadi aktif (label "Scale up") — itu sebabnya RTO dapat dijaga di bawah 5 detik. Ketiga, siklus recovery — RMA, penggantian GPU sekitar 4 jam, dan kembali ke *active-active* — adalah bagian dari arsitektur, bukan urusan nanti-nanti.
 
+
+---
+
+## 5. Disaster Recovery Plan
+
+
+### Backup Model Weights: Snapshot Harian di MinIO
+
+Model adalah aset yang paling sulit dipulihkan — unduh ulang 16-160 GB dari Hugging Face memakan waktu dan bergantung pada koneksi internet. *Disaster Recovery Plan* (DR plan) yang sehat memulai dari *snapshot* harian seluruh bobot model ke **MinIO** (object storage on-premise yang kompatibel S3) dengan **retensi 30 hari**. Snapshot ini bukan salinan mentah: simpan juga metadata versi model, format kuantisasi, dan konfigurasi serving yang cocok dengannya (berasal dari kanal *staging*, sesuai Bagian 7). Dengan begitu, *restore* di GPU cadangan menjadi operasi pembacaan lokal yang cepat, bukan unduhan dari internet.
+
+### Backup Database: Point-in-Time Recovery
+
+PostgreSQL dan Qdrant menyimpan *state* yang berubah setiap detik — tabel cache, vektor dokumen, metadata graph. Snapshot harian tidak cukup, karena Anda akan kehilangan seluruh perubahan hari itu. Solusinya adalah *WAL archiving* (Write-Ahead Log): setiap perubahan ditulis berurutan ke arsip WAL, memungkinkan *point-in-time recovery* — memulihkan database ke detik tepat sebelum insiden. Praktik yang baik: simpan WAL ke MinIO yang sama, lakukan *restore test* bulanan (database yang tidak pernah di-*restore* sama dengan database yang tidak punya backup), dan ukur *RPO* (Recovery Point Objective) aktual dari hasil uji tersebut.
+
+### Geographic Redundancy: Ketika On-Premise Mati Total
+
+Jika seluruh data center on-premise mati — tidak hanya satu GPU — redundansi geografis adalah jawaban terakhir. Prinsipnya sederhana: Kubernetes tidak peduli di mana node berada; dengan konfigurasi yang benar, beban dapat dipindahkan ke GPU cloud (RunPod, Vast.ai) dan layanan berjalan dari sana sementara infrastruktur primer diperbaiki. Agar ini benar-benar berfungsi saat dibutuhkan, dua hal wajib dipersiapkan sejak awal: konfigurasi kluster yang *cloud-ready* (image container, manifest, dan kredensial tersusun rapi), dan proses uji coba berkala — karena *runbook* yang tidak pernah diuji adalah dokumen fiksi.
+
+### Kontak Vendor: SLA 4 Jam Response
+
+DR plan yang lengkap tidak berakhir di infrastruktur; ia berakhir di telepon. Catat dan uji jalur komunikasi ke vendor: NVIDIA support untuk kartu GPU, vendor server tempat Anda membeli unit, dan penyedia storage jaringan. Standar yang dapat dinegosiasikan untuk general office adalah *SLA response 4 jam* — artinya dalam 4 jam sejak laporan, vendor baru mulai merespons, bukan menyelesaikan masalah. Hitung implikasi RTO: GPU physical failure (4 jam) hingga vendor datang menandakan bahwa *cold standby* adalah komponen wajib, bukan opsi — tidak ada perusahaan yang menunggu 4 jam untuk layanan asisten AI-nya.
+
+---
+
+## 6. Monitoring & Alerting
+
+
+### Metrics GPU dan Service
+
+Anda tidak bisa memulihkan kegagalan yang tidak Anda ketahui. Lapisan pertama monitoring adalah *metrics* perangkat keras GPU — suhu, utilisasi memori, *power draw*, dan kecepatan fan — yang dibaca dari `nvidia-smi` dan diekspos ke **Prometheus** melalui *exporter*. Lapisan kedua adalah metrics layanan: *queue depth* vLLM, *TTFT (time-to-first-token)*, dan *error rate*, yang divisualisasikan di **Grafana**. Keduanya harus menyatu dalam satu *dashboard* karena keduanya saling menerangkan: *queue depth* yang memanjang bisa berarti trafik naik, tetapi bisa juga berarti GPU sedang *thermal throttle* dan melambat — tanpa kedua angka itu berdampingan, diagnosis salah arah.
+
+### Alerting: PagerDuty dan AlertManager
+
+Setiap metric yang naik tidak perlu membangunkan manusia. Aturan *alerting* dirancang bertingkat berdasarkan urgensi. **P1** (GPU mati, layanan turun) — kirim notifikasi langsung ke 3 orang via PagerDuty melalui integrasi dengan Prometheus *AlertManager*; harus dijawab dalam hitungan menit. **P3** (suhu GPU tinggi, tanda awal degradasi) — cukup email; tahu siapa yang bertanggung jawab, tetapi tidak perlu mengganggu jam tidur. Kunci keberhasilan *alerting* bukan jumlah alert, melainkan disiplin dua arah: alert P1 harus selalu bisa ditindaklanjuti (artinya *runbook* siap), dan alert yang tidak pernah berguna harus dihapus — *alert fatigue* adalah pembunuh diam-diam bagi responsivitas tim operasi.
+
+---
+
+## 7. Preventive Maintenance
+
+
+### Jadwal Bulanan: Membersihkan Debu dan Memeriksa Fan
+
+Kegagalan GPU jarang terjadi tanpa pendahuluan; tugas *preventive maintenance* adalah menangkap tanda-tanda itu sebelum menjadi insiden. Jadwal bulanan mencakup tiga hal: membersihkan debu dari *filter* GPU (debu adalah isolator panas yang perlahan menaikkan suhu operasi), memeriksa putaran fan secara fisik, dan meninjau tren suhu di Grafana selama sebulan terakhir. Kegiatan ini nyaris selalu memerlukan downtime singkat sekitar 10 menit — jadwalkan di luar jam kerja, dokumentasikan dalam kalender preventif, dan jangan pernah melewatkannya: dalam praktik, GPU yang *thermal shutdown* hampir selalu punya riwayat suhu yang mencurigakan pada bulan-bulan sebelumnya.
+
+### Thermal Management: Target di Bawah 75C
+
+Aturan suhu yang berlaku untuk GPU data center modern: **target suhu operasi di bawah 75C**, dengan *throttle point* di sekitar **85C**. Di antara keduanya, GPU mulai menurunkan *clock* — *throughput* menurun tanpa Anda sadari, dan kualitas servis menurun lebih dulu daripada kegagalan. Jika tren suhu GPU menyentuh 80C secara konsisten, itu bukan masalah GPU; itu masalah ruang: aliran udara, posisi rack, atau kapasitas pendingin ruangan. Selesaikan akarnya (perbaikan aliran udara) daripada menekan gejalanya (menurunkan *power limit* dan kehilangan *throughput*).
+
+### Driver, Firmware, dan Staging
+
+**NVIDIA driver + CUDA toolkit** harus diperbarui terjadwal (sekitar setiap 3 bulan), tetapi peraturan yang tidak bisa ditawar: semua pembaruan driver diuji di *staging* dulu sebelum menyentuh produksi — satu versi driver baru yang bermasalah dengan workload Anda dapat menghabiskan durasi downtime sebesar insiden yang ingin Anda cegah. Firmware (BIOS server, BMC/iDRAC, firmware NIC) diperbarui per 6 bulan; keuntungannya, *update* firmware BMC tidak mengganggu layanan karena ia dapat *reboot* terpisah dari host OS. Terakhir, jadwal yang sering diabaikan: **DR drill** — uji coba pemulihan penuh setiap 6 bulan, yang akan Anda praktikkan langsung pada Bagian 8 (Tutorial C).
+
+### Tabel 3: Preventive Maintenance Schedule
+
+Jadwal *preventive maintenance* yang disarankan untuk general office, lengkap dengan frekuensi, durasi, penanggung jawab, dan dampaknya terhadap *downtime*.
+
+| Aktivitas | Frekuensi | Duration | Dilakukan Oleh | Impact |
+|:---|:---:|:---:|:---|:---|
+| **Check GPU temperature & fan** | Harian | 5 menit | Auto (Grafana) | None |
+| **Dust cleaning GPU filter** | Bulanan | 30 menit | Teknisi | Downtime 10 menit |
+| **NVIDIA driver update** | 3 bulan | 60 menit | DevOps | Downtime 30 menit (staging first) |
+| **BMC/iDRAC firmware** | 6 bulan | 30 menit | IT Admin | Reboot BMC only |
+| **Full disaster recovery drill** | 6 bulan | 120 menit | DevOps + IT | Simulasi total blackout |
+
+Tabel ini menegaskan satu prinsip: *preventive maintenance* yang baik itu bertingkat. Yang sering (harian) wajib otomatis dan tanpa dampak — pengecekan suhu dan fan manual setiap hari adalah pemborosan yang tidak berkelanjutan. Yang berdampak *downtime* (pembersihan debu, update driver) dijadwalkan jarang dan di luar jam kerja. Yang paling berat — DR drill full simulasi *blackout* selama 2 jam setiap 6 bulan — justru paling jarang dilewati, karena dialah satu-satunya latihan nyata yang membuat seluruh *runbook* terdokumentasi dan tim terlatih.
+
+---
+
+
 ### Gambar 2: Alur Incident Response GPU Failure
 
 Ketika alert P1 masuk, urutan tindakan tidak boleh mengambang. Diagram berikut adalah *runbook* ringkas yang menyelaraskan tim.
@@ -224,11 +229,15 @@ flowchart TD
     RMA --> POST[Post-mortem + laporan insiden]
 ```
 
-Alur ini menekankan tiga titik kritis. Pertama, *diagnosa* selalu mendahului *keputusan* — tahan keinginan untuk langsung failover; terkadang GPU hang cukup diselesaikan dengan restart (Tutorial B di Bagian 10). Kedua, *verifikasi* adalah gerbang wajib sebelum layanan dinyatakan sehat — failover tanpa verifikasi hanya memindahkan masalah. Ketiga, *post-mortem* menutup siklus: setiap insiden harus menghasilkan pembaruan *runbook* atau perubahan konfigurasi, sehingga insiden berikutnya lebih cepat ditangani.
+Alur ini menekankan tiga titik kritis. Pertama, *diagnosa* selalu mendahului *keputusan* — tahan keinginan untuk langsung failover; terkadang GPU hang cukup diselesaikan dengan restart (Tutorial B di Bagian 8). Kedua, *verifikasi* adalah gerbang wajib sebelum layanan dinyatakan sehat — failover tanpa verifikasi hanya memindahkan masalah. Ketiga, *post-mortem* menutup siklus: setiap insiden harus menghasilkan pembaruan *runbook* atau perubahan konfigurasi, sehingga insiden berikutnya lebih cepat ditangani.
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Setup Otomatis Failover dengan Kubernetes
 
@@ -281,7 +290,7 @@ spec:
 kubectl get pods -n llm-inference -o wide
 ```
 
-Perhatikan pasangan `taint` (Langkah 1) dan `toleration` (di manifest): node yang terkena taint `NoExecute` mengusir pod yang tidak bertoleransi; pod Anda bertoleransi selama 10 detik (`tolerationSeconds: 10`) lalu ikut diusir — dan *nodeSelector* `accelerator: nvidia-gpu` memastikan pod baru mendarat di node GPU yang masih sehat. Setelah `kubectl apply -f` manifest, simulasi: beri taint pada node sehat dan amati perpindahan pod dengan `kubectl get pods -o wide` — inilah mekanisme yang sama yang dipakai pada studi kasus Bagian 11.
+Perhatikan pasangan `taint` (Langkah 1) dan `toleration` (di manifest): node yang terkena taint `NoExecute` mengusir pod yang tidak bertoleransi; pod Anda bertoleransi selama 10 detik (`tolerationSeconds: 10`) lalu ikut diusir — dan *nodeSelector* `accelerator: nvidia-gpu` memastikan pod baru mendarat di node GPU yang masih sehat. Setelah `kubectl apply -f` manifest, simulasi: beri taint pada node sehat dan amati perpindahan pod dengan `kubectl get pods -o wide` — inilah mekanisme yang sama yang dipakai pada studi kasus Bagian 9.
 
 ### Langkah 2: Prosedur Recovery GPU Hang
 
@@ -356,7 +365,8 @@ Notasi lain perlu diingat. Langkah 4 adalah verifikasi paling penting: *curl* pe
 
 ---
 
-## 11. Studi Kasus: GPU Failure Saat Jam Sibuk (10:30 AM)
+## 9. Studi Kasus: GPU Failure Saat Jam Sibuk (10:30 AM)
+
 
 **Insiden.** Pukul 10:30 pagi, GPU Node 1 (H100) mati total. Fan tidak berputar, dan GPU melakukan *thermal shutdown*. Ini bukan *hang* yang bisa di-restart — ini kegagalan fisik yang hanya bisa ditangani penggantian unit.
 
@@ -372,7 +382,8 @@ Notasi lain perlu diingat. Langkah 4 adalah verifikasi paling penting: *curl* pe
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

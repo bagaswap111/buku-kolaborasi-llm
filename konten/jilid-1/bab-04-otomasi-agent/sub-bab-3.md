@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan mekanisme *Chain-of-Thought prompting* dan variasinya: few-shot CoT, zero-shot CoT, Self-Consistency, dan Tree-of-Thoughts
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep Chain-of-Thought
+
 
 ### Berpikir dengan Suara
 
@@ -31,6 +33,7 @@ Alasan mengapa CoT bekerja masih diperdebatkan, tetapi hipotesis yang paling kua
 ---
 
 ## 3. Jenis-Jenis CoT Prompting
+
 
 ### Few-shot CoT
 
@@ -47,114 +50,6 @@ Alasan mengapa CoT bekerja masih diperdebatkan, tetapi hipotesis yang paling kua
 ### Tree-of-Thoughts (ToT)
 
 **Tree-of-Thoughts (ToT)** melangkah lebih jauh: alih-alih satu rantai lurus atau beberapa rantai paralel, model mengeksplorasi *pohon* pemikiran — beberapa cabang penalaran secara simultan, dengan evaluasi dan *backtracking* (mundur dari cabang yang gagal) [5]. Setiap node adalah *state* pemikiran, dan model berpindah antar node sambil menilai mana yang menjanjikan. ToT unggul pada tugas yang membutuhkan eksplorasi — teka-teki, perencanaan, optimasi — dengan akurasi GSM8K sekitar 74%. Kelemahannya sama dengan Self-Consistency, hanya lebih ekstrem: biaya token ~20x *standard prompting* dan kompleksitas implementasi yang tinggi. Untuk sebagian besar pekerjaan harian, ToT adalah *overkill* — ia untuk tugas-tugas yang membuat manusia mengambil kertas coret-coretan.
-
----
-
-## 4. ReAct — Reasoning + Acting
-
-### Berpikir Sambil Bekerja
-
-Semua varian CoT di atas murni *berpikir*: model merenung, lalu menjawab. **ReAct** (Reasoning + Acting) mengubah persamaan itu: model bergantian *bernalar* dan *bertindak*, di mana setiap tindakan menghasilkan *observasi* nyata yang menjadi bahan penalaran berikutnya [2]. Formatnya konsisten: **Thought** (analisis) → **Action** (nama tool) → **Action Input** (argumen) → **Observation** (hasil tool) → Thought berikutnya, dan seterusnya sampai model merasa yakin dan menuliskan **Final Answer**.
-
-Keunggulan ReAct dibanding CoT murni adalah **grounding**: setiap langkah penalaran diuji terhadap dunia nyata. Model yang bernalar tanpa alat bisa membayangkan data yang tidak ada (halusinasi); model ReAct *melihat* hasil tool-nya — jika angkanya 48.000, ia menalarnya dari 48.000. Pada benchmark HotpotQA (pertanyaan multi-hop yang membutuhkan pencarian), ReAct mencapai *exact match* sekitar 60%, unggul atas CoT murni yang *tersandung* saat menyimpulkan fakta yang tidak diketahuinya [2]. ReAct adalah jembatan alami antara Bab 4.2 (function calling) dan bab ini: *CoT memberikan pikiran, function calling memberikan tangan, ReAct menyatukan keduanya*.
-
----
-
-## 5. CoT untuk LLM Lokal
-
-### Model Kecil Bisa — dengan Syarat
-
-Fakta penting yang sering disalahpahami: *emergent ability* CoT ditemukan pada model >100B, tetapi model kecil juga mendapat manfaat — hanya dengan akurasi yang lebih rendah. Llama-3.1-8B naik dari 18,2% (standard) menjadi 52,3% (few-shot CoT); Qwen-2.5-7B dari 22,5% menjadi 56,8% — hampir tiga kali lipat. Kuncinya adalah **prompt engineering + format terstruktur**: model kecil lebih sensitif terhadap kualitas instruksi, sehingga format yang konsisten ("Thought:", "Answer:") dan contoh yang baik jauh lebih menentukan.
-
-Pilihan model untuk *reasoning* lokal di 2026 sangat kuat: **Llama-3.1-8B** (keseimbangan terbaik ukuran/kualitas), **Qwen-2.5-7B** (unggul di beberapa benchmark), **DeepSeek-R1-Distill** (model kecil yang didistilasi dari R1, spesialis *reasoning*), hingga **DeepSeek V4 Pro** yang arsitekturnya (hybrid CSA/HCA attention) dirancang khusus untuk *reasoning* mendalam dengan konteks panjang. Untuk agen di laptop, *DeepSeek V4 Flash* menjadi pilihan menarik: kualitas *reasoning* kelas atas dengan 13 miliar parameter aktif.
-
-### Kontrol Kedalaman: Reasoning Effort
-
-Pertanyaan *"seberapa dalam model harus berpikir?"* kini punya jawaban eksplisit. **GPT-5.5** (April 2026) memperkenalkan parameter `reasoning_effort` dengan empat level — `low`, `medium`, `high`, `xhigh` — yang mengontrol *depth reasoning* secara langsung: pertanyaan sederhana cukup dengan `low` (cepat, murah), sementara masalah kompleks memakai `high` atau `xhigh` (lambat, akurat). Konsep yang sama relevan untuk agen lokal: alih-alih satu mode, agen dapat *menyesuaikan effort berdasarkan kompleksitas task* — misalnya menggunakan *zero-shot CoT* untuk pertanyaan rutin dan *Self-Consistency* untuk keputusan penting. Kemampuan menyesuaikan kedalaman penalaran inilah yang membuat agen efisien *dan* andal: tidak membuang token untuk hal sepele, tidak mengorbankan akurasi untuk hal krusial.
-
----
-
-## 6. Planning vs Reasoning
-
-### Dua Bakat yang Berbeda
-
-**Reasoning** adalah kemampuan memecahkan masalah dengan langkah-langkah logis: dari premis ke kesimpulan, seperti menyelesaikan persamaan. **Planning** adalah kemampuan menyusun urutan aksi untuk mencapai tujuan di masa depan: menentukan apa yang dilakukan *dulu, kedua, ketiga* — seperti menyusun itinerary perjalanan. Keduanya sering disalahartikan sebagai satu hal, padahal dalam agen keduanya bekerja pada *waktu yang berbeda*: planning terjadi *sebelum* eksekusi, reasoning terjadi *selama* eksekusi.
-
-Agen yang baik membutuhkan keduanya. Ambil contoh agen yang diminta "siapkan laporan bulanan": ia *plan* — kumpulkan data dari 3 sumber, gabungkan, format, kirim — baru kemudian *reason* saat eksekusi: "sumber B kosong, bagaimana menyiasatinya?" Menariknya, CoT menangani keduanya: *reasoning* CoT digunakan saat mengevaluasi keputusan lokal, sedangkan *planning* dapat direpresentasikan sebagai CoT *bertingkat* — rencana kasar dulu, lalu setiap langkah dirinci lebih lanjut. Feng et al. (2024) menunjukkan bahwa kolaborasi manusia-agen untuk tugas kompleks justru mengandalkan pembagian ini: manusia menyetujui *rencana*, agen menalarkan *eksekusinya* [4]. Dalam praktik, pisahkan keduanya dalam desain prompt Anda: minta rencana eksplisit di awal, lalu jalankan langkah demi langkah dengan penalaran per langkah.
-
----
-
-## 7. Evaluasi Kualitas Reasoning
-
-### Tolok Ukur Standar
-
-Bagaimana kita tahu sebuah metode *reasoning* benar-benar lebih baik? Pengukuran standar menggunakan benchmark: **GSM8K** — 8.500 soal cerita matematika sekolah dasar, standar emas untuk aritmetika multi-langkah [7]; **MATH** — soal matematika kompetisi yang jauh lebih sulit; dan **HotpotQA** — pertanyaan *multi-hop* yang mengharuskan menyatukan fakta dari beberapa dokumen. Benchmark GSM8K dipakai di semua tabel pada bab ini karena ia menguji hal yang paling relevan untuk agen: *kemampuan menyelesaikan masalah bertahap tanpa bantuan eksternal*.
-
-### Evaluasi Lokal
-
-Untuk mengukur kualitas *reasoning* model lokal Anda sendiri, evaluasi manual dua lapis cukup. Lapis pertama, **verifikasi langkah demi langkah**: baca setiap baris rantai penalaran — apakah setiap langkah logis dari langkah sebelumnya? Model yang menghasilkan "angka jadi tanpa alur" dicurigai menebak. Lapis kedua, **cek kontradiksi**: apakah kesimpulan konsisten dengan premis di awal? Model yang menyatakan "12 apel × Rp 5.000 = Rp 60.000" lalu menyimpulkan "total Rp 48.000" tanpa menjelaskan diskon — itu rantai yang putus. Bila menemukan kesalahan sistematis, perbaiki *prompt*-nya: tambahkan contoh, perketat format, atau naikkan *temperature* untuk variasi. Kebiasaan "membaca pikiran model" ini — disebut *chain inspection* — adalah keterampilan paling berharga bagi pengguna agen yang serius.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Perbandingan Metode Reasoning
-
-Peta lengkap enam strategi penalaran — dari yang termurah hingga termahal — dengan angka GSM8K sebagai pembanding.
-
-| Metode | Tahun | Kebutuhan Token | Akurasi (GSM8K) | Cocok untuk | Implementasi Lokal |
-|:---|:---:|:---:|:---:|:---|:---:|
-| **Standard Prompting** | 2022 | Rendah | ~20% | Tugas sederhana | Mudah |
-| **Few-shot CoT** | 2022 | Sedang | ~58% | Soal cerita | Mudah |
-| **Zero-shot CoT** | 2022 | Rendah | ~43% | General reasoning | Sangat mudah |
-| **Self-Consistency** | 2022 | Tinggi (5x) | ~72% | High-stakes decision | Berat (5x inference) |
-| **Tree-of-Thoughts** | 2023 | Tinggi | ~74% | Planning kompleks | Kompleks |
-| **ReAct** | 2023 | Sedang | ~60%\* | Agent tasks | Mudah |
-
-> \*ReAct diukur pada HotpotQA (EM), bukan GSM8K.
-
-Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prompting murah tetapi lemah (~20%); Self-Consistency dan ToT mencapai ~72-74% tetapi menuntut 5-20x biaya token. Keputusan pemilihan metode karenanya bukan "metode mana yang terbaik" melainkan *"metode mana yang paling murah untuk tingkat akurasi yang dibutuhkan tugas ini"*. Panduan praktis: mulai dari *zero-shot CoT* (satu kalimat, gratis, 43%); bila akurasi kurang, naik ke *few-shot CoT* (58%) dengan 2-3 contoh; gunakan *Self-Consistency* hanya untuk keputusan penting; dan cadangkan ToT untuk tugas eksplorasi yang benar-benar membutuhkannya. ReAct adalah kasus khusus: akurasinya sedang, tetapi *kemampuannya bertindak* membuatnya tak tergantikan untuk agen [2][3][5].
-
-![Akurasi metode reasoning pada GSM8K](../../assets/images/bab-04-otomasi-agent/sub-bab-3/akurasi-metode-reasoning.png)
-
-*Gambar 4.3-1 — Akurasi naik dari ~20% (standard prompting) menjadi ~74% (Tree-of-Thoughts); perbaikannya selalu berbanding lurus dengan biaya token, sehingga pemilihan metode adalah keputusan tentang harga akurasi, bukan sekadar pilihan teknik.*
-
-### Tabel 2: Performa CoT pada Model Lokal (GSM8K)
-
-Bagaimana model-model lokal 2026 menanggapi tiap metode? Tabel ini menjawabnya.
-
-| Model | Standard | Few-shot CoT | Zero-shot CoT | Self-Consistency (5) |
-|:---|:---:|:---:|:---:|:---:|
-| **DeepSeek V4 Pro** | 42.1% | 78.3% | 62.5% | 85.2% |
-| Llama-3.1-8B | 18.2% | 52.3% | 38.7% | 64.1% |
-| Qwen-2.5-7B | 22.5% | 56.8% | 42.1% | 68.3% |
-| DeepSeek-R1-Distill-Qwen-7B | 25.1% | 61.2% | 45.6% | 72.4% |
-| Mistral Large 3 | 35.8% | 72.5% | 55.3% | 80.1% |
-| Mistral-7B | 16.8% | 48.5% | 35.2% | 60.8% |
-
-Empat wawasan penting. *Pertama*, semua model memperoleh manfaat CoT — bahkan Mistral-7B (model kecil dari 2023) nyaris melipatgandakan akurasinya dengan few-shot CoT. *Kedua*, ukuran bukan satu-satunya penentu: DeepSeek-R1-Distill-Qwen-7B mengungguli Qwen-2.5-7B di semua kolom meskipun berarsitektur sama — bukti bahwa *distilasi kemampuan reasoning* benar-benar menurunkan skill dari model besar [1]. *Ketiga*, kesenjangan antara model kecil dan besar menyempit saat metode semakin canggih: pada Self-Consistency, selisih Llama-3.1-8B terhadap DeepSeek V4 Pro adalah 21 poin — masih besar, tetapi jauh lebih kecil daripada selisih 24 poin pada mode standard. *Keempat*, DeepSeek V4 Pro menunjukkan konsistensi: ia unggul di semua kolom, menegaskan bahwa arsitektur CSA/HCA memang dirancang untuk *reasoning* mendalam. Bagi pengguna laptop, DeepSeek-R1-Distill-Qwen-7B (72,4% dengan Self-Consistency) adalah pilihan menarik: kualitas mendekati model besar dengan biaya model kecil.
-
-![Performa CoT pada model lokal](../../assets/images/bab-04-otomasi-agent/sub-bab-3/performa-cot-model-lokal.png)
-
-*Gambar 4.3-2 — Semua model lokal naik tajam dari standard ke few-shot CoT; DeepSeek V4 Pro konsisten unggul di semua metode (42,1% → 85,2%), dan DeepSeek-R1-Distill-Qwen-7B menyalip Qwen-2.5-7B di seluruh kolom berkat distilasi kemampuan reasoning.*
-
-### Tabel 3: Penggunaan Sumber Daya per Metode (Model 7B)
-
-Metode yang canggih harus dibayar — tabel ini menghitung harganya pada model 7B lokal.
-
-| Metode | VRAM | Latency per Task | Cost (Token) |
-|:---|:---:|:---:|:---:|
-| Standard | ~4 GB | ~0.5s | ~100 tokens |
-| Zero-shot CoT | ~4 GB | ~1.2s | ~250 tokens |
-| Few-shot CoT (3-shot) | ~4 GB | ~1.5s | ~400 tokens |
-| Self-Consistency (5) | ~4 GB | ~6.0s | ~1250 tokens |
-| Tree-of-Thoughts (3 branches) | ~6 GB | ~10s | ~2000 tokens |
-
-Catatan pertama yang menenangkan: **VRAM hampir tidak berubah** — semua metode memakai model yang sama (7B, ~4 GB), perbedaan hanya pada jumlah token yang dihasilkan. Perbedaan sebenarnya ada di *latency* dan *cost token*: Self-Consistency menambah ~1.250 token (5x inference), ToT ~2.000 token dengan tambahan VRAM untuk menyimpan beberapa cabang sekaligus. Dalam praktik harian, angka ini berarti: pada laptop dengan kecepatan ~30 token/detik, zero-shot CoT menambah ~8 detik per pertanyaan; Self-Consistency menambah ~40 detik. Itulah mengapa keputusan memilih metode hampir selalu *keputusan tentang waktu*, bukan tentang memori — dan mengapa agen yang baik mengatur *reasoning effort* berdasarkan kompleksitas tugas, bukan memakai metode termahal untuk semua pertanyaan.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: CoT vs ReAct — Linear vs Loop
 
@@ -179,6 +74,75 @@ graph TD
 
 Bandingkan kedua bentuk di atas. CoT adalah garis lurus: *Question → Reasoning Steps → Answer*. Tidak ada percabangan, tidak ada umpan balik — model merenung dari ingatan dalamnya, lalu menjawab. ReAct adalah *loop*: *Thought → Action → Observation* berputar sampai kondisi `Selesai?` terpenuhi. Perbedaan ini menjelaskan mengapa keduanya dipakai untuk tujuan berbeda: CoT untuk masalah yang bisa diselesaikan dalam kepala (matematika, logika), ReAct untuk masalah yang membutuhkan dunia nyata (mencari informasi, menjalankan tool) [1][2]. Bila diagram ini Anda implementasikan sebagai kode, perhatikan bahwa cabang "Belum" pada ReAct membawa *observasi* sebagai konteks baru — setiap putaran model menalar dengan informasi yang lebih lengkap, persis mekanisme *memory update* pada agent loop di Bab 4.1.
 
+
+---
+
+## 4. ReAct — Reasoning + Acting
+
+
+### Berpikir Sambil Bekerja
+
+Semua varian CoT di atas murni *berpikir*: model merenung, lalu menjawab. **ReAct** (Reasoning + Acting) mengubah persamaan itu: model bergantian *bernalar* dan *bertindak*, di mana setiap tindakan menghasilkan *observasi* nyata yang menjadi bahan penalaran berikutnya [2]. Formatnya konsisten: **Thought** (analisis) → **Action** (nama tool) → **Action Input** (argumen) → **Observation** (hasil tool) → Thought berikutnya, dan seterusnya sampai model merasa yakin dan menuliskan **Final Answer**.
+
+Keunggulan ReAct dibanding CoT murni adalah **grounding**: setiap langkah penalaran diuji terhadap dunia nyata. Model yang bernalar tanpa alat bisa membayangkan data yang tidak ada (halusinasi); model ReAct *melihat* hasil tool-nya — jika angkanya 48.000, ia menalarnya dari 48.000. Pada benchmark HotpotQA (pertanyaan multi-hop yang membutuhkan pencarian), ReAct mencapai *exact match* sekitar 60%, unggul atas CoT murni yang *tersandung* saat menyimpulkan fakta yang tidak diketahuinya [2]. ReAct adalah jembatan alami antara Bab 4.2 (function calling) dan bab ini: *CoT memberikan pikiran, function calling memberikan tangan, ReAct menyatukan keduanya*.
+
+### Tabel 1: Perbandingan Metode Reasoning
+
+Peta lengkap enam strategi penalaran — dari yang termurah hingga termahal — dengan angka GSM8K sebagai pembanding.
+
+| Metode | Tahun | Kebutuhan Token | Akurasi (GSM8K) | Cocok untuk | Implementasi Lokal |
+|:---|:---:|:---:|:---:|:---|:---:|
+| **Standard Prompting** | 2022 | Rendah | ~20% | Tugas sederhana | Mudah |
+| **Few-shot CoT** | 2022 | Sedang | ~58% | Soal cerita | Mudah |
+| **Zero-shot CoT** | 2022 | Rendah | ~43% | General reasoning | Sangat mudah |
+| **Self-Consistency** | 2022 | Tinggi (5x) | ~72% | High-stakes decision | Berat (5x inference) |
+| **Tree-of-Thoughts** | 2023 | Tinggi | ~74% | Planning kompleks | Kompleks |
+| **ReAct** | 2023 | Sedang | ~60%\* | Agent tasks | Mudah |
+
+> \*ReAct diukur pada HotpotQA (EM), bukan GSM8K.
+
+Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prompting murah tetapi lemah (~20%); Self-Consistency dan ToT mencapai ~72-74% tetapi menuntut 5-20x biaya token. Keputusan pemilihan metode karenanya bukan "metode mana yang terbaik" melainkan *"metode mana yang paling murah untuk tingkat akurasi yang dibutuhkan tugas ini"*. Panduan praktis: mulai dari *zero-shot CoT* (satu kalimat, gratis, 43%); bila akurasi kurang, naik ke *few-shot CoT* (58%) dengan 2-3 contoh; gunakan *Self-Consistency* hanya untuk keputusan penting; dan cadangkan ToT untuk tugas eksplorasi yang benar-benar membutuhkannya. ReAct adalah kasus khusus: akurasinya sedang, tetapi *kemampuannya bertindak* membuatnya tak tergantikan untuk agen [2][3][5].
+
+![Akurasi metode reasoning pada GSM8K](../../assets/images/bab-04-otomasi-agent/sub-bab-3/akurasi-metode-reasoning.png)
+
+*Gambar 4.3-1 — Akurasi naik dari ~20% (standard prompting) menjadi ~74% (Tree-of-Thoughts); perbaikannya selalu berbanding lurus dengan biaya token, sehingga pemilihan metode adalah keputusan tentang harga akurasi, bukan sekadar pilihan teknik.*
+
+
+---
+
+## 5. CoT untuk LLM Lokal
+
+
+### Model Kecil Bisa — dengan Syarat
+
+Fakta penting yang sering disalahpahami: *emergent ability* CoT ditemukan pada model >100B, tetapi model kecil juga mendapat manfaat — hanya dengan akurasi yang lebih rendah. Llama-3.1-8B naik dari 18,2% (standard) menjadi 52,3% (few-shot CoT); Qwen-2.5-7B dari 22,5% menjadi 56,8% — hampir tiga kali lipat. Kuncinya adalah **prompt engineering + format terstruktur**: model kecil lebih sensitif terhadap kualitas instruksi, sehingga format yang konsisten ("Thought:", "Answer:") dan contoh yang baik jauh lebih menentukan.
+
+Pilihan model untuk *reasoning* lokal di 2026 sangat kuat: **Llama-3.1-8B** (keseimbangan terbaik ukuran/kualitas), **Qwen-2.5-7B** (unggul di beberapa benchmark), **DeepSeek-R1-Distill** (model kecil yang didistilasi dari R1, spesialis *reasoning*), hingga **DeepSeek V4 Pro** yang arsitekturnya (hybrid CSA/HCA attention) dirancang khusus untuk *reasoning* mendalam dengan konteks panjang. Untuk agen di laptop, *DeepSeek V4 Flash* menjadi pilihan menarik: kualitas *reasoning* kelas atas dengan 13 miliar parameter aktif.
+
+### Kontrol Kedalaman: Reasoning Effort
+
+Pertanyaan *"seberapa dalam model harus berpikir?"* kini punya jawaban eksplisit. **GPT-5.5** (April 2026) memperkenalkan parameter `reasoning_effort` dengan empat level — `low`, `medium`, `high`, `xhigh` — yang mengontrol *depth reasoning* secara langsung: pertanyaan sederhana cukup dengan `low` (cepat, murah), sementara masalah kompleks memakai `high` atau `xhigh` (lambat, akurat). Konsep yang sama relevan untuk agen lokal: alih-alih satu mode, agen dapat *menyesuaikan effort berdasarkan kompleksitas task* — misalnya menggunakan *zero-shot CoT* untuk pertanyaan rutin dan *Self-Consistency* untuk keputusan penting. Kemampuan menyesuaikan kedalaman penalaran inilah yang membuat agen efisien *dan* andal: tidak membuang token untuk hal sepele, tidak mengorbankan akurasi untuk hal krusial.
+
+### Tabel 2: Performa CoT pada Model Lokal (GSM8K)
+
+Bagaimana model-model lokal 2026 menanggapi tiap metode? Tabel ini menjawabnya.
+
+| Model | Standard | Few-shot CoT | Zero-shot CoT | Self-Consistency (5) |
+|:---|:---:|:---:|:---:|:---:|
+| **DeepSeek V4 Pro** | 42.1% | 78.3% | 62.5% | 85.2% |
+| Llama-3.1-8B | 18.2% | 52.3% | 38.7% | 64.1% |
+| Qwen-2.5-7B | 22.5% | 56.8% | 42.1% | 68.3% |
+| DeepSeek-R1-Distill-Qwen-7B | 25.1% | 61.2% | 45.6% | 72.4% |
+| Mistral Large 3 | 35.8% | 72.5% | 55.3% | 80.1% |
+| Mistral-7B | 16.8% | 48.5% | 35.2% | 60.8% |
+
+Empat wawasan penting. *Pertama*, semua model memperoleh manfaat CoT — bahkan Mistral-7B (model kecil dari 2023) nyaris melipatgandakan akurasinya dengan few-shot CoT. *Kedua*, ukuran bukan satu-satunya penentu: DeepSeek-R1-Distill-Qwen-7B mengungguli Qwen-2.5-7B di semua kolom meskipun berarsitektur sama — bukti bahwa *distilasi kemampuan reasoning* benar-benar menurunkan skill dari model besar [1]. *Ketiga*, kesenjangan antara model kecil dan besar menyempit saat metode semakin canggih: pada Self-Consistency, selisih Llama-3.1-8B terhadap DeepSeek V4 Pro adalah 21 poin — masih besar, tetapi jauh lebih kecil daripada selisih 24 poin pada mode standard. *Keempat*, DeepSeek V4 Pro menunjukkan konsistensi: ia unggul di semua kolom, menegaskan bahwa arsitektur CSA/HCA memang dirancang untuk *reasoning* mendalam. Bagi pengguna laptop, DeepSeek-R1-Distill-Qwen-7B (72,4% dengan Self-Consistency) adalah pilihan menarik: kualitas mendekati model besar dengan biaya model kecil.
+
+![Performa CoT pada model lokal](../../assets/images/bab-04-otomasi-agent/sub-bab-3/performa-cot-model-lokal.png)
+
+*Gambar 4.3-2 — Semua model lokal naik tajam dari standard ke few-shot CoT; DeepSeek V4 Pro konsisten unggul di semua metode (42,1% → 85,2%), dan DeepSeek-R1-Distill-Qwen-7B menyalip Qwen-2.5-7B di seluruh kolom berkat distilasi kemampuan reasoning.*
+
+
 ### Gambar 2: Contoh Output CoT di Terminal
 
 Untuk melihat bentuk nyata rantai penalaran, berikut output Llama 3.1-8B menjawab soal matematika berbahasa Indonesia dengan *zero-shot CoT*.
@@ -200,7 +164,52 @@ Perhatikan tiga hal dari output ini. *Pertama*, frasa "Mari kita berpikir langka
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 6. Planning vs Reasoning
+
+
+### Dua Bakat yang Berbeda
+
+**Reasoning** adalah kemampuan memecahkan masalah dengan langkah-langkah logis: dari premis ke kesimpulan, seperti menyelesaikan persamaan. **Planning** adalah kemampuan menyusun urutan aksi untuk mencapai tujuan di masa depan: menentukan apa yang dilakukan *dulu, kedua, ketiga* — seperti menyusun itinerary perjalanan. Keduanya sering disalahartikan sebagai satu hal, padahal dalam agen keduanya bekerja pada *waktu yang berbeda*: planning terjadi *sebelum* eksekusi, reasoning terjadi *selama* eksekusi.
+
+Agen yang baik membutuhkan keduanya. Ambil contoh agen yang diminta "siapkan laporan bulanan": ia *plan* — kumpulkan data dari 3 sumber, gabungkan, format, kirim — baru kemudian *reason* saat eksekusi: "sumber B kosong, bagaimana menyiasatinya?" Menariknya, CoT menangani keduanya: *reasoning* CoT digunakan saat mengevaluasi keputusan lokal, sedangkan *planning* dapat direpresentasikan sebagai CoT *bertingkat* — rencana kasar dulu, lalu setiap langkah dirinci lebih lanjut. Feng et al. (2024) menunjukkan bahwa kolaborasi manusia-agen untuk tugas kompleks justru mengandalkan pembagian ini: manusia menyetujui *rencana*, agen menalarkan *eksekusinya* [4]. Dalam praktik, pisahkan keduanya dalam desain prompt Anda: minta rencana eksplisit di awal, lalu jalankan langkah demi langkah dengan penalaran per langkah.
+
+---
+
+## 7. Evaluasi Kualitas Reasoning
+
+
+### Tolok Ukur Standar
+
+Bagaimana kita tahu sebuah metode *reasoning* benar-benar lebih baik? Pengukuran standar menggunakan benchmark: **GSM8K** — 8.500 soal cerita matematika sekolah dasar, standar emas untuk aritmetika multi-langkah [7]; **MATH** — soal matematika kompetisi yang jauh lebih sulit; dan **HotpotQA** — pertanyaan *multi-hop* yang mengharuskan menyatukan fakta dari beberapa dokumen. Benchmark GSM8K dipakai di semua tabel pada bab ini karena ia menguji hal yang paling relevan untuk agen: *kemampuan menyelesaikan masalah bertahap tanpa bantuan eksternal*.
+
+### Evaluasi Lokal
+
+Untuk mengukur kualitas *reasoning* model lokal Anda sendiri, evaluasi manual dua lapis cukup. Lapis pertama, **verifikasi langkah demi langkah**: baca setiap baris rantai penalaran — apakah setiap langkah logis dari langkah sebelumnya? Model yang menghasilkan "angka jadi tanpa alur" dicurigai menebak. Lapis kedua, **cek kontradiksi**: apakah kesimpulan konsisten dengan premis di awal? Model yang menyatakan "12 apel × Rp 5.000 = Rp 60.000" lalu menyimpulkan "total Rp 48.000" tanpa menjelaskan diskon — itu rantai yang putus. Bila menemukan kesalahan sistematis, perbaiki *prompt*-nya: tambahkan contoh, perketat format, atau naikkan *temperature* untuk variasi. Kebiasaan "membaca pikiran model" ini — disebut *chain inspection* — adalah keterampilan paling berharga bagi pengguna agen yang serius.
+
+### Tabel 3: Penggunaan Sumber Daya per Metode (Model 7B)
+
+Metode yang canggih harus dibayar — tabel ini menghitung harganya pada model 7B lokal.
+
+| Metode | VRAM | Latency per Task | Cost (Token) |
+|:---|:---:|:---:|:---:|
+| Standard | ~4 GB | ~0.5s | ~100 tokens |
+| Zero-shot CoT | ~4 GB | ~1.2s | ~250 tokens |
+| Few-shot CoT (3-shot) | ~4 GB | ~1.5s | ~400 tokens |
+| Self-Consistency (5) | ~4 GB | ~6.0s | ~1250 tokens |
+| Tree-of-Thoughts (3 branches) | ~6 GB | ~10s | ~2000 tokens |
+
+Catatan pertama yang menenangkan: **VRAM hampir tidak berubah** — semua metode memakai model yang sama (7B, ~4 GB), perbedaan hanya pada jumlah token yang dihasilkan. Perbedaan sebenarnya ada di *latency* dan *cost token*: Self-Consistency menambah ~1.250 token (5x inference), ToT ~2.000 token dengan tambahan VRAM untuk menyimpan beberapa cabang sekaligus. Dalam praktik harian, angka ini berarti: pada laptop dengan kecepatan ~30 token/detik, zero-shot CoT menambah ~8 detik per pertanyaan; Self-Consistency menambah ~40 detik. Itulah mengapa keputusan memilih metode hampir selalu *keputusan tentang waktu*, bukan tentang memori — dan mengapa agen yang baik mengatur *reasoning effort* berdasarkan kompleksitas tugas, bukan memakai metode termahal untuk semua pertanyaan.
+
+---
+
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Langkah 1: Zero-shot CoT dengan Ollama
 
@@ -356,7 +365,8 @@ Amati *loop* yang berjalan: setiap respons model di-parse untuk mencari `Action:
 
 ---
 
-## 11. Studi Kasus: Agen Research dengan ReAct + CoT
+## 9. Studi Kasus: Agen Research dengan ReAct + CoT
+
 
 **Profil:** Dimas, seorang *technical writer* yang setiap bulan diminta menulis laporan perbandingan model AI untuk media teknologinya. Tugas yang sama terulang: cari benchmark, bandingkan angka, susun rekomendasi. Selama ini ia membuka Google, menyalin tabel, menyusun ulang — sekitar 2 jam per laporan.
 
@@ -382,7 +392,8 @@ Amati *loop* yang berjalan: setiap respons model di-parse untuk mencari `Action:
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

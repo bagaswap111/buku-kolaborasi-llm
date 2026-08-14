@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menggunakan perangkat CLI llama.cpp: `llama-cli`, `llama-server`, `llama-bench`, `llama-perplexity`, `llama-embedding`, `llama-tokenize`
@@ -19,6 +20,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Filosofi CLI-Only
 
+
 ### Terminal: Antarmuka Paling Efisien untuk Mesin
 
 Ada alasan mengapa *power user* selalu kembali ke terminal: ia **zero overhead**. Tidak ada GUI yang memakan RAM untuk *rendering*, tidak ada lapisan abstraksi yang menahan tombol, tidak ada animasi. Yang tersisa hanyalah proses, teks, dan *pipeline*. Bagi LLM — yang pada dasarnya adalah pipa teks menuju teks — terminal adalah pasangan alami: input adalah teks dari *stdin*, output adalah teks ke *stdout*, dan keduanya bisa dihubungkan ke alat UNIX apa pun.
@@ -28,99 +30,6 @@ Yang lebih penting, terminal itu **scriptable**. Perintah yang Anda ketik hari i
 ### Mengapa Bukan GUI?
 
 Bukan berarti GUI buruk — LM Studio dan Open WebUI punya tempatnya. Tetapi untuk tugas yang repetitif dan terukur — *summarize* 50 artikel setiap pagi, *review* diff sebelum commit, *translate* file konfigurasi — GUI memaksa Anda melakukan 10 klik per tugas, sedangkan CLI melakukannya dalam satu perintah yang sama setiap kali. Waktu yang dihemat bukan menit, melainkan jam per minggu, dan skrip yang sama bisa dibagikan ke tim.
-
----
-
-## 3. Toolset llama.cpp
-
-### Satu Bangunan, Enam Pintu
-
-llama.cpp bukan satu program, melainkan sebuah keluarga alat yang masing-masing memandang model dari sudut yang berbeda:
-
-- **`llama-cli`** — alat utama untuk inference interaktif dan *one-shot*; inilah "terminal chat" Anda
-- **`llama-server`** — mengubah model menjadi HTTP server yang kompatibel dengan OpenAI API, membuka jalan bagi aplikasi web dan integrasi eksternal
-- **`llama-bench`** — *benchmark* performa; menjawab pertanyaan "berapa t/s model ini di mesin saya?"
-- **`llama-perplexity`** — mengukur kualitas model secara objektif melalui metrik *perplexity*; berguna untuk membandingkan kuantisasi
-- **`llama-embedding`** — ekstraksi vektor embedding dari teks, bahan baku pipeline RAG di terminal
-- **`llama-tokenize`** — utilitas *tokenizer*; melihat bagaimana teks dipecah menjadi token, berguna untuk mengoptimalkan konteks
-
-Keenam alat ini berbagi satu *engine* dan satu format model (**GGUF**), sehingga penggunaannya konsisten: sekali Anda paham satu alat, lainnya mudah dipelajari. Dukungan *streaming* ada di semua alat yang menghasilkan teks — output mengalir token demi token, bukan muncul sekaligus di akhir.
-
----
-
-## 4. One-Liner Power
-
-### Teks Masuk, Teks Keluar
-
-Keindahan CLI-LLM adalah kemampuannya dikombinasikan dengan alat UNIX lain dalam satu baris. Contoh klasik:
-
-```bash
-llama-cli -p "buat puisi" | cowsay
-```
-
-Model menulis puisi, `cowsay` mengemasnya dalam gambar sapi ASCII — kombinasi konyol namun demonstratif: model hanyalah satu tahap dalam *pipeline*, bukan tujuan akhir. Pola ini berkembang tanpa batas: *summarize* artikel dengan `cat`, *translate* dengan `echo`, *review* kode dengan `git diff`.
-
-### Batch Processing dalam Satu Pola
-
-Perulangan `for` di shell mengubah perintah tunggal menjadi pabrik pemrosesan: satu skrip, seratus file, tanpa intervensi manusia. Setiap file dibaca, diproses, dan hasilnya ditulis ke direktori output — pola yang sama yang dipakai data pipeline industri, tetapi cukup sederhana untuk dipahami dalam lima menit.
-
-### Integrasi dengan Editor
-
-Editor adalah rumah kedua developer, dan ia juga bisa berbahasa terminal: `:!llama-cli ...` di Vim/Neovim mengeksekusi perintah shell dari dalam editor. Pilih blok teks, kirim ke LLM, dan hasil transformasi kembali ke buffer — alur kerja *selection → transform* yang membuat LLM terasa seperti perintah editor asli, bukan aplikasi terpisah.
-
----
-
-## 5. Shell Scripting untuk AI Pipeline
-
-### Empat Pipeline yang Mengubah Hidup
-
-Pola-pola berikut adalah *blueprint* yang bisa disesuaikan:
-
-**Summarization batch** — loop file PDF → ekstrak teks (`pdftotext`) → LLM meringkas → simpan hasil. Mengubah tumpukan dokumen yang tidak terbaca menjadi *knowledge base* ringkas dalam satu perintah.
-
-**Translation pipeline** — *stdin* → LLM → *stdout*. Karena model menerima teks dari *pipeline* dan menulis ke *stdout*, menerjemahkan file atau aliran data hanyalah masalah memilih *prompt* dan arah aliran.
-
-**Code review** — `git diff` → LLM → laporan review. Sebelum setiap *commit*, diff dikirim ke model untuk menemukan *bug*, celah keamanan, dan pelanggaran *best practice*. Reviewer paling rajin yang pernah Anda miliki, dan ia membaca setiap baris.
-
-**Email drafting** — *template* + LLM → draft. Model mengisi kerangka surat dengan konteks yang diberikan, menghasilkan draf yang siap diedit — bantuan menulis yang tidak menuntut Anda membuka aplikasi apa pun.
-
----
-
-## 6. Optimasi Performa
-
-### Empat Tuas Utama
-
-Performa inference di CLI dikendalikan oleh empat parameter:
-
-- **`--threads`** — jumlah thread CPU; aturan praktis: **`n_cores - 1`**, menyisakan satu inti untuk sistem operasi
-- **`--batch-size`** — ukuran batch untuk *prompt processing*; batch lebih besar meningkatkan *throughput* prefill (diuji pula oleh riset optimasi inference CPU [2])
-- **`-ngl`** (n_gpu_layers) — jumlah lapisan yang di-*offload* ke GPU; `-ngl 99` berarti seluruh model di GPU
-- **`--mlock`** — mengunci model di RAM agar tidak di-*swap* ke disk; mengorbankan RAM untuk kestabilan kecepatan
-
-Kombinasi yang tepat bergantung perangkat keras, dan `llama-bench` adalah alat untuk menemukannya secara empiris alih-alih menebak. Survei teknik *efficient inference* [5] mengingatkan bahwa optimasi berlapis — data-level, model-level, dan system-level — adalah pendekatan paling komprehensif; parameter CLI hanyalah lapisan terakhir dari tumpukan itu.
-
-### Peran Teknik Khusus CPU
-
-Satu pertanyaan wajar: bagaimana llama.cpp bisa secepat itu di CPU? Sebagian jawabannya datang dari riset seperti **NoMAD-Attention** [4] yang menunjukkan bahwa operasi *attention* bisa dibuat *multiply-add-free* di CPU — menghindari instruksi *multiply* yang mahal pada arsitektur tertentu. Optimalisasi level kernel semacam inilah yang membuat wawasan "CPU-only LLM" menjadi praktis, bukan sekadar teoretis.
-
----
-
-## 7. Alternatif CLI Lain
-
-### Ollama, llamafile, dan Sahabat Terminal
-
-llama.cpp bukan satu-satunya pintu CLI:
-
-- **Ollama CLI** — dua mode: interaktif (`ollama run`) dan API server (`ollama serve`); kelebihannya pada *model management* yang rapi dan pengunduhan satu perintah
-- **llamafile** — satu file *executable* yang berisi model dan runtime sekaligus (dikembangkan dari proyek Mozilla); *portability* maksimal: salin, jalankan, selesai
-- **LocalAI CLI** — lewat `local-ai run`, server multi-modalitas dari Bab 3.7 bisa dikendalikan dari terminal
-- **Shell-GPT (sgpt)** — asisten AI yang "tinggal" di shell: menyarankan perintah, menjelaskan error, dan berkolaborasi dalam percakapan terminal
-
-Pemilihan di antara mereka bergantung prioritas: kontrol penuh dan kecepatan (llama.cpp), kemudahan manajemen model (Ollama), portabilitas ekstrem (llamafile), atau integrasi percakapan (sgpt).
-
----
-
-## 8. Tabel Wajib
 
 ### Tabel A: Perbandingan CLI Tools
 
@@ -140,6 +49,48 @@ Tabel berikut membandingkan lima alat berbasis terminal yang paling umum dipakai
 
 Analisis: tabel ini membagi alat menjadi dua kubu. **llama-cli** dan **llama-server** adalah *engine* murni — fleksibel dan lengkap, tetapi Anda bertanggung jawab atas model dan konfigurasi. **ollama** dan **llamafile** adalah *wrapper* yang menyederhanakan — mereka mengorbankan sebagian kontrol untuk kenyamanan. **sgpt** berdiri sendiri: bukan engine, melainkan asisten yang memanfaatkan API apa pun. Pilihan yang baik sering kali kombinasi: Ollama untuk manajemen model harian, llama-server untuk serving OpenAI-compatible, dan sgpt untuk bantuan *inline* di shell.
 
+
+---
+
+## 3. Toolset llama.cpp
+
+
+### Satu Bangunan, Enam Pintu
+
+llama.cpp bukan satu program, melainkan sebuah keluarga alat yang masing-masing memandang model dari sudut yang berbeda:
+
+- **`llama-cli`** — alat utama untuk inference interaktif dan *one-shot*; inilah "terminal chat" Anda
+- **`llama-server`** — mengubah model menjadi HTTP server yang kompatibel dengan OpenAI API, membuka jalan bagi aplikasi web dan integrasi eksternal
+- **`llama-bench`** — *benchmark* performa; menjawab pertanyaan "berapa t/s model ini di mesin saya?"
+- **`llama-perplexity`** — mengukur kualitas model secara objektif melalui metrik *perplexity*; berguna untuk membandingkan kuantisasi
+- **`llama-embedding`** — ekstraksi vektor embedding dari teks, bahan baku pipeline RAG di terminal
+- **`llama-tokenize`** — utilitas *tokenizer*; melihat bagaimana teks dipecah menjadi token, berguna untuk mengoptimalkan konteks
+
+Keenam alat ini berbagi satu *engine* dan satu format model (**GGUF**), sehingga penggunaannya konsisten: sekali Anda paham satu alat, lainnya mudah dipelajari. Dukungan *streaming* ada di semua alat yang menghasilkan teks — output mengalir token demi token, bukan muncul sekaligus di akhir.
+
+---
+
+## 4. One-Liner Power
+
+
+### Teks Masuk, Teks Keluar
+
+Keindahan CLI-LLM adalah kemampuannya dikombinasikan dengan alat UNIX lain dalam satu baris. Contoh klasik:
+
+```bash
+llama-cli -p "buat puisi" | cowsay
+```
+
+Model menulis puisi, `cowsay` mengemasnya dalam gambar sapi ASCII — kombinasi konyol namun demonstratif: model hanyalah satu tahap dalam *pipeline*, bukan tujuan akhir. Pola ini berkembang tanpa batas: *summarize* artikel dengan `cat`, *translate* dengan `echo`, *review* kode dengan `git diff`.
+
+### Batch Processing dalam Satu Pola
+
+Perulangan `for` di shell mengubah perintah tunggal menjadi pabrik pemrosesan: satu skrip, seratus file, tanpa intervensi manusia. Setiap file dibaca, diproses, dan hasilnya ditulis ke direktori output — pola yang sama yang dipakai data pipeline industri, tetapi cukup sederhana untuk dipahami dalam lima menit.
+
+### Integrasi dengan Editor
+
+Editor adalah rumah kedua developer, dan ia juga bisa berbahasa terminal: `:!llama-cli ...` di Vim/Neovim mengeksekusi perintah shell dari dalam editor. Pilih blok teks, kirim ke LLM, dan hasil transformasi kembali ke buffer — alur kerja *selection → transform* yang membuat LLM terasa seperti perintah editor asli, bukan aplikasi terpisah.
+
 ### Tabel B: Contoh One-Liner
 
 Ide *one-liner* berikut siap disesuaikan dengan model GGUF atau Ollama Anda.
@@ -158,26 +109,23 @@ Ide *one-liner* berikut siap disesuaikan dengan model GGUF atau Ollama Anda.
 
 Analisis: perhatikan pola konsisten di balik variasi tugas — sebagian besar hanya mengganti *prompt* dan sumber input. `--temp 0.1` untuk tugas yang menuntut presisi (ringkasan, terjemahan), `--temp 0` untuk ekstraksi data yang deterministik, dan `-cnv` untuk sesi percakapan multi-putaran. Dua baris terakhir menunjukkan fleksibilitas antar alat: model besar seperti DeepSeek V4 Flash lebih nyaman lewat Ollama, sementara model ringan seperti Ministral 3 langsung dijalankan sebagai file GGUF dengan `-t 4`.
 
-### Tabel C: Perbandingan Performa Mode CLI
-
-Keempat mode komputasi berikut menentukan pengalaman yang akan Anda rasakan (model 7B Q4).
-
-| Mode | Kecepatan (7B Q4) | RAM | GPU | Cocok Untuk |
-|:---|:---:|:---:|:---:|:---|
-| **CPU-only** | 8-15 t/s | ~5 GB | 0 | Laptop/desktop tanpa GPU |
-| **GPU offload 100%** | 40-85 t/s | ~6 GB | 12-24 GB VRAM | Desktop dengan GPU |
-| **Hybrid (CPU+GPU)** | 20-40 t/s | ~5 GB + VRAM | 6-8 GB VRAM | GPU terbatas VRAM |
-| **Metal (Apple)** | 30-60 t/s | ~6 GB | Unified Memory | Mac M-series |
-
-![Rentang kecepatan empat mode komputasi CLI untuk model 7B Q4](../../assets/images/bab-03-software/sub-bab-10/kecepatan-mode-cli.png)
-
-*Gambar 3.10-1 — GPU offload penuh memberi lompatan hingga 5× dibanding CPU-only; mode hybrid menjadi kompromi cerdas untuk GPU dengan VRAM terbatas.*
-
-Analisis: tabel ini menunjukkan *trade-off* yang harus dipahami setiap pengguna CLI. CPU-only adalah mode paling universal (8–15 t/s) — cukup untuk *batch processing* yang tidak sensitif waktu, terlalu lambat untuk percakapan interaktif yang nyaman. GPU offload penuh memberikan lompatan 5× lipat tetapi menuntut VRAM besar. **Hybrid** — memuat sebagian lapisan ke GPU, sisanya di CPU — adalah solusi cerdas untuk GPU dengan VRAM kecil (seperti banyak kartu 6–8 GB): kecepatan dua kali lipat dari CPU murni, tanpa perlu GPU baru. **Metal** membuktikan kembali keunggulan *unified memory* Apple Silicon: 30–60 t/s tanpa VRAM terpisah.
 
 ---
 
-## 9. Diagram & Visualisasi
+## 5. Shell Scripting untuk AI Pipeline
+
+
+### Empat Pipeline yang Mengubah Hidup
+
+Pola-pola berikut adalah *blueprint* yang bisa disesuaikan:
+
+**Summarization batch** — loop file PDF → ekstrak teks (`pdftotext`) → LLM meringkas → simpan hasil. Mengubah tumpukan dokumen yang tidak terbaca menjadi *knowledge base* ringkas dalam satu perintah.
+
+**Translation pipeline** — *stdin* → LLM → *stdout*. Karena model menerima teks dari *pipeline* dan menulis ke *stdout*, menerjemahkan file atau aliran data hanyalah masalah memilih *prompt* dan arah aliran.
+
+**Code review** — `git diff` → LLM → laporan review. Sebelum setiap *commit*, diff dikirim ke model untuk menemukan *bug*, celah keamanan, dan pelanggaran *best practice*. Reviewer paling rajin yang pernah Anda miliki, dan ia membaca setiap baris.
+
+**Email drafting** — *template* + LLM → draft. Model mengisi kerangka surat dengan konteks yang diberikan, menghasilkan draf yang siap diedit — bantuan menulis yang tidak menuntut Anda membuka aplikasi apa pun.
 
 ### Gambar 1: AI Pipeline di Terminal
 
@@ -201,7 +149,67 @@ Tiga cabang diagram ini mewakili tiga beban kerja paling umum. **Cabang dokumen*
 
 ---
 
-## 10. Tutorial / Hands-On
+
+---
+
+## 6. Optimasi Performa
+
+
+### Empat Tuas Utama
+
+Performa inference di CLI dikendalikan oleh empat parameter:
+
+- **`--threads`** — jumlah thread CPU; aturan praktis: **`n_cores - 1`**, menyisakan satu inti untuk sistem operasi
+- **`--batch-size`** — ukuran batch untuk *prompt processing*; batch lebih besar meningkatkan *throughput* prefill (diuji pula oleh riset optimasi inference CPU [2])
+- **`-ngl`** (n_gpu_layers) — jumlah lapisan yang di-*offload* ke GPU; `-ngl 99` berarti seluruh model di GPU
+- **`--mlock`** — mengunci model di RAM agar tidak di-*swap* ke disk; mengorbankan RAM untuk kestabilan kecepatan
+
+Kombinasi yang tepat bergantung perangkat keras, dan `llama-bench` adalah alat untuk menemukannya secara empiris alih-alih menebak. Survei teknik *efficient inference* [5] mengingatkan bahwa optimasi berlapis — data-level, model-level, dan system-level — adalah pendekatan paling komprehensif; parameter CLI hanyalah lapisan terakhir dari tumpukan itu.
+
+### Peran Teknik Khusus CPU
+
+Satu pertanyaan wajar: bagaimana llama.cpp bisa secepat itu di CPU? Sebagian jawabannya datang dari riset seperti **NoMAD-Attention** [4] yang menunjukkan bahwa operasi *attention* bisa dibuat *multiply-add-free* di CPU — menghindari instruksi *multiply* yang mahal pada arsitektur tertentu. Optimalisasi level kernel semacam inilah yang membuat wawasan "CPU-only LLM" menjadi praktis, bukan sekadar teoretis.
+
+---
+
+## 7. Alternatif CLI Lain
+
+
+### Ollama, llamafile, dan Sahabat Terminal
+
+llama.cpp bukan satu-satunya pintu CLI:
+
+- **Ollama CLI** — dua mode: interaktif (`ollama run`) dan API server (`ollama serve`); kelebihannya pada *model management* yang rapi dan pengunduhan satu perintah
+- **llamafile** — satu file *executable* yang berisi model dan runtime sekaligus (dikembangkan dari proyek Mozilla); *portability* maksimal: salin, jalankan, selesai
+- **LocalAI CLI** — lewat `local-ai run`, server multi-modalitas dari Bab 3.7 bisa dikendalikan dari terminal
+- **Shell-GPT (sgpt)** — asisten AI yang "tinggal" di shell: menyarankan perintah, menjelaskan error, dan berkolaborasi dalam percakapan terminal
+
+Pemilihan di antara mereka bergantung prioritas: kontrol penuh dan kecepatan (llama.cpp), kemudahan manajemen model (Ollama), portabilitas ekstrem (llamafile), atau integrasi percakapan (sgpt).
+
+### Tabel C: Perbandingan Performa Mode CLI
+
+Keempat mode komputasi berikut menentukan pengalaman yang akan Anda rasakan (model 7B Q4).
+
+| Mode | Kecepatan (7B Q4) | RAM | GPU | Cocok Untuk |
+|:---|:---:|:---:|:---:|:---|
+| **CPU-only** | 8-15 t/s | ~5 GB | 0 | Laptop/desktop tanpa GPU |
+| **GPU offload 100%** | 40-85 t/s | ~6 GB | 12-24 GB VRAM | Desktop dengan GPU |
+| **Hybrid (CPU+GPU)** | 20-40 t/s | ~5 GB + VRAM | 6-8 GB VRAM | GPU terbatas VRAM |
+| **Metal (Apple)** | 30-60 t/s | ~6 GB | Unified Memory | Mac M-series |
+
+![Rentang kecepatan empat mode komputasi CLI untuk model 7B Q4](../../assets/images/bab-03-software/sub-bab-10/kecepatan-mode-cli.png)
+
+*Gambar 3.10-1 — GPU offload penuh memberi lompatan hingga 5× dibanding CPU-only; mode hybrid menjadi kompromi cerdas untuk GPU dengan VRAM terbatas.*
+
+Analisis: tabel ini menunjukkan *trade-off* yang harus dipahami setiap pengguna CLI. CPU-only adalah mode paling universal (8–15 t/s) — cukup untuk *batch processing* yang tidak sensitif waktu, terlalu lambat untuk percakapan interaktif yang nyaman. GPU offload penuh memberikan lompatan 5× lipat tetapi menuntut VRAM besar. **Hybrid** — memuat sebagian lapisan ke GPU, sisanya di CPU — adalah solusi cerdas untuk GPU dengan VRAM kecil (seperti banyak kartu 6–8 GB): kecepatan dua kali lipat dari CPU murni, tanpa perlu GPU baru. **Metal** membuktikan kembali keunggulan *unified memory* Apple Silicon: 30–60 t/s tanpa VRAM terpisah.
+
+---
+
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Setup llama.cpp CLI dan One-Liner
 
@@ -329,7 +337,8 @@ Output `llama-bench` memisahkan dua fase penting: **pp (prompt processing)** —
 
 ---
 
-## 11. Studi Kasus: Otomasi Konten untuk Blogger
+## 9. Studi Kasus: Otomasi Konten untuk Blogger
+
 
 **Skenario:** Seorang blogger teknologi menulis **tiga artikel per minggu** — dan setiap artikel membutuhkan dua jam membaca riset berbahasa Inggris sebelum satu jam menulis. Total waktu riset 4–6 jam per minggu adalah biaya terbesar; ditambah bahaya *writer's block* saat draft opini macet di tengah.
 
@@ -343,7 +352,8 @@ Output `llama-bench` memisahkan dua fase penting: **pp (prompt processing)** —
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

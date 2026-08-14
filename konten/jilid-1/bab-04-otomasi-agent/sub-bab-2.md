@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan mekanisme *function calling*: definisi tool → LLM memutuskan → eksekusi → hasil kembali ke LLM
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Konsep Dasar Function Calling
+
 
 ### Resepsionis yang Menulis Surat Tugas
 
@@ -30,9 +32,49 @@ Pembaca yang jeli akan bertanya: bukankah model bisa saja mengetik perintah dala
 
 Lebih jauh, format terstruktur memungkinkan **validasi sebelum eksekusi**. JSON dari model bisa diperiksa terhadap skema — tipe salah, langsung ditolak sebelum menyentuh sistem. Kombinasi *structured output* + *validasi* inilah yang membuat agen aman digunakan pada operasi nyata seperti membaca file atau menulis database, sebagaimana akan kita lihat pada seksi keamanan nanti.
 
+### Tabel 1: Perbandingan Provider Function Calling
+
+Sebelum memilih provider untuk agen Anda, perhatikan peta dukungan *function calling* berikut.
+
+| Provider | Format Tool | Strict Schema | Parallel Calls | Open Source | Local |
+|:---|:---|:---|:---|:---|:---|
+| **OpenAI** | JSON Schema | Ya (strict:true) | Ya (max 10) | Tidak | Tidak |
+| **Anthropic** | `input_schema` | Ya | Ya | Tidak | Tidak |
+| **Ollama** | JSON Schema | Tidak | Terbatas | Ya | Ya |
+| **Llama 3.1** | Built-in function calling | Parsial | Terbatas | Ya | Ya |
+| **Mistral** | JSON Schema | Tidak | Ya | Ya | Ya |
+| **Google Gemini** | FunctionDeclaration | Ya | Ya | Tidak | Tidak |
+| **DeepSeek V4** | JSON Schema | Parsial | Ya | Ya | Ya |
+| **Claude Fable 5** | `input_schema` | Ya | Ya | Tidak | Tidak |
+
+Membaca tabel ini, ada pola menarik: format antarmuka hampir seragam (turunan JSON Schema), tetapi *strict schema* dan *parallel call* masih menjadi pembeda. Provider proprietary (OpenAI, Anthropic, Gemini) semuanya menawarkan *strict* dan paralel penuh — jaminan output yang lebih ketat. Di sisi lokal, Ollama dan Llama 3.1 belum memiliki *strict schema*, sementara Mistral dan DeepSeek V4 sudah mendukung paralel. Implikasi praktisnya: bila aplikasi Anda kritis terhadap format output, pilih provider dengan *strict: true*; bila aplikasi Anda berjalan lokal dan menoleransi variasi kecil, Ollama + Llama 3.1 cukup — dengan syarat Anda menambahkan lapisan validasi sendiri di sisi eksekusi.
+
+
+### Gambar 1: Alur Function Calling
+
+Berikut alur lengkap *function calling* — dari pertanyaan user hingga respons final.
+
+```mermaid
+graph TD
+    A[User] --> B[LLM dengan tool definitions]
+    B --> C[Output JSON: nama fungsi + parameter]
+    C --> D{Validator: cocok dengan JSON Schema?}
+    D -- Ya --> E[Eksekutor menjalankan tool]
+    D -- Tidak --> F[Error validasi dikembalikan ke LLM]
+    F --> B
+    E --> G[Hasil eksekusi]
+    G --> B
+    B --> H[LLM menyusun respons final]
+    H --> A
+```
+
+Bacalah diagram ini searah jarum jam: pertanyaan user dan *tool definitions* masuk ke LLM; LLM mengeluarkan JSON terstruktur; validator memeriksa kesesuaian dengan skema. Cabang "Tidak" mengembalikan error ke LLM — inilah implementasi *error handling* dari seksi 6: kegagalan menjadi informasi, bukan jalan buntu. Cabang "Ya" mengantarkan *tool call* ke eksekutor; hasilnya kembali ke LLM sebagai observasi; dan LLM menyusun respons final yang *grounded* pada data nyata. Perhatikan bahwa *eksekusi tidak pernah dilakukan oleh LLM* — ia hanya mengusulkan. Kotak *Validator* dan *Eksekutor* adalah kode Anda, dan di sanalah seluruh kebijakan keamanan "LLM proposes, human disposes" berada.
+
+
 ---
 
 ## 3. JSON Schema untuk Tool Definition
+
 
 ### Struktur Dasar
 
@@ -66,9 +108,26 @@ JSON Schema mendukung tipe dasar `string`, `number`, `integer`, `boolean`, `arra
 
 Prinsip desain yang perlu diingat: *semakin banyak kendala di skema, semakin sedikit kejutan saat eksekusi*. Jika fungsi Anda hanya menerima tiga nilai valid, tulis `enum`; jika argumen harus berupa path absolut, katakan di `description`. Setiap batasan yang Anda tulis adalah satu kelas kesalahan yang tidak perlu ditangani di *runtime*. Di sisi lain, jangan berlebihan: skema yang terlalu kaku membuat model kesulitan mengisi parameter yang sebenarnya fleksibel — misalnya `description` yang menuntut format tanggal tertentu padahal sistem Anda menerima beberapa format.
 
+### Tabel 2: Kategori Tool untuk System Agent
+
+Agen sistem bekerja melalui kategori tool yang berbeda — dan setiap kategori membawa risiko keamanan yang berbeda pula.
+
+| Kategori | Contoh Tool | Risiko Keamanan |
+|:---|:---|:---:|
+| **File System** | `read_file`, `write_file`, `list_dir`, `search_files` | Sedang (baca/tulis) |
+| **Shell** | `execute_command`, `run_script` | Tinggi (eksekusi) |
+| **Network** | `http_get`, `search_web`, `fetch_url` | Rendah (read-only) |
+| **Database** | `query_sql`, `read_db` | Tinggi (data bocor) |
+| **Code** | `run_python`, `compile` | Tinggi (sandbox wajib) |
+| **Browser** | `navigate`, `click`, `type`, `screenshot` | Rendah (headless) |
+
+Analisis risiko di kolom kanan adalah peta keamanan Anda. Kategori *Network* dan *Browser* berisiko rendah karena umumnya *read-only* — tetapi waspadai efek samping: `http_get` bisa membocorkan data internal jika URL-nya disalahgunakan, dan browser yang bisa *click* dan *type* berpotensi mengirimkan data ke formulir. Kategori *Shell*, *Database*, dan *Code* adalah trio berisiko tinggi: semuanya mengeksekusi atau mengakses sumber daya yang berdampak langsung. Aturan praktis: kategori berisiko tinggi wajib berjalan dalam **sandbox** dan melewati **approval gate**; kategori berisiko rendah boleh lebih otonom. *Database* layak mendapat perhatian khusus karena kebocoran bukan berupa file hilang, melainkan *data yang keluar* — kerusakan yang tidak terlihat sampai terlambat.
+
+
 ---
 
 ## 4. Function Calling di API Modern
+
 
 ### Pola OpenAI: Parameter `tools`
 
@@ -84,6 +143,7 @@ Bagaimana mengukur kualitas dukungan ini? Standar pengukurannya adalah **Berkele
 
 ## 5. Function Calling untuk Sistem Operasi
 
+
 ### Tangan dan Kaki Agen Lokal
 
 Jika pada Bab 4.1 *tool use* adalah "tangan" agen, maka untuk agen lokal tangannya adalah **sistem operasi itu sendiri**. Tool paling dasar yang hampir selalu tersedia: `execute_command` (jalankan perintah shell), `read_file` (baca file), `write_file` (tulis file), `list_directory` (daftar isi folder), dan `search_files` (cari file dengan pola). Dengan lima tool ini saja, agen sudah bisa melakukan pekerjaan nyata: menganalisis struktur proyek, menemukan file yang bermasalah, memperbaiki, dan melaporkan.
@@ -93,56 +153,6 @@ Perhatikan pola penting di sini: *tool yang tersedia menentukan kekuatan sekalig
 ### Pola Keamanan: "LLM Proposes, Human Disposes"
 
 Aturan emas keamanan *function calling* untuk sistem operasi dirangkum dalam satu kalimat: **LLM proposes, human disposes** — LLM mengusulkan, manusia yang memutuskan. Terjemahan praktisnya dua lapis. Lapis pertama adalah **validasi argumen**: sebelum eksekusi, periksa bahwa nama fungsi diizinkan, tipe parameter benar, dan nilai berada dalam rentang yang wajar (misalnya path berada di dalam direktori kerja). Lapis kedua adalah **approval gate**: operasi berisiko tinggi — menimpa file, menghapus, mengirim data keluar — menunggu konfirmasi manusia. Jangan pernah mempercayai LLM mentah-mentah; perlakuan yang tepat terhadap output LLM adalah *memperlakukannya seperti input dari pengguna yang tidak dikenal*.
-
----
-
-## 6. Error Handling & Retry
-
-### Kegagalan adalah Bagian dari Kehidupan Tool
-
-Tool bisa gagal — dan akan sering gagal. Penyebabnya beragam: *network error* saat memanggil API, argumen tidak valid, file yang dituju tidak ada, atau izin yang ditolak. Kesalahan terbesar yang bisa dilakukan developer pemula adalah *menyembunyikan* kegagalan itu dari model. Jika tool gagal dan hasilnya tidak dikembalikan, LLM akan menyusun jawaban dari tebakan — persis perilaku halusinasi yang ingin kita hindari.
-
-Pola yang benar: **kembalikan error ke LLM sebagai observasi**. Ketika `read_file` gagal karena file tidak ditemukan, kirim balik pesan `{"error": "file tidak ditemukan: /tmp/x.txt"}` sebagai hasil tool. LLM yang baik akan bereaksi secara masuk akal: mencari alternatif, memperbaiki argumen, atau memberi tahu user bahwa tugas tidak bisa diselesaikan. Kegagalan berubah dari *terminal state* menjadi *informasi* yang menggerakkan langkah berikutnya — persis semangat ReAct yang menjadikan observasi sebagai bahan penalaran [2].
-
-### Validasi Berlapis
-
-Namun jangan hanya mengandalkan "kepintaran" model dalam menangani error. Bangun **validasi berlapis**: (1) validasi skema sebelum eksekusi — JSON yang tidak lolos skema tidak pernah sampai ke sistem; (2) *guard* di dalam implementasi fungsi — periksa ulang tipe dan jangkauan nilai sebelum menjalankan operasi destruktif; (3) *retry dengan eksponensial backoff* untuk kegagalan transien seperti *network timeout*; (4) *circuit breaker* — batasi jumlah percobaan ulang, lalu berhenti dan lapor. Setiap lapis validasi adalah satu filter yang mengurangi beban model dan mengurangi risiko sistem. Kombinasi *strict schema* (di sisi model) dan *guard* (di sisi eksekusi) inilah yang membuat agen bisa dipercaya menangani file pribadi Anda.
-
----
-
-## 7. Tabel Wajib
-
-### Tabel 1: Perbandingan Provider Function Calling
-
-Sebelum memilih provider untuk agen Anda, perhatikan peta dukungan *function calling* berikut.
-
-| Provider | Format Tool | Strict Schema | Parallel Calls | Open Source | Local |
-|:---|:---|:---|:---|:---|:---|
-| **OpenAI** | JSON Schema | Ya (strict:true) | Ya (max 10) | Tidak | Tidak |
-| **Anthropic** | `input_schema` | Ya | Ya | Tidak | Tidak |
-| **Ollama** | JSON Schema | Tidak | Terbatas | Ya | Ya |
-| **Llama 3.1** | Built-in function calling | Parsial | Terbatas | Ya | Ya |
-| **Mistral** | JSON Schema | Tidak | Ya | Ya | Ya |
-| **Google Gemini** | FunctionDeclaration | Ya | Ya | Tidak | Tidak |
-| **DeepSeek V4** | JSON Schema | Parsial | Ya | Ya | Ya |
-| **Claude Fable 5** | `input_schema` | Ya | Ya | Tidak | Tidak |
-
-Membaca tabel ini, ada pola menarik: format antarmuka hampir seragam (turunan JSON Schema), tetapi *strict schema* dan *parallel call* masih menjadi pembeda. Provider proprietary (OpenAI, Anthropic, Gemini) semuanya menawarkan *strict* dan paralel penuh — jaminan output yang lebih ketat. Di sisi lokal, Ollama dan Llama 3.1 belum memiliki *strict schema*, sementara Mistral dan DeepSeek V4 sudah mendukung paralel. Implikasi praktisnya: bila aplikasi Anda kritis terhadap format output, pilih provider dengan *strict: true*; bila aplikasi Anda berjalan lokal dan menoleransi variasi kecil, Ollama + Llama 3.1 cukup — dengan syarat Anda menambahkan lapisan validasi sendiri di sisi eksekusi.
-
-### Tabel 2: Kategori Tool untuk System Agent
-
-Agen sistem bekerja melalui kategori tool yang berbeda — dan setiap kategori membawa risiko keamanan yang berbeda pula.
-
-| Kategori | Contoh Tool | Risiko Keamanan |
-|:---|:---|:---:|
-| **File System** | `read_file`, `write_file`, `list_dir`, `search_files` | Sedang (baca/tulis) |
-| **Shell** | `execute_command`, `run_script` | Tinggi (eksekusi) |
-| **Network** | `http_get`, `search_web`, `fetch_url` | Rendah (read-only) |
-| **Database** | `query_sql`, `read_db` | Tinggi (data bocor) |
-| **Code** | `run_python`, `compile` | Tinggi (sandbox wajib) |
-| **Browser** | `navigate`, `click`, `type`, `screenshot` | Rendah (headless) |
-
-Analisis risiko di kolom kanan adalah peta keamanan Anda. Kategori *Network* dan *Browser* berisiko rendah karena umumnya *read-only* — tetapi waspadai efek samping: `http_get` bisa membocorkan data internal jika URL-nya disalahgunakan, dan browser yang bisa *click* dan *type* berpotensi mengirimkan data ke formulir. Kategori *Shell*, *Database*, dan *Code* adalah trio berisiko tinggi: semuanya mengeksekusi atau mengakses sumber daya yang berdampak langsung. Aturan praktis: kategori berisiko tinggi wajib berjalan dalam **sandbox** dan melewati **approval gate**; kategori berisiko rendah boleh lebih otonom. *Database* layak mendapat perhatian khusus karena kebocoran bukan berupa file hilang, melainkan *data yang keluar* — kerusakan yang tidak terlihat sampai terlambat.
 
 ### Tabel 3: Benchmark Akurasi Function Calling (BFCL)
 
@@ -166,27 +176,21 @@ Tiga wawasan penting muncul dari angka-angka ini. Pertama, semua model menurun s
 
 ---
 
-## 8. Diagram & Visualisasi
 
-### Gambar 1: Alur Function Calling
+---
 
-Berikut alur lengkap *function calling* — dari pertanyaan user hingga respons final.
+## 6. Error Handling & Retry
 
-```mermaid
-graph TD
-    A[User] --> B[LLM dengan tool definitions]
-    B --> C[Output JSON: nama fungsi + parameter]
-    C --> D{Validator: cocok dengan JSON Schema?}
-    D -- Ya --> E[Eksekutor menjalankan tool]
-    D -- Tidak --> F[Error validasi dikembalikan ke LLM]
-    F --> B
-    E --> G[Hasil eksekusi]
-    G --> B
-    B --> H[LLM menyusun respons final]
-    H --> A
-```
 
-Bacalah diagram ini searah jarum jam: pertanyaan user dan *tool definitions* masuk ke LLM; LLM mengeluarkan JSON terstruktur; validator memeriksa kesesuaian dengan skema. Cabang "Tidak" mengembalikan error ke LLM — inilah implementasi *error handling* dari seksi 6: kegagalan menjadi informasi, bukan jalan buntu. Cabang "Ya" mengantarkan *tool call* ke eksekutor; hasilnya kembali ke LLM sebagai observasi; dan LLM menyusun respons final yang *grounded* pada data nyata. Perhatikan bahwa *eksekusi tidak pernah dilakukan oleh LLM* — ia hanya mengusulkan. Kotak *Validator* dan *Eksekutor* adalah kode Anda, dan di sanalah seluruh kebijakan keamanan "LLM proposes, human disposes" berada.
+### Kegagalan adalah Bagian dari Kehidupan Tool
+
+Tool bisa gagal — dan akan sering gagal. Penyebabnya beragam: *network error* saat memanggil API, argumen tidak valid, file yang dituju tidak ada, atau izin yang ditolak. Kesalahan terbesar yang bisa dilakukan developer pemula adalah *menyembunyikan* kegagalan itu dari model. Jika tool gagal dan hasilnya tidak dikembalikan, LLM akan menyusun jawaban dari tebakan — persis perilaku halusinasi yang ingin kita hindari.
+
+Pola yang benar: **kembalikan error ke LLM sebagai observasi**. Ketika `read_file` gagal karena file tidak ditemukan, kirim balik pesan `{"error": "file tidak ditemukan: /tmp/x.txt"}` sebagai hasil tool. LLM yang baik akan bereaksi secara masuk akal: mencari alternatif, memperbaiki argumen, atau memberi tahu user bahwa tugas tidak bisa diselesaikan. Kegagalan berubah dari *terminal state* menjadi *informasi* yang menggerakkan langkah berikutnya — persis semangat ReAct yang menjadikan observasi sebagai bahan penalaran [2].
+
+### Validasi Berlapis
+
+Namun jangan hanya mengandalkan "kepintaran" model dalam menangani error. Bangun **validasi berlapis**: (1) validasi skema sebelum eksekusi — JSON yang tidak lolos skema tidak pernah sampai ke sistem; (2) *guard* di dalam implementasi fungsi — periksa ulang tipe dan jangkauan nilai sebelum menjalankan operasi destruktif; (3) *retry dengan eksponensial backoff* untuk kegagalan transien seperti *network timeout*; (4) *circuit breaker* — batasi jumlah percobaan ulang, lalu berhenti dan lapor. Setiap lapis validasi adalah satu filter yang mengurangi beban model dan mengurangi risiko sistem. Kombinasi *strict schema* (di sisi model) dan *guard* (di sisi eksekusi) inilah yang membuat agen bisa dipercaya menangani file pribadi Anda.
 
 ### Gambar 2: Pola "LLM Proposes, Human Disposes"
 
@@ -208,7 +212,11 @@ Titik keputusan di kotak *Berisiko tinggi?* adalah garis batas otonomi: operasi 
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Function Calling dengan Ollama + Python
 
@@ -367,7 +375,8 @@ validate_tool_call(call_jahat, FILE_TOOLS)  # PermissionError!
 
 ---
 
-## 10. Studi Kasus: Agent Backup Otomatis dengan Function Calling
+## 8. Studi Kasus: Agent Backup Otomatis dengan Function Calling
+
 
 **Profil:** Bagas, seorang *freelance developer* yang setiap akhir pekan melakukan backup manual folder `Documents` (sekitar 5 GB) ke *external drive*. Rutinitasnya: buka terminal, salin folder, kecualikan file `.tmp`, kompres, pindahkan. Selama setahun, proses 40 menit ini terulang 50 kali — dan dua kali ia lupa mengecualikan file `.tmp` sehingga hasil kompresinya kotor.
 
@@ -381,7 +390,8 @@ validate_tool_call(call_jahat, FILE_TOOLS)  # PermissionError!
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

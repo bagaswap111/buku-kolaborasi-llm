@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menginstall dan mengkonfigurasi Cline dan Aider di macOS dengan dukungan model lokal
@@ -17,6 +18,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Apa Itu Coding Agent?
+
 
 ### Dari Autocomplete ke Otonomi
 
@@ -32,13 +34,32 @@ Perhatikan bahwa riset akademik kini menyebut era ini **Software Engineering 3.0
 
 ### Bagaimana Kemampuan Agent Diukur?
 
-Sebelum membandingkan agent dan model, Anda perlu mengenal dua tolok ukur yang akan muncul terus di sub-bab ini. **HumanEval+** adalah himpunan 164 soal pemrograman yang menuntut model menulis fungsi utuh dari deskripsi singkat; nilai **Pass@1** menunjukkan persentase soal yang benar pada percobaan pertama. **SWE-bench** jauh lebih berat: ia mengambil *issue* nyata dari repository GitHub (seperti bug report dan permintaan fitur) dan meminta agent menyelesaikannya terhadap codebase sungguhan — inilah pengukur paling dekat dengan pekerjaan harian programmer [1][4]. Tabel 2 pada seksi 8 membandingkan kedua metrik ini lintas model, dari API kelas atas hingga model 7B yang berjalan di Mac Anda.
+Sebelum membandingkan agent dan model, Anda perlu mengenal dua tolok ukur yang akan muncul terus di sub-bab ini. **HumanEval+** adalah himpunan 164 soal pemrograman yang menuntut model menulis fungsi utuh dari deskripsi singkat; nilai **Pass@1** menunjukkan persentase soal yang benar pada percobaan pertama. **SWE-bench** jauh lebih berat: ia mengambil *issue* nyata dari repository GitHub (seperti bug report dan permintaan fitur) dan meminta agent menyelesaikannya terhadap codebase sungguhan — inilah pengukur paling dekat dengan pekerjaan harian programmer [1][4]. Tabel 2 pada seksi 2 membandingkan kedua metrik ini lintas model, dari API kelas atas hingga model 7B yang berjalan di Mac Anda.
 
-Perlu diingat satu hal: angka benchmark adalah foto dalam kondisi ideal. Performa nyata dipengaruhi faktor yang tidak muncul di tabel — kualitas *prompt*, ukuran repository, dan seberapa rapi struktur proyek Anda. Karena itu, sub-bab ini tidak berhenti pada angka, melainkan mengajak Anda mengukur sendiri lewat praktikum di seksi 10.
+Perlu diingat satu hal: angka benchmark adalah foto dalam kondisi ideal. Performa nyata dipengaruhi faktor yang tidak muncul di tabel — kualitas *prompt*, ukuran repository, dan seberapa rapi struktur proyek Anda. Karena itu, sub-bab ini tidak berhenti pada angka, melainkan mengajak Anda mengukur sendiri lewat praktikum di seksi 9.
+
+### Tabel 1: Perbandingan Coding Agent untuk Mac
+
+Berikut perbandingan empat alat bantu coding yang paling populer — dua yang menjadi fokus sub-bab ini, ditambah GitHub Copilot dan Cursor sebagai pembanding pasar.
+
+| Fitur | Cline | Aider | GitHub Copilot | Cursor |
+|:---|:---|:---|:---|:---|
+| **Tipe** | Agent otonom | Pair programmer | Autocomplete + Chat | Agent IDE |
+| **Open Source** | Ya (Apache 2.0) | Ya (Apache 2.0) | Tidak | Closed (fork VS Code) |
+| **Local LLM** | Ya (Ollama/LM Studio) | Ya (Ollama) | Tidak | Terbatas |
+| **Multi-file Edit** | Ya | Ya | Parsial | Ya |
+| **Git Integration** | Checkpoint system | Auto-commit | Manual | Checkpoint |
+| **Terminal Access** | Ya | Ya | Tidak | Built-in |
+| **Plan Mode** | Ya (Plan → Act) | Tidak | Tidak | Tidak |
+| **Apple Silicon** | Native | Native | Native | Native |
+
+Tabel ini menunjukkan posisi unik masing-masing alat. Cline dan Aider adalah satu-satunya yang sepenuhnya open-source dan mendukung model lokal — dua alasan utama mengapa keduanya menjadi fokus buku ini. GitHub Copilot unggul dalam kenyamanan *autocomplete* tetapi tidak bisa menjalankan terminal, sementara Cursor menarik secara UI tetapi menutup sumbernya. Jika *privacy* dan kendali penuh adalah prioritas, Cline dan Aider tidak tergantikan.
+
 
 ---
 
 ## 3. Cline — Autonomous Coding Agent
+
 
 ### Sejarah dan Lisensi
 
@@ -59,11 +80,12 @@ Fitur-fitur ini menjadikan Cline contoh paling jelas dari apa yang peneliti sebu
 
 Cline bukan satu program tunggal — ia terdiri dari tiga lapisan: **ekstensi VS Code** (antarmuka utama), **CLI** (`@cline/cli` untuk penggunaan dari terminal), dan **SDK** untuk integrasi programatik. Yang paling menarik untuk pengguna buku ini: backend-nya bisa diarahkan ke **Ollama** atau **LM Studio**, sehingga seluruh alur kerja — dari plan hingga eksekusi — tidak pernah meninggalkan Mac Anda.
 
-Arsitektur tiga lapis ini penting dipahami karena menentukan bagaimana Anda akan mengotomasi pekerjaan: untuk penggunaan interaktif harian, ekstensi VS Code cukup; untuk skrip dan pipeline (seperti *batch review* pada seksi 10), CLI adalah pintu masuknya; dan untuk membangun alat sendiri di atas Cline, SDK menyediakan API yang terdokumentasi. Ketiganya berbagi konfigurasi yang sama, jadi sekali disetel untuk Ollama, semua lapisan langsung berfungsi.
+Arsitektur tiga lapis ini penting dipahami karena menentukan bagaimana Anda akan mengotomasi pekerjaan: untuk penggunaan interaktif harian, ekstensi VS Code cukup; untuk skrip dan pipeline (seperti *batch review* pada seksi 9), CLI adalah pintu masuknya; dan untuk membangun alat sendiri di atas Cline, SDK menyediakan API yang terdokumentasi. Ketiganya berbagi konfigurasi yang sama, jadi sekali disetel untuk Ollama, semua lapisan langsung berfungsi.
 
 ---
 
 ## 4. Aider — Pair Programming di Terminal
+
 
 ### Filosofi Git-First
 
@@ -82,6 +104,7 @@ Aider adalah proyek open-source dengan lisensi **Apache 2.0**, ditulis dalam Pyt
 
 ## 5. Cline vs Aider: Dua Filosofi, Dua Alur Kerja
 
+
 Kedua alat ini bukan pesaing yang saling menggantikan — keduanya menjawab pertanyaan yang berbeda. Cline lebih cocok untuk tugas kompleks, *multi-step*, dan *exploratory*: eksplorasi codebase asing, debugging berantai, atau membangun fitur baru dari nol yang membutuhkan banyak iterasi. Aider lebih unggul untuk *refactoring*, *bug fix*, dan *feature implementation* yang perubahan ruang lingkupnya sudah jelas — di sinilah *auto-commit* dan *repo map*-nya bekerja paling efisien.
 
 Banyak pengguna akhirnya memakai keduanya sekaligus, bergantian sesuai jenis tugas. Alur kerja yang umum: gunakan Cline untuk memahami codebase yang tidak dikenal (mode *Plan* membantu memetakan struktur tanpa risiko), lalu serahkan perubahan mekanis yang sudah jelas ke Aider agar tercatat rapi di git. Keduanya berbagi backend Ollama yang sama, sehingga berpindah alat tidak berarti mengunduh model baru — hanya mengganti antarmuka.
@@ -92,6 +115,7 @@ Pilihan praktis: gunakan Cline saat Anda sendiri belum yakin "jalannya ke mana",
 
 ## 6. Setup untuk Mac dengan LLM Lokal
 
+
 ### Ollama sebagai Backend
 
 Cara termudah menjalankan kedua agent secara lokal adalah menggunakan **Ollama** sebagai server model. Ollama mengelola unduhan model, runtime, dan API yang kompatibel dengan OpenAI — sehingga Cline dan Aider bisa menautkannya hanya dengan mengarahkan *base URL* ke `http://localhost:11434`. Untuk coding, pilihan model yang seimbang adalah **Qwen-2.5-Coder-7B** atau **Llama-3.1-8B**; jika ingin kualitas lebih tinggi dengan kecepatan model kecil, **DeepSeek V4 Flash** (arsitektur MoE) adalah pilihan menarik — data pada Tabel 2 menunjukkan keunggulannya.
@@ -100,49 +124,13 @@ Cara termudah menjalankan kedua agent secara lokal adalah menggunakan **Ollama**
 
 Tabel 2 akan menunjukkan rentang kemampuan yang lebar — dari SWE-bench 38,5% untuk Llama-3.1-8B hingga 95% untuk model API kelas atas. Bagaimana memilih? Mulailah dari kebutuhan nyata, bukan dari tabel. Untuk tugas *autocomplete*-like dan edit kecil, model 7B sudah memadai dan berjalan nyaman di Mac. Untuk refactoring lintas file yang melibatkan banyak konteks, model dengan *reasoning* kuat (DeepSeek V4 Flash) memberi hasil jauh lebih baik. Dan ketika seluruh tim bergantung pada output agent, model API kelas atas mungkin layak meski berbiaya — hitung trade-off antara produktivitas dan tagihan.
 
-Pola yang perlu dicermati: model MoE seperti DeepSeek V4 Flash menawarkan posisi unik — kualitas mendekati model besar dengan kecepatan model kecil. Inilah mengapa studi kasus di seksi 11 memilihnya untuk pekerjaan migrasi codebase yang panjang.
+Pola yang perlu dicermati: model MoE seperti DeepSeek V4 Flash menawarkan posisi unik — kualitas mendekati model besar dengan kecepatan model kecil. Inilah mengapa studi kasus di seksi 10 memilihnya untuk pekerjaan migrasi codebase yang panjang.
 
 ### LM Studio dan Apple Silicon
 
 Alternatif lain adalah **LM Studio**, yang memberikan kontrol lebih besar terhadap *GPU acceleration*. Pada Mac berbasis **Apple Silicon**, model memanfaatkan **Metal GPU offload** — beberapa lapisan dijalankan di GPU terintegrasi sehingga *inference* lebih cepat dan CPU tetap longgar untuk pekerjaan lain. Cline maupun Aider sama-sama berjalan *native* di Apple Silicon, jadi tidak perlu emulasi atau *workaround*.
 
 Sebagai catatan praktis, kedua backend (Ollama dan LM Studio) mengekspos API dengan format yang sama, sehingga berpindah dari satu ke yang lain hanya berarti mengubah *base URL* pada pengaturan agent — Ollama di `localhost:11434`, LM Studio di `localhost:1234`. Anda bahkan bisa menjalankan keduanya sekaligus: Ollama untuk model cepat sehari-hari, LM Studio untuk mencoba model besar yang membutuhkan kontrol *offload* manual.
-
----
-
-## 7. Best Practices & Safety
-
-Memberi agent akses terminal adalah memberi kunci rumah kepada asisten Anda. Beberapa prinsip yang wajib dipegang:
-
-1. **Selalu review diff sebelum approve** — jangan pernah menerima perubahan buta; Cline menampilkan diff justru agar Anda membaca.
-2. **Gunakan git branch terpisah** untuk pekerjaan agent — sehingga apa pun yang terjadi, cabang utama tetap aman dan bersih.
-3. **Batasi permission scope** — beri akses file dan folder seminimal mungkin yang dibutuhkan tugas. Cline memungkinkan Anda menyetujui atau menolak setiap akses file dan eksekusi terminal.
-4. **Jangan pernah menaruh secret** — API key, password, dan token tidak boleh berada di file yang dibaca agent.
-
-Prinsip ini bukan paranoia; ini praktik standar di tim yang serius memakai coding agent [5]. Dua praktik tambahan layak dibiasakan sejak awal. Pertama, **selalu mulai dari tugas kecil**: sebelum menyerahkan refactoring besar, uji agent dengan tugas satu file — ini sekaligus mengkalibrasi seberapa baik model memahami instruksi Anda. Kedua, **buat dokumentasi konteks**: agent bekerja jauh lebih baik ketika file README atau CONTRIBUTING menjelaskan arsitektur proyek; beberapa menit menulis konteks menghemat berjam-jam iterasi yang keliru.
-
-Satu mentalitas yang perlu diadopsi: perlakukan hasil agent seperti hasil programmer junior — percaya, tetapi verifikasi. *Commit* buta tanpa review adalah satu-satunya cara agent bisa menanamkan *bug* yang memakan waktu lebih lama untuk ditemukan daripada yang dihemat dari penulisan otomatis itu sendiri.
-
----
-
-## 8. Tabel Perbandingan
-
-### Tabel 1: Perbandingan Coding Agent untuk Mac
-
-Berikut perbandingan empat alat bantu coding yang paling populer — dua yang menjadi fokus sub-bab ini, ditambah GitHub Copilot dan Cursor sebagai pembanding pasar.
-
-| Fitur | Cline | Aider | GitHub Copilot | Cursor |
-|:---|:---|:---|:---|:---|
-| **Tipe** | Agent otonom | Pair programmer | Autocomplete + Chat | Agent IDE |
-| **Open Source** | Ya (Apache 2.0) | Ya (Apache 2.0) | Tidak | Closed (fork VS Code) |
-| **Local LLM** | Ya (Ollama/LM Studio) | Ya (Ollama) | Tidak | Terbatas |
-| **Multi-file Edit** | Ya | Ya | Parsial | Ya |
-| **Git Integration** | Checkpoint system | Auto-commit | Manual | Checkpoint |
-| **Terminal Access** | Ya | Ya | Tidak | Built-in |
-| **Plan Mode** | Ya (Plan → Act) | Tidak | Tidak | Tidak |
-| **Apple Silicon** | Native | Native | Native | Native |
-
-Tabel ini menunjukkan posisi unik masing-masing alat. Cline dan Aider adalah satu-satunya yang sepenuhnya open-source dan mendukung model lokal — dua alasan utama mengapa keduanya menjadi fokus buku ini. GitHub Copilot unggul dalam kenyamanan *autocomplete* tetapi tidak bisa menjalankan terminal, sementara Cursor menarik secara UI tetapi menutup sumbernya. Jika *privacy* dan kendali penuh adalah prioritas, Cline dan Aider tidak tergantikan.
 
 ### Tabel 2: Performa Coding Agent dengan Model Lokal (HumanEval+ / SWE-bench)
 
@@ -164,6 +152,23 @@ Tiga baris pertama adalah model API kelas atas dengan akurasi tertinggi, tetapi 
 
 *Gambar 4.4-1 — Semua agent mengikuti pola yang sama: Pass@1 Cline sedikit di atas Aider, dan gap terbesar muncul di SWE-bench (95,0% Claude Fable 5 vs 38,5% Llama-3.1-8B); DeepSeek V4 Flash memimpin di antara model lokal.*
 
+
+---
+
+## 7. Best Practices & Safety
+
+
+Memberi agent akses terminal adalah memberi kunci rumah kepada asisten Anda. Beberapa prinsip yang wajib dipegang:
+
+1. **Selalu review diff sebelum approve** — jangan pernah menerima perubahan buta; Cline menampilkan diff justru agar Anda membaca.
+2. **Gunakan git branch terpisah** untuk pekerjaan agent — sehingga apa pun yang terjadi, cabang utama tetap aman dan bersih.
+3. **Batasi permission scope** — beri akses file dan folder seminimal mungkin yang dibutuhkan tugas. Cline memungkinkan Anda menyetujui atau menolak setiap akses file dan eksekusi terminal.
+4. **Jangan pernah menaruh secret** — API key, password, dan token tidak boleh berada di file yang dibaca agent.
+
+Prinsip ini bukan paranoia; ini praktik standar di tim yang serius memakai coding agent [5]. Dua praktik tambahan layak dibiasakan sejak awal. Pertama, **selalu mulai dari tugas kecil**: sebelum menyerahkan refactoring besar, uji agent dengan tugas satu file — ini sekaligus mengkalibrasi seberapa baik model memahami instruksi Anda. Kedua, **buat dokumentasi konteks**: agent bekerja jauh lebih baik ketika file README atau CONTRIBUTING menjelaskan arsitektur proyek; beberapa menit menulis konteks menghemat berjam-jam iterasi yang keliru.
+
+Satu mentalitas yang perlu diadopsi: perlakukan hasil agent seperti hasil programmer junior — percaya, tetapi verifikasi. *Commit* buta tanpa review adalah satu-satunya cara agent bisa menanamkan *bug* yang memakan waktu lebih lama untuk ditemukan daripada yang dihemat dari penulisan otomatis itu sendiri.
+
 ### Tabel 3: Resource Usage
 
 Sumber daya adalah pertimbangan penting karena kedua agent berjalan bersamaan dengan editor dan browser di Mac Anda.
@@ -182,7 +187,11 @@ Pola yang patut dicatat: Aider lebih ringan di RAM idle (80 MB vs 120 MB) dan le
 
 ---
 
-## 9. Diagram Arsitektur Cline Agent
+
+---
+
+## 8. Diagram Arsitektur Cline Agent
+
 
 Berikut alur kerja Cline dari sudut pandang pengguna di VS Code hingga perubahan diterapkan.
 
@@ -209,7 +218,8 @@ Bandingkan dengan diagram alur kerja manusia: programmer senior yang menyerahkan
 
 ---
 
-## 10. Tutorial / Hands-On
+## 9. Tutorial / Hands-On
+
 
 ### Langkah 1: Setup Cline dengan Ollama Lokal di Mac
 
@@ -316,7 +326,8 @@ Skrip ini bisa disambungkan ke *git hook* atau pipeline CI sederhana: setiap kal
 
 ---
 
-## 11. Studi Kasus: Refactoring Legacy Codebase dengan Aider
+## 10. Studi Kasus: Refactoring Legacy Codebase dengan Aider
+
 
 **Skenario:** Sebuah startup e-commerce memiliki codebase Django berukuran 50.000 baris dengan akumulasi *technical debt* selama empat tahun. Teknologi di dalamnya sudah tertinggal: *function-based views* (FBV) yang panjang dan tidak teruji, tanpa type hints, dan duplikasi logika di mana-mana. Tim memutuskan migrasi bertahap dari FBV ke *class-based views* (CBV) di 20 file modul inti — pekerjaan yang sebelumnya diperkirakan memakan **delapan jam kerja manual** karena setiap file harus dibaca, di-refactor, dan diuji satu per satu.
 
@@ -330,7 +341,8 @@ Skrip ini bisa disambungkan ke *git hook* atau pipeline CI sederhana: setiap kal
 
 ---
 
-## 12. Referensi
+## 11. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan karakteristik unik *small office* yang membedakannya dari *home assistant* maupun enterprise, mulai dari pola beban hingga target *uptime*
@@ -18,6 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ---
 
 ## 2. Definisi Small Office AI System
+
 
 ### Antara Rumah dan Enterprise
 
@@ -34,94 +36,6 @@ Dari sinilah muncul tiga pilar desain yang akan kita bahas di seksi berikutnya: 
 ### Profil Beban yang Jujur
 
 Small office memiliki profil beban yang khas dan bisa diprediksi. Pada puncak jam kerja, **5-10 developer mem-prompt secara bersamaan** — sebuah *concurrency* yang masih mudah ditangani satu workstation kelas atas, tapi sudah mustahil untuk laptop. Prioritas latensinya ketat: **di bawah 2 detik** untuk *code completion* yang terasa instan di IDE, dan bahkan di bawah 0,5 detik jika kita serius mereplikasi pengalaman GitHub Copilot. Artinya, model harus berada di server lokal dengan *interconnect* cepat, bukan di cloud yang menambah latensi jaringan. Bab 7.2 akan membahas bagaimana dua GPU kelas consumer menyediakan ruang untuk *concurrency* ini; Bab 7.3 membahas wajah kolaboratifnya; Bab 7.4 membahas otak RAG-nya.
-
----
-
-## 3. Tiga Pilar Desain
-
-### Pilar 1: Data Privacy
-
-Kode aplikasi adalah aset paling berharga sebuah software house — dan paling rawan. Mengirimkan potongan kode ke API publik seperti ChatGPT berarti mempercayakan aset klien ke pihak ketiga, lengkap dengan risiko *training data leakage* dan kebijakan privasi yang berubah-ubah [1]. Pilar pertama menjawab ini dengan satu keputusan tegas: **semua data kode dan dokumentasi proyek tinggal di server lokal**. Tidak ada yang bocor ke cloud publik.
-
-Konsekuensi desainnya nyata: model harus *open-weight* (bisa diunduh dan dijalankan di server sendiri), *prompt* tidak pernah meninggalkan LAN kantor, dan jika perusahaan bergerak di bidang dengan regulasi ketat — misalnya fintech yang tunduk pada aturan perlindungan data, atau vendor kesehatan yang menangani data pasien — arsitektur ini bisa memenuhi kebutuhan **HIPAA/GDPR compliance** karena data sensitif tidak pernah berpindah lokasi [1][5]. Studi terbaru menunjukkan kebocoran data dari LLM bisa terjadi pasif maupun aktif, sehingga *self-hosting* bukan sekadar preferensi, melainkan mekanisme pertahanan paling sederhana yang tersedia [1].
-
-### Pilar 2: Kolaborasi Tim
-
-Server AI yang hanya bisa dipakai satu orang setiap kali mengulang dosa era sebelum Google Docs. Pilar kedua menginginkan **shared conversation history** — percakapan yang berlangsung jam 10 pagi oleh developer frontend bisa dibuka kembali jam 3 sore oleh backend untuk memahami konteks. Ditambah **workspace per tim** (misalnya "Frontend Team", "Backend Team", "DevOps") dan **channel kolaborasi real-time** yang memungkinkan diskusi bersama di dalam ruang chat AI.
-
-Open WebUI menjadi pilihan utama di buku ini karena fitur-fitur kolaborasinya sudah *native*: registrasi dengan *approval* admin, peran *admin/user/pending*, dan *knowledge base* global yang bisa diakses semua orang [7]. Pengalaman ini tidak bisa ditiru oleh Text Generation WebUI yang *single-user* atau Ollama WebUI yang minimalis — perbandingan detailnya ada di Bab 7.3.
-
-### Pilar 3: Integrasi Coding
-
-Karena mayoritas pengguna adalah developer, kualitas integrasi coding menentukan apakah sistem ini dipakai setiap hari atau hanya dibuka saat bos lewat. Pilar ketiga menyediakan **centralized coding assistant** — Tabby server untuk *code completion* di IDE dan Continue untuk percakapan kontekstual di VS Code/JetBrains — yang terhubung ke **repo internal** dan **knowledge base** perusahaan [8][9].
-
-Dengan arsitektur ini, developer tidak perlu lagi mengandalkan akun GitHub Copilot pribadi yang mengirim kode ke cloud Microsoft. Model server menyediakan *completion* lintas tim, *history* tersimpan terpusat, dan *fine-tuning*/konfigurasi dilakukan sekali di server, bukan 20 kali di 20 laptop. Kombinasi model besar (untuk *review* dan chat) dan model kecil cepat (untuk *completion* <500 ms) adalah tema yang akan dibahas rinci di Bab 7.5.
-
----
-
-## 4. Load Pattern Analysis
-
-### Siklus Jam Kerja Kantor
-
-Sebelum membeli GPU, kita harus tahu kapan sistem bekerja paling keras. Untuk kantor dengan jam kerja normal, kurva beban membentuk dua gunung: **puncak pagi 09:00-12:00** dan **puncak sore 14:00-17:00**. Di antara keduanya ada lembah jam makan siang, dan di luar rentang itu (00:00-06:00) sistem nyaris menganggur — hanya *background job* seperti *embedding* dokumen RAG yang berjalan.
-
-Pola ini berpengaruh pada desain *power budget*: workstation dua GPU tidak menarik 900W terus-menerus, hanya saat dua puncak tersebut. Ini juga berarti **penjadwalan tugas berat** — seperti *re-indexing* RAG atau *benchmark* model baru — sebaiknya dilakukan malam hari atau akhir pekan, persis seperti petugas kebersihan yang datang setelah kantor tutup.
-
-### Jenis Query Dominan
-
-Jika kita mengintip log server, dominasi jenis query di small office tidak seimbang dengan di rumah. Urutannya kira-kira:
-
-- **Code completion** — query pendek dan repetitif, muncul puluhan kali per menit per developer, harus dibalas <500 ms, dan karena itu menjadi konsumen utama *throughput* GPU.
-- **Code review dan debugging** — query sedang, membutuhkan model dengan *reasoning* yang baik, muncul di sela-sela *push* kode.
-- **Q&A knowledge base** — pertanyaan tentang SOP, dokumentasi API, dan kode legacy yang menjalankan pipeline RAG (Bab 7.4).
-
-Konsekuensi desainnya penting: *code completion* sebaiknya dilayani model kecil yang sangat cepat (misal Ministral 3 14B), sementara *code review* dilayani model besar berkualitas (misal Qwen3.6-27B atau DeepSeek V4 Flash). Inilah alasan mengapa *routing* multi-model otomatis menjadi kebutuhan, bukan kemewahan — sebuah lintasan penelitian yang juga diangkat oleh MixLLM, sistem *dynamic routing* antar model yang memilih model terbaik per query [4].
-
-### Beban RAG
-
-Setiap kali developer bertanya "bagaimana prosedur reimbursement?" atau "dokumentasi endpoint mana yang dipakai untuk retry?", sistem harus mencari di vector database. **Beban RAG di kantor kecil** berupa query ke SOP internal, dokumentasi API, dan kode legacy. Beban ini ringan — retrieval di Qdrant hanya milidetik — tetapi menjadi berat saat *ingestion*: ribuan file Markdown harus di-*chunk*, di-*embedding*, dan di-*upsert* ke database. Bab 7.4 membahas pipeline ini; yang perlu diingat di sini adalah *embedding* batch menempati memori GPU juga, sehingga sebaiknya dijadwalkan di luar jam puncak.
-
-### Menghitung Kebutuhan dari Lima Angka
-
-Sebelum menulis *purchase order*, lakukan aritmetika sederhana dengan angka dari Tabel 2: peak 10 *concurrent* user, target *throughput* agregat >100 token/detik, dan model Qwen3.6-27B yang menghasilkan ~35 t/s di 2x RTX 4090 (Bab 7.2 Tabel 3). Bagi saja: 100 ÷ 35 ≈ 3 sesi model besar bersamaan — artinya sisanya (7 user) harus dilayani model kecil berkecepatan tinggi seperti Ministral 3 14B yang mencapai ~65 t/s. Dari sinilah lahir aturan praktis penting: **di small office, tidak ada satu model yang melayani semua** — ada hierarki model yang dipilih oleh router (Bab 7.5). Satu GPU tunggal untuk 15+ developer akan berakhir dengan antrean; dua GPU dengan model berlapis akan berakhir dengan senyum.
-
-### Mengapa Bukan Sekadar "Beli VPS Murah"
-
-Godaan terbesar pemilik kantor kecil adalah memindahkan semuanya ke VPS murah berisi API cloud. Pertimbangan yang membatalkan godaan: latensi *code completion* (<500 ms) mustahil dicapai lewat internet dengan *round-trip* ke cloud, biaya per-seat SaaS bertumpuk (data di Bab 7.1 studi kasus), dan — yang paling menentukan — kebijakan data pribadi yang sama sekali berada di luar kendali. Server lokal dengan komponen yang sudah dijelaskan Tabel 2 bukan kemewahan; ia adalah satu-satunya arsitektur yang memenuhi tiga pilar sekaligus pada skala ini [2].
-
----
-
-## 5. Komponen Sistem
-
-Sebuah small office AI system tersusun dari lima blok yang bekerja seperti orkestra. **LLM Server** — vLLM dengan dukungan multi-GPU — menjadi panggung utama yang melayani model besar dengan *throughput* tinggi. **Code Assistant** — Tabby server atau Continue + Ollama — menjadi seksi string yang menjawab *completion* cepat di IDE. **Collaborative UI** — Open WebUI dengan registrasi internal — merupakan konduktor sekaligus wajah yang dilihat semua orang. **RAG Engine** — ChromaDB untuk *prototyping* atau Qdrant untuk produksi — adalah perpustakaan tempat dokumen disimpan dan dicari. Terakhir, **Identity Management** — Authentik atau Authelia dengan OAuth Google Workspace — adalah satpam yang memeriksa kartu identitas setiap pengunjung.
-
-Kombinasi yang diusulkan buku ini: vLLM di dua GPU untuk model besar, Ollama untuk model kecil cepat, Open WebUI sebagai antarmuka umum, Qdrant sebagai vector store, dan Authentik untuk *single sign-on* [6][7][10][11]. Setiap blok ini akan dibedah dalam sub-bab tersendiri; di sini kita hanya menetapkan peran masing-masing dalam keseluruhan sistem.
-
----
-
-## 6. Network Topology
-
-Bagian ini sering diremehkan, padahal menentukan pengalaman harian. Rancangan dasar yang disarankan:
-
-- **Server LLM di LAN kantor** — semua lalu lintas model tetap dalam jaringan lokal, memastikan latensi rendah dan data tidak keluar gedung.
-- **Akses via reverse proxy** (Nginx atau Caddy) — satu pintu HTTPS untuk semua layanan, sehingga pengguna hanya mengingat satu alamat seperti `ai.kantor.local`.
-- **Developer mengakses dari workstation via LAN** — latensi rendah untuk *code completion*, tanpa VPN.
-- **VPN WireGuard untuk Work From Home** — karyawan remote masuk melalui tunnel terenkripsi ke server internal.
-- **DNS internal dengan *split-horizon*** — nama lokal seperti `ai.kantor.local` di-resolve ke IP internal saat di kantor, ke alamat VPN saat di rumah.
-
-Keputusan penting lainnya adalah **segmentasi VLAN**: developer (VLAN 10) mendapat akses penuh ke GPU, tim admin/keuangan (VLAN 20) hanya web, dan tamu (VLAN 30) hanya internet dengan isolasi total. Ini memastikan bahwa data lawan bicara tamu di ruang meeting tidak pernah mengirim *prompt* ke server AI. Detail konfigurasinya ada di Tutorial 2.
-
-### Latency Budget: Menghitung Jalan Setiap Request
-
-Diagram jaringan di atas baru berharga jika kita menelusuri *latency budget* — anggaran waktu yang dihabiskan sebuah *request* dari jari developer sampai layar. Untuk *code completion* dengan target <500 ms, anggaran khasnya: ~1-2 ms LAN kabel, ~5-10 ms melewati *reverse proxy* Nginx, ~10-30 ms antrean aplikasi, dan sisanya — hampir semuanya — waktu GPU untuk *decode* token pertama. Artinya, **jaringan LAN hampir gratis dibanding GPU**: dengan WireGuard untuk karyawan remote, anggaran VPN bertambah ~20-50 ms dan masih dalam batas toleransi. Tetapi jika Anda menaruh server di cloud luar kota, tambahan 30-80 ms per *round-trip* menghabiskan setengah anggaran sebelum GPU bekerja. Ini alasan arsitektur bab ini bersikeras: *compute* di LAN, kolaborasi di LAN, *completion* di LAN — dan VPN hanya untuk segelintir karyawan WFH.
-
-### Split-Horizon DNS dan Masa Depan yang Tumbuh
-
-Konfigurasi DNS *split-horizon* bekerja seperti *papan nama ganda* di gedung kantor: di dalam gedung, papan menunjuk ke ruang server lantai dua (IP internal); dari luar, papan yang sama menunjuk ke pintu masuk VPN (alamat publik). Nama `ai.kantor.local` di-resolve berbeda tergantung asal *request* — developer di meja sebelah mendapat jalur tercepat, karyawan WFH mendapat jalur aman. Saat kantor tumbuh dari 10 menjadi 20 pengguna, nama domain ini tidak berubah — hanya IP di baliknya yang berganti — sehingga *bookmark* browser dan konfigurasi IDE tidak pernah perlu diubah. Sebuah detail kecil yang menyelamatkan admin dari seribu pertanyaan "kenapa tidak bisa akses?".
-
----
-
-## 7. Tabel Wajib
 
 ### Tabel 1: Perbandingan Skala Deployment
 
@@ -140,22 +54,6 @@ Tabel berikut membandingkan tiga skala sekaligus — home, small office, dan ent
 
 Setelah membaca tabel, dua lompatan paling mencolok adalah dari *backup mingguan* ke *backup harian otomatis + offsite* dan dari *opsional* menjadi *wajib* untuk *code integration*. Lompatan pertama adalah akibat dari "data produk" yang kini hidup di server; hilang satu hari riwayat konteks tim tidak bisa dipulihkan dari ingatan. Lompatan kedua adalah karakter: small office adalah kantor developer, jadi asisten kode bukan fitur tambahan melainkan alasan sistem ini dibangun. Perhatikan juga *power budget*: untuk 9-20 pengguna, konsumsi 300-600W — sekitar harga dua GPU consumer yang bekerja — adalah angka realistis, jauh di bawah 2kW+ enterprise yang butuh pendingin khusus.
 
-### Tabel 2: Kebutuhan GPU per Skenario Small Office
-
-Tabel ini membantu Anda menjawab pertanyaan paling sering di kantor kecil: "berapa GPU yang saya butuhkan?" — jawabannya bergantung pada jumlah user dan beban kerja.
-
-| Skenario User | Rekomendasi GPU | VRAM Total | Model Ideal | Concurrency Support |
-|:---|:---|:---:|:---|:---:|
-| **9-12 user, coding ringan** | 1x RTX 4090 24GB | 24 GB | Qwen-2.5-Coder-14B Q4_K_M / Ministral 3 14B Q4 | ~5 concurrent |
-| **12-16 user, coding + RAG** | 2x RTX 3090 24GB (NVLink) | 48 GB | Llama-3.1-70B Q3_K_M / Qwen3.6-27B Q4 | ~8 concurrent |
-| **16-20 user, full stack** | 2x RTX 4090 24GB (PCIe 5) | 48 GB | Qwen-3-32B Q4_K_M + Codestral / DeepSeek V4 Flash Q4 | ~10 concurrent |
-| **20 user, server-class open** | 2x RTX 5090 32GB | 64 GB | DeepSeek V4 Flash (284B/13B active, 1M ctx) | ~15 concurrent |
-
-![Perbandingan VRAM total dan dukungan concurrency untuk empat skenario user, dari 24 GB/~5 user hingga 64 GB/~15 user](../../assets/images/bab-07-small/sub-bab-1/vram-vs-concurrency-per-skenario.png)
-
-*Gambar 7.1-1 — VRAM dan concurrency naik berpasangan: setiap lonjakan kelas user menuntut VRAM yang lebih besar sekaligus kapasitas paralel yang lebih tinggi. Skenario puncak 20 user butuh VRAM 2,7x lipat dan concurrency 3x lipat dari skenario paling ringan.*
-
-Pola pada tabel ini mengajarkan dua hal. Pertama, *range* 9-12 user masih bisa dilayani satu GPU 24GB — hemat biaya, tapi *headroom* tipis saat satu developer menjalankan *benchmark* besar. Kedua, setelah 12 user, dua GPU bukan lagi pilihan melainkan keharusan: di sinilah muncul pertanyaan *NVLink vs PCIe* yang dibahas tuntas di Bab 7.2, dan pada skala 20 user, model berbasis MoE seperti **DeepSeek V4 Flash** (284B total, hanya 13B aktif per token, konteks 1 juta token, lisensi MIT) memberi *quality jump* besar dengan biaya komputasi yang masih masuk akal [12].
 
 ### Tabel 3: SLA Target Small Office
 
@@ -173,7 +71,6 @@ Interpretasi yang jujur: angka **99,5% uptime bulanan** berarti sekitar 3,6 jam 
 
 ---
 
-## 8. Diagram & Visualisasi
 
 ### Gambar 1: Arsitektur Small Office AI
 
@@ -212,6 +109,113 @@ graph TB
 
 Diagram di atas adalah *blueprint* keseluruhan yang akan kita bangun bertahap di bab-bab berikutnya. Baca dari kiri: para developer di workstation mereka menembakkan *request* melalui dua jalur — ke **Tabby** untuk *code completion* (yang memanggil vLLM lalu menarik konteks dari repo GitHub privat), atau ke **Open WebUI** untuk chat dan RAG. Semua permintaan masuk lewat **Nginx reverse proxy** sebagai penjaga gerbang, sementara **Authentik** memvalidasi identitas lewat Google Workspace. Perhatikan garis putus-putus dari WireGuard: karyawan remote masuk melalui tunnel, sehingga *request* mereka tiba di server seolah-olah dari LAN. Karakter penting lainnya: **Qdrant** hanya terhubung ke Open WebUI — artinya hanya chat yang bisa mengakses dokumen internal, sementara jalur kompletasi kode tetap ramping untuk latensi.
 
+
+---
+
+## 3. Tiga Pilar Desain
+
+
+### Pilar 1: Data Privacy
+
+Kode aplikasi adalah aset paling berharga sebuah software house — dan paling rawan. Mengirimkan potongan kode ke API publik seperti ChatGPT berarti mempercayakan aset klien ke pihak ketiga, lengkap dengan risiko *training data leakage* dan kebijakan privasi yang berubah-ubah [1]. Pilar pertama menjawab ini dengan satu keputusan tegas: **semua data kode dan dokumentasi proyek tinggal di server lokal**. Tidak ada yang bocor ke cloud publik.
+
+Konsekuensi desainnya nyata: model harus *open-weight* (bisa diunduh dan dijalankan di server sendiri), *prompt* tidak pernah meninggalkan LAN kantor, dan jika perusahaan bergerak di bidang dengan regulasi ketat — misalnya fintech yang tunduk pada aturan perlindungan data, atau vendor kesehatan yang menangani data pasien — arsitektur ini bisa memenuhi kebutuhan **HIPAA/GDPR compliance** karena data sensitif tidak pernah berpindah lokasi [1][5]. Studi terbaru menunjukkan kebocoran data dari LLM bisa terjadi pasif maupun aktif, sehingga *self-hosting* bukan sekadar preferensi, melainkan mekanisme pertahanan paling sederhana yang tersedia [1].
+
+### Pilar 2: Kolaborasi Tim
+
+Server AI yang hanya bisa dipakai satu orang setiap kali mengulang dosa era sebelum Google Docs. Pilar kedua menginginkan **shared conversation history** — percakapan yang berlangsung jam 10 pagi oleh developer frontend bisa dibuka kembali jam 3 sore oleh backend untuk memahami konteks. Ditambah **workspace per tim** (misalnya "Frontend Team", "Backend Team", "DevOps") dan **channel kolaborasi real-time** yang memungkinkan diskusi bersama di dalam ruang chat AI.
+
+Open WebUI menjadi pilihan utama di buku ini karena fitur-fitur kolaborasinya sudah *native*: registrasi dengan *approval* admin, peran *admin/user/pending*, dan *knowledge base* global yang bisa diakses semua orang [7]. Pengalaman ini tidak bisa ditiru oleh Text Generation WebUI yang *single-user* atau Ollama WebUI yang minimalis — perbandingan detailnya ada di Bab 7.3.
+
+### Pilar 3: Integrasi Coding
+
+Karena mayoritas pengguna adalah developer, kualitas integrasi coding menentukan apakah sistem ini dipakai setiap hari atau hanya dibuka saat bos lewat. Pilar ketiga menyediakan **centralized coding assistant** — Tabby server untuk *code completion* di IDE dan Continue untuk percakapan kontekstual di VS Code/JetBrains — yang terhubung ke **repo internal** dan **knowledge base** perusahaan [8][9].
+
+Dengan arsitektur ini, developer tidak perlu lagi mengandalkan akun GitHub Copilot pribadi yang mengirim kode ke cloud Microsoft. Model server menyediakan *completion* lintas tim, *history* tersimpan terpusat, dan *fine-tuning*/konfigurasi dilakukan sekali di server, bukan 20 kali di 20 laptop. Kombinasi model besar (untuk *review* dan chat) dan model kecil cepat (untuk *completion* <500 ms) adalah tema yang akan dibahas rinci di Bab 7.5.
+
+---
+
+## 4. Load Pattern Analysis
+
+
+### Siklus Jam Kerja Kantor
+
+Sebelum membeli GPU, kita harus tahu kapan sistem bekerja paling keras. Untuk kantor dengan jam kerja normal, kurva beban membentuk dua gunung: **puncak pagi 09:00-12:00** dan **puncak sore 14:00-17:00**. Di antara keduanya ada lembah jam makan siang, dan di luar rentang itu (00:00-06:00) sistem nyaris menganggur — hanya *background job* seperti *embedding* dokumen RAG yang berjalan.
+
+Pola ini berpengaruh pada desain *power budget*: workstation dua GPU tidak menarik 900W terus-menerus, hanya saat dua puncak tersebut. Ini juga berarti **penjadwalan tugas berat** — seperti *re-indexing* RAG atau *benchmark* model baru — sebaiknya dilakukan malam hari atau akhir pekan, persis seperti petugas kebersihan yang datang setelah kantor tutup.
+
+### Jenis Query Dominan
+
+Jika kita mengintip log server, dominasi jenis query di small office tidak seimbang dengan di rumah. Urutannya kira-kira:
+
+- **Code completion** — query pendek dan repetitif, muncul puluhan kali per menit per developer, harus dibalas <500 ms, dan karena itu menjadi konsumen utama *throughput* GPU.
+- **Code review dan debugging** — query sedang, membutuhkan model dengan *reasoning* yang baik, muncul di sela-sela *push* kode.
+- **Q&A knowledge base** — pertanyaan tentang SOP, dokumentasi API, dan kode legacy yang menjalankan pipeline RAG (Bab 7.4).
+
+Konsekuensi desainnya penting: *code completion* sebaiknya dilayani model kecil yang sangat cepat (misal Ministral 3 14B), sementara *code review* dilayani model besar berkualitas (misal Qwen3.6-27B atau DeepSeek V4 Flash). Inilah alasan mengapa *routing* multi-model otomatis menjadi kebutuhan, bukan kemewahan — sebuah lintasan penelitian yang juga diangkat oleh MixLLM, sistem *dynamic routing* antar model yang memilih model terbaik per query [4].
+
+### Beban RAG
+
+Setiap kali developer bertanya "bagaimana prosedur reimbursement?" atau "dokumentasi endpoint mana yang dipakai untuk retry?", sistem harus mencari di vector database. **Beban RAG di kantor kecil** berupa query ke SOP internal, dokumentasi API, dan kode legacy. Beban ini ringan — retrieval di Qdrant hanya milidetik — tetapi menjadi berat saat *ingestion*: ribuan file Markdown harus di-*chunk*, di-*embedding*, dan di-*upsert* ke database. Bab 7.4 membahas pipeline ini; yang perlu diingat di sini adalah *embedding* batch menempati memori GPU juga, sehingga sebaiknya dijadwalkan di luar jam puncak.
+
+### Menghitung Kebutuhan dari Lima Angka
+
+Sebelum menulis *purchase order*, lakukan aritmetika sederhana dengan angka dari Tabel 2: peak 10 *concurrent* user, target *throughput* agregat >100 token/detik, dan model Qwen3.6-27B yang menghasilkan ~35 t/s di 2x RTX 4090 (Bab 7.2 Tabel 3). Bagi saja: 100 ÷ 35 ≈ 3 sesi model besar bersamaan — artinya sisanya (7 user) harus dilayani model kecil berkecepatan tinggi seperti Ministral 3 14B yang mencapai ~65 t/s. Dari sinilah lahir aturan praktis penting: **di small office, tidak ada satu model yang melayani semua** — ada hierarki model yang dipilih oleh router (Bab 7.5). Satu GPU tunggal untuk 15+ developer akan berakhir dengan antrean; dua GPU dengan model berlapis akan berakhir dengan senyum.
+
+### Mengapa Bukan Sekadar "Beli VPS Murah"
+
+Godaan terbesar pemilik kantor kecil adalah memindahkan semuanya ke VPS murah berisi API cloud. Pertimbangan yang membatalkan godaan: latensi *code completion* (<500 ms) mustahil dicapai lewat internet dengan *round-trip* ke cloud, biaya per-seat SaaS bertumpuk (data di Bab 7.1 studi kasus), dan — yang paling menentukan — kebijakan data pribadi yang sama sekali berada di luar kendali. Server lokal dengan komponen yang sudah dijelaskan Tabel 2 bukan kemewahan; ia adalah satu-satunya arsitektur yang memenuhi tiga pilar sekaligus pada skala ini [2].
+
+### Tabel 2: Kebutuhan GPU per Skenario Small Office
+
+Tabel ini membantu Anda menjawab pertanyaan paling sering di kantor kecil: "berapa GPU yang saya butuhkan?" — jawabannya bergantung pada jumlah user dan beban kerja.
+
+| Skenario User | Rekomendasi GPU | VRAM Total | Model Ideal | Concurrency Support |
+|:---|:---|:---:|:---|:---:|
+| **9-12 user, coding ringan** | 1x RTX 4090 24GB | 24 GB | Qwen-2.5-Coder-14B Q4_K_M / Ministral 3 14B Q4 | ~5 concurrent |
+| **12-16 user, coding + RAG** | 2x RTX 3090 24GB (NVLink) | 48 GB | Llama-3.1-70B Q3_K_M / Qwen3.6-27B Q4 | ~8 concurrent |
+| **16-20 user, full stack** | 2x RTX 4090 24GB (PCIe 5) | 48 GB | Qwen-3-32B Q4_K_M + Codestral / DeepSeek V4 Flash Q4 | ~10 concurrent |
+| **20 user, server-class open** | 2x RTX 5090 32GB | 64 GB | DeepSeek V4 Flash (284B/13B active, 1M ctx) | ~15 concurrent |
+
+![Perbandingan VRAM total dan dukungan concurrency untuk empat skenario user, dari 24 GB/~5 user hingga 64 GB/~15 user](../../assets/images/bab-07-small/sub-bab-1/vram-vs-concurrency-per-skenario.png)
+
+*Gambar 7.1-1 — VRAM dan concurrency naik berpasangan: setiap lonjakan kelas user menuntut VRAM yang lebih besar sekaligus kapasitas paralel yang lebih tinggi. Skenario puncak 20 user butuh VRAM 2,7x lipat dan concurrency 3x lipat dari skenario paling ringan.*
+
+Pola pada tabel ini mengajarkan dua hal. Pertama, *range* 9-12 user masih bisa dilayani satu GPU 24GB — hemat biaya, tapi *headroom* tipis saat satu developer menjalankan *benchmark* besar. Kedua, setelah 12 user, dua GPU bukan lagi pilihan melainkan keharusan: di sinilah muncul pertanyaan *NVLink vs PCIe* yang dibahas tuntas di Bab 7.2, dan pada skala 20 user, model berbasis MoE seperti **DeepSeek V4 Flash** (284B total, hanya 13B aktif per token, konteks 1 juta token, lisensi MIT) memberi *quality jump* besar dengan biaya komputasi yang masih masuk akal [12].
+
+
+---
+
+## 5. Komponen Sistem
+
+
+Sebuah small office AI system tersusun dari lima blok yang bekerja seperti orkestra. **LLM Server** — vLLM dengan dukungan multi-GPU — menjadi panggung utama yang melayani model besar dengan *throughput* tinggi. **Code Assistant** — Tabby server atau Continue + Ollama — menjadi seksi string yang menjawab *completion* cepat di IDE. **Collaborative UI** — Open WebUI dengan registrasi internal — merupakan konduktor sekaligus wajah yang dilihat semua orang. **RAG Engine** — ChromaDB untuk *prototyping* atau Qdrant untuk produksi — adalah perpustakaan tempat dokumen disimpan dan dicari. Terakhir, **Identity Management** — Authentik atau Authelia dengan OAuth Google Workspace — adalah satpam yang memeriksa kartu identitas setiap pengunjung.
+
+Kombinasi yang diusulkan buku ini: vLLM di dua GPU untuk model besar, Ollama untuk model kecil cepat, Open WebUI sebagai antarmuka umum, Qdrant sebagai vector store, dan Authentik untuk *single sign-on* [6][7][10][11]. Setiap blok ini akan dibedah dalam sub-bab tersendiri; di sini kita hanya menetapkan peran masing-masing dalam keseluruhan sistem.
+
+---
+
+## 6. Network Topology
+
+
+Bagian ini sering diremehkan, padahal menentukan pengalaman harian. Rancangan dasar yang disarankan:
+
+- **Server LLM di LAN kantor** — semua lalu lintas model tetap dalam jaringan lokal, memastikan latensi rendah dan data tidak keluar gedung.
+- **Akses via reverse proxy** (Nginx atau Caddy) — satu pintu HTTPS untuk semua layanan, sehingga pengguna hanya mengingat satu alamat seperti `ai.kantor.local`.
+- **Developer mengakses dari workstation via LAN** — latensi rendah untuk *code completion*, tanpa VPN.
+- **VPN WireGuard untuk Work From Home** — karyawan remote masuk melalui tunnel terenkripsi ke server internal.
+- **DNS internal dengan *split-horizon*** — nama lokal seperti `ai.kantor.local` di-resolve ke IP internal saat di kantor, ke alamat VPN saat di rumah.
+
+Keputusan penting lainnya adalah **segmentasi VLAN**: developer (VLAN 10) mendapat akses penuh ke GPU, tim admin/keuangan (VLAN 20) hanya web, dan tamu (VLAN 30) hanya internet dengan isolasi total. Ini memastikan bahwa data lawan bicara tamu di ruang meeting tidak pernah mengirim *prompt* ke server AI. Detail konfigurasinya ada di Tutorial 2.
+
+### Latency Budget: Menghitung Jalan Setiap Request
+
+Diagram jaringan di atas baru berharga jika kita menelusuri *latency budget* — anggaran waktu yang dihabiskan sebuah *request* dari jari developer sampai layar. Untuk *code completion* dengan target <500 ms, anggaran khasnya: ~1-2 ms LAN kabel, ~5-10 ms melewati *reverse proxy* Nginx, ~10-30 ms antrean aplikasi, dan sisanya — hampir semuanya — waktu GPU untuk *decode* token pertama. Artinya, **jaringan LAN hampir gratis dibanding GPU**: dengan WireGuard untuk karyawan remote, anggaran VPN bertambah ~20-50 ms dan masih dalam batas toleransi. Tetapi jika Anda menaruh server di cloud luar kota, tambahan 30-80 ms per *round-trip* menghabiskan setengah anggaran sebelum GPU bekerja. Ini alasan arsitektur bab ini bersikeras: *compute* di LAN, kolaborasi di LAN, *completion* di LAN — dan VPN hanya untuk segelintir karyawan WFH.
+
+### Split-Horizon DNS dan Masa Depan yang Tumbuh
+
+Konfigurasi DNS *split-horizon* bekerja seperti *papan nama ganda* di gedung kantor: di dalam gedung, papan menunjuk ke ruang server lantai dua (IP internal); dari luar, papan yang sama menunjuk ke pintu masuk VPN (alamat publik). Nama `ai.kantor.local` di-resolve berbeda tergantung asal *request* — developer di meja sebelah mendapat jalur tercepat, karyawan WFH mendapat jalur aman. Saat kantor tumbuh dari 10 menjadi 20 pengguna, nama domain ini tidak berubah — hanya IP di baliknya yang berganti — sehingga *bookmark* browser dan konfigurasi IDE tidak pernah perlu diubah. Sebuah detail kecil yang menyelamatkan admin dari seribu pertanyaan "kenapa tidak bisa akses?".
+
 ### Gambar 2: Segmentasi VLAN dan Alur Akses Server AI
 
 ```mermaid
@@ -235,7 +239,11 @@ Diagram kedua menunjukkan *network segmentation* yang melindungi server AI. Hany
 
 ---
 
-## 9. Tutorial / Hands-On
+
+---
+
+## 7. Tutorial / Hands-On
+
 
 ### Tutorial 1: Setup Reverse Proxy untuk Multi-Layanan
 
@@ -321,7 +329,8 @@ Tiga *job* di atas menceritakan kesehatan sistem: **vllm** mengumpulkan metrik *
 
 ---
 
-## 10. Studi Kasus: PT KodeKreatif (18 Developer)
+## 8. Studi Kasus: PT KodeKreatif (18 Developer)
+
 
 PT KodeKreatif adalah startup *software house* dengan 18 developer, 2 project manager, dan 1 DevOps. Permasalahannya klasik: setiap developer punya akun masing-masing di layanan cloud — sebagian Copilot, sebagian ChatGPT, sebagian menyerah dan hanya memakai *autocomplete* bawaan IDE. Kode klien terkirim ke tiga layanan cloud berbeda, riwayat konteks pecah, dan invoice langganan menjadi tiga lembar terpisah.
 
@@ -333,7 +342,8 @@ Soal uang: investasi sekali ~**Rp 95 juta**, plus **Rp 1,5 juta/bulan** untuk li
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa satu GPU atau satu instance vLLM memiliki kapasitas terbatas dan kapan horizontal scaling diperlukan
@@ -20,6 +21,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Mengapa Load Balancing Diperlukan?
 
+
 Satu GPU, sehebat apa pun, tetap punya dinding. Throughput sebuah instance vLLM dibatasi oleh *memory bandwidth* GPU dan ukuran VRAM — setelah batch penuh, request berikutnya mengantre. Ini bukan kegagalan teknologi; ini hukum fisika silicon. Ketika trafik melampaui kapasitas satu kartu — katakanlah ribuan request per detik dari ribuan pengguna — satu-satunya jalan yang dapat diprediksi adalah **horizontal scaling**: menambah replica, lalu mendistribusikan request secara merata. Di sinilah *load balancer* berperan sebagai *traffic director*: ia memutuskan request mana menuju GPU mana. Namun perannya tidak berhenti di situ — dengan *health check*, ia mengeluarkan replica yang sakit dari rotasi; dengan *rate limiter*, ia melindungi backend dari lonjakan gila; dengan antrean, ia menahan arus ketika semua backend penuh. Sebuah load balancer yang baik adalah gabungan pengatur lalu lintas, dokter jaga, dan bouncer klub dalam satu tubuh.
 
 ### Satu GPU, Berapa Mampu? Anatomi Kapasitas Inference
@@ -33,6 +35,7 @@ Catatan penting bagi pembaca yang baru memulai: jangan merancang load balancer d
 ---
 
 ## 3. Strategi Load Balancing
+
 
 ### Round-robin: Sederhana tapi Tuli terhadap Beban
 
@@ -54,44 +57,6 @@ Strategi yang terbukti matematis unggul untuk beban LLM: pilih dua replica secar
 
 Keputusan strategi sebaiknya tidak dibuat di ruang kosong — ia harus mengikuti bentuk trafik Anda. Jika trafik didominasi **percakapan singkat yang berulang** (chatbot layanan pelanggan dengan jumlah pengguna terbatas), consistent hashing memberikan keunggulan ganda: session affinity menstabilkan pengalaman dan prefix caching bekerja maksimal karena prompt berulang. Jika trafik adalah **batch besar dengan durasi sangat bervariasi** (pemrosesan dokumen, embedding massal), least-connections atau power-of-two choices lebih tepat — di sini durasi request tidak bisa diprediksi, jadi penyeimbangan beban berdasarkan beban aktual lebih berharga daripada kesetiaan sesi. Jika Anda menjalankan **MoE besar seperti Mistral Large 3 atau DeepSeek V4 Pro** dengan banyak node, prioritaskan session affinity: expert weights yang dimuat ulang saat request berpindah node adalah biaya tersembunyi yang cukup besar. Dan jika trafik Anda masih kecil dan tumbuh cepat, jangan terlalu khawatir memilih — power-of-two choices adalah pilihan aman universal yang tidak akan menyesatkan Anda di tahap mana pun.
 
----
-
-## 4. Pilihan Load Balancer
-
-Tidak semua load balancer diciptakan sama — pilihannya bergantung pada kedalaman kontrol yang Anda butuhkan. **NGINX dan HAProxy** adalah workhorse layer 7: health check, SSL termination, dan retry yang tangguh — cocok jika Anda hanya butuh mendistribusikan trafik ke replica-replica inference yang sudah seragam. **LiteLLM** melangkah lebih jauh sebagai proxy khusus ekosistem LLM: routing multi-model dan multi-provider dengan satu format OpenAI, rate limiting per key, cost tracking per model, dan kebijakan fallback otomatis ke model cadangan. **Ray Serve** menawarkan pola deployment terintegrasi: load balancing dan auto-scaling bawaan untuk endpoint vLLM di dalam kerangka ekosistem Ray. Terakhir, **Kubernetes Ingress** — bagi tim yang sudah hidup dalam ekosistem Kubernetes, kombinasi Service + Horizontal Pod Autoscaler + Ingress Controller memberikan otomatisasi penuh dari penemuan replica hingga scaling otomatis berdasarkan metrik GPU itu sendiri.
-
-Sebuah cara praktis memilih di antara keempatnya: mulailah dari *bentuk kebutuhan*, bukan dari *nama produk*. Jika tantangan Anda hanya "satu model, banyak GPU, trafik besar" — NGINX/HAProxy atau Ingress Controller sudah memadai dan paling murah perawatannya. Jika Anda harus menawarkan "banyak model, banyak backend campuran (lokal + cloud), dengan kuota per pelanggan" — LiteLLM hampir pasti pilihan yang tepat, karena fitur cost tracking dan rate limiting per key sudah built-in. Jika Anda hidup di ekosistem Ray — misalnya pipeline RAG dan inference berjalan di Ray cluster — integrasi Ray Serve menghilangkan satu lapisan infrastruktur yang harus dijaga. Dan ketika beban Anda tumbuh melewati puluhan replica dengan upgrade yang sering, Kubernetes Ingress memberi satu bahasa operasional yang sama untuk seluruh perusahaan — meskipun dengan kompleksitas yang tidak bisa diabaikan.
-
----
-
-## 5. Prefill-Decode Disaggregation: Splitwise
-
-### Insight: Dua Fase yang Bermusuhan
-
-Setiap request LLM melewati dua fase dengan karakter hardware yang berlawanan. **Prefill** — saat prompt awal diproses dan KV cache dibangun — adalah fase *compute-intensive*: ribuan token diproses paralel dalam satu langkah, butuh FLOP tinggi dan perhitungan matriks raksasa. **Decode** — saat token output dihasilkan satu per satu — adalah fase *memory-intensive*: setiap langkah hanya memproses satu token baru tetapi harus membaca ulang seluruh bobot model, sehingga bottleneck-nya adalah *memory bandwidth*, bukan kekuatan komputasi. Pada sistem monolitik, kedua fase ini berbagi GPU yang sama — dan GPU mana pun yang Anda pilih, ia selalu terlalu kuat untuk satu sisi dan terlalu lemah untuk sisi lain.
-
-### Splitwise: Memisah yang Berbeda
-
-Splitwise [1] mematahkan kompromi tersebut dengan *phase disaggregation*: pisahkan kedua fase ke mesin yang berbeda. **Prompt machine** — GPU berkomputasi tinggi seperti H100 — khusus menangani prefill agar TTFT serendah mungkin. **Token machine** — GPU lebih murah seperti A100 yang hanya butuh bandwidth memori besar — khusus menangani decode dengan throughput token tinggi per dolar. Di antara keduanya, state model (KV cache dan aktivasi) ditransfer melalui *fast interconnect* — NVLink, NVSwitch, atau InfiniBand — dalam hitungan milidetik. Analogi yang pas: dapur cepat untuk menyiapkan bahan (prefill) dan panggangan terpisah untuk memanggang (decode), dengan konveyor berkecepatan tinggi di antaranya. Pengukuran nyata [1] menunjukkan peningkatan throughput hingga 2,35x dengan peningkatan power hanya 1,1x dibandingkan infrastruktur homogen — angka yang membuat setiap CFO tersenyum.
-
-### Kapan Splitwise Belum Layak: Batasan yang Jujur
-
-Disaggregation bukan jawaban universal — ada tiga kondisi di mana ia justru merugikan. Pertama, *beban yang didominasi prefill pendek*: jika mayoritas request Anda berupa prompt pendek dengan output singkat (chat mikro, klasifikasi), proporsi waktu prefill terhadap decode terlalu kecil sehingga keuntungan pemisahan minimal, sementara biaya transfer state tetap harus dibayar. Kedua, *infrastruktur tanpa fast interconnect*: disaggregation di atas jaringan Ethernet biasa mengubah transfer KV cache menjadi bottleneck baru — seperti disebut di Gambar 2, tanpa InfiniBand, "disaggregation" berubah menjadi sumber latency. Ketiga, *skala kecil*: pada klaster 2-8 GPU, Anda seringkali tidak punya cukup mesin untuk membuat dua pool yang efisien, dan fleksibilitas satu pool monolitik justru lebih berharga. Aturan praktisnya: evaluasi Splitwise ketika utang komputasi (prefill) dan utang bandwidth (decode) Anda sudah cukup besar untuk hidup terpisah — di bawah ambang itu, perbaiki fase yang lemah di pool tunggal dulu.
-
----
-
-## 6. Rate Limiting dan QoS
-
-Distribusi trafik hanyalah setengah dari tanggung jawab load balancer; setengah lainnya adalah menjaga *Quality of Service*. **Rate limiting per-user atau per-API-key** memastikan penggunaan yang adil (fair use) — satu pelanggan yang mengirim batch 10.000 request tidak boleh melaparkan ribuan pengguna lain. **Priority queues** membuat request premium (misalnya pelanggan berbayar atau request interaktif) dilayani sebelum request batch berprioritas rendah. **Request queuing dengan bounded capacity** menciptakan *backpressure* yang sehat: daripada mengirim request ke GPU yang sudah penuh (yang justru membuat semuanya lambat), load balancer menahan request di antrean berkapasitas terbatas dan menolak dengan sopan (HTTP 429 atau 503) ketika antrean penuh. Ketiga mekanisme ini bersama-sama mengubah sistem dari "semua orang dilayani dengan buruk" menjadi "sebagian besar dilayani dengan baik, sedikit yang menunggu giliran".
-
-### Retry, Fallback, dan Ketahanan
-
-Sebuah lapisan distribusi yang matang juga menangani kegagalan secara terstruktur. **Retry dengan exponential backoff** — mencoba ulang request yang gagal dengan jeda yang tumbuh — menangani kegagalan sementara tanpa membebani backend dengan gelombang ulang. **Fallback antar model** adalah fitur khas proxy seperti LiteLLM: ketika model utama sedang penuh atau bermasalah, request dialihkan ke model cadangan — bahkan ke provider cloud eksternal — sehingga pelanggan tidak pernah melihat *downtime*, hanya mungkin jawaban dari model yang sedikit berbeda. **Graceful drain** memastikan replica yang sedang di-*upgrade* berhenti menerima request baru, menyelesaikan yang sedang berjalan, baru dilepas dari rotasi — tanpa memutus koneksi streaming yang sedang aktif. Ketiga mekanisme ini bukan kemewahan: pada trafik ribuan request per detik, kegagalan adalah kepastian statistik, bukan pengecualian, dan sistem yang tidak menyiapkannya akan belajar dengan cara yang menyakitkan.
-
----
-
-## 7. Tabel Wajib
-
 ### Tabel A: Perbandingan Strategi Load Balancing
 
 Rangkuman karakter tiap strategi — perhatikan bagaimana "kecerdasan" dan "kesetiaan sesi" saling bertukar posisi pada sumbu yang berbeda.
@@ -106,6 +71,37 @@ Rangkuman karakter tiap strategi — perhatikan bagaimana "kecerdasan" dan "kese
 | Random | Random | Tidak | Sangat Rendah | Cukup |
 
 Tidak ada strategi yang menang di semua dimensi. Untuk beban yang homogen dengan sebagian besar request pendek, least-connections sudah memadai. Untuk beban yang sangat heterogen dengan proporsi request streaming besar, consistent hashing memberi keunggulan tambahan berupa cache reuse. Untuk produksi modern yang menginginkan keseimbangan terbaik tanpa kerumitan, *power-of-two choices* adalah pilihan paling bijak — dan bila replica Anda memiliki kapasitas berbeda (GPU campuran), weighted round-robin dengan bobot proporsional kapasitas adalah pilihan terhormat.
+
+
+### Gambar 1: Arsitektur Load Balancing Multi-GPU
+
+Gambaran menyeluruh infrastruktur load balancing: internet masuk melalui load balancer tunggal, melewati komponen kebijakan (health check, rate limiter, antrean), lalu didistribusikan ke replica vLLM yang masing-masing menaungi GPU.
+
+```mermaid
+flowchart LR
+    INET[Internet] --> LB[NGINX / LiteLLM<br>Load Balancer]
+    LB --> QC[Rate Limiter<br>+ Priority Queue]
+    QC --> R1[vLLM Replica 1]
+    QC --> R2[vLLM Replica 2]
+    QC --> RN[vLLM Replica N]
+    R1 --> G1[GPU Pool 1]
+    R2 --> G2[GPU Pool 2]
+    RN --> GN[GPU Pool N]
+    LB --> HC[Health Check]
+    LB --> MET[Metrics Exporter]
+```
+
+Perhatikan dua jalur keluar dari load balancer: jalur utama menuju replica, dan jalur pendamping menuju *health check* serta *metrics exporter*. Jalur pendamping inilah yang membuat sistem bisa sembuh sendiri — replica yang gagal health check dikeluarkan dari rotasi secara otomatis, dan metrik metrik yang diekspor menjadi bahan bakar auto-scaling yang akan kita konfigurasi di bagian praktikum.
+
+
+---
+
+## 4. Pilihan Load Balancer
+
+
+Tidak semua load balancer diciptakan sama — pilihannya bergantung pada kedalaman kontrol yang Anda butuhkan. **NGINX dan HAProxy** adalah workhorse layer 7: health check, SSL termination, dan retry yang tangguh — cocok jika Anda hanya butuh mendistribusikan trafik ke replica-replica inference yang sudah seragam. **LiteLLM** melangkah lebih jauh sebagai proxy khusus ekosistem LLM: routing multi-model dan multi-provider dengan satu format OpenAI, rate limiting per key, cost tracking per model, dan kebijakan fallback otomatis ke model cadangan. **Ray Serve** menawarkan pola deployment terintegrasi: load balancing dan auto-scaling bawaan untuk endpoint vLLM di dalam kerangka ekosistem Ray. Terakhir, **Kubernetes Ingress** — bagi tim yang sudah hidup dalam ekosistem Kubernetes, kombinasi Service + Horizontal Pod Autoscaler + Ingress Controller memberikan otomatisasi penuh dari penemuan replica hingga scaling otomatis berdasarkan metrik GPU itu sendiri.
+
+Sebuah cara praktis memilih di antara keempatnya: mulailah dari *bentuk kebutuhan*, bukan dari *nama produk*. Jika tantangan Anda hanya "satu model, banyak GPU, trafik besar" — NGINX/HAProxy atau Ingress Controller sudah memadai dan paling murah perawatannya. Jika Anda harus menawarkan "banyak model, banyak backend campuran (lokal + cloud), dengan kuota per pelanggan" — LiteLLM hampir pasti pilihan yang tepat, karena fitur cost tracking dan rate limiting per key sudah built-in. Jika Anda hidup di ekosistem Ray — misalnya pipeline RAG dan inference berjalan di Ray cluster — integrasi Ray Serve menghilangkan satu lapisan infrastruktur yang harus dijaga. Dan ketika beban Anda tumbuh melewati puluhan replica dengan upgrade yang sering, Kubernetes Ingress memberi satu bahasa operasional yang sama untuk seluruh perusahaan — meskipun dengan kompleksitas yang tidak bisa diabaikan.
 
 ### Tabel B: Benchmark Load Balancer — 4x vLLM Instance (7B, A100)
 
@@ -128,6 +124,24 @@ Dua cerita terpenting tersembunyi di kolom ekor. Pertama, semua strategi "cerdas
 
 Ada nuansa penting yang tidak terlihat langsung dari angka throughput: *tail latency* adalah indikator kesehatan yang lebih sensitif daripada rata-rata. Round-robin dan random memiliki P99 yang membengkak karena request dapat menumpuk di replica yang sedang sibuk — kasir yang kebetulan mendapat giliran rantai pembeli rumit. Strategi berbasis beban memecahkan masalah ini di lapisan routing dengan biaya hampir nol: P99 turun dari 850-1.200 ms ke kisaran 480-520 ms hanya dengan memilih replica yang tepat. Bagi pengalaman pengguna, perbedaan ini adalah jarak antara "lancar" dan "putus-putus". Catatan praktis: saat membaca benchmark seperti ini, pastikan kondisi pengukurannya serupa dengan beban Anda — P50 yang rendah di benchmark laboratorium seringkali tidak mewakili perilaku ekor saat trafik campuran mulai masuk.
 
+
+---
+
+## 5. Prefill-Decode Disaggregation: Splitwise
+
+
+### Insight: Dua Fase yang Bermusuhan
+
+Setiap request LLM melewati dua fase dengan karakter hardware yang berlawanan. **Prefill** — saat prompt awal diproses dan KV cache dibangun — adalah fase *compute-intensive*: ribuan token diproses paralel dalam satu langkah, butuh FLOP tinggi dan perhitungan matriks raksasa. **Decode** — saat token output dihasilkan satu per satu — adalah fase *memory-intensive*: setiap langkah hanya memproses satu token baru tetapi harus membaca ulang seluruh bobot model, sehingga bottleneck-nya adalah *memory bandwidth*, bukan kekuatan komputasi. Pada sistem monolitik, kedua fase ini berbagi GPU yang sama — dan GPU mana pun yang Anda pilih, ia selalu terlalu kuat untuk satu sisi dan terlalu lemah untuk sisi lain.
+
+### Splitwise: Memisah yang Berbeda
+
+Splitwise [1] mematahkan kompromi tersebut dengan *phase disaggregation*: pisahkan kedua fase ke mesin yang berbeda. **Prompt machine** — GPU berkomputasi tinggi seperti H100 — khusus menangani prefill agar TTFT serendah mungkin. **Token machine** — GPU lebih murah seperti A100 yang hanya butuh bandwidth memori besar — khusus menangani decode dengan throughput token tinggi per dolar. Di antara keduanya, state model (KV cache dan aktivasi) ditransfer melalui *fast interconnect* — NVLink, NVSwitch, atau InfiniBand — dalam hitungan milidetik. Analogi yang pas: dapur cepat untuk menyiapkan bahan (prefill) dan panggangan terpisah untuk memanggang (decode), dengan konveyor berkecepatan tinggi di antaranya. Pengukuran nyata [1] menunjukkan peningkatan throughput hingga 2,35x dengan peningkatan power hanya 1,1x dibandingkan infrastruktur homogen — angka yang membuat setiap CFO tersenyum.
+
+### Kapan Splitwise Belum Layak: Batasan yang Jujur
+
+Disaggregation bukan jawaban universal — ada tiga kondisi di mana ia justru merugikan. Pertama, *beban yang didominasi prefill pendek*: jika mayoritas request Anda berupa prompt pendek dengan output singkat (chat mikro, klasifikasi), proporsi waktu prefill terhadap decode terlalu kecil sehingga keuntungan pemisahan minimal, sementara biaya transfer state tetap harus dibayar. Kedua, *infrastruktur tanpa fast interconnect*: disaggregation di atas jaringan Ethernet biasa mengubah transfer KV cache menjadi bottleneck baru — seperti disebut di Gambar 2, tanpa InfiniBand, "disaggregation" berubah menjadi sumber latency. Ketiga, *skala kecil*: pada klaster 2-8 GPU, Anda seringkali tidak punya cukup mesin untuk membuat dua pool yang efisien, dan fleksibilitas satu pool monolitik justru lebih berharga. Aturan praktisnya: evaluasi Splitwise ketika utang komputasi (prefill) dan utang bandwidth (decode) Anda sudah cukup besar untuk hidup terpisah — di bawah ambang itu, perbaiki fase yang lemah di pool tunggal dulu.
+
 ### Tabel C: Splitwise — Perbandingan Konfigurasi Cluster
 
 Berapa banyak komposisi prompt/token machine yang membayar tunai per data — diukur relatif terhadap baseline homogen [1].
@@ -145,27 +159,6 @@ Interpretasi yang lebih hati-hati juga diperlukan di sini. Rasio prompt:token ma
 
 ---
 
-## 8. Diagram & Visualisasi
-
-### Gambar 1: Arsitektur Load Balancing Multi-GPU
-
-Gambaran menyeluruh infrastruktur load balancing: internet masuk melalui load balancer tunggal, melewati komponen kebijakan (health check, rate limiter, antrean), lalu didistribusikan ke replica vLLM yang masing-masing menaungi GPU.
-
-```mermaid
-flowchart LR
-    INET[Internet] --> LB[NGINX / LiteLLM<br>Load Balancer]
-    LB --> QC[Rate Limiter<br>+ Priority Queue]
-    QC --> R1[vLLM Replica 1]
-    QC --> R2[vLLM Replica 2]
-    QC --> RN[vLLM Replica N]
-    R1 --> G1[GPU Pool 1]
-    R2 --> G2[GPU Pool 2]
-    RN --> GN[GPU Pool N]
-    LB --> HC[Health Check]
-    LB --> MET[Metrics Exporter]
-```
-
-Perhatikan dua jalur keluar dari load balancer: jalur utama menuju replica, dan jalur pendamping menuju *health check* serta *metrics exporter*. Jalur pendamping inilah yang membuat sistem bisa sembuh sendiri — replica yang gagal health check dikeluarkan dari rotasi secara otomatis, dan metrik metrik yang diekspor menjadi bahan bakar auto-scaling yang akan kita konfigurasi di bagian praktikum.
 
 ### Gambar 2: Arsitektur Splitwise
 
@@ -187,7 +180,22 @@ Penting juga memahami *kenapa* transfer ini murah secara prinsip: yang dipindahk
 
 ---
 
-## 9. Praktikum / Hands-On
+
+---
+
+## 6. Rate Limiting dan QoS
+
+
+Distribusi trafik hanyalah setengah dari tanggung jawab load balancer; setengah lainnya adalah menjaga *Quality of Service*. **Rate limiting per-user atau per-API-key** memastikan penggunaan yang adil (fair use) — satu pelanggan yang mengirim batch 10.000 request tidak boleh melaparkan ribuan pengguna lain. **Priority queues** membuat request premium (misalnya pelanggan berbayar atau request interaktif) dilayani sebelum request batch berprioritas rendah. **Request queuing dengan bounded capacity** menciptakan *backpressure* yang sehat: daripada mengirim request ke GPU yang sudah penuh (yang justru membuat semuanya lambat), load balancer menahan request di antrean berkapasitas terbatas dan menolak dengan sopan (HTTP 429 atau 503) ketika antrean penuh. Ketiga mekanisme ini bersama-sama mengubah sistem dari "semua orang dilayani dengan buruk" menjadi "sebagian besar dilayani dengan baik, sedikit yang menunggu giliran".
+
+### Retry, Fallback, dan Ketahanan
+
+Sebuah lapisan distribusi yang matang juga menangani kegagalan secara terstruktur. **Retry dengan exponential backoff** — mencoba ulang request yang gagal dengan jeda yang tumbuh — menangani kegagalan sementara tanpa membebani backend dengan gelombang ulang. **Fallback antar model** adalah fitur khas proxy seperti LiteLLM: ketika model utama sedang penuh atau bermasalah, request dialihkan ke model cadangan — bahkan ke provider cloud eksternal — sehingga pelanggan tidak pernah melihat *downtime*, hanya mungkin jawaban dari model yang sedikit berbeda. **Graceful drain** memastikan replica yang sedang di-*upgrade* berhenti menerima request baru, menyelesaikan yang sedang berjalan, baru dilepas dari rotasi — tanpa memutus koneksi streaming yang sedang aktif. Ketiga mekanisme ini bukan kemewahan: pada trafik ribuan request per detik, kegagalan adalah kepastian statistik, bukan pengecualian, dan sistem yang tidak menyiapkannya akan belajar dengan cara yang menyakitkan.
+
+---
+
+## 7. Praktikum / Hands-On
+
 
 ### Langkah 1: Setup NGINX Load Balancer untuk 3 vLLM Instance
 
@@ -312,7 +320,8 @@ Logika scaling-nya sederhana namun tepat: ketika KV cache GPU terisi lebih dari 
 
 ---
 
-## 10. Studi Kasus: SaaS AI — 1.000 Request/detik di 16 GPU
+## 8. Studi Kasus: SaaS AI — 1.000 Request/detik di 16 GPU
+
 
 **Latar belakang.** Sebuah platform SaaS AI menyediakan asisten berbasis Llama-3.1-70B untuk ratusan klien korporat. Pada jam sibuk, trafik mencapai **1.000 request/detik**, dan keluhan pelanggan meningkat: timeout, jawaban macet, dan pengalaman yang tidak konsisten.
 
@@ -332,7 +341,8 @@ Logika scaling-nya sederhana namun tepat: ketika KV cache GPU terisi lebih dari 
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

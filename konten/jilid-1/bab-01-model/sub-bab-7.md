@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan mekanisme *self-attention* dan mengapa panjang konteks menjadi *bottleneck* dengan kompleksitas O(n²)
@@ -17,6 +18,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Attention: Mesin di Balik Konteks
+
 
 ### Setiap Token "Melihat" Semua Token Sebelumnya
 
@@ -34,6 +36,7 @@ Sebelum masuk ke solusinya, penting untuk membedakan dua sumber pembengkakan ini
 
 ## 3. KV-Cache: Memori untuk Inference
 
+
 ### Mengapa Kita Menyimpan K dan V
 
 Saat model menghasilkan teks secara *autoregressive* — satu token per langkah — setiap token baru hanya membutuhkan Q-nya sendiri, tetapi harus "melihat" seluruh token sebelumnya. Tanpa penyimpanan, model akan menghitung ulang K dan V untuk semua token lama di setiap langkah, yang membuang komputasi secara boros. Solusinya sederhana dan elegan: **KV-cache** — menyimpan pasangan K dan V dari semua token yang sudah diproses di VRAM, sehingga setiap langkah berikutnya hanya menghitung Q dari token baru lalu mencocokkannya dengan K dan V yang tersimpan.
@@ -50,65 +53,7 @@ Dua kali lipat karena ada dua tensor (K dan V), dikali jumlah lapisan, dikali di
 
 Untungnya, sebagian besar model modern memakai **Grouped Query Attention (GQA)** — arsitektur yang memperkenalkan diri di Mistral 7B dan kini menjadi standar pada Llama-3, Qwen, dan hampir semua model besar. GQA membagi beberapa query head untuk berbagi satu pasang K dan V, sehingga dimensi KV yang harus disimpan menyusut 4–8 kali lipat. Llama-3 8B, misalnya, hanya menyimpan 8 head KV untuk 32 query head — KV-cache-nya turun dari 1,5 MB menjadi sekitar **0,2 MB per token**. Angka yang sama menjelaskan mengapa Qwen 2.5 7B dengan 4 KV head hanya butuh 0,1 MB per token.
 
-Tabel A pada seksi 8 memperlihatkan dengan jelas: tanpa GQA, model sekecil GPT-2 1.5B pun membutuhkan 0,3 MB per token, sementara Llama-3 70B yang jauh lebih besar hanya 0,7 MB per token berkat GQA. Memilih model dengan GQA adalah keputusan arsitektur termurah yang bisa Anda ambil untuk konteks panjang.
-
----
-
-## 4. Flash Attention: Attention yang Sadar Memori
-
-### Masalah di Balik Layar
-
-Implementasi *standard attention* menulis matriks skor S (hasil Q·Kᵀ) dan matriks probabilitas P (hasil *softmax*) ke **HBM** — memori utama GPU. Masalahnya, HBM adalah memori yang besar tetapi lambat dibandingkan **SRAM**, memori kecil berkecepatan sangat tinggi yang ada di dalam chip GPU. Standard attention melakukan banyak *read* dan *write* bolak-balik ke HBM, dan karena matriks S serta P berukuran n², biaya lalu lintas data ini ikut meledak secara kuadratik.
-
-### Menghitung di Tempat, Bukan Memindahkan
-
-**Flash Attention**, diperkenalkan Dao et al. (2022), membalik logika ini: alih-alih menulis matriks penuh ke HBM, attention dihitung dalam **blok-blok kecil di SRAM** — tiling — lalu hasilnya ditulis sekali ke HBM. Tidak ada matriks S atau P berukuran penuh yang pernah tercipta. Memori yang dibutuhkan berubah dari O(n²) menjadi **O(n)**, dan kecepatannya meningkat karena GPU tidak lagi menunggu transfer data bolak-balik.
-
-Versi rilisnya terus membaik. **Flash Attention v1** (2022) memberi *speedup* 2–4× dengan memori linear. **Flash Attention v2** (2023) menyempurnakan paralelisme dan partisi kerja — 2× lebih cepat dari v1 dengan pemanfaatan FLOPs mencapai 72%, dan menjadi versi yang diadopsi paling luas oleh inference engine. **Flash Attention v3** (2024) menargetkan GPU Hopper dengan dukungan **FP8**, mencapai pemanfaatan FLOPs sekitar 85%. Perbandingan lengkapnya ada di Tabel B seksi 8 — mulai dari GPU Volta+ untuk v1 hingga Hopper+ untuk v3.
-
----
-
-## 5. Teknik Manajemen Context Lainnya
-
-### Sliding Window: Hanya Ingat yang Terbaru
-
-**Sliding window attention** membatasi perhatian setiap token hanya pada *N* token terakhir (misalnya 4.096 pada Mistral 7B). Memori turun dari O(n²) menjadi O(n·w), dengan w = ukuran jendela. Kelemahannya jelas: informasi di awal konteks yang sangat panjang bisa "terlupakan". Namun untuk percakapan yang terus bergulir — chat, transkripsi, log — pola ini justru realistis karena topik terbaru biasanya paling relevan.
-
-### ALiBi: Posisi Linear yang Bisa Melampaui Batas Latihan
-
-**Attention with Linear Biases (ALiBi)** menggantikan posisi *embedding* sinusoidal dengan penalti linear yang terus menurun seiring jarak antar token. Karena penaltinya tidak "dipelajari", model yang dilatih dengan konteks pendek dapat dijalankan pada konteks yang jauh lebih panjang tanpa pelatihan ulang — fenomena yang disebut *extrapolation*. Bloom dan MPT menggunakannya. Harganya: kualitas menurun gradual seiring jarak, dan RoPE modern yang mampu diperpanjang lewat *interpolation* kini lebih umum dipilih.
-
-### PagedAttention: KV-Cache yang Halaman-Halaman
-
-**PagedAttention** (vLLM) memperlakukan KV-cache seperti memori virtual di sistem operasi: blok-blok halaman yang dialokasikan dinamis, bukan satu blok kontigu raksasa. Hasilnya: *fragmentation* mendekati nol, halaman bisa dibagi antar beberapa permintaan (*copy-on-write*), dan *throughput* serving multi-user naik drastis. Inilah tulang punggung vLLM, engine favorit untuk produksi.
-
-### Context Compression: Menyisakan Essensinya
-
-Pendekatan paling sederhana namun sering terlupakan: **contextual compression** — meringkas riwayat percakapan menjadi ringkasan pendek sebelum dimasukkan kembali ke context window. Ini strategi yang dipakai kerangka RAG seperti LangChain. Keuntungannya nyata: memori hemat signifikan. Kekurangannya: detail hilang, dan ringkasan tidak selalu sempurna. Kombinasi *compression* + *quantization* adalah jurus pamungkas untuk hardware terbatas.
-
----
-
-## 6. Trade-off Context Window di Hardware Lokal
-
-Memilih panjang konteks bukan soal selera — ini soal anggaran VRAM yang terukur. Dengan model GQA 8B dan FP16, konteks 4K hanya menuntut sekitar **800 MB KV-cache**, sehingga hampir semua GPU mampu. Naik ke 32K, kebutuhan melonjak ke **~6 GB** — di sinilah GPU 16 GB mulai merasa sesak saat model dan KV-cache hidup berdampingan. Konteks 128K menuntut **~24 GB** KV-cache saja, artinya hanya GPU 24 GB atau Mac dengan memori terpadu 48 GB ke atas yang layak, itupun tanpa banyak ruang tersisa untuk parameter model.
-
-Pelajaran penting: jangan pernah mengatur context window ke nilai maksimum yang didukung model hanya karena "bisa". Chat biasa jarang membutuhkan lebih dari 4–8K token; dokumen panjang memang butuh 32–128K, tetapi untuk itu Anda harus berinvestasi di arsitektur yang tepat — GQA, Flash Attention, dan model dengan *attention* hybrid seperti **CSA/HCA** milik DeepSeek V4 Pro yang mendesain khusus konteks 1 juta token.
-
----
-
-## 7. Praktik Terbaik untuk Inference Lokal
-
-Beberapa kebiasaan sederhana yang dampaknya besar:
-
-- **Pilih model GQA** (Llama-3, Mistral, Qwen) — penghematan KV-cache 4–8× adalah "makan siang gratis" terbaik di dunia LLM.
-- **Aktifkan Flash Attention** di semua engine yang mendukungnya — Transformers, vLLM, Ollama; risikonya nol, kecepatannya nyata.
-- **Batasi context window sesuai kebutuhan** — 128K untuk chat harian adalah pemborosan.
-- Untuk model konteks 1M (DeepSeek V4 Pro, GPT-5.5, Claude Fable 5, Gemini 2.5 Pro, Qwen3.7-Max), optimasi agresif wajib hukumnya: *flash attention* + *sliding window* + *context compression* untuk konteks di atas 128K.
-- **Gunakan summarization** untuk memampatkan riwayat percakapan yang terus bertambah — ringkasan 500 token lebih murah daripada konteks mentah 50.000 token.
-
----
-
-## 8. Tabel Wajib
+Tabel A pada seksi 3 memperlihatkan dengan jelas: tanpa GQA, model sekecil GPT-2 1.5B pun membutuhkan 0,3 MB per token, sementara Llama-3 70B yang jauh lebih besar hanya 0,7 MB per token berkat GQA. Memilih model dengan GQA adalah keputusan arsitektur termurah yang bisa Anda ambil untuk konteks panjang.
 
 ### Tabel 1: Memori KV-Cache per Model dan Context Length
 
@@ -134,6 +79,43 @@ Pertumbuhan memori per model terlihat dramatis ketika kolom-kolom panjang kontek
 
 Analisis di balik angka-angka ini: Qwen 2.5 7B dengan 4 KV head menekan biaya per token hingga 0,1 MB — sepertiga dari GPT-2 yang lebih kecil tetapi tanpa GQA. Perhatikan juga bahwa pada konteks 128K, bahkan Llama-3 70B dengan GQA membutuhkan 89,6 GB KV-cache — satu-satunya entri yang tetap realistis adalah model yang memang dirancang untuk konteks raksasa seperti DeepSeek V4 Pro. Kesimpulannya: jika konteks panjang adalah kebutuhan Anda, arsitektur model lebih menentukan daripada jumlah parameter.
 
+
+### Gambar 2: Mekanisme KV-Cache pada Inferensi Autoregressive
+
+Untuk melengkapi gambaran, berikut alur token generation yang memanfaatkan KV-cache — token baru hanya perlu mencocokkan Q-nya dengan K dan V yang telah tersimpan.
+
+```mermaid
+graph LR
+    TOK["Token Baru (t ke-n)"] --> Q["Hitung Q baru"]
+    Q --> MUL["Q x K dari cache"]
+    MUL --> ATTN["Attention Score"]
+    ATTN --> WSV["Weighted Sum V"]
+    WSV --> OUT["Output Token"]
+    OUT --> SIM["Simpan K & V baru"]
+    SIM --> KV[("KV-Cache di VRAM")]
+    KV --> MUL
+```
+
+Perhatikan satu-satunya "kerja baru" per langkah adalah menghitung Q dan mencocokkannya dengan cache — itulah mengapa inferensi autoregressive tetap linear terhadap panjang konteks selama KV-cache terkelola baik. Jika cache ini tidak ada, setiap langkah harus mengulang seluruh komputasi K dan V dari awal, yang berarti biaya kuadratik pada setiap token.
+
+---
+
+
+---
+
+## 4. Flash Attention: Attention yang Sadar Memori
+
+
+### Masalah di Balik Layar
+
+Implementasi *standard attention* menulis matriks skor S (hasil Q·Kᵀ) dan matriks probabilitas P (hasil *softmax*) ke **HBM** — memori utama GPU. Masalahnya, HBM adalah memori yang besar tetapi lambat dibandingkan **SRAM**, memori kecil berkecepatan sangat tinggi yang ada di dalam chip GPU. Standard attention melakukan banyak *read* dan *write* bolak-balik ke HBM, dan karena matriks S serta P berukuran n², biaya lalu lintas data ini ikut meledak secara kuadratik.
+
+### Menghitung di Tempat, Bukan Memindahkan
+
+**Flash Attention**, diperkenalkan Dao et al. (2022), membalik logika ini: alih-alih menulis matriks penuh ke HBM, attention dihitung dalam **blok-blok kecil di SRAM** — tiling — lalu hasilnya ditulis sekali ke HBM. Tidak ada matriks S atau P berukuran penuh yang pernah tercipta. Memori yang dibutuhkan berubah dari O(n²) menjadi **O(n)**, dan kecepatannya meningkat karena GPU tidak lagi menunggu transfer data bolak-balik.
+
+Versi rilisnya terus membaik. **Flash Attention v1** (2022) memberi *speedup* 2–4× dengan memori linear. **Flash Attention v2** (2023) menyempurnakan paralelisme dan partisi kerja — 2× lebih cepat dari v1 dengan pemanfaatan FLOPs mencapai 72%, dan menjadi versi yang diadopsi paling luas oleh inference engine. **Flash Attention v3** (2024) menargetkan GPU Hopper dengan dukungan **FP8**, mencapai pemanfaatan FLOPs sekitar 85%. Perbandingan lengkapnya ada di Tabel B seksi 3 — mulai dari GPU Volta+ untuk v1 hingga Hopper+ untuk v3.
+
 ### Tabel 2: Perbandingan Flash Attention vs Standard
 
 Tabel ini merangkum evolusi Flash Attention — lihat bagaimana *speedup* dan kapasitas konteks maksimum meningkat di setiap generasi seiring kemampuan GPU.
@@ -155,23 +137,6 @@ Lompatan efisiensi setiap generasi Flash Attention terangkum dalam satu metrik:
 
 Dua temuan penting. Pertama, lonjakan kapasitas konteks di A100 80 GB — dari ~32K pada standard attention menjadi ~512K pada Flash Attention v3 — terjadi tanpa mengubah model sama sekali, murni dari pengelolaan memori yang lebih baik. Kedua, perhatikan syarat GPU: v1 bisa berjalan di GPU Volta (RTX 20-series), tetapi v3 menuntut Hopper (H100) untuk FP8. Di GPU konsumen Ampere atau Ada seperti RTX 3090/4090, Flash Attention v2 tetap pilihan terbaik Anda.
 
-### Tabel 3: Teknik Manajemen Context
-
-Setiap teknik memecahkan masalah yang sedikit berbeda — tabel ini membantu Anda memilih berdasarkan kebutuhan.
-
-| Teknik | Cara Kerja | Keuntungan | Kerugian | Digunakan di |
-|:---|:---|:---|:---|:---|
-| **Sliding Window** | Attend only last N tokens | Memori O(n·w) | Kehilangan konteks awal | Mistral 7B |
-| **ALiBi** | Linear position bias | Extrapolation ke >train length | Kualitas turun gradual | Bloom, MPT |
-| **PagedAttention** | KV-cache di-*page* | Zero fragmentation, sharing | Overhead manajemen page | vLLM |
-| **Context Compression** | Summarize history | Hemat memori signifikan | Kehilangan detail | LangChain, RAG |
-| **RoPE (Rotary)** | Rotary position embedding | Relative position, extendable | Butuh interpolasi >train | Llama, Qwen, Gemma |
-
-Tidak ada teknik yang sempurna: *sliding window* dan *compression* sama-sama "membuang" informasi, sementara ALiBi dan RoPE menekan biaya tanpa kehilangan detail tetapi membutuhkan perlakuan khusus saat melampaui panjang latihan. Strategi paling waras adalah mengombinasikan: model RoPE-GQA sebagai dasar, Flash Attention sebagai percepatan, PagedAttention untuk serving bersama, dan *compression* sebagai jaring pengaman terakhir untuk riwayat yang sangat panjang.
-
----
-
-## 9. Diagram & Visualisasi
 
 ### Gambar 1: Perbandingan Standard vs Flash Attention
 
@@ -198,27 +163,71 @@ graph TD
 
 Pada cabang *standard attention*, alur Q→K→S→softmax→P→V memaksa enam langkah transfer memori — dan karena S serta P berukuran n², langkah-langkah itu membengkak kuadratik. Cabang *Flash Attention* hanya memuat blok Q, K, V ke SRAM, menghitung semuanya di sana, menulis hasilnya sekali — lalu melompat ke blok berikutnya dalam lingkaran `NEXT → LOAD` hingga selesai. Inilah sumber utama percepatan 2–12×.
 
-### Gambar 2: Mekanisme KV-Cache pada Inferensi Autoregressive
-
-Untuk melengkapi gambaran, berikut alur token generation yang memanfaatkan KV-cache — token baru hanya perlu mencocokkan Q-nya dengan K dan V yang telah tersimpan.
-
-```mermaid
-graph LR
-    TOK["Token Baru (t ke-n)"] --> Q["Hitung Q baru"]
-    Q --> MUL["Q x K dari cache"]
-    MUL --> ATTN["Attention Score"]
-    ATTN --> WSV["Weighted Sum V"]
-    WSV --> OUT["Output Token"]
-    OUT --> SIM["Simpan K & V baru"]
-    SIM --> KV[("KV-Cache di VRAM")]
-    KV --> MUL
-```
-
-Perhatikan satu-satunya "kerja baru" per langkah adalah menghitung Q dan mencocokkannya dengan cache — itulah mengapa inferensi autoregressive tetap linear terhadap panjang konteks selama KV-cache terkelola baik. Jika cache ini tidak ada, setiap langkah harus mengulang seluruh komputasi K dan V dari awal, yang berarti biaya kuadratik pada setiap token.
 
 ---
 
-## 10. Tutorial / Hands-On
+## 5. Teknik Manajemen Context Lainnya
+
+
+### Sliding Window: Hanya Ingat yang Terbaru
+
+**Sliding window attention** membatasi perhatian setiap token hanya pada *N* token terakhir (misalnya 4.096 pada Mistral 7B). Memori turun dari O(n²) menjadi O(n·w), dengan w = ukuran jendela. Kelemahannya jelas: informasi di awal konteks yang sangat panjang bisa "terlupakan". Namun untuk percakapan yang terus bergulir — chat, transkripsi, log — pola ini justru realistis karena topik terbaru biasanya paling relevan.
+
+### ALiBi: Posisi Linear yang Bisa Melampaui Batas Latihan
+
+**Attention with Linear Biases (ALiBi)** menggantikan posisi *embedding* sinusoidal dengan penalti linear yang terus menurun seiring jarak antar token. Karena penaltinya tidak "dipelajari", model yang dilatih dengan konteks pendek dapat dijalankan pada konteks yang jauh lebih panjang tanpa pelatihan ulang — fenomena yang disebut *extrapolation*. Bloom dan MPT menggunakannya. Harganya: kualitas menurun gradual seiring jarak, dan RoPE modern yang mampu diperpanjang lewat *interpolation* kini lebih umum dipilih.
+
+### PagedAttention: KV-Cache yang Halaman-Halaman
+
+**PagedAttention** (vLLM) memperlakukan KV-cache seperti memori virtual di sistem operasi: blok-blok halaman yang dialokasikan dinamis, bukan satu blok kontigu raksasa. Hasilnya: *fragmentation* mendekati nol, halaman bisa dibagi antar beberapa permintaan (*copy-on-write*), dan *throughput* serving multi-user naik drastis. Inilah tulang punggung vLLM, engine favorit untuk produksi.
+
+### Context Compression: Menyisakan Essensinya
+
+Pendekatan paling sederhana namun sering terlupakan: **contextual compression** — meringkas riwayat percakapan menjadi ringkasan pendek sebelum dimasukkan kembali ke context window. Ini strategi yang dipakai kerangka RAG seperti LangChain. Keuntungannya nyata: memori hemat signifikan. Kekurangannya: detail hilang, dan ringkasan tidak selalu sempurna. Kombinasi *compression* + *quantization* adalah jurus pamungkas untuk hardware terbatas.
+
+### Tabel 3: Teknik Manajemen Context
+
+Setiap teknik memecahkan masalah yang sedikit berbeda — tabel ini membantu Anda memilih berdasarkan kebutuhan.
+
+| Teknik | Cara Kerja | Keuntungan | Kerugian | Digunakan di |
+|:---|:---|:---|:---|:---|
+| **Sliding Window** | Attend only last N tokens | Memori O(n·w) | Kehilangan konteks awal | Mistral 7B |
+| **ALiBi** | Linear position bias | Extrapolation ke >train length | Kualitas turun gradual | Bloom, MPT |
+| **PagedAttention** | KV-cache di-*page* | Zero fragmentation, sharing | Overhead manajemen page | vLLM |
+| **Context Compression** | Summarize history | Hemat memori signifikan | Kehilangan detail | LangChain, RAG |
+| **RoPE (Rotary)** | Rotary position embedding | Relative position, extendable | Butuh interpolasi >train | Llama, Qwen, Gemma |
+
+Tidak ada teknik yang sempurna: *sliding window* dan *compression* sama-sama "membuang" informasi, sementara ALiBi dan RoPE menekan biaya tanpa kehilangan detail tetapi membutuhkan perlakuan khusus saat melampaui panjang latihan. Strategi paling waras adalah mengombinasikan: model RoPE-GQA sebagai dasar, Flash Attention sebagai percepatan, PagedAttention untuk serving bersama, dan *compression* sebagai jaring pengaman terakhir untuk riwayat yang sangat panjang.
+
+---
+
+
+---
+
+## 6. Trade-off Context Window di Hardware Lokal
+
+
+Memilih panjang konteks bukan soal selera — ini soal anggaran VRAM yang terukur. Dengan model GQA 8B dan FP16, konteks 4K hanya menuntut sekitar **800 MB KV-cache**, sehingga hampir semua GPU mampu. Naik ke 32K, kebutuhan melonjak ke **~6 GB** — di sinilah GPU 16 GB mulai merasa sesak saat model dan KV-cache hidup berdampingan. Konteks 128K menuntut **~24 GB** KV-cache saja, artinya hanya GPU 24 GB atau Mac dengan memori terpadu 48 GB ke atas yang layak, itupun tanpa banyak ruang tersisa untuk parameter model.
+
+Pelajaran penting: jangan pernah mengatur context window ke nilai maksimum yang didukung model hanya karena "bisa". Chat biasa jarang membutuhkan lebih dari 4–8K token; dokumen panjang memang butuh 32–128K, tetapi untuk itu Anda harus berinvestasi di arsitektur yang tepat — GQA, Flash Attention, dan model dengan *attention* hybrid seperti **CSA/HCA** milik DeepSeek V4 Pro yang mendesain khusus konteks 1 juta token.
+
+---
+
+## 7. Praktik Terbaik untuk Inference Lokal
+
+
+Beberapa kebiasaan sederhana yang dampaknya besar:
+
+- **Pilih model GQA** (Llama-3, Mistral, Qwen) — penghematan KV-cache 4–8× adalah "makan siang gratis" terbaik di dunia LLM.
+- **Aktifkan Flash Attention** di semua engine yang mendukungnya — Transformers, vLLM, Ollama; risikonya nol, kecepatannya nyata.
+- **Batasi context window sesuai kebutuhan** — 128K untuk chat harian adalah pemborosan.
+- Untuk model konteks 1M (DeepSeek V4 Pro, GPT-5.5, Claude Fable 5, Gemini 2.5 Pro, Qwen3.7-Max), optimasi agresif wajib hukumnya: *flash attention* + *sliding window* + *context compression* untuk konteks di atas 128K.
+- **Gunakan summarization** untuk memampatkan riwayat percakapan yang terus bertambah — ringkasan 500 token lebih murah daripada konteks mentah 50.000 token.
+
+---
+
+## 8. Tutorial / Hands-On
+
 
 ### Tutorial A: Mengaktifkan Flash Attention di Berbagai Engine
 
@@ -306,7 +315,8 @@ Perhatikan kolom `memory.used` di awal (hanya bobot model) dan saat prompt panja
 
 ---
 
-## 11. Studi Kasus: Analisis Dokumen Legal 50 Halaman
+## 9. Studi Kasus: Analisis Dokumen Legal 50 Halaman
+
 
 **Skenario:** Sebuah firma hukum ingin menganalisis kontrak sepanjang 50 halaman (~30.000 token) menggunakan LLM lokal. Anggaran hardware mereka adalah satu RTX 4090 24 GB — dan mereka menemukan masalah di hari pertama.
 
@@ -323,7 +333,8 @@ Perhatikan kolom `memory.used` di awal (hanya bobot model) dan saat prompt panja
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

@@ -54,7 +54,14 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 
 ---
 
-## N. Tabel Wajib
+**ATURAN MEDIA INLINE (WAJIB):**
+Tabel, diagram mermaid, dan gambar statis TIDAK BOLEH dikumpulkan di seksi akhir ("Tabel Wajib", "Diagram & Visualisasi"). Setiap media diletakkan INLINE, tepat di seksi teori yang membahasnya, dengan pola berikut:
+
+```markdown
+## 2. [Seksi teori — judul sesuaikan topik]
+
+[Paragraf teori yang memunculkan kebutuhan data komparasi...]
+
 ### Tabel 1: [Judul tabel]
 [1 kalimat narasi pengantar sebelum tabel — jelaskan apa yang dilihat pembaca.]
 
@@ -65,20 +72,27 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 
 [1-2 paragraf analisis SETELAH tabel: bacakan insight penting, bukan mengulang isi tabel. Format "pro dan kontra", "kapan memilih A vs B", dst.]
 
-### Tabel 2: [Judul tabel]  (dll — minimal 2 tabel sesuai guideline)
+[PNG statis yang memvisualkan tabel diletakkan langsung setelah analisis tabel tsb (lihat aturan Gambar Statik di bawah).]
 
----
+### Gambar 1: [Judul diagram]
+[1 kalimat narasi pengantar sebelum diagram.]
 
-## N+1. Diagram & Visualisasi
-### Gambar 1: [Judul]  — WAJIB: setidaknya 1 GAMBAR STATIS PNG + 1 mermaid
 ```mermaid
 [gambar/flowchart/sequencediagram yang DIVERIFIKASI sintaksnya]
 ```
+
 [Penjelasan gambar: apa yang dilihat, mengapa penting. Panjang bebas.]
 
-### Gambar 2: [Judul]
-[dsb]
+## 3. [Seksi teori berikutnya]
+...
 ```
+
+**Aturan penempatan:**
+- Tabel ditempatkan di seksi yang paling banyak membahas topik tabel tersebut (mis. tabel benchmark → seksi benchmark, bukan di akhir bab).
+- Setiap seksi media diberi narasi pengantar 1 kalimat SEBELUM header `### Tabel N:` / `### Gambar N:`, dan analisis SETELAH media.
+- Penomoran tabel/gambar berurutan sesuai urutan kemunculan di dokumen (Tabel 1, 2, 3...; Gambar 1, 2, 3...).
+- Seksi `## Tujuan Sub-Bab` (no. 1) tidak boleh menerima media; media tidak boleh ditempatkan di seksi Praktikum/Studi Kasus/Referensi.
+- DILARANG membuat seksi berjudul "Tabel Wajib", "Tabel Referensi", atau "Diagram & Visualisasi" sebagai penampung media di akhir bab.
 
 **Aturan Mermaid:**
 - Gunakan `graph TD`, `flowchart LR`, `sequenceDiagram`, `pie`, atau `graph LR` — sesederhana mungkin agar tidak rusak saat dirender.
@@ -102,7 +116,7 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 
 ---
 
-## N+2. Praktikum / Hands-On
+## N+1. Praktikum / Hands-On
 ### Langkah 1: [Judul langkah]
 [Penjelasan singkat sebelum perintah.]
 ```bash
@@ -111,12 +125,12 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 
 [Langkah 2 dst. Boleh berisi: instalasi, konfigurasi YAML/JSON, script Python, verifikasi, pengujian. Semua kode diberi label bahasa (bash, yaml, python, dockerfile, nginx, dll).]
 
-## N+3. Studi Kasus: [Judul]
+## N+2. Studi Kasus: [Judul]
 [1-2 paragraf latar skenario: siapa, di mana, apa masalahnya → analisis pilihan → langkah solusi → hasil & pelajaran. Gunakan runut cerita yang hidup, bukan draft teknis kering.]
 
 ---
 
-## N+4. Referensi
+## N+3. Referensi
 ### Paper Jurnal/Konferensi
 [1] Author, A. (Tahun). *Judul*. Venue. DOI: [10.xxx](url) — [SOP: minimal 5 paper 5-10 tahun terakhir, langsung dari guideline]
 [[2] ... [dst]

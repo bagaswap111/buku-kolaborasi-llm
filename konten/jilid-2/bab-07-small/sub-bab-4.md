@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Mendesain pipeline RAG end-to-end untuk dokumentasi internal dan SOP perusahaan
@@ -19,65 +20,12 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ## 2. Kebutuhan RAG di Small Office
 
+
 ### Pengetahuan yang Berserakan
 
 Bayangkan hasil audit singkat di kantor 12 orang: SOP HR ada di PDF yang dikirim lewat WhatsApp, dokumentasi API hidup di GitHub Wiki dengan seratus revisi tanpa anotasi, catatan operasional menumpuk di Google Docs dengan tiga versi berbeda, dan file lokal di laptop yang pemiliknya sudah resign. Situasi ini bukan kelalaian — ini kondisi alami setiap kantor kecil yang tumbuh cepat tanpa *Chief Knowledge Officer*. [2]
 
 RAG menjawabnya dengan satu kalimat: **satu pintu tanya untuk semua *knowledge base* perusahaan**. Operator billing bertanya "bagaimana prosedur reimbursement?" dan mendapat jawaban lengkap dengan sumber halamannya. Developer tidak bertanya ulang kepada senior untuk hal yang sudah tertulis. Compliance team tenang karena dokumennya tidak pernah keluar dari server. Inilah transisi dari *dokumen* menuju *pengetahuan yang bisa ditanyakan* — dan pipeline-nya dibangun di bab ini [1].
-
----
-
-## 3. Arsitektur Pipeline RAG
-
-### Ingestion: Menyiapkan Makanan
-
-Tahap pertama adalah memasukkan dokumen ke sistem (*ingestion*). Alurnya: **PDF, Markdown, HTML, atau export Confluence → document parser → chunking → embedding → simpan di vector database**. Setiap format punya wataknya sendiri: PDF harus melewati *text extraction* yang kadang rusak di tabel; HTML dari Confluence menyimpan *layout* yang harus dibersihkan; Markdown relatif bersih dan ideal. Parser yang baik tidak hanya mengekstrak teks, tetapi juga metadata (judul, tanggal, penulis) yang akan dipakai untuk *filtering* keamanan.
-
-### Retrieval dan Generation: Menjawab dengan Tangan Terangkat
-
-Saat pengguna bertanya, sistem menjalankan *runtime pipeline*: **query user → embedding query → similarity search → top-k chunks → context → LLM → jawaban dengan citations**. Dua tahap yang paling menentukan kualitas: *similarity search* harus menemukan chunk yang tepat (gagal di sini berarti jawaban model salah meski LLM-nya sangat pintar), dan *context builder* harus menyusun potongan dokumen menjadi *prompt* yang koheren. Jawaban akhir disertai **citations** — referensi ke dokumen sumber — sehingga pengguna bisa memverifikasi sendiri dan kepercayaan terhadap sistem tumbuh [1][5].
-
-### Chunking Strategy: Mengiris dengan Akal
-
-Pembuatan chunk adalah keputusan yang paling sering diremehkan. Untuk dokumentasi teknis, *semantic chunking* dengan **500-1000 token per chunk dan overlap 10-20%** adalah titik manis: cukup kecil untuk dicocokkan secara presisi, cukup besar untuk membawa konteks kalimat. Overlap diperlukan agar ide yang terpotong di batas chunk tidak hilang. Bab ini menggunakan *heading-based split* — memotong tepat di judul seksi — karena heading adalah penanda semantik yang telah disediakan penulis dokumen, lebih baik daripada pemotongan buta per N karakter.
-
-### Hybrid Search: Vector + Keyword
-
-*Vector search* saja akan gagal pada pertanyaan berisi istilah persis seperti kode error atau singkatan ("ERR_TIMEOUT_302"). **Hybrid search** — menggabungkan *dense retrieval* dengan **BM25** (keyword) — menutup lubang ini: BM25 mencocokkan token eksak yang luput dari semantik embedding. Inilah fondasi yang diperkenalkan SPLADE dan DPR, dan kini menjadi fitur standar Qdrant dan Weaviate [4][5].
-
----
-
-## 4. Pilihan Embedding Model
-
-Embedding adalah peta bahasa — kualitasnya menentukan apakah query menemukan dokumen yang benar. Empat kandidat untuk kantor Indonesia:
-
-- **nomic-embed-text** (Ollama, 768 dimensi, ~274 MB) — sangat cepat, *multilingual*, pilihan *default* Ollama; cukup untuk mayoritas kasus.
-- **BAAI/bge-m3** (1024 dimensi, ~2,2 GB) — akurasi terbaik, mendukung 100+ bahasa; pilihan untuk dokumen campuran Indonesia-Inggris, terutama dokumen regulasi.
-- **intfloat/multilingual-e5-large** (1024 dimensi, ~2,3 GB) — solid dan *multilingual*, tetapi hanya 512 token maksimum dan lambat; lebih cocok untuk enterprise.
-- **all-MiniLM-L6-v2** (384 dimensi, ~80 MB) — sangat cepat tetapi tidak *multilingual* dan terbatas 256 token; hanya untuk *prototype* bahasa Inggris.
-- **ministral-3-embed** (1024 dimensi, ~1,5 GB) — model terbaru dari Mistral AI yang dibangun lewat *Cascade Distillation*, akurasi MTEB di atas 65 dengan kecepatan baik — rekomendasi untuk RAG small office 2026 [6].
-
-Aturan praktisnya: mulai dengan nomic-embed-text; jika hasil retrieval kurang akurat pada dokumen hukum/regulasi, naik ke bge-m3; untuk kebutuhan editable and scalable mulai dengan ministral-3-embed.
-
----
-
-## 5. Pilihan Vector Database
-
-Empat kandidat vector store bersaing dengan kekuatan berbeda. **Qdrant** — berbasis Rust, performa terbaik, bisa *self-hosted* maupun cloud — adalah rekomendasi utama buku ini untuk produksi (Tabel 1). **ChromaDB** sederhana dan sempurna untuk *prototyping* di bawah 10 GB data. **pgvector** menyarangkan vektor di PostgreSQL yang sudah dimiliki kantor — tidak perlu database terpisah, dengan *trade-off* pada performa. **Weaviate** canggih (seleksi *enterprise*) tetapi memakan ~2 GB RAM dan kompleksitas yang tidak dibutuhkan skala ini.
-
-Untuk small office, keputusan akhir hampir selalu: **Qdrant self-hosted via Docker** — gratis, cepat, *hybrid search* siap pakai, dan *filtering* metadata yang diandalkan sistem keamanan kita di Seksi 7.
-
----
-
-## 6. Permission dan Keamanan
-
-RAG internal menuntut jawaban atas pertanyaan yang tidak menyenangkan: *siapa yang boleh tahu apa?* Dokumen HR tidak boleh dibaca developer biasa — dan larangan ini harus dijalankan mesin, bukan digantung pada etiket. Implementasinya di sistem ini: **metadata filtering** — setiap chunk diberi label departemen (misal `department: "hr-policies"`), dan query hanya mengambil chunk dari departemen yang menjadi hak user. Filter dijalankan di Qdrant sebagai *filter condition* (Tutorial B), sehingga dokumen terlarang bahkan tidak masuk ke konteks — bukan sekadar disembunyikan.
-
-Di atasnya, dua praktik keamanan: **enkripsi at-rest** untuk dokumen sensitif di disk, dan **prinsip hak-akses terkecil** — developer hanya mendapat dokumentasi teknis; compliance dan HR mendapat semua. Bab 7.6 membahas bagaimana hak ini dihubungkan ke identitas perusahaan.
-
----
-
-## 7. Tabel Wajib
 
 ### Tabel 1: Perbandingan Vector Database untuk Small Office
 
@@ -96,19 +44,27 @@ Empat kandidat dibandingkan pada dimensi yang menentukan operasional harian — 
 
 Baca tabel ini sebagai spektrum dan bukan peringkat absolut: ChromaDB menang untuk *prototype* sepekan karena tidak butuh server terpisah; pgvector menang untuk kantor yang sudah hidup di PostgreSQL dan ingin satu database; Weaviate menunggu sampai kebutuhan *enterprise* benar-benar ada. **Qdrant** menang untuk produksi small office karena kombinasi lengkap: performa lima bintang, *hybrid search* ready, *filtering* advanced untuk keamanan departemen, dan *backup snapshot* yang bisa diotomatiskan.
 
-### Tabel 2: Perbandingan Embedding Model
 
-Pilihan embedding adalah keputusan yang sulit diubah setelah ingestion (semua vektor harus di-*embed* ulang). Karena itu, bandingkan dulu sebelum menabur.
+---
 
-| Model | Dimensi | Max Tokens | Ukuran | Kecepatan | Multilingual | Rekomendasi |
-|:---|:---:|:---:|:---:|:---:|:---|:---|
-| **nomic-embed-text** | 768 | 8192 | ~274 MB | Sangat cepat | Ya | Default Ollama |
-| **bge-m3** | 1024 | 8192 | ~2.2 GB | Sedang | Ya (100+ bahasa) | Best accuracy |
-| **multilingual-e5-large** | 1024 | 512 | ~2.3 GB | Lambat | Ya | Enterprise |
-| **all-MiniLM-L6-v2** | 384 | 256 | ~80 MB | Sangat cepat | Tidak | Prototype ringan |
-| **ministral-3-embed** | 1024 | 8192 | ~1.5 GB | Cepat | Ya (multilingual) | RAG small office |
+## 3. Arsitektur Pipeline RAG
 
-Dua kolom yang paling sering salah dibaca adalah **Max Tokens** dan **Multilingual**. Model dengan batas 512 token (e5-large) akan "melihat" hanya sebagian chunk jika chunk kita 500-1000 token — inefisiensi yang tidak terlihat di benchmark. Sementara *multilingual* menentukan: dokumen regulasi Indonesia dan kontrak bahasa Inggris dalam satu koleksi menuntut model yang memahami keduanya (bge-m3, nomic, ministral-3-embed) — model Inggris-only seperti all-MiniLM akan gagal di 30% pertanyaan [5].
+
+### Ingestion: Menyiapkan Makanan
+
+Tahap pertama adalah memasukkan dokumen ke sistem (*ingestion*). Alurnya: **PDF, Markdown, HTML, atau export Confluence → document parser → chunking → embedding → simpan di vector database**. Setiap format punya wataknya sendiri: PDF harus melewati *text extraction* yang kadang rusak di tabel; HTML dari Confluence menyimpan *layout* yang harus dibersihkan; Markdown relatif bersih dan ideal. Parser yang baik tidak hanya mengekstrak teks, tetapi juga metadata (judul, tanggal, penulis) yang akan dipakai untuk *filtering* keamanan.
+
+### Retrieval dan Generation: Menjawab dengan Tangan Terangkat
+
+Saat pengguna bertanya, sistem menjalankan *runtime pipeline*: **query user → embedding query → similarity search → top-k chunks → context → LLM → jawaban dengan citations**. Dua tahap yang paling menentukan kualitas: *similarity search* harus menemukan chunk yang tepat (gagal di sini berarti jawaban model salah meski LLM-nya sangat pintar), dan *context builder* harus menyusun potongan dokumen menjadi *prompt* yang koheren. Jawaban akhir disertai **citations** — referensi ke dokumen sumber — sehingga pengguna bisa memverifikasi sendiri dan kepercayaan terhadap sistem tumbuh [1][5].
+
+### Chunking Strategy: Mengiris dengan Akal
+
+Pembuatan chunk adalah keputusan yang paling sering diremehkan. Untuk dokumentasi teknis, *semantic chunking* dengan **500-1000 token per chunk dan overlap 10-20%** adalah titik manis: cukup kecil untuk dicocokkan secara presisi, cukup besar untuk membawa konteks kalimat. Overlap diperlukan agar ide yang terpotong di batas chunk tidak hilang. Bab ini menggunakan *heading-based split* — memotong tepat di judul seksi — karena heading adalah penanda semantik yang telah disediakan penulis dokumen, lebih baik daripada pemotongan buta per N karakter.
+
+### Hybrid Search: Vector + Keyword
+
+*Vector search* saja akan gagal pada pertanyaan berisi istilah persis seperti kode error atau singkatan ("ERR_TIMEOUT_302"). **Hybrid search** — menggabungkan *dense retrieval* dengan **BM25** (keyword) — menutup lubang ini: BM25 mencocokkan token eksak yang luput dari semantik embedding. Inilah fondasi yang diperkenalkan SPLADE dan DPR, dan kini menjadi fitur standar Qdrant dan Weaviate [4][5].
 
 ### Tabel 3: Estimasi Biaya Data RAG
 
@@ -129,7 +85,6 @@ Insight tabel ini menenangkan: untuk kantor kecil, storage vektor **hampir selal
 
 ---
 
-## 8. Diagram & Visualisasi
 
 ### Gambar 1: Pipeline RAG End-to-End
 
@@ -156,6 +111,55 @@ graph LR
 
 Dua *subgraph* dalam diagram menceritakan dua kehidupan sistem. Di atas: *ingestion pipeline* — dokumen dari berbagai format dikupas, diiris, di-embed, dan ditabur ke Qdrant; pekerjaan ini terjadi saat kantor kosong (ingat *load pattern* Bab 7.1). Di bawah: *runtime pipeline* — setiap pertanyaan pengguna diubah jadi vektor, dicari secara *hybrid* di Qdrant, di-*rerank*, disusun menjadi konteks, lalu dijawab LLM dengan *citations*. Satu pemahaman penting: kualitas jawaban 80% ditentukan di bagian *search* — bukan di LLM. Model terbaik pun tidak bisa menjawab dengan benar dari konteks yang salah.
 
+
+---
+
+## 4. Pilihan Embedding Model
+
+
+Embedding adalah peta bahasa — kualitasnya menentukan apakah query menemukan dokumen yang benar. Empat kandidat untuk kantor Indonesia:
+
+- **nomic-embed-text** (Ollama, 768 dimensi, ~274 MB) — sangat cepat, *multilingual*, pilihan *default* Ollama; cukup untuk mayoritas kasus.
+- **BAAI/bge-m3** (1024 dimensi, ~2,2 GB) — akurasi terbaik, mendukung 100+ bahasa; pilihan untuk dokumen campuran Indonesia-Inggris, terutama dokumen regulasi.
+- **intfloat/multilingual-e5-large** (1024 dimensi, ~2,3 GB) — solid dan *multilingual*, tetapi hanya 512 token maksimum dan lambat; lebih cocok untuk enterprise.
+- **all-MiniLM-L6-v2** (384 dimensi, ~80 MB) — sangat cepat tetapi tidak *multilingual* dan terbatas 256 token; hanya untuk *prototype* bahasa Inggris.
+- **ministral-3-embed** (1024 dimensi, ~1,5 GB) — model terbaru dari Mistral AI yang dibangun lewat *Cascade Distillation*, akurasi MTEB di atas 65 dengan kecepatan baik — rekomendasi untuk RAG small office 2026 [6].
+
+Aturan praktisnya: mulai dengan nomic-embed-text; jika hasil retrieval kurang akurat pada dokumen hukum/regulasi, naik ke bge-m3; untuk kebutuhan editable and scalable mulai dengan ministral-3-embed.
+
+### Tabel 2: Perbandingan Embedding Model
+
+Pilihan embedding adalah keputusan yang sulit diubah setelah ingestion (semua vektor harus di-*embed* ulang). Karena itu, bandingkan dulu sebelum menabur.
+
+| Model | Dimensi | Max Tokens | Ukuran | Kecepatan | Multilingual | Rekomendasi |
+|:---|:---:|:---:|:---:|:---:|:---|:---|
+| **nomic-embed-text** | 768 | 8192 | ~274 MB | Sangat cepat | Ya | Default Ollama |
+| **bge-m3** | 1024 | 8192 | ~2.2 GB | Sedang | Ya (100+ bahasa) | Best accuracy |
+| **multilingual-e5-large** | 1024 | 512 | ~2.3 GB | Lambat | Ya | Enterprise |
+| **all-MiniLM-L6-v2** | 384 | 256 | ~80 MB | Sangat cepat | Tidak | Prototype ringan |
+| **ministral-3-embed** | 1024 | 8192 | ~1.5 GB | Cepat | Ya (multilingual) | RAG small office |
+
+Dua kolom yang paling sering salah dibaca adalah **Max Tokens** dan **Multilingual**. Model dengan batas 512 token (e5-large) akan "melihat" hanya sebagian chunk jika chunk kita 500-1000 token — inefisiensi yang tidak terlihat di benchmark. Sementara *multilingual* menentukan: dokumen regulasi Indonesia dan kontrak bahasa Inggris dalam satu koleksi menuntut model yang memahami keduanya (bge-m3, nomic, ministral-3-embed) — model Inggris-only seperti all-MiniLM akan gagal di 30% pertanyaan [5].
+
+
+---
+
+## 5. Pilihan Vector Database
+
+
+Empat kandidat vector store bersaing dengan kekuatan berbeda. **Qdrant** — berbasis Rust, performa terbaik, bisa *self-hosted* maupun cloud — adalah rekomendasi utama buku ini untuk produksi (Tabel 1). **ChromaDB** sederhana dan sempurna untuk *prototyping* di bawah 10 GB data. **pgvector** menyarangkan vektor di PostgreSQL yang sudah dimiliki kantor — tidak perlu database terpisah, dengan *trade-off* pada performa. **Weaviate** canggih (seleksi *enterprise*) tetapi memakan ~2 GB RAM dan kompleksitas yang tidak dibutuhkan skala ini.
+
+Untuk small office, keputusan akhir hampir selalu: **Qdrant self-hosted via Docker** — gratis, cepat, *hybrid search* siap pakai, dan *filtering* metadata yang diandalkan sistem keamanan kita di Seksi 7.
+
+---
+
+## 6. Permission dan Keamanan
+
+
+RAG internal menuntut jawaban atas pertanyaan yang tidak menyenangkan: *siapa yang boleh tahu apa?* Dokumen HR tidak boleh dibaca developer biasa — dan larangan ini harus dijalankan mesin, bukan digantung pada etiket. Implementasinya di sistem ini: **metadata filtering** — setiap chunk diberi label departemen (misal `department: "hr-policies"`), dan query hanya mengambil chunk dari departemen yang menjadi hak user. Filter dijalankan di Qdrant sebagai *filter condition* (Tutorial B), sehingga dokumen terlarang bahkan tidak masuk ke konteks — bukan sekadar disembunyikan.
+
+Di atasnya, dua praktik keamanan: **enkripsi at-rest** untuk dokumen sensitif di disk, dan **prinsip hak-akses terkecil** — developer hanya mendapat dokumentasi teknis; compliance dan HR mendapat semua. Bab 7.6 membahas bagaimana hak ini dihubungkan ke identitas perusahaan.
+
 ### Gambar 2: Alur Keamanan Filter Departemen
 
 ```mermaid
@@ -172,7 +176,11 @@ Diagram ini adalah *kebijakan keamanan* yang diterjemahkan menjadi struktur data
 
 ---
 
-## 9. Tutorial / Hands-On
+
+---
+
+## 7. Tutorial / Hands-On
+
 
 ### Tutorial 1: Setup Qdrant + Pipeline Ingestion dengan Python
 
@@ -335,7 +343,8 @@ Pemicu `paths` memastikan *workflow* hanya berjalan saat dokumentasi berubah —
 
 ---
 
-## 10. Studi Kasus: RAG untuk Startup Fintech (12 Developer)
+## 8. Studi Kasus: RAG untuk Startup Fintech (12 Developer)
+
 
 Sebuah startup fintech dengan 12 developer dan 3 produk menyadari masalah klasiknya: pertanyaan yang sama diajukan berulang-ulang, jawabannya berbeda-beda tergantung siapa yang ditanya. *Knowledge base* mereka terdiri dari SOP compliance (50 dokumen), dokumentasi API (200 halaman), dan regulasi OJK (30 dokumen) — dokumen yang bukan hanya rumit, tetapi juga *sensitif*: SOP compliance berisi prosedur audit dan data karyawan.
 
@@ -349,7 +358,8 @@ Pelajaran studi kasus ini adalah pelajaran paling jujur di bab ini: **RAG tidak 
 
 ---
 
-## 11. Referensi
+## 9. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

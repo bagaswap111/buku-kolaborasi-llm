@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Menjelaskan evolusi arsitektur Transformer dari tahun 2017 hingga 2026 dengan memahami konteks setiap tonggak sejarah
@@ -17,6 +18,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ## 2. Pendahuluan
 
+
 Pada awal 2017, dunia kecerdasan buatan masih didominasi oleh arsitektur RNN (Recurrent Neural Network) dan LSTM (Long Short-Term Memory) untuk pemrosesan bahasa alami. Model-model ini lambat, sulit dilatih, dan tidak bisa menangani konteks panjang. Kemudian datanglah sebuah makalah yang tidak hanya mengubah NLP — tetapi seluruh lanskap AI. Makalah "Attention Is All You Need" dari Vaswani et al. memperkenalkan arsitektur Transformer, sebuah pendekatan revolusioner yang murni berbasis mekanisme *self-attention*, tanpa RNN sama sekali.
 
 Dalam waktu kurang dari satu dekade, arsitektur ini berevolusi dari model 0.1 miliar parameter (GPT-1) menjadi model 1,6 triliun parameter (DeepSeek V4 Pro) yang bisa diunduh dan dijalankan di workstation kelas menengah. Perjalanan ini bukan sekadar cerita tentang parameter yang semakin besar — ini adalah cerita tentang demokratisasi AI, tentang bagaimana teknologi yang awalnya hanya dikuasai oleh raksasa teknologi akhirnya bisa dimiliki oleh siapa pun dengan sebuah laptop.
@@ -24,6 +26,7 @@ Dalam waktu kurang dari satu dekade, arsitektur ini berevolusi dari model 0.1 mi
 ---
 
 ## 3. Era Yayasan: Lahirnya Arsitektur Transformer (2017-2018)
+
 
 ### Transformer: Attention Is All You Need
 
@@ -39,9 +42,39 @@ Kedua, **GPT-1** (Generative Pre-trained Transformer) yang dirilis oleh OpenAI p
 
 Kedua arsitektur ini — encoder-only (BERT) dan decoder-only (GPT) — menjadi fondasi semua LLM modern. Pada tahun-tahun berikutnya, arsitektur decoder-only terbukti lebih skalaibel dan menjadi pilihan dominan untuk model generatif.
 
+### Tabel 1: Timeline Evolusi Model (2017-2026)
+
+| Tahun | Tonggak | Parameter | Arsitektur | Konteks | Keunikan / Dampak |
+|:---|:---|:---:|:---|:---:|:---|
+| 2017 | Transformer (Vaswani et al.) | - | Encoder-Decoder | - | Fondasi semua LLM modern |
+| 2018 | GPT-1 / BERT | 0,1B / 0,3B | Decoder / Encoder | 512 | Awal era pre-training + fine-tuning |
+| 2019 | GPT-2 | 1,5B | Decoder-only | 1.024 | Kontroversi rilis "too dangerous" |
+| 2020 | GPT-3 | 175B | Decoder-only | 2.048 | Few-shot learning, Scaling Laws |
+| 2022 | ChatGPT | - | RLHF enhanced | 4.096 | Ledakan adopsi publik |
+| 2023 | LLaMA-1 | 7B-65B | Decoder-only | 2.048 | Titik balik open-source LLM |
+| 2023 | Mistral 7B | 7B | Sliding Window Attn | 8.192 | GQA, outperforms LLaMA-2 13B |
+| 2024 | Llama-3 / 3.1 | 8B-405B | Decoder + GQA | 128K | Tool use, multilingual, 15T+ token |
+| 2024 | Qwen2.5 | 0,5B-72B | Dense decoder | 32K | Multilingual 29 bahasa, 18T token |
+| 2024 | DeepSeek-V3 | 671B (37B aktif) | MoE + MLA | 128K | Training $5,5M, efisiensi ekstrem |
+| 2025 | DeepSeek-R1 | 671B (37B aktif) | MoE + GRPO RL | 128K | Reasoning via pure RL, setara o1 |
+| 2025 | Llama 4 Scout | 109B (17B aktif) | MoE 16 experts | 10M | Multimodal, 1 GPU via INT4 |
+| 2025 | Llama 4 Maverick | 400B (17B aktif) | MoE 128 experts | 1M | Setara GPT-4.5 (benchmark tertentu) |
+| 2025 | Qwen3 | 0,6B-235B | Dense + MoE | 128K | Thinking mode, 119 bahasa |
+| 2025 | Phi-4 / Phi-4-reasoning | 14B | Dense decoder | 16K | Synthetic data > distilasi |
+| 2025 | Mistral Large 3 | 675B (41B aktif) | Granular MoE + Vision | 256K | Apache 2.0, open-source Eropa |
+| 2026 | Qwen3.5 | 35B-397B MoE | Hybrid-Attn MoE | 256K | Multimodal native, 113 bahasa |
+| 2026 | Qwen3.6 | 27B-35B MoE | Coding specialist | 128K | Model lokal 27B setara GPT-4o |
+| 2026 | GPT-5.5 / 5.5 Pro | - | Proprietary decoder | 1M | Reasoning effort, $5/$30 per M token |
+| 2026 | DeepSeek-V4 Pro | 1,6T (49B aktif) | MoE + CSA/HCA | 1M | MIT, open-source terbesar |
+| 2026 | DeepSeek-V4 Flash | 284B (13B aktif) | MoE + CSA/HCA | 1M | MIT, companion efisien |
+| 2026 | Qwen3.7-Max | ~1T+ (est.) | Proprietary MoE | 1M | Agent-centric, closed-weight |
+| 2026 | Claude Fable 5 | - | Proprietary decoder | 1M | Mythos-class, safety classifiers |
+
+
 ---
 
 ## 4. GPT-2 dan GPT-3: Era Model Tertutup (2019-2022)
+
 
 ### GPT-2: Kontroversi yang Mengguncang Dunia
 
@@ -61,6 +94,7 @@ Komersialisasi dimulai: GPT-3 tersedia hanya melalui API berbayar, ChatGPT dilun
 
 ## 5. LLaMA-1 dan Ledakan Open-Source (Februari 2023)
 
+
 Titik balik sejarah terjadi pada Februari 2023. Meta merilis LLaMA-1 (Large Language Model Meta AI) dalam empat ukuran: 7B, 13B, 33B, dan 65B parameter. Yang membedakan LLaMA dari model sebelumnya adalah efisiensi training: LLaMA-1 7B hanya dilatih dengan 1 triliun token, sementara GPT-3 175B dilatih dengan 300 miliar token. Ini berarti model yang lebih kecil bisa mencapai kualitas kompetitif dengan biaya training yang jauh lebih rendah.
 
 Beberapa minggu setelah rilis, model LLaMA-1 "bocor" ke publik melalui forum 4chan — siapa pun bisa mengunduhnya. Bocornya LLaMA-1 memicu ledakan ekosistem lokal. Georgi Gerganov mengembangkan llama.cpp, implementasi C++ murni yang bisa menjalankan LLaMA di CPU tanpa GPU mahal. Lahirlah format GGUF (GGML Universal Format) untuk kuantisasi model, dan tools seperti Ollama serta LM Studio yang membuat instalasi model lokal semudah *drag-and-drop*.
@@ -71,6 +105,7 @@ Dampaknya revolusioner: untuk pertama kalinya, individu dengan laptop gaming bis
 
 ## 6. Mistral 7B: Era Model Kecil Bertenaga (September 2023)
 
+
 Pada September 2023, Mistral AI — sebuah startup asal Prancis — merilis Mistral 7B dengan klaim berani: model 7B ini mengalahkan LLaMA-2 13B di hampir semua benchmark. Ini adalah momen penting yang membuktikan bahwa jumlah parameter bukanlah segalanya.
 
 Inovasi arsitektur Mistral 7B meliputi **Sliding Window Attention** (SWA) yang memungkinkan konteks hingga 8.192 token dengan biaya komputasi linier — bukan kuadratik — serta **Grouped Query Attention** (GQA) yang mengoptimalkan penggunaan memori KV-cache. GQA kemudian diadopsi oleh Llama-3 dan menjadi standar industri.
@@ -80,6 +115,7 @@ Mistral 7B membuka pintu bagi filosofi baru: model yang lebih kecil dan lebih ef
 ---
 
 ## 7. Llama-3 dan Standar Baru Model Lokal (April 2024)
+
 
 Meta kembali mengguncang industri pada April 2024 dengan Llama-3 — sebuah *herd of models* (kawanan model) dalam tiga ukuran: 8B, 70B, dan 405B parameter, semuanya dilatih pada lebih dari 15 triliun token. Ini adalah peningkatan 15 kali lipat dalam jumlah data training dibandingkan LLaMA-1.
 
@@ -93,9 +129,32 @@ Dampaknya terhadap ekosistem lokal sangat signifikan. Dengan ukuran hanya 5,2 GB
 
 Pada September 2024, Qwen2.5 dari Alibaba meramaikan persaingan. Model dense (non-MoE) dalam rentang 0,5B hingga 72B ini dilatih pada 18 triliun token dan mendukung 29 bahasa. Qwen2.5-7B mencapai MMLU 70,5%, hampir menyamai GPT-3 175B yang hanya 70,7% — menunjukkan bahwa model kecil kini bisa menyaingi model raksasa dari empat tahun sebelumnya.
 
+### Tabel 2: Perbandingan Ukuran Model dan Kebutuhan Hardware (Lokal)
+
+| Model | Ukuran Q4_K_M | RAM Min. | GPU Minimum | Bisa di Laptop? |
+|:---|:---:|:---:|:---|:---:|
+| GPT-2 (1,5B) | 1,2 GB | 4 GB | CPU saja | Ya |
+| LLaMA-7B | 4,5 GB | 8 GB | GTX 1060 6GB | Ya (GPU low-end) |
+| Mistral 7B | 4,5 GB | 8 GB | GTX 1060 6GB | Ya |
+| Llama-3 8B | 5,2 GB | 8 GB | RTX 2060 8GB | Ya |
+| Phi-4 (14B) | 8,5 GB | 12 GB | RTX 3060 12GB | Ya (laptop gaming) |
+| Qwen2.5-32B | 18 GB | 24 GB | RTX 3090 24GB | Ya (high-end) |
+| Qwen3-30B-A3B | 2,5 GB | 6 GB | CPU/GPU ringan | Ya (efisien MoE) |
+| Llama 4 Scout | ~12 GB (INT4) | 16 GB | RTX 4070 12GB+ | Ya (high-end) |
+| DeepSeek-R1 (671B) | ~280 GB | 320 GB | Cluster GPU | Tidak |
+| Llama-3 70B | 42 GB | 48 GB | 2x RTX 4090 | Tidak (server) |
+| Qwen3.6-27B | 16 GB | 24 GB | RTX 3090 24GB | Ya (high-end) |
+| Mistral Large 3 (675B) | ~280 GB (FP8) | 320 GB | 8xH200 / GB200 NVL72 | Tidak (server) |
+| DeepSeek V4 Flash (284B) | ~150 GB (INT4) | 192 GB | 2xRTX 6000 Ada | Server/workstation |
+| DeepSeek V4 Pro (1,6T) | ~865 GB | 1 TB+ | Cluster GPU HGX B200 | Tidak (datacenter) |
+| Ministral 3 14B | 8,5 GB | 12 GB | RTX 3060 12GB | Ya (laptop gaming) |
+| Ministral 3 3B | 2 GB | 4 GB | CPU/GPU ringan | Ya (semua perangkat) |
+
+
 ---
 
 ## 8. DeepSeek-V3/R1: Era Reasoning (Desember 2024 - Januari 2025)
+
 
 Akhir 2024 menjadi saksi gebrakan dari DeepSeek, laboratorium AI asal Tiongkok. DeepSeek-V3, dirilis pada Desember 2024, adalah model Mixture-of-Experts (MoE) dengan 671 miliar parameter total, tetapi hanya 37 miliar aktif per token. Dengan arsitektur Multi-head Latent Attention (MLA) dan DeepSeekMoE, model ini dilatih hanya dengan biaya sekitar $5,5 juta — jauh di bawah perkiraan industri yang menaksir biaya training model setara >$100 juta.
 
@@ -107,6 +166,7 @@ Pada Januari 2025, DeepSeek-R1 menyusul dengan terobosan lain: *reasoning via pu
 
 ## 9. Llama 4 dan Era MoE Lokal (April 2025)
 
+
 April 2025 menjadi bulan penting dengan dirilisnya Llama 4 — model MoE pertama dalam keluarga Llama. Dua varian utama dirilis:
 
 - **Scout (17B x 16 experts):** Total 109B, aktif 17B per token, dengan context window 10 juta token — cukup untuk memproses seluruh buku Harry Potter berkali-kali lipat. Dalam format INT4, model ini muat di satu GPU kelas RTX 4070.
@@ -116,9 +176,35 @@ Bersamaan dengan Llama 4, Qwen3 dari Alibaba menawarkan inovasi *unified thinkin
 
 Phi-4 dari Microsoft, dengan hanya 14B parameter tetapi mencapai MMLU 84,8%, membuktikan bahwa *synthetic data* — data buatan yang dihasilkan oleh model lain — bisa lebih efektif daripada data alami. Ini membuka paradigma baru: model kecil yang dilatih dengan data sintetis berkualitas tinggi bisa mengalahkan model besar yang dilatih dengan data mentah.
 
+### Tabel 3: Benchmark Lintas Generasi
+
+| Model | MMLU | GSM8K | HumanEval | Tahun | Kategori |
+|:---|:---:|:---:|:---:|:---:|:---|
+| GPT-2 1,5B | 32,4% | - | - | 2019 | Dense kecil |
+| GPT-3 175B | 70,7% | 45,0% | 48,1% | 2020 | Dense besar |
+| LLaMA-1 7B | 46,9% | 16,8% | 14,0% | 2023 | Dense kecil |
+| Mistral 7B | 62,5% | 45,2% | 30,5% | 2023 | Dense kecil |
+| Llama-3 8B | 66,7% | 79,6% | 62,2% | 2024 | Dense kecil |
+| Qwen2.5-7B | 70,5% | 80,1% | 75,1% | 2024 | Dense kecil |
+| Phi-4 14B | 84,8% | 94,5% | 82,6% | 2024 | Dense kecil |
+| DeepSeek-V3 (671B) | 88,5% | 92,3% | 82,6% | 2024 | MoE besar |
+| DeepSeek-R1 (671B) | 90,8% | 96,3% | 92,4% | 2025 | MoE + RL reasoning |
+| Llama 4 Scout (109B) | 84,2% | 89,5% | 80,1% | 2025 | MoE multimodal |
+| Qwen3-30B-A3B | 85,1% | 92,0% | 85,5% | 2025 | MoE efisien |
+| Qwen3.6-27B | 85,9% | 93,1% | 90,2% | 2026 | Dense coding specialist |
+| Mistral Large 3 (675B) | ~87% | ~93% | ~85% | 2025 | MoE granular open-source |
+| DeepSeek V4 Pro (1,6T) | 87,2%\* | 93,7%\* | 88,7%\* | 2026 | MoE CSA/HCA + MIT |
+| GPT-5.5 | ~91%\* | ~96%\* | ~93%\* | 2026 | Proprietary frontier |
+| Qwen3.7-Max | ~89%\* | ~95%\* | ~91%\* | 2026 | Proprietary MoE agent |
+| Claude Fable 5 | - | - | 95,0% (SWE-bench) | 2026 | Mythos-class proprietary |
+
+*\* Perkiraan berdasarkan data benchmark tidak langsung / third-party. Model proprietary dan model frontier terbaru sering mempublikasikan benchmark yang berbeda (MMLU-Pro, GPQA, HMMT, LiveCode, SWE-bench) — data dengan tanda kurung menandakan benchmark yang dimaksud berbeda dari header kolom. Lihat paper asli untuk detail.*
+
+
 ---
 
 ## 10. Mistral Large 3: Open-Source Eropa (Desember 2025)
+
 
 Pada Desember 2025, Mistral AI kembali dengan gebrakan besar: Mistral Large 3, model granular MoE dengan 675 miliar parameter total dan 41 miliar aktif — semuanya dirilis di bawah lisensi Apache 2.0 yang sangat permisif. Model ini dilatih pada 3.000 GPU H200 NVIDIA dan menjadi model open-source non-Tiongkok terkuat yang pernah ada.
 
@@ -132,6 +218,7 @@ Bersamaan dengan Large 3, Mistral merilis **Ministral 3** — keluarga model kec
 
 ## 11. Qwen3.5/3.6 dan Puncak SLM (Februari - April 2026)
 
+
 Awal 2026 menyaksikan kematangan model kecil (*Small Language Models* / SLM) yang mencengangkan. Qwen3.5, dirilis pada Februari 2026, adalah model multimodal dengan arsitektur Hybrid-Attention MoE (397B total, 17B aktif) yang mendukung 113 bahasa dan konteks 256K token. Kemampuan *native agent* — model bisa menggunakan tools, merencanakan tugas, dan menjalankan workflow secara mandiri — menjadi fitur standar.
 
 Dua bulan kemudian, Qwen3.6 hadir dengan spesialisasi *coding*. Varian 27B dense-nya mampu menyaingi GPT-4o untuk tugas pemrograman Python dan Rust, dengan ukuran hanya 16 GB dalam format Q4_K_M — cukup untuk dijalankan di laptop dengan RTX 3090. Varian MoE 35B-A3B (hanya 3B aktif) bahkan bisa berjalan di GPU kelas menengah.
@@ -141,6 +228,7 @@ Fenomena yang lebih menarik adalah model 1-3B yang kini mampu menjalankan agen d
 ---
 
 ## 12. Era Frontier Baru: GPT-5.5, DeepSeek V4, Qwen3.7, Claude Fable 5 (April - Juni 2026)
+
 
 ### GPT-5.5: Kecerdasan untuk Kerja Nyata
 
@@ -177,6 +265,7 @@ Bagi ekosistem lokal, implikasinya jelas: DeepSeek V4 Flash (284B) bisa dijalank
 
 ## 13. Proyeksi 2027: Masa Depan Model Lokal
 
+
 Berdasarkan tren yang terlihat pada 2025-2026, beberapa proyeksi dapat dibuat untuk 2027 — meskipun perlu ditekankan bahwa ini adalah proyeksi berdasarkan tren saat ini, bukan prediksi pasti.
 
 **Model 1-3B di perangkat wearable.** Smartphone, smartwatch, dan perangkat IoT akan memiliki LLM lokal yang berfungsi sebagai asisten pribadi tanpa perlu koneksi cloud. Ministral 3 3B adalah cikal bakal tren ini.
@@ -211,83 +300,6 @@ graph LR
 
 > **Bacaan diagram:** setiap balok mewakili satu era. Perhatikan loncatan arsitektur (RNN → attention → MoE → hybrid attention) dan bagaimana setiap era menurunkan hambatan masuk — dari model 175B yang hanya bisa diakses via API, menjadi model 1,6T yang bisa diunduh bebas dengan lisensi MIT.
 
----
-
-## 14. Tabel Wajib
-
-### Tabel 1: Timeline Evolusi Model (2017-2026)
-
-| Tahun | Tonggak | Parameter | Arsitektur | Konteks | Keunikan / Dampak |
-|:---|:---|:---:|:---|:---:|:---|
-| 2017 | Transformer (Vaswani et al.) | - | Encoder-Decoder | - | Fondasi semua LLM modern |
-| 2018 | GPT-1 / BERT | 0,1B / 0,3B | Decoder / Encoder | 512 | Awal era pre-training + fine-tuning |
-| 2019 | GPT-2 | 1,5B | Decoder-only | 1.024 | Kontroversi rilis "too dangerous" |
-| 2020 | GPT-3 | 175B | Decoder-only | 2.048 | Few-shot learning, Scaling Laws |
-| 2022 | ChatGPT | - | RLHF enhanced | 4.096 | Ledakan adopsi publik |
-| 2023 | LLaMA-1 | 7B-65B | Decoder-only | 2.048 | Titik balik open-source LLM |
-| 2023 | Mistral 7B | 7B | Sliding Window Attn | 8.192 | GQA, outperforms LLaMA-2 13B |
-| 2024 | Llama-3 / 3.1 | 8B-405B | Decoder + GQA | 128K | Tool use, multilingual, 15T+ token |
-| 2024 | Qwen2.5 | 0,5B-72B | Dense decoder | 32K | Multilingual 29 bahasa, 18T token |
-| 2024 | DeepSeek-V3 | 671B (37B aktif) | MoE + MLA | 128K | Training $5,5M, efisiensi ekstrem |
-| 2025 | DeepSeek-R1 | 671B (37B aktif) | MoE + GRPO RL | 128K | Reasoning via pure RL, setara o1 |
-| 2025 | Llama 4 Scout | 109B (17B aktif) | MoE 16 experts | 10M | Multimodal, 1 GPU via INT4 |
-| 2025 | Llama 4 Maverick | 400B (17B aktif) | MoE 128 experts | 1M | Setara GPT-4.5 (benchmark tertentu) |
-| 2025 | Qwen3 | 0,6B-235B | Dense + MoE | 128K | Thinking mode, 119 bahasa |
-| 2025 | Phi-4 / Phi-4-reasoning | 14B | Dense decoder | 16K | Synthetic data > distilasi |
-| 2025 | Mistral Large 3 | 675B (41B aktif) | Granular MoE + Vision | 256K | Apache 2.0, open-source Eropa |
-| 2026 | Qwen3.5 | 35B-397B MoE | Hybrid-Attn MoE | 256K | Multimodal native, 113 bahasa |
-| 2026 | Qwen3.6 | 27B-35B MoE | Coding specialist | 128K | Model lokal 27B setara GPT-4o |
-| 2026 | GPT-5.5 / 5.5 Pro | - | Proprietary decoder | 1M | Reasoning effort, $5/$30 per M token |
-| 2026 | DeepSeek-V4 Pro | 1,6T (49B aktif) | MoE + CSA/HCA | 1M | MIT, open-source terbesar |
-| 2026 | DeepSeek-V4 Flash | 284B (13B aktif) | MoE + CSA/HCA | 1M | MIT, companion efisien |
-| 2026 | Qwen3.7-Max | ~1T+ (est.) | Proprietary MoE | 1M | Agent-centric, closed-weight |
-| 2026 | Claude Fable 5 | - | Proprietary decoder | 1M | Mythos-class, safety classifiers |
-
-### Tabel 2: Perbandingan Ukuran Model dan Kebutuhan Hardware (Lokal)
-
-| Model | Ukuran Q4_K_M | RAM Min. | GPU Minimum | Bisa di Laptop? |
-|:---|:---:|:---:|:---|:---:|
-| GPT-2 (1,5B) | 1,2 GB | 4 GB | CPU saja | Ya |
-| LLaMA-7B | 4,5 GB | 8 GB | GTX 1060 6GB | Ya (GPU low-end) |
-| Mistral 7B | 4,5 GB | 8 GB | GTX 1060 6GB | Ya |
-| Llama-3 8B | 5,2 GB | 8 GB | RTX 2060 8GB | Ya |
-| Phi-4 (14B) | 8,5 GB | 12 GB | RTX 3060 12GB | Ya (laptop gaming) |
-| Qwen2.5-32B | 18 GB | 24 GB | RTX 3090 24GB | Ya (high-end) |
-| Qwen3-30B-A3B | 2,5 GB | 6 GB | CPU/GPU ringan | Ya (efisien MoE) |
-| Llama 4 Scout | ~12 GB (INT4) | 16 GB | RTX 4070 12GB+ | Ya (high-end) |
-| DeepSeek-R1 (671B) | ~280 GB | 320 GB | Cluster GPU | Tidak |
-| Llama-3 70B | 42 GB | 48 GB | 2x RTX 4090 | Tidak (server) |
-| Qwen3.6-27B | 16 GB | 24 GB | RTX 3090 24GB | Ya (high-end) |
-| Mistral Large 3 (675B) | ~280 GB (FP8) | 320 GB | 8xH200 / GB200 NVL72 | Tidak (server) |
-| DeepSeek V4 Flash (284B) | ~150 GB (INT4) | 192 GB | 2xRTX 6000 Ada | Server/workstation |
-| DeepSeek V4 Pro (1,6T) | ~865 GB | 1 TB+ | Cluster GPU HGX B200 | Tidak (datacenter) |
-| Ministral 3 14B | 8,5 GB | 12 GB | RTX 3060 12GB | Ya (laptop gaming) |
-| Ministral 3 3B | 2 GB | 4 GB | CPU/GPU ringan | Ya (semua perangkat) |
-
-### Tabel 3: Benchmark Lintas Generasi
-
-| Model | MMLU | GSM8K | HumanEval | Tahun | Kategori |
-|:---|:---:|:---:|:---:|:---:|:---|
-| GPT-2 1,5B | 32,4% | - | - | 2019 | Dense kecil |
-| GPT-3 175B | 70,7% | 45,0% | 48,1% | 2020 | Dense besar |
-| LLaMA-1 7B | 46,9% | 16,8% | 14,0% | 2023 | Dense kecil |
-| Mistral 7B | 62,5% | 45,2% | 30,5% | 2023 | Dense kecil |
-| Llama-3 8B | 66,7% | 79,6% | 62,2% | 2024 | Dense kecil |
-| Qwen2.5-7B | 70,5% | 80,1% | 75,1% | 2024 | Dense kecil |
-| Phi-4 14B | 84,8% | 94,5% | 82,6% | 2024 | Dense kecil |
-| DeepSeek-V3 (671B) | 88,5% | 92,3% | 82,6% | 2024 | MoE besar |
-| DeepSeek-R1 (671B) | 90,8% | 96,3% | 92,4% | 2025 | MoE + RL reasoning |
-| Llama 4 Scout (109B) | 84,2% | 89,5% | 80,1% | 2025 | MoE multimodal |
-| Qwen3-30B-A3B | 85,1% | 92,0% | 85,5% | 2025 | MoE efisien |
-| Qwen3.6-27B | 85,9% | 93,1% | 90,2% | 2026 | Dense coding specialist |
-| Mistral Large 3 (675B) | ~87% | ~93% | ~85% | 2025 | MoE granular open-source |
-| DeepSeek V4 Pro (1,6T) | 87,2%\* | 93,7%\* | 88,7%\* | 2026 | MoE CSA/HCA + MIT |
-| GPT-5.5 | ~91%\* | ~96%\* | ~93%\* | 2026 | Proprietary frontier |
-| Qwen3.7-Max | ~89%\* | ~95%\* | ~91%\* | 2026 | Proprietary MoE agent |
-| Claude Fable 5 | - | - | 95,0% (SWE-bench) | 2026 | Mythos-class proprietary |
-
-*\* Perkiraan berdasarkan data benchmark tidak langsung / third-party. Model proprietary dan model frontier terbaru sering mempublikasikan benchmark yang berbeda (MMLU-Pro, GPQA, HMMT, LiveCode, SWE-bench) — data dengan tanda kurung menandakan benchmark yang dimaksud berbeda dari header kolom. Lihat paper asli untuk detail.*
-
 ### Diagram 2: Alur Keputusan Memilih Model Lokal
 
 ```mermaid
@@ -311,7 +323,11 @@ graph TD
 
 ---
 
-## 15. Tutorial / Hands-On
+
+---
+
+## 14. Tutorial / Hands-On
+
 
 ### Tutorial 1: Merasakan Perbedaan Generasi Model
 
@@ -395,7 +411,8 @@ Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar 
 
 ---
 
-## 16. Studi Kasus: Perjalanan Seorang Developer dari GPT-2 ke DeepSeek V4 (2019-2026)
+## 15. Studi Kasus: Perjalanan Seorang Developer dari GPT-2 ke DeepSeek V4 (2019-2026)
+
 
 **Profil:** Seorang AI engineer di Indonesia yang menggunakan model bahasa untuk produktivitas coding dan menulis konten teknis.
 
@@ -413,7 +430,8 @@ Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar 
 
 ---
 
-## 17. Referensi
+## 16. Referensi
+
 
 ### Paper Jurnal/Konferensi
 

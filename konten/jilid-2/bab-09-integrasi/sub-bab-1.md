@@ -6,6 +6,7 @@
 
 ## 1. Tujuan Sub-Bab
 
+
 Setelah membaca bab ini, Anda akan mampu:
 
 - Memahami arsitektur n8n sebagai *workflow automation engine* untuk integrasi LLM lokal, termasuk perbedaannya dengan Zapier/Make yang berbasis cloud
@@ -18,6 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ---
 
 ## 2. Mengapa n8n untuk Otomasi AI?
+
 
 ### Alternatif Open-Source untuk Zapier dan Make
 
@@ -47,6 +49,7 @@ Saat buku ini ditulis, beberapa model layak dipertimbangkan sebagai otak workflo
 
 ## 3. Arsitektur Deployment n8n + LLM
 
+
 Cara paling umum menggelar n8n di lingkungan perkantoran adalah *self-hosted* dengan **Docker Compose**, menggunakan **Postgres sebagai database workflow**. Alasan pemilihan Postgres sederhana: SQLite bawaan cukup untuk percobaan, tetapi gagal saat dua puluh orang menjalankan workflow bersamaan; Postgres memberikan transaksi yang aman, backup yang rapi, dan integrasi mudah dengan tim data.
 
 Dari sisi jaringan, yang umum dipakai adalah pola *sidecar*: kontainer n8n, kontainer Ollama, dan kontainer database berada dalam satu Docker network sehingga komunikasi antar-kontainer memakai nama host internal (misal `http://ollama:11434`) tanpa membuka port ke publik. Koneksi ke LLM lokal dilakukan lewat **HTTP Request Node** menuju Ollama API di `localhost:11434` atau vLLM di `localhost:8000`.
@@ -54,78 +57,6 @@ Dari sisi jaringan, yang umum dipakai adalah pola *sidecar*: kontainer n8n, kont
 Untuk produksi, n8n menyediakan dua mode eksekusi: mode **main** (proses tunggal) untuk pengembangan dan traffic rendah, serta mode **queue** dengan Redis sebagai broker antrean untuk horizontal scaling — beberapa *worker* berbagi beban eksekusi dari antrean yang sama. Jika Anda butuh ketersediaan tinggi tanpa Redis, mode **multi-main** memungkinkan beberapa main node berbagi load balancing dengan konfigurasi yang lebih rumit.
 
 Pada lapisan model, arsitektur ini mendukung kombinasi: **DeepSeek V4 Pro** dan **DeepSeek V4 Flash** via Ollama untuk otomasi harian, **Mistral Large 3** via Ollama untuk kebutuhan multimodal, serta integrasi cloud API seperti **GPT-5.5**, **Claude Fable 5**, atau **Gemini 2.5 Pro** untuk tugas kompleks yang memang membutuhkan kekuatan model proprietary. Strategi *hybrid* semacam ini — model lokal untuk 80% pekerjaan rutin, API cloud untuk 20% sisanya — adalah pola yang paling hemat biaya.
-
----
-
-## 4. Node Kunci dalam Workflow AI
-
-Setiap workflow AI di n8n dibangun dari beberapa node standar yang perlu Anda kenali baik-baik, seperti seorang koki mengenal peralatannya:
-
-**Webhook Node** adalah pintu masuk dari dunia luar — *entry point* yang menerima panggilan dari aplikasi eksternal seperti perintah Slack (`/command`), email masuk, atau *form submission*. Tanpa webhook, aplikasi lain tidak punya cara memberitahu n8n bahwa ada pekerjaan baru.
-
-**HTTP Request Node** adalah jembatan ke Ollama atau vLLM. Node ini mengirim prompt ke endpoint API model dan menerima respons — bisa berupa teks biasa, JSON, atau *function calling*. Inilah jantung komunikasi n8n dengan "otak" workflow.
-
-**Code Node** mengeksekusi JavaScript atau Python untuk transformasi data: parsing JSON dari respons LLM, membersihkan body email, memformat output menjadi tabel markdown, atau menggabungkan hasil beberapa panggilan.
-
-**Switch Node** melakukan *conditional routing*: jika respons LLM menyatakan sentimen positif, alirkan ke jalur A; jika negatif atau ragu, jalur B. Ini mengubah satu alur linier menjadi pohon keputusan yang cerdas.
-
-**Loop & Split** menangani *batch processing* — misalnya memproses 500 baris data transaksi sekaligus, mengirim masing-masing ke LLM untuk diringkas, lalu menggabungkan hasilnya.
-
-Terakhir, **Sub-workflow** memungkinkan modularisasi: logika yang sering dipakai (misalnya "ringkas teks dengan LLM") dibungkus sekali sebagai sub-workflow dan dipanggil ulang dari banyak workflow induk — menjaga konsistensi dan mengurangi duplikasi.
-
----
-
-## 5. Pola Workflow Otomasi
-
-Dari kombinasi node di atas, tiga pola utama yang paling sering dipakai di lingkungan perkantoran dapat diidentifikasi:
-
-**Pola 1 — Email Assistant.** Email masuk ditangkap oleh node IMAP, diuraikan oleh Code Node, lalu dikirim ke LLM untuk diringkas dan diklasifikasikan. Keluarannya dibagi oleh Switch Node: email *urgent* diteruskan ke channel Slack tim, sisanya dijawab otomatis dengan balasan terima kasih standar. Pola ini mengurangi beban kotak masuk secara drastis.
-
-**Pola 2 — SQL Analyst.** Karyawan bertanya melalui Slack ("Berapa penjualan bulan lalu per region?"), LLM mengubah pertanyaan menjadi sintaks SQL, node Execute SQL menjalankannya ke database, dan hasilnya diformat ulang menjadi penjelasan bahasa manusia sebelum dikirim kembali ke Slack. Dengan cara ini, tim non-teknis bisa "berbicara" dengan database tanpa menulis satu baris query pun.
-
-**Pola 3 — Report Generator.** Sebuah workflow berjadwal (misalnya setiap pukul 07.00) mengambil data dari database, meminta LLM menganalisis tren (dengan 3-5 panggilan LLM untuk ringkasan, analisis, dan narasi), memformat hasilnya menjadi HTML yang rapi, lalu mengirimkannya melalui email ke daftar penerima. Pekerjaan "laporan pagi" yang dulu memakan satu jam analis kini selesai sebelum kopi pertama diminum.
-
-Ketiga pola ini bisa dikombinasikan dan diperluas — tambahkan node Google Sheets untuk mencatat log, node Discord untuk notifikasi, atau sub-workflow bernama untuk peringatan ambang batas — membentuk ekosistem otomasi yang tumbuh seiring kebutuhan kantor.
-
----
-
-## 6. Keamanan dan Manajemen Kredensial
-
-Otomasi yang menghubungkan email, database, dan Slack tentu membawa tanggung jawab keamanan yang besar. n8n menyediakan **credential vault** bawaan yang mengenkripsi API key dan password database dengan **AES-256** — kredensial yang tersimpan di vault tidak pernah ditampilkan dalam bentuk teks di editor, dan hanya dirujuk oleh nama credential saat node membutuhkannya.
-
-*Best practice* yang wajib diikuti: jangan pernah menempelkan kredensial langsung di dalam node atau prompt LLM. Selalu gunakan sistem *credential* bawaan, karena dengan begitu kredensial tersimpan terpusat, terenkripsi, dan mudah dicabut saat karyawan keluar. Lapisan berikutnya adalah **isolasi jaringan**: kontainer n8n hanya boleh menjangkau Ollama dan database yang benar-benar dibutuhkan, bukan seluruh jaringan kantor — gunakan Docker network terpisah dan batasi port yang terbuka ke publik.
-
-Untuk organisasi yang lebih besar, n8n Enterprise menambahkan *rate limiting*, *audit logging*, dan manajemen pengguna terpusat (SSO). Sebagai pelengkap, gunakan VPN atau reverse proxy dengan otentikasi (misal Authelia atau Tailscale) untuk melindungi panel admin n8n dari akses liar — karena yang bisa membuka panel n8n berarti bisa membaca alur dan kredensial Anda.
-
----
-
-## 7. Monitoring dan Observability
-
-Workflow otomasi adalah mesin yang berjalan tanpa pengawas — karena itu, pengawasannya harus otomatis. n8n menyimpan **execution log** per workflow dengan status `success`, `error`, atau `waiting`, lengkap dengan jejak data yang mengalir di tiap node. Ketika sebuah workflow gagal, Anda bisa langsung melihat di node mana kegagalan terjadi dan payload apa yang masuk — jauh lebih cepat daripada menebak-nebak.
-
-Untuk skala lebih besar, aktifkan **metrics endpoint** n8n dan integrasikan dengan **Prometheus/Grafana** — panel dasbor yang menampilkan jumlah eksekusi per menit, durasi rata-rata, dan beban antrean Redis. Kombinasikan dengan *retry mechanism* di setiap node (misalnya ulangi hingga 3 kali dengan jeda eksponensial) dan *error handling* yang menangkap kegagalan panggilan LLM. Terakhir, pasang *alerting*: jika sebuah workflow gagal tiga kali berturut-turut, kirim notifikasi ke channel Slack tim operasional — sehingga masalah dilaporkan kepada manusia sebelum manusia menyadarinya.
-
----
-
-## 8. Tabel Wajib
-
-### Tabel 1: Perbandingan Platform Otomasi Workflow
-
-Tabel berikut membandingkan n8n dengan tiga pesaingnya dari sisi lisensi, hosting, jumlah integrasi, hingga dukungan LLM lokal — perhatikan kolom "LLM Lokal Support" untuk memahami keunggulan struktural n8n.
-
-| Fitur | n8n (Self-hosted) | Zapier | Make (Integromat) | Huginn |
-|:---|:---|:---|:---|:---|
-| **Model Lisensi** | Fair-code (SSPL) | Proprietary | Proprietary | MIT (open source) |
-| **Hosting** | Self-hosted / Cloud | Cloud only | Cloud only | Self-hosted |
-| **Jumlah Integrasi** | 400+ | 6000+ | 1500+ | Terbatas |
-| **LLM Lokal Support** | Ya (via HTTP node) | Tidak | Tidak | Terbatas |
-| **Code Node (JS/Python)** | Ya | Terbatas | Ya (sedikit) | Ruby only |
-| **Harga (Self-hosted)** | Gratis | $19.99/bln | $9/bln | Gratis |
-| **Skalabilitas** | Queue + Redis | Managed | Managed | Single instance |
-| **Audit Log** | Ya | Ya | Ya | Tidak |
-| **Model MoE Terbaru** | DeepSeek V4, Mistral Large 3 | GPT-5.5 | Terbatas | Tidak |
-
-Analisis dari tabel ini: Zapier menang telak dalam jumlah integrasi (6.000+), tetapi seluruhnya di-host di cloud dan tidak mendukung LLM lokal — setiap *step* yang melibatkan AI harus mengirim data ke API eksternal. Make lebih murah dari Zapier ($9/bln) namun tetap proprietary. Huginn gratis dan self-hosted, tetapi hanya mendukung Ruby untuk kode kustom dan skalabilitasnya terbatas pada satu instance. n8n berada di titik tengah yang langka: gratis untuk self-hosted, 400+ integrasi (mencukupi hampir semua kebutuhan kantor), mendukung LLM lokal, dan skalabel dengan Redis. Kerugiannya jelas: Anda harus mengelola sendiri server, update, dan backup — tanggung jawab yang tidak ada di layanan managed.
 
 ### Tabel 2: Model LLM Unggulan untuk Workflow n8n
 
@@ -143,6 +74,7 @@ Pilih model yang tepat sesuai bobot pekerjaan workflow — kolom "Keunggulan di 
 
 Kedua model open-weight dari DeepSeek menjadi tulang punggung otomasi lokal berkat lisensi MIT tanpa batasan komersial. DeepSeek V4 Pro dengan 1M context unggul untuk *agentic workflow* yang menahan konteks percakapan panjang; DeepSeek V4 Flash (13B aktif) cukup untuk 80% tugas otomasi harian. Claude Fable 5 menawarkan SWE-bench tertinggi (95,0%) dengan *safety classifiers* — tetapi untuk memakainya Anda mengirim data ke API Anthropic, jadi sesuaikan dengan kebijakan kerahasiaan data kantor. Ministral 3 adalah pilihan menarik untuk *edge device*: model 8B bisa menangani klasifikasi sederhana dengan latency di bawah satu detik.
 
+
 ### Tabel 3: Perbandingan Mode Eksekusi n8n
 
 Tiga mode eksekusi n8n dengan karakteristik, kelebihan, dan kekurangannya masing-masing.
@@ -155,40 +87,6 @@ Tiga mode eksekusi n8n dengan karakteristik, kelebihan, dan kekurangannya masing
 
 Analisis: untuk uji coba di laptop atau server kecil, mode `main` adalah pilihan terbaik karena cukup satu proses dan satu perintah `docker compose up`. Begitu Anda melihat workflow mulai mengantre — tanda proses tunggal kewalahan — segera berpindah ke mode `queue` dengan Redis: eksekusi masuk antrean dan diambil *worker* secara paralel, sehingga menambah mesin berarti menambah throughput. Multi-main berada di antara keduanya: keandalan tanpa Redis, tetapi konfigurasi failover-nya butuh pemahaman mendalam. Rekomendasi praktis: mulai dari main, naik ke queue saat produksi, dan pertimbangkan multi-main hanya jika tim Anda telah berpengalaman.
 
-### Tabel 4: Estimasi Latency per Pola Workflow
-
-Estimasi latency realistis untuk tiga pola utama, diukur dengan n8n + Ollama menggunakan Llama-3.1-8B Q4_K_M — perhatikan kolom *Bottleneck* untuk mengetahui komponen yang paling menentukan kecepatan.
-
-| Pola | Rata-rata Latency | LLM Calls | External API Calls | Bottleneck |
-|:---|:---:|:---:|:---:|:---|
-| Email Ringkasan | 3-5 detik | 1 | 2 (IMAP + SMTP) | LLM inference |
-| SQL Query dari Slack | 5-8 detik | 1 | 2 (Slack + DB) | Database query |
-| Report Generator | 15-30 detik | 3-5 | 3-5 (DB + Email + Slack) | Multiple LLM calls |
-
-Data ini menunjukkan pola yang konsisten: semakin banyak panggilan LLM, semakin panjang total latency. Email ringkasan hanya butuh satu panggilan LLM sehingga selesai dalam 3-5 detik — masih nyaman untuk pengalaman pengguna. SQL Query dari Slack sedikit lebih lambat karena *bottleneck*-nya adalah eksekusi query database, bukan model. Report Generator dengan 3-5 panggilan LLM bisa memakan 15-30 detik; untuk pola ini, jalankan sebagai workflow terjadwal di latar belakang (misal pukul 07.00) daripada menunggu interaktif — hasilnya tetap menunggu di kotak masuk saat jam kerja dimulai.
-
-### Tabel 5: Perbandingan Latency Model Baru di n8n
-
-Bagaimana kecepatan model-model 2026 dibandingkan Llama-3.1-8B di atas?
-
-| Model | Parameter Aktif | Latency (1 call) | Context per Sesi | Cocok untuk |
-|:---|:---:|:---:|:---:|:---|
-| DeepSeek V4 Flash | 13B | 1-3 detik | 1M | Daily report, email routing |
-| DeepSeek V4 Pro | 49B | 3-8 detik | 1M | Multi-step agentic workflow |
-| Mistral Large 3 | 41B | 2-5 detik | 256K | Multimodal report generation |
-| GPT-5.5 | — | 1-4 detik (API) | 1M | Coding assistant, complex reasoning |
-| Claude Fable 5 | — | 2-6 detik (API) | 1M | Safety-critical, SWE-bench 95% |
-| Ministral 3 (8B) | 8B | 0.5-1 detik | 128K | Edge device, simple classification |
-
-![Rentang latency tiap model saat satu panggilan LLM di workflow n8n](../../assets/images/bab-09-integrasi/sub-bab-1/latency-model-n8n.png)
-
-*Gambar 9.1-1 — Rentang latency per panggilan LLM di n8n: model MoE ringan (Ministral 3, DeepSeek V4 Flash) melayani tugas harian dalam 0,5-3 detik, sementara DeepSeek V4 Pro dengan 49B aktif membutuhkan hingga 8 detik — pilihan model menentukan batas kecepatan workflow interaktif.*
-
-Pola menarik dari tabel ini: model MoE modern justru lebih cepat daripada Llama-3.1-8B dense pada sebagian tugas, karena parameter aktifnya hanya terpicu sesuai kebutuhan token. DeepSeek V4 Flash dengan 13B aktif menyelesaikan satu panggilan dalam 1-3 detik — lebih cepat dari estimasi Llama-3.1-8B pada pola yang sama, dengan kualitas jauh lebih tinggi. Ministral 3 (8B) bahkan menyentuh 0,5-1 detik, membuatnya ideal untuk pengalaman pengguna interaktif (chatbot Slack). Trade-off-nya jelas: latency model API sangat andal sebagai angka, tetapi menambahkan *network round-trip* dan *throttling* provider — dan menyerahkan data ke pihak ketiga.
-
----
-
-## 9. Diagram dan Visualisasi
 
 ### Gambar 1: Arsitektur n8n + LLM Lokal
 
@@ -227,7 +125,119 @@ Yang perlu diperhatikan dari gambar ini: n8n menjadi satu-satunya titik pusat ko
 
 ---
 
-## 10. Praktikum / Hands-On
+
+---
+
+## 4. Node Kunci dalam Workflow AI
+
+
+Setiap workflow AI di n8n dibangun dari beberapa node standar yang perlu Anda kenali baik-baik, seperti seorang koki mengenal peralatannya:
+
+**Webhook Node** adalah pintu masuk dari dunia luar — *entry point* yang menerima panggilan dari aplikasi eksternal seperti perintah Slack (`/command`), email masuk, atau *form submission*. Tanpa webhook, aplikasi lain tidak punya cara memberitahu n8n bahwa ada pekerjaan baru.
+
+**HTTP Request Node** adalah jembatan ke Ollama atau vLLM. Node ini mengirim prompt ke endpoint API model dan menerima respons — bisa berupa teks biasa, JSON, atau *function calling*. Inilah jantung komunikasi n8n dengan "otak" workflow.
+
+**Code Node** mengeksekusi JavaScript atau Python untuk transformasi data: parsing JSON dari respons LLM, membersihkan body email, memformat output menjadi tabel markdown, atau menggabungkan hasil beberapa panggilan.
+
+**Switch Node** melakukan *conditional routing*: jika respons LLM menyatakan sentimen positif, alirkan ke jalur A; jika negatif atau ragu, jalur B. Ini mengubah satu alur linier menjadi pohon keputusan yang cerdas.
+
+**Loop & Split** menangani *batch processing* — misalnya memproses 500 baris data transaksi sekaligus, mengirim masing-masing ke LLM untuk diringkas, lalu menggabungkan hasilnya.
+
+Terakhir, **Sub-workflow** memungkinkan modularisasi: logika yang sering dipakai (misalnya "ringkas teks dengan LLM") dibungkus sekali sebagai sub-workflow dan dipanggil ulang dari banyak workflow induk — menjaga konsistensi dan mengurangi duplikasi.
+
+---
+
+## 5. Pola Workflow Otomasi
+
+
+Dari kombinasi node di atas, tiga pola utama yang paling sering dipakai di lingkungan perkantoran dapat diidentifikasi:
+
+**Pola 1 — Email Assistant.** Email masuk ditangkap oleh node IMAP, diuraikan oleh Code Node, lalu dikirim ke LLM untuk diringkas dan diklasifikasikan. Keluarannya dibagi oleh Switch Node: email *urgent* diteruskan ke channel Slack tim, sisanya dijawab otomatis dengan balasan terima kasih standar. Pola ini mengurangi beban kotak masuk secara drastis.
+
+**Pola 2 — SQL Analyst.** Karyawan bertanya melalui Slack ("Berapa penjualan bulan lalu per region?"), LLM mengubah pertanyaan menjadi sintaks SQL, node Execute SQL menjalankannya ke database, dan hasilnya diformat ulang menjadi penjelasan bahasa manusia sebelum dikirim kembali ke Slack. Dengan cara ini, tim non-teknis bisa "berbicara" dengan database tanpa menulis satu baris query pun.
+
+**Pola 3 — Report Generator.** Sebuah workflow berjadwal (misalnya setiap pukul 07.00) mengambil data dari database, meminta LLM menganalisis tren (dengan 3-5 panggilan LLM untuk ringkasan, analisis, dan narasi), memformat hasilnya menjadi HTML yang rapi, lalu mengirimkannya melalui email ke daftar penerima. Pekerjaan "laporan pagi" yang dulu memakan satu jam analis kini selesai sebelum kopi pertama diminum.
+
+Ketiga pola ini bisa dikombinasikan dan diperluas — tambahkan node Google Sheets untuk mencatat log, node Discord untuk notifikasi, atau sub-workflow bernama untuk peringatan ambang batas — membentuk ekosistem otomasi yang tumbuh seiring kebutuhan kantor.
+
+### Tabel 1: Perbandingan Platform Otomasi Workflow
+
+Tabel berikut membandingkan n8n dengan tiga pesaingnya dari sisi lisensi, hosting, jumlah integrasi, hingga dukungan LLM lokal — perhatikan kolom "LLM Lokal Support" untuk memahami keunggulan struktural n8n.
+
+| Fitur | n8n (Self-hosted) | Zapier | Make (Integromat) | Huginn |
+|:---|:---|:---|:---|:---|
+| **Model Lisensi** | Fair-code (SSPL) | Proprietary | Proprietary | MIT (open source) |
+| **Hosting** | Self-hosted / Cloud | Cloud only | Cloud only | Self-hosted |
+| **Jumlah Integrasi** | 400+ | 6000+ | 1500+ | Terbatas |
+| **LLM Lokal Support** | Ya (via HTTP node) | Tidak | Tidak | Terbatas |
+| **Code Node (JS/Python)** | Ya | Terbatas | Ya (sedikit) | Ruby only |
+| **Harga (Self-hosted)** | Gratis | $19.99/bln | $9/bln | Gratis |
+| **Skalabilitas** | Queue + Redis | Managed | Managed | Single instance |
+| **Audit Log** | Ya | Ya | Ya | Tidak |
+| **Model MoE Terbaru** | DeepSeek V4, Mistral Large 3 | GPT-5.5 | Terbatas | Tidak |
+
+Analisis dari tabel ini: Zapier menang telak dalam jumlah integrasi (6.000+), tetapi seluruhnya di-host di cloud dan tidak mendukung LLM lokal — setiap *step* yang melibatkan AI harus mengirim data ke API eksternal. Make lebih murah dari Zapier ($9/bln) namun tetap proprietary. Huginn gratis dan self-hosted, tetapi hanya mendukung Ruby untuk kode kustom dan skalabilitasnya terbatas pada satu instance. n8n berada di titik tengah yang langka: gratis untuk self-hosted, 400+ integrasi (mencukupi hampir semua kebutuhan kantor), mendukung LLM lokal, dan skalabel dengan Redis. Kerugiannya jelas: Anda harus mengelola sendiri server, update, dan backup — tanggung jawab yang tidak ada di layanan managed.
+
+
+### Tabel 4: Estimasi Latency per Pola Workflow
+
+Estimasi latency realistis untuk tiga pola utama, diukur dengan n8n + Ollama menggunakan Llama-3.1-8B Q4_K_M — perhatikan kolom *Bottleneck* untuk mengetahui komponen yang paling menentukan kecepatan.
+
+| Pola | Rata-rata Latency | LLM Calls | External API Calls | Bottleneck |
+|:---|:---:|:---:|:---:|:---|
+| Email Ringkasan | 3-5 detik | 1 | 2 (IMAP + SMTP) | LLM inference |
+| SQL Query dari Slack | 5-8 detik | 1 | 2 (Slack + DB) | Database query |
+| Report Generator | 15-30 detik | 3-5 | 3-5 (DB + Email + Slack) | Multiple LLM calls |
+
+Data ini menunjukkan pola yang konsisten: semakin banyak panggilan LLM, semakin panjang total latency. Email ringkasan hanya butuh satu panggilan LLM sehingga selesai dalam 3-5 detik — masih nyaman untuk pengalaman pengguna. SQL Query dari Slack sedikit lebih lambat karena *bottleneck*-nya adalah eksekusi query database, bukan model. Report Generator dengan 3-5 panggilan LLM bisa memakan 15-30 detik; untuk pola ini, jalankan sebagai workflow terjadwal di latar belakang (misal pukul 07.00) daripada menunggu interaktif — hasilnya tetap menunggu di kotak masuk saat jam kerja dimulai.
+
+
+---
+
+## 6. Keamanan dan Manajemen Kredensial
+
+
+Otomasi yang menghubungkan email, database, dan Slack tentu membawa tanggung jawab keamanan yang besar. n8n menyediakan **credential vault** bawaan yang mengenkripsi API key dan password database dengan **AES-256** — kredensial yang tersimpan di vault tidak pernah ditampilkan dalam bentuk teks di editor, dan hanya dirujuk oleh nama credential saat node membutuhkannya.
+
+*Best practice* yang wajib diikuti: jangan pernah menempelkan kredensial langsung di dalam node atau prompt LLM. Selalu gunakan sistem *credential* bawaan, karena dengan begitu kredensial tersimpan terpusat, terenkripsi, dan mudah dicabut saat karyawan keluar. Lapisan berikutnya adalah **isolasi jaringan**: kontainer n8n hanya boleh menjangkau Ollama dan database yang benar-benar dibutuhkan, bukan seluruh jaringan kantor — gunakan Docker network terpisah dan batasi port yang terbuka ke publik.
+
+Untuk organisasi yang lebih besar, n8n Enterprise menambahkan *rate limiting*, *audit logging*, dan manajemen pengguna terpusat (SSO). Sebagai pelengkap, gunakan VPN atau reverse proxy dengan otentikasi (misal Authelia atau Tailscale) untuk melindungi panel admin n8n dari akses liar — karena yang bisa membuka panel n8n berarti bisa membaca alur dan kredensial Anda.
+
+---
+
+## 7. Monitoring dan Observability
+
+
+Workflow otomasi adalah mesin yang berjalan tanpa pengawas — karena itu, pengawasannya harus otomatis. n8n menyimpan **execution log** per workflow dengan status `success`, `error`, atau `waiting`, lengkap dengan jejak data yang mengalir di tiap node. Ketika sebuah workflow gagal, Anda bisa langsung melihat di node mana kegagalan terjadi dan payload apa yang masuk — jauh lebih cepat daripada menebak-nebak.
+
+Untuk skala lebih besar, aktifkan **metrics endpoint** n8n dan integrasikan dengan **Prometheus/Grafana** — panel dasbor yang menampilkan jumlah eksekusi per menit, durasi rata-rata, dan beban antrean Redis. Kombinasikan dengan *retry mechanism* di setiap node (misalnya ulangi hingga 3 kali dengan jeda eksponensial) dan *error handling* yang menangkap kegagalan panggilan LLM. Terakhir, pasang *alerting*: jika sebuah workflow gagal tiga kali berturut-turut, kirim notifikasi ke channel Slack tim operasional — sehingga masalah dilaporkan kepada manusia sebelum manusia menyadarinya.
+
+### Tabel 5: Perbandingan Latency Model Baru di n8n
+
+Bagaimana kecepatan model-model 2026 dibandingkan Llama-3.1-8B di atas?
+
+| Model | Parameter Aktif | Latency (1 call) | Context per Sesi | Cocok untuk |
+|:---|:---:|:---:|:---:|:---|
+| DeepSeek V4 Flash | 13B | 1-3 detik | 1M | Daily report, email routing |
+| DeepSeek V4 Pro | 49B | 3-8 detik | 1M | Multi-step agentic workflow |
+| Mistral Large 3 | 41B | 2-5 detik | 256K | Multimodal report generation |
+| GPT-5.5 | — | 1-4 detik (API) | 1M | Coding assistant, complex reasoning |
+| Claude Fable 5 | — | 2-6 detik (API) | 1M | Safety-critical, SWE-bench 95% |
+| Ministral 3 (8B) | 8B | 0.5-1 detik | 128K | Edge device, simple classification |
+
+![Rentang latency tiap model saat satu panggilan LLM di workflow n8n](../../assets/images/bab-09-integrasi/sub-bab-1/latency-model-n8n.png)
+
+*Gambar 9.1-1 — Rentang latency per panggilan LLM di n8n: model MoE ringan (Ministral 3, DeepSeek V4 Flash) melayani tugas harian dalam 0,5-3 detik, sementara DeepSeek V4 Pro dengan 49B aktif membutuhkan hingga 8 detik — pilihan model menentukan batas kecepatan workflow interaktif.*
+
+Pola menarik dari tabel ini: model MoE modern justru lebih cepat daripada Llama-3.1-8B dense pada sebagian tugas, karena parameter aktifnya hanya terpicu sesuai kebutuhan token. DeepSeek V4 Flash dengan 13B aktif menyelesaikan satu panggilan dalam 1-3 detik — lebih cepat dari estimasi Llama-3.1-8B pada pola yang sama, dengan kualitas jauh lebih tinggi. Ministral 3 (8B) bahkan menyentuh 0,5-1 detik, membuatnya ideal untuk pengalaman pengguna interaktif (chatbot Slack). Trade-off-nya jelas: latency model API sangat andal sebagai angka, tetapi menambahkan *network round-trip* dan *throttling* provider — dan menyerahkan data ke pihak ketiga.
+
+---
+
+
+---
+
+## 8. Praktikum / Hands-On
+
 
 ### Tutorial A: Setup n8n + Ollama dengan Docker Compose
 
@@ -384,7 +394,8 @@ Keunggulan pola ini: DeepSeek V4 Pro dengan 1M context dapat menangani percakapa
 
 ---
 
-## 11. Studi Kasus: Otomasi Customer Support di Startup Fintech (20 Agen)
+## 9. Studi Kasus: Otomasi Customer Support di Startup Fintech (20 Agen)
+
 
 Di sebuah startup fintech dengan 20 agen layanan pelanggan, kotak masuk email adalah medan perang harian: **150+ email support per hari** hanya ditangani 3 agen penuh waktu, dengan rata-rata waktu respons **4 jam** — terlalu lambat untuk perusahaan yang bergerak cepat dan terlalu mahal untuk menambah tenaga.
 
@@ -401,7 +412,8 @@ Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model —
 
 ---
 
-## 12. Referensi
+## 10. Referensi
+
 
 ### Paper Jurnal/Konferensi
 
