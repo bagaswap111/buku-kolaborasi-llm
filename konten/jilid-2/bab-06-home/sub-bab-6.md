@@ -117,6 +117,10 @@ Matriks berikut menjadi acuan utama konfigurasi *guardrails* — satu baris per 
 | **Kreatif (cerita, puisi)** | Diizinkan | Diizinkan | Diizinkan |
 | **Maks Screen Time/hari** | 30 menit | 60 menit | 90 menit |
 
+![Grafik berikut menunjukkan batas waktu layar harian yang naik bertahap seiring bertambahnya usia anak.](../../assets/images/bab-06-home/sub-bab-6/batas-screen-time-harian.png)
+
+*Gambar 6.6-1 — Batas screen time naik dari 30 menit (SD) ke 90 menit (SMA) — terlihat bahwa topik safety tetap ketat, tetapi waktu pemakaian justru dilonggarkan bertahap.*
+
 Analisis: perhatikan pola tiga kolom kanan — kategori yang berdampak langsung pada keselamatan fisik (kekerasan, judi, zat kimia) tetap diblokir di semua usia, sementara kategori kognitif (medis, politik) bertransisi bertahap dari "Blokir" ke "Peringatan/verifikasi". Ini mencerminkan prinsip: *safety* tidak pernah dilonggarkan, tetapi *agency* bertambah seiring usia. Baris paling bawah adalah *screen time* — ingat, filter topik tidak melindungi anak dari kecanduan layar, sehingga batas waktu perlu ditegakkan terpisah melalui *script* (Tutorial B).
 
 ### Tabel 2: Perbandingan Tools Parental Control untuk LLM

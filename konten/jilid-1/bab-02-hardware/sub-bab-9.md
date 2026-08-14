@@ -133,6 +133,10 @@ Tabel berikut memetakan tujuh platform AI PC utama — dari NPU 11 TOPS generasi
 | **Apple M4** | Neural Engine 16c | ~38 | Tidak (macOS) | Apple Silicon | CoreML / ANE | ~Rp 18 jt |
 | **Apple M4 Pro** | Neural Engine 16c | ~38 | Tidak (macOS) | Apple Silicon | CoreML / ANE | ~Rp 25 jt |
 
+![Perbandingan INT8 TOPS tujuh platform NPU AI PC dengan garis ambang 40 TOPS dan harga laptop masing-masing](../../assets/images/bab-02-hardware/sub-bab-9/tops-npu-per-platform.png)
+
+*Gambar 2.9-1 — TOPS tinggi tidak berkorelasi dengan harga: Snapdragon X Plus 45 TOPS mulai ~Rp 15 jt, dan hanya tiga platform yang melewati ambang Copilot+ 40 TOPS.*
+
 Tiga pengamatan penting dari tabel ini. Pertama, ambang **40 TOPS** (syarat Copilot+) terlihat jelas membelah pasar: hanya Lunar Lake, Snapdragon, dan Strix Point yang lolos, sementara Meteor Lake dan semua chip Apple tidak — yang terakhir karena macOS memang tidak mengikuti standar Microsoft, bukan karena kalah kemampuan. Kedua, menariknya **TOPS tinggi tidak berkorelasi dengan harga**: Snapdragon X Plus dengan 45 TOPS dijual mulai ~Rp 15 jt, termurah kedua di tabel, karena efisiensi ARM yang tinggi memungkinkan desain termal yang lebih sederhana. Ketiga, kolom *Software Stack* adalah petunjuk pertama bahwa pilihan NPU sebenarnya adalah pilihan ekosistem — topik yang dibahas lebih dalam di Tabel 3 [5][7].
 
 ### Tabel 2: Benchmark LLM Inference NPU vs GPU Laptop
@@ -149,6 +153,10 @@ Tabel berikut menjawab pertanyaan yang paling sering diajukan: seberapa cepat ma
 | **AMD Ryzen AI NPU** | Vitis AI | Llama-3-8B INT4 | ~5 t/s | 20W (NPU) | 50 | 0.25 |
 | **Apple M4 GPU (MLX)** | MLX | Llama-3.1-8B 4bit | ~60 t/s | ~30W (GPU) | - | 2.00 |
 | **RTX 4090 Laptop** | CUDA/llama.cpp | Llama-3.1-8B Q4 | ~80 t/s | ~120W (GPU) | - | 0.67 |
+
+![Efisiensi token per watt delapan perangkat NPU, iGPU, dan GPU laptop pada skala logaritmik](../../assets/images/bab-02-hardware/sub-bab-9/efisiensi-inference-npu-vs-gpu.png)
+
+*Gambar 2.9-2 — Untuk LLM, iGPU/GPU mengungguli NPU: NPU Intel hanya 0,02 t/s/W menjalankan 0,3 t/s, sementara M4 GPU mencapai 2,00 t/s/W dengan 60 t/s — dan CPU T-MAC (1,58) bahkan mengalahkan NPU di chip yang sama.*
 
 Pembacaan tabel ini penuh kejutan. Perhatikan bahwa NPU dengan TOPS tertinggi (AMD 50 TOPS) justru tidak menghasilkan tokens/s tertinggi — Snapdragon X Elite (45 TOPS) menjalankan Llama-2-7B di 10,4 t/s, tiga kali lebih cepat dari AMD. Perhatikan pula baris T-MAC: CPU dengan 8W mengalahkan NPU yang sama-sama ada di dalam chip Snapdragon — bukti bahwa *software* bisa menang melawan *hardware* yang dirancang khusus. Sementara itu, Apple M4 GPU dengan MLX mencapai efisiensi 2,00 t/s/W — tertinggi di tabel — dan RTX 4090 laptop tetap raja kecepatan mentah (80 t/s) dengan konsekuensi daya 120W. Kesimpulan praktisnya: jika Anda ingin menjalankan LLM 7–8B di laptop, targetkan *iGPU* atau *GPU* — NPU adalah pendamping efisien, bukan pelari utama [1][2][3][4][5].
 

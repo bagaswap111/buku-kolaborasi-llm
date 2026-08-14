@@ -216,6 +216,12 @@ Strategi optimal: deploy model kecil (7-8B) untuk 80% beban kerja harian, dan ro
 
 *Parameter aktif untuk model MoE. Semua expert harus tetap di-load ke VRAM meskipun hanya sebagian yang aktif per token.*
 
+Perhatikan bagaimana kuantisasi menggeser batas kemampuan perangkat keras: model 70B yang memerlukan 280 GB dalam FP32 bisa "dipadatkan" menjadi 38 GB dalam Q4_K_M — perbedaan yang menentukan antara butuh server dan cukup satu kartu RTX 4090.
+
+![Kebutuhan memori model dari 1,5B hingga 675B pada empat tingkat presisi](../../assets/images/bab-01-model/sub-bab-2/memori-per-presisi.png)
+
+*Gambar 1.2-1 — memori naik logaritmik seiring ukuran model; INT4 (biru tua) memangkas kebutuhan hingga 8x dibanding FP32 (biru muda).*
+
 ### Tabel 3: Distribusi Parameter per Komponen (Llama-3 8B)
 
 | Komponen | Jumlah Parameter | Persentase |
@@ -225,6 +231,10 @@ Strategi optimal: deploy model kecil (7-8B) untuk 80% beban kerja harian, dan ro
 | FFN (gate + up + down per layer × 32) | 5.2B | 64.7% |
 | LayerNorm + RoPE | 209M | 2.6% |
 | **Total** | **8.03B** | **100%** |
+
+![Distribusi parameter dalam Llama-3 8B](../../assets/images/bab-01-model/sub-bab-2/distribusi-parameter.png)
+
+*Gambar 1.2-2 — dua pertiga parameter duduk di lapisan FFN; inilah mengapa MoE bisa "memangkas" biaya komputasi dengan berbagi bergantian.*
 
 ---
 

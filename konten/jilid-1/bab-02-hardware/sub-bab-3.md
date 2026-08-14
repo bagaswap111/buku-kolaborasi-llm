@@ -275,6 +275,10 @@ metrik paling jujur untuk keputusan pembelian.
 | RTX 3090 used 24GB | 24 GB | ~Rp 12 jt | ~500 rb/GB |
 | 2x RTX 3090 48GB | 48 GB | ~Rp 24 jt | ~500 rb/GB |
 
+![Biaya per gigabyte memori untuk tujuh konfigurasi Mac dan PC: M2 Ultra Studio paling efisien (~Rp 390 rb/GB) sementara RTX 4090 paling boros (~Rp 1,25 jt/GB), diurutkan dari yang paling murah.](../../assets/images/bab-02-hardware/sub-bab-3/biaya-per-gb-memori.png)
+
+*Gambar 2.3-1 — RTX 4090 yang paling diidolakan justru paling boros: ~Rp 1,25 juta per GB, tiga kali lipat M2 Ultra Studio 192GB (~Rp 390 rb/GB); satu-satunya penantang dari kubu PC adalah RTX 3090 used (~Rp 500 rb/GB).*
+
 Inilah bar chart yang mengubah cara pandang banyak peneliti Indonesia. **RTX 4090 —
 kartu yang paling diidolakan komunitas — justru paling boros: ~Rp 1,25 juta per GB.**
 Mac Studio M4 Max memangkasnya menjadi ~Rp 430 ribu per GB, dan **M2 Ultra Studio

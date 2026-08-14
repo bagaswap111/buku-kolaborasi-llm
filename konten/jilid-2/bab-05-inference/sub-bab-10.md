@@ -117,6 +117,10 @@ Data pengukuran nyata pada A100 — perhatikan bagaimana token per step rata-rat
 | SpecInfer (tree K=8) | 4.8 | 4,000 | 3.2x | 60% |
 | Medusa-1 (heads=4) | 3.0 | 3,000 | 2.4x | 75% |
 
+![Speculative decoding menaikkan throughput dari 1.250 tok/s (baseline) hingga 4.000 tok/s (SpecInfer tree K=8) — namun acceptance rate vanilla jatuh ke 44% saat K membesar, sementara token tree menjaganya di 60-80%](../../assets/images/bab-05-inference/sub-bab-10/benchmark-speculative-decoding.png)
+
+*Gambar 5.10-1 — Token tree mengubah permainan: pada K=8, SpecInfer mempertahankan acceptance 60% dengan 4,8 token/step, jauh melampaui vanilla (44%, 3,5 token/step) — menambah K tanpa batas mandul bila acceptance rate jatuh.*
+
 Dua pelajaran penting dari Tabel B. Pertama, *acceptance rate tidak turun secara linier saat K membesar* — K=8 pada vanilla hanya mendapat 44% penerimaan dibanding 70% pada K=4, karena semakin jauh draft menebak, semakin besar kemungkinan meleset. Ini menjelaskan mengapa menambah K tanpa batas tidak selalu bijak: ada K optimal per pasangan draft-target. Kedua, token tree mengubah permainan — pada K=8, SpecInfer mempertahankan penerimaan 60% dengan 4,8 token per step rata-rata, jauh melampaui vanilla 3,5. Untuk trafik produksi, aturan praktisnya: mulailah dari K=4-6 untuk vanilla, dan manfaatkan tree bila trafik Anda didominasi prompt yang beragam.
 
 ### Tabel C: Trade-off Ukuran Draft Model vs Speedup

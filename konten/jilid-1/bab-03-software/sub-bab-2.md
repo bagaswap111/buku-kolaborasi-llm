@@ -135,6 +135,12 @@ Tabel ini membandingkan dua *engine* yang bisa dipilih pengguna LM Studio, denga
 | **Kecepatan (M3 Max)** | ~80 t/s (7B) | ~95 t/s (7B) |
 | **Multi-model** | Ya (GGUF + MLX campur) | Ya |
 
+Gambar berikut memvisualisasikan selisih kecepatan kedua *engine* untuk model 7B yang sama di perangkat yang sama.
+
+![Perbandingan kecepatan token/detik llama.cpp vs Apple MLX di MacBook M3 Max](../../assets/images/bab-03-software/sub-bab-2/kecepatan-engine-m3-max.png)
+
+*Gambar 3.2-1 — Pada model 7B yang sama, Apple MLX mencapai ~95 t/s berbanding ~80 t/s llama.cpp (selisih ~19%), karena MLX mengoptimalkan alokasi memori untuk arsitektur Apple — cukup berarti untuk percobaan harian pengguna Mac M-series.*
+
 Analisis dari tabel ini: llama.cpp unggul dalam *portabilitas* — satu mesin untuk semua hardware — sementara MLX unggul dalam *kecepatan* pada ekosistem Apple. Rentang kuantisasi juga berbeda: llama.cpp menawarkan varian ekstrem (IQ1-IQ4) untuk memeras model besar ke VRAM kecil, sedangkan MLX lebih konservatif dengan FP16/FP32 dan kuantisasi miliknya. Jika perangkat Anda Mac M-series dan model yang dipakai mendukung MLX, coba kedua engine dan simpan hasil *benchmark* — perbedaan ~19% kecepatan cukup berarti untuk percobaan harian.
 
 Kapan harus memilih yang mana? Jawaban ringkasnya: **pilih MLX bila modelnya tersedia dan perangkatnya Apple; pilih llama.cpp untuk yang lain**. Ada satu pertimbangan tambahan: dukungan *vision*. Keduanya mendukung model *vision* (LLaVA dan turunannya, termasuk varian DeepSeek V4 di sisi llama.cpp; via `mlx-vlm` di sisi MLX), tetapi kematangan dan jumlah model di ekosistem llama.cpp jauh lebih besar karena ia lebih lama beredar. Untuk pengguna yang rajin mencoba model baru yang rilis mingguan, llama.cpp hampir selalu punya dukungan lebih dulu — MLX menyusul beberapa saat kemudian.

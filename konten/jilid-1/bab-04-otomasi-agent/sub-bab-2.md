@@ -160,6 +160,10 @@ Seberapa baik masing-masing model *mengerti* tool definitions? BFCL memberikan a
 
 Tiga wawasan penting muncul dari angka-angka ini. Pertama, semua model menurun saat tugas beralih dari *simple* ke *multiple* ke *parallel* — memilih di antara banyak fungsi lebih sulit daripada mengisi satu fungsi, dan paralel lebih sulit lagi. Kedua, *gap* antara model proprietary termahal (Claude Fable 5, 95,6%) dan model lokal (DeepSeek V4 Flash, 90,6%) hanya sekitar 5 poin persentase — margin yang kecil untuk selisih biaya per *token* yang sangat besar. Ketiga, Llama-3.1-70B tertinggal cukup jauh (82,7%) meskipun memiliki *function calling native* — bukti bahwa dukungan format tidak identik dengan kemampuan. Bagi pengguna lokal, DeepSeek V4 Flash dan Mistral Large 3 adalah pilihan rasional; bagi aplikasi kritis dengan toleransi kesalahan minimum, Claude Fable 5 atau GPT-5.5 masih layak dibayar [3][6].
 
+![Skor BFCL antar model](../../assets/images/bab-04-otomasi-agent/sub-bab-2/skor-bfcl-antar-model.png)
+
+*Gambar 4.2-1 — Semua model menurun saat tugas berpindah dari simple ke multiple ke parallel function; gap overall antara Claude Fable 5 (95,6%) dan DeepSeek V4 Flash (90,6%) hanya ~5 poin persentase, sementara Llama-3.1-70B (82,7%) tertinggal meskipun punya function calling native.*
+
 ---
 
 ## 8. Diagram & Visualisasi

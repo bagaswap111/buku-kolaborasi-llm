@@ -134,6 +134,10 @@ Tabel berikut membandingkan lima alat berbasis terminal yang paling umum dipakai
 | **llamafile** | Download 1 file | ~40 MB + model | Ya | Ya | Single file, portable |
 | **sgpt (shell-gpt)** | pip install | ~2 MB | Ya | Tidak | Integrasi shell |
 
+![Perbandingan ukuran binary lima CLI tools dalam skala logaritmik](../../assets/images/bab-03-software/sub-bab-10/ukuran-binary-cli.png)
+
+*Gambar 3.10-2 — sgpt paling ringan (2 MB) karena memanfaatkan API eksternal; ollama paling berat (~400 MB) karena membundel runtime dan model management sendiri.*
+
 Analisis: tabel ini membagi alat menjadi dua kubu. **llama-cli** dan **llama-server** adalah *engine* murni — fleksibel dan lengkap, tetapi Anda bertanggung jawab atas model dan konfigurasi. **ollama** dan **llamafile** adalah *wrapper* yang menyederhanakan — mereka mengorbankan sebagian kontrol untuk kenyamanan. **sgpt** berdiri sendiri: bukan engine, melainkan asisten yang memanfaatkan API apa pun. Pilihan yang baik sering kali kombinasi: Ollama untuk manajemen model harian, llama-server untuk serving OpenAI-compatible, dan sgpt untuk bantuan *inline* di shell.
 
 ### Tabel B: Contoh One-Liner
@@ -164,6 +168,10 @@ Keempat mode komputasi berikut menentukan pengalaman yang akan Anda rasakan (mod
 | **GPU offload 100%** | 40-85 t/s | ~6 GB | 12-24 GB VRAM | Desktop dengan GPU |
 | **Hybrid (CPU+GPU)** | 20-40 t/s | ~5 GB + VRAM | 6-8 GB VRAM | GPU terbatas VRAM |
 | **Metal (Apple)** | 30-60 t/s | ~6 GB | Unified Memory | Mac M-series |
+
+![Rentang kecepatan empat mode komputasi CLI untuk model 7B Q4](../../assets/images/bab-03-software/sub-bab-10/kecepatan-mode-cli.png)
+
+*Gambar 3.10-1 — GPU offload penuh memberi lompatan hingga 5× dibanding CPU-only; mode hybrid menjadi kompromi cerdas untuk GPU dengan VRAM terbatas.*
 
 Analisis: tabel ini menunjukkan *trade-off* yang harus dipahami setiap pengguna CLI. CPU-only adalah mode paling universal (8–15 t/s) — cukup untuk *batch processing* yang tidak sensitif waktu, terlalu lambat untuk percakapan interaktif yang nyaman. GPU offload penuh memberikan lompatan 5× lipat tetapi menuntut VRAM besar. **Hybrid** — memuat sebagian lapisan ke GPU, sisanya di CPU — adalah solusi cerdas untuk GPU dengan VRAM kecil (seperti banyak kartu 6–8 GB): kecepatan dua kali lipat dari CPU murni, tanpa perlu GPU baru. **Metal** membuktikan kembali keunggulan *unified memory* Apple Silicon: 30–60 t/s tanpa VRAM terpisah.
 

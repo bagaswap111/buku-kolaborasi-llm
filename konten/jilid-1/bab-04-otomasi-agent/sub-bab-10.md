@@ -125,6 +125,10 @@ Tabel ini merangkum setiap komponen pipeline beserta kebutuhan sumber daya dan w
 
 Dari tabel ini, pesan utama tentang sumber daya: pipeline kelas ini berjalan nyaman di mesin dengan **16 GB memori** — angka yang sama untuk RAM dan VRAM karena pada Mac Apple Silicon keduanya adalah *unified memory*, sedangkan pada GPU NVIDIA Anda perlu memastikan VRAM setidaknya 10 GB untuk Whisper *large-v3*. Perhatikan trade-off Whisper: *large-v3* hanya menghemat 2 poin WER (9% → 7%) tetapi menggandakan waktu proses dan memori. Untuk meeting internal yang tidak terlalu menuntut, *medium* adalah pilihan rasional. Waktu total 25-35 menit untuk satu jam audio berarti pipeline paling praktis dijalankan sebagai *batch* malam hari — dan karena source file dipindahkan setelah diproses (lihat Tutorial C), pipeline secara alami hanya memproses audio baru.
 
+![Waktu proses dan kebutuhan memori setiap komponen pipeline meeting untuk satu jam audio](../../assets/images/bab-04-otomasi-agent/sub-bab-10/resource-waktu-pipeline.png)
+
+*Gambar 4.10-1 — Whisper large-v3 adalah komponen termahal (15 menit, 10 GB) sementara diarization menyusul (12 menit); total 25-35 menit dan ~16 GB memori membuat pipeline ideal dijalankan sebagai batch malam hari.*
+
 ### Tabel B: Format Structured Output
 
 Tabel ini menunjukkan format output final yang dihasilkan pipeline — perhatikan struktur *frontmatter*, *key points*, dan *action items* yang konsisten, lengkap dengan pemilik dan *deadline*.

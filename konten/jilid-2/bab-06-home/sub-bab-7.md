@@ -127,6 +127,14 @@ Pilih model dengan mencocokkan prioritas keluarga (kecepatan vs akurasi) terhada
 | **Large-v3** | 1.55B | ~3.1 GB | ~5% | 1.5 detik | 12 detik | ~6 GB | Akurasi maksimal |
 | **Turbo** | 809M | ~1.6 GB | ~5.5% | 0.7 detik | 4.0 detik | ~3 GB | Large quality, small speed |
 
+![Grafik berikut membandingkan akurasi (WER) keenam model Whisper untuk bahasa Indonesia, dari Tiny hingga Turbo.](../../assets/images/bab-06-home/sub-bab-7/wer-whisper-per-model.png)
+
+*Gambar 6.7-1 — WER menurun dari ~18% (Tiny) ke ~5% (Large-v3); Small di ~10% menempati posisi keseimbangan yang menjadi rekomendasi utama untuk rumah.*
+
+![Gambar ini membandingkan latensi GPU versus CPU per segmen, dengan garis merah menandai batas nyaman 2 detik.](../../assets/images/bab-06-home/sub-bab-7/latensi-whisper-gpu-vs-cpu.png)
+
+*Gambar 6.7-2 — Seluruh model di GPU berada di bawah 2 detik, tetapi di CPU hanya Tiny (1,5 dtk) yang nyaman — GPU-lah penentu pengalaman real-time, bukan modelnya.*
+
 Analisis: dua kolom yang paling menentukan keputusan adalah *Latency CPU* dan *WER*. Jika server keluarga tidak memiliki GPU, hanya Tiny dan Base yang berada di zona nyaman sub-2 detik — dan Tiny dengan WER ~18% masih cukup untuk perintah pendek yang vokabulernya terbatas ("nyalakan lampu", "buat catatan"). Dengan GPU, Small membuka zona akurasi tinggi (~10% WER) dengan latensi hanya 0,6 detik — inilah *sweet spot* yang direkomendasikan di seksi 3. Perhatikan juga kolom RAM: seluruh keluarga Whisper muat di RAM server 16 GB, bahkan dengan LLM pendamping — jadi model bukan pembatas hardware, GPU-lah pembatasnya.
 
 ### Tabel 2: Komponen Hardware Voice Pipeline

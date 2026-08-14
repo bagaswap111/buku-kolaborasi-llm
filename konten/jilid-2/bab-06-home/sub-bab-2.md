@@ -110,6 +110,12 @@ Empat kandidat utama berdampingan — perhatikan bahwa 'tercepat' tidak selalu '
 | **Harga Baru** | ~Rp 14jt (used) | ~Rp 28-30jt | ~Rp 30-35jt | ~Rp 60-70jt |
 | **Total Build** | ~Rp 25-30jt | ~Rp 40-45jt | ~Rp 32-37jt | ~Rp 62-72jt |
 
+Selisih kecepatan antar kandidat langsung terlihat ketika digambar — RTX 4090 memimpin di kedua ukuran model, tetapi RTX 3090 hanya tertinggal sekitar 25%.
+
+![Perbandingan throughput token per detik empat kandidat hardware](../../assets/images/bab-06-home/sub-bab-2/throughput-tokens-per-detik.png)
+
+*Gambar 6.2-1 — Throughput model 7B dan 14B Q4 pada empat hardware. RTX 4090 tercepat (~146 tok/s), tetapi RTX 3090 memberi 75% performanya dengan harga sekitar setengahnya — lebih dari cukup untuk puncak 2-3 sesi paralel keluarga.*
+
 Ada dua bacaan penting dari tabel ini. Pertama, RTX 3090 membuktikan diri sebagai *value king*: performa 75% dari RTX 4090, TDP lebih rendah, harga sekitar setengahnya — dan untuk SLA keluarga (TTFT <2 detik, 3 sesi paralel), 110 tok/s sudah melebihi kebutuhan. Kedua, Mac Mini M4 Pro hanya menghasilkan ~60 tok/s untuk 7B, tetapi dengan 0 dB dan 7W idle, ia adalah satu-satunya kandidat yang boleh menyala 24 jam tanpa rasa bersalah. Jawabannya bukan "yang tercepat", melainkan "yang paling cocok dengan jadwal keluarga".
 
 Ada pula dimensi berkelanjutan yang tidak muncul di lembar spesifikasi: nilai jual kembali. RTX 3090 yang dibeli bekas akan dijual kembali sebagai bekas dengan penyusutan relatif halus, sementara Mac Mini M4 Pro cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia. Faktor ini tidak mengubah keputusan teknis, tetapi ikut menentukan biaya kepemilikan nyata setelah 2-3 tahun — saat keluarga memutuskan naik kelas.

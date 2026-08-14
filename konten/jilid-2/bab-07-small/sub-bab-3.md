@@ -104,6 +104,10 @@ Kabar baik bagi kantor kecil: Open WebUI sangat ringan. Tabel ini membantu Anda 
 | **Storage** | 10 GB | 50 GB | 200 GB (termasuk RAG data) |
 | **Database** | SQLite | PostgreSQL | PostgreSQL + Redis |
 
+![Kebutuhan CPU, RAM, dan storage Open WebUI pada tiga level — minimum, recommended, dan untuk 20 user](../../assets/images/bab-07-small/sub-bab-3/resource-usage-open-webui.png)
+
+*Gambar 7.3-1 — kebutuhan sumber daya Open WebUI melompat 4x (CPU), 8x (RAM), dan 20x (storage) dari minimum ke skala 20 user. Storage adalah lonjakan terbesar karena menampung data RAG, sementara CPU dan RAM tetap mungil — itulah mengapa platform ini bisa tinggal di server GPU yang sama.*
+
 Kisaran 2 GB sampai 16 GB RAM adalah salah satu alasan Open WebUI bisa hidup berdampingan dengan vLLM di server yang sama. Perhatikan kolom terakhir: pada 20 user, PostgreSQL yang *recommended* berubah menjadi *wajib*, dan Redis mulai hadir — bukan karena fitur Open WebUI membutuhkannya, tetapi karena *session* 20 orang yang aktif menyebabkan satu database tunggal kelelahan.
 
 ### Tabel 3: Konfigurasi Environment Variable

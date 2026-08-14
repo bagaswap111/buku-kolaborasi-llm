@@ -147,6 +147,12 @@ Tabel ini merangkum rentang kerja dan pengaruh setiap parameter pada semangat ou
 | **Min-P** | 0.0–1.0 | Deterministik | Default (0.05-0.1) | Kreatif (0.2) |
 | **Repetition Penalty** | 1.0–2.0 | Normal (1.0) | Sedang (1.1) | Agresif (1.2+) |
 
+Gambar berikut memvisualisasikan kolom *Rentang* tabel ini.
+
+![Rentang kerja kelima parameter sampling di Text-Generation-WebUI](../../assets/images/bab-03-software/sub-bab-5/rentang-parameter-sampling.png)
+
+*Gambar 3.5-1 — Top-K memiliki rentang operasi terluas (1–200) karena K bersifat statis, sementara parameter berbasis probabilitas (Temperature 0–2, Top-P 0,5–1, Min-P 0–1) bekerja pada skala yang lebih sempit — sebagian alasan mengapa truncation adaptif seperti Min-P lebih mudah dikendalikan.*
+
 Analisis: perhatikan pola yang konsisten — hampir semua parameter memiliki wilayah "seimbang" yang menjadi *default* industri. Temperature rendah dan *penalty* polos adalah kunci tugas presisi; *ketiganya* dilonggarkan bersamaan hanya untuk tugas kreatif. Kesalahan umum pemula adalah mengubah hanya Temperature untuk "membuat model kreatif" tanpa menyentuh *truncation* — hasilnya sering persis seperti yang ditakuti: *incoherent*. Kuncinya diingat: **Temperature mengatur keberanian, truncation mengatur batas keselamatan** — keduanya harus diubah bersama.
 
 ### Tabel 2: Preset Parameter per Use Case
@@ -161,6 +167,12 @@ Rangkuman *preset* yang terbukti bekerja untuk enam *use case* umum:
 | **Roleplay** | 1.0 | 0.98 | 80 | 0.15 | 1.15 | -1 |
 | **Factual Q&A** | 0.1 | 0.85 | 20 | 0.02 | 1.0 | 123 |
 | **Translation** | 0.3 | 0.9 | 30 | 0.05 | 1.0 | 42 |
+
+Gambar berikut membandingkan dua kolom parameter yang berskala sama (Temperature dan Top-P) untuk keenam *use case*.
+
+![Preset Temperature dan Top-P untuk tiap use case di Text-Generation-WebUI](../../assets/images/bab-03-software/sub-bab-5/preset-temperature-top-p.png)
+
+*Gambar 3.5-2 — Di ujung presisi, Factual Q&A memakai Temperature 0,1 dan Coding 0,2 dengan Top-P ketat; di ujung kreatif, Roleplay melonggarkan semua tombol (T=1,0, Top-P 0,98) — spektrum yang sama terlihat pada kolom Top-K dan Min-P di tabel.*
 
 Analisis: baca tabel ini sebagai spektrum. Di ujung kiri, tugas presisi (coding, fakta, terjemahan) memakai Temperature rendah dan *truncation* ketat dengan *seed* tetap — *reproducibility* adalah prioritas; perhatikan *Factual Q&A* memakai seed 123 agar output dapat diverifikasi ulang. Di ujung kanan, *Roleplay* paling longgar (T=1,0, Top-P 0,98, Min-P 0,15) dengan *seed* acak (-1) — kreativitas dan variasi justru yang diinginkan. *Creative Writing* dan *Chat* berada di tengah. Tabel ini bukan hukum, melainkan titik awal eksperimen: setiap kombinasi perlu divalidasi terhadap kebutuhan nyata, karena karakter model antar arsitektur berbeda.
 

@@ -181,6 +181,12 @@ Pilihan *vector database* menentukan seberapa jauh RAG Anda bisa berkembang:
 | **Milvus** | Distributed | Ya | Sangat Besar (10M+) | Sangat cepat |
 | **Elasticsearch** | Enterprise | Ya/No | Besar | Sedang |
 
+Gambar berikut memetakan kolom skalabilitas tabel ini ke skala logaritmik.
+
+![Perbandingan skala koleksi dokumen antar vector database di Open WebUI](../../assets/images/bab-03-software/sub-bab-4/skala-vector-database.png)
+
+*Gambar 3.4-1 — ChromaDB cukup untuk koleksi di bawah 10 ribu dokumen, sementara Milvus melayani 10 juta+ — selisih tiga orde magnitudo; label "Besar" pada Elasticsearch dan Qdrant dipetakan ke ~1 juta dokumen sesuai keterangan tabel.*
+
 Analisis: tidak ada jawaban tunggal yang benar — semuanya bergantung pada jumlah dokumen. ChromaDB adalah pilihan default yang tepat: nol *infrastruktur* tambahan karena berjalan *embedded* di dalam proses, cukup untuk perpustakaan dokumen pribadi hingga ribuan *chunk*. Ketika koleksi melewati batas 10 ribu dokumen atau mulai melayani banyak pengguna bersamaan, PGVector menawarkan jalur halus karena cukup menambahkan ekstensi pada PostgreSQL yang mungkin sudah ada. Pada skala jutaan dokumen, Qdrant dan Milvus yang berdiri sendiri (*standalone/distributed*) memberi *control* penuh atas *sharding* dan *replication* — tetapi juga berarti layanan tambahan yang harus dirawat. Aturan praktis: mulai dengan ChromaDB, dan pindah hanya ketika ada bukti pengukuran bahwa ChromaDB sudah menjadi *bottleneck*.
 
 ### Tabel 3: Perbandingan Frontend LLM
@@ -195,6 +201,12 @@ Untuk memosisikan Open WebUI, bandingkan dengan tiga *frontend* lain yang popule
 | **Multi-User** | Ya (RBAC) | Tidak | Tidak | Tidak |
 | **Web Search** | 15+ providers | Manual | Tidak | Tidak |
 | **Multi-Model** | Ya | Ya | Terbatas | Ya |
+
+Gambar berikut menghitung dukungan keenam fitur inti pada tabel ini dengan skala: dukungan penuh ("Ya") = 1, dukungan parsial (Extension, LocalDocs, Terbatas, Manual) = 0,5.
+
+![Jumlah fitur inti yang didukung penuh per frontend LLM](../../assets/images/bab-03-software/sub-bab-4/perbandingan-fitur-frontend.png)
+
+*Gambar 3.4-2 — Open WebUI adalah satu-satunya yang mendukung seluruh enam fitur inti (RAG lengkap, Tools, multi-user RBAC, web search); Text-Generation-WebUI dan Ollama Web UI tertinggal jauh, mempertegas posisi Open WebUI sebagai pilihan all-in-one.*
 
 Analisis: dari tabel ini terlihat mengapa Open WebUI disebut *all-in-one* — ia adalah satu-satunya yang mengemas RAG lengkap, Tools, multi-user, dan web search dalam satu paket. Text-Generation-WebUI (dibahas di Bab 3.5) unggul justru di area lain yang tidak tercantum di sini: kendali *parameter sampling* yang sangat mendalam, menjadikannya laboratorium eksperimen yang ideal. GPT4All menang di sisi kesederhanaan *desktop app* tanpa Docker, sementara Ollama Web UI pada dasarnya adalah versi awal dari Open WebUI itu sendiri. Pilihan yang tepat bergantung peran: Open WebUI jika Anda ingin *produk jadi untuk banyak orang*, Text-Generation-WebUI jika Anda ingin *laboratorium riset sampling*, dan GPT4All jika Anda ingin aplikasi *desktop* paling sederhana.
 

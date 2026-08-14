@@ -151,6 +151,10 @@ Data evaluasi RAG Dify v0.10 pada dataset internal menunjukkan efek penambahan h
 | **Precision@3** | 0.71 | 0.88 | +23.9% |
 | **Latency (ms)** | 45 | 185 | +311% (trade-off) |
 
+![Skor Recall@5, MRR@10, dan Precision@3 untuk Vector Only versus Hybrid + Rerank](../../assets/images/bab-09-integrasi/sub-bab-2/performa-retrieval-dify.png)
+
+*Gambar 9.2-1 — Penambahan hybrid search dan rerank menaikkan seluruh metrik kualitas retrieval (Precision@3 +23,9%), tetapi latency melonjak dari 45 ms ke 185 ms — terapkan mode hybrid hanya pada tugas yang mengutamakan akurasi seperti screening CV.*
+
 Tabel ini adalah pelajaran klasik dalam RAG: kualitas dan kecepatan sering bertolak belakang. Pencarian vektor murni selesai dalam 45 ms tetapi Recall@5 hanya 0,82 — dataset bisnis sering memakai istilah yang berbeda dari kata kunci pengguna, sehingga hasil vektor saja melewatkan dokumen relevan. Dengan menambahkan pencarian keyword dan model rerank, Recall@5 naik ke 0,94 (+14,6%) dan Precision@3 melonjak 23,9% — jawaban yang lebih tepat dalam setiap batch. Harganya: latency naik menjadi 185 ms (+311%). Keputusan yang bijak adalah menerapkan mode *hybrid + rerank* untuk tugas yang mengutamakan akurasi (screening CV, analisis kontrak) dan *vector only* untuk chatbot FAQ volume tinggi. Catatan: data ini dari evaluasi Dify v0.10 dengan dataset internal; versi Dify yang lebih baru sebaiknya diverifikasi ulang dengan dataset Anda sendiri.
 
 ---

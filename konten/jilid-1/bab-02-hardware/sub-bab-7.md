@@ -108,6 +108,10 @@ Tabel berikut membandingkan 16 platform untuk model Llama-3.1-8B Q4_K_M — dari
 
 *Asumsi: 8 jam/hari, 30 hari, tarif Rp 1.600/kWh.
 
+![Klasemen efisiensi token per watt dari 17 platform, dengan M4 Max memimpin dan konfigurasi 8-GPU di dasar](../../assets/images/bab-02-hardware/sub-bab-7/perbandingan-tpj.png)
+
+*Gambar 2.7-1 — Klasemen TPJ berskala log: M4 Max (1,56) empat kali lebih efisien daripada RTX 4090 (0,37), sementara workstation 6-8 GPU untuk model raksasa jatuh ke 0,006-0,003 karena komunikasi antar kartu memboroskan watt.*
+
 Kisah tabel ini berada di tiga sorotan. Pertama, **efek power limit pada RTX 4090 mengubah klasemen**: dari 0,37 menjadi 0,40 TPJ — GPU diskrit paling efisien di tabel, dengan biaya listrik turun dari ~324 ribu menjadi ~270 ribu rupiah per bulan [5]. Kedua, **Apple Silicon beroperasi di liga yang berbeda**: M4 Max 1,56 TPJ empat kali lebih efisien daripada RTX 4090, dan M4 Pro hanya memakan ~32 ribu rupiah per bulan — kurang dari seperempat biaya kartu NVIDIA entry-level. Ketiga, baris-baris ekstrem mengajarkan batas: menjalankan DeepSeek V4 Flash (284B) di 6x RTX 3090 menuntut 1,3 kW dan ~1,4 juta rupiah per bulan hanya untuk listrik — di sinilah "menjalankan model raksasa di rumah" berubah dari eksperimen menjadi keputusan finansial.
 
 Perhatikan juga pola menarik di jajaran NVIDIA: **efisiensi tidak selalu sejalan dengan kelas**. RTX 4070 (0,28) dan RTX 4080 Super (0,27) berada di atas RTX 4060 Ti (0,24) — dan RTX 4060 (0,26) kalah dari RTX 4070 meskipun watt-nya jauh lebih kecil. Sebabnya adalah *time-to-completion*: kartu yang lebih cepat menyelesaikan pekerjaan lalu beristirahat, sementara kartu kecil yang "irit per jam" justru bekerja lebih lama untuk menghasilkan token yang sama. Ini mengingatkan kita pada diskusi Bab 2.5 — kadang "yang lebih besar lebih efisien" — dan menegaskan kembali bahwa TPJ harus dihitung dengan model dan konfigurasi nyata Anda, bukan dari *spec sheet*.
@@ -144,6 +148,10 @@ Terakhir, mari bandingkan biaya per satu juta token — pemikiran yang mengubah 
 | OpenAI GPT-5.5 | - | - | **Rp 150.000** |
 | Claude 3.5 Sonnet | - | - | **Rp 47.000** |
 | Claude Fable 5 | - | - | **Rp 250.000** |
+
+![Perbandingan biaya per juta token antara empat platform lokal dan empat API cloud pada skala logaritmik](../../assets/images/bab-02-hardware/sub-bab-7/biaya-per-juta-token.png)
+
+*Gambar 2.7-2 — Inferensi lokal 40-400x lebih murah per juta token: RTX 3090 bekas ~Rp 520 melawan GPT-5.5 ~Rp 150.000 dan Claude Fable 5 ~Rp 250.000.*
 
 Angka di tabel ini adalah jawaban paling dingin untuk pertanyaan "lokal atau cloud?" — dan jawabannya tegas: **lokal 40x hingga 400x lebih murah per juta token** [6]. RTX 3090 bekas hanya ~520 rupiah per juta token, sementara GPT-5.5 mematok ~150 ribu. Bahkan M2 Ultra yang mahal — ~2.876 rupiah — masih 16x lebih murah daripada Claude 3.5 Sonnet. Perhatikan bahwa komponen terbesar untuk platform lokal adalah *amortisasi hardware* (Rp 455-Rp 2.853), bukan listrik (Rp 14-Rp 65) — yang berarti keputusan pembelian hardware adalah keputusan jangka panjang, sementara biaya operasionalnya hampir bisa diabaikan.
 

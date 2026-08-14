@@ -166,6 +166,10 @@ Tabel berikut membandingkan konsumsi energi dan emisi per 1.000 *query* untuk 14
 | **Qwen 2.5 14B** | 14B | Q4_K_M | ~0.6 Wh | ~0.36 g | ~1.2 halaman web |
 | *Asumsi: grid carbon intensity 600 gCO2/kWh (rata-rata Indonesia)* | | | | | |
 
+![Grafik batang horizontal emisi CO2 per seribu query untuk lima belas model, diurutkan dari tertinggi ke terendah, dengan model proprietary cloud berwarna merah dan model open-weight lokal berwarna hijau](../../assets/images/bab-10-etika/sub-bab-5/emisi-co2-per-model.png)
+
+*Gambar 10.5-1 — Emisi CO2 per 1.000 query (grid Indonesia, 600 gCO2/kWh) untuk 15 model pada Tabel A. Query ke GPT-4o mengeluarkan 18x emisi dibandingkan Ministral 3 (2,70 g vs 0,15 g) — sebagian besar emisi sebenarnya bisa dihindari hanya dengan penugasan model yang tepat.*
+
 Tiga *insight* penting. Pertama, **efisiensi per query berbanding terbalik dengan popularitas**: query ke GPT-4o mengeluarkan energi 18x lebih besar dari query ke Ministral 3 — dan karena keduanya sering dipakai untuk tugas yang sama, sebagian besar emisi *sebenarnya* bisa dihindari hanya dengan penugasan model yang tepat. Kedua, **MoE adalah tameng hijau model besar**: DeepSeek V4 Pro dengan kapasitas setara model 180B *dense* hanya mengonsumsi ~1,5 Wh per query — kualitas besar tanpa harga energi yang sebanding. Ketiga, **kuantisasi bekerja nyata**: Llama 3.1 70B Q3_K_M vs Q4_K_M selisih ~20% energi, dan keduanya jauh di bawah versi FP16-nya. Perhatikan juga konteks Indonesia: dengan *grid* 600 gCO2/kWh, "harga" karbon setiap query lokal hampir dua kali lipat dibandingkan di grid rendah karbon — penghematan energi berarti penghematan emisi yang lebih besar lagi di sini.
 
 ### Tabel B: Perbandingan Strategi Green AI

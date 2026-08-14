@@ -121,6 +121,12 @@ Berikut peta model paling relevan untuk 2026, lengkap dengan *benchmark* publik:
 
 Bacaan penting dari tabel ini: tiga model dengan kebutuhan RAM paling kecil (Llama-3.2 3B, Gemma 4 E4B, Ministral 3) menawarkan pilihan nyata untuk laptop 8 GB — tetapi skor MMLU-nya (63–76%) masih kalah jauh dari kelas MoE. Sementara itu, **Qwen 3 dengan 22B aktif menawarkan MMLU 86,8% hanya dengan 16 GB RAM Q4** — inilah pemenang rasio performa-per-hardware tahun ini. Untuk konteks 1M, hanya model CSA/HCA dan model proprietary yang layak.
 
+Grafik berikut mengurutkan model dari MMLU tertinggi ke terendah, dengan GSM8K sebagai pendamping untuk melihat kekuatan penalaran matematis:
+
+![Perbandingan skor MMLU dan GSM8K model-model 2025–2026, diurutkan dari MMLU tertinggi](../../assets/images/bab-01-model/sub-bab-10/perbandingan-mmlu-gsm8k.png)
+
+*Gambar 1.10-1 — GPT-5.5 dan Claude Fable 5 memuncaki MMLU (91,2% dan 90,8%), tetapi di kelas open-weight, DeepSeek V4 Pro (87,5%) dan Qwen 3 (86,8%) berdiri hampir setara — dengan parameter aktif jauh lebih sedikit.*
+
 ### Tabel 2: Perbandingan SLM vs LLM Lama (MMLU)
 
 Untuk merasakan lompatan generasi, bandingkan model 2026 dengan lawan 2023:
@@ -147,6 +153,12 @@ Terakhir, proyeksi kebutuhan hardware — perhatikan bagaimana biaya setup justr
 | 2027 (prediksi) | Model 14B MoE | GPT-5 level | 12 GB | RTX 5060 12GB | Rp 25jt |
 
 Pola mencolok: *performa setara* naik tiga tingkat (dari GPT-3 dasar ke GPT-4o) sementara *min RAM* hanya naik dari 8 GB ke 16 GB — lalu turun kembali di 2027. Kurva performa tumbuh lebih curam daripada kurva harga. Artinya: pembelian hardware di 2026 untuk bertahan 2–3 tahun ke depan sangat masuk akal, asalkan Anda tidak membeli kartu paling mahal — karena kebutuhan maksimumnya justru menurun.
+
+Grafik berikut memvisualisasikan dua kolom terakhir tabel — perhatikan bagaimana kedua kurva naik bersama di 2026, lalu biaya setup kembali turun di 2027:
+
+![Tren biaya setup dan kebutuhan RAM minimum per tahun dari 2023 hingga prediksi 2027](../../assets/images/bab-01-model/sub-bab-10/trend-biaya-ram-per-tahun.png)
+
+*Gambar 1.10-2 — Biaya setup memuncak di Rp 35 juta pada 2026 bersama puncak RAM 16 GB, lalu proyeksi 2027 turun ke Rp 25 juta dengan RAM 12 GB — bukti kurva performa tumbuh lebih curam daripada kurva harga.*
 
 ---
 

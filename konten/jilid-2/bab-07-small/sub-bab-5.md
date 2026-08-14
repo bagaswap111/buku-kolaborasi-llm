@@ -117,6 +117,10 @@ Sebelum mengisi konfigurasi, kenali lini model coding yang bisa Anda pakai beser
 
 Perhatikan polanya: kualitas bintang dan *latency* bergerak berlawanan secara hampir linear. Model 1.3B memberi respons ~120 token/detik namun kualitas saran terbatas; DeepSeek-Coder-33B memberi kualitas terbaik namun melambat ke ~15 t/s dan membutuhkan 20 GB VRAM. Bintang kualitas di sini berakar pada benchmark *code generation* seperti **HumanEval** [5] — standar evaluasi yang memperkenalkan pengukuran pass@1 pada model kode. DeepSeek V4 Flash menarik karena dengan hanya ~12 GB VRAM di Q4 ia memberi kualitas bintang penuh dan throughput ~25 t/s — keunggulan arsitektur MoE yang hanya mengaktifkan 13 miliar parameter per token.
 
+![Latency code completion untuk sepuluh model coding di kuantisasi Q4 (token/detik), diurutkan dari yang tercepat](../../assets/images/bab-07-small/sub-bab-5/latency-model-coding.png)
+
+*Gambar 7.5-1 — Spektrum latency turun drastis seiring naiknya kelas model: DeepSeek-Coder-1.3B merespons ~120 t/s tetapi hanya berbintang kualitas dua, sementara DeepSeek-Coder-33B melambat ke ~15 t/s. DeepSeek V4 Flash mematahkan pola itu — ~25 t/s dengan VRAM hanya ~12 GB berkat arsitektur MoE 13B aktif.*
+
 ### Tabel 3: Kebutuhan Resource Tabby Server
 
 Terakhir, pilih konfigurasi berdasarkan jumlah pengguna yang harus dilayani — tabel ini menjadi acuan *sizing* sebelum Anda membeli atau mengalokasikan GPU.

@@ -123,6 +123,10 @@ Berikut perbandingan empat sistem serving yang diukur pada model OPT-13B dengan 
 | Latency P50 (ms) | 850 | 320 | 280 | 195 |
 | Speedup vs HF | 1x | 6.4x | 10.2x | 25.6x |
 
+![Throughput melonjak dari 0,5 req/s (HF Transformers) ke 12,8 req/s (vLLM), sementara memory waste KV-cache anjlok dari ~80% menjadi ~4%](../../assets/images/bab-05-inference/sub-bab-1/throughput-dan-memory-waste.png)
+
+*Gambar 5.1-1 — Panen PagedAttention: throughput naik 25,6x sambil pemborosan memori jatuh dari ~80% ke ~4%; hampir seluruh VRAM yang tadinya menganggur kini produktif.*
+
 Beberapa insight penting dari tabel di atas. Pertama, *memory waste* turun drastis dari ~80% menjadi ~4% — hampir seluruh VRAM yang tadinya menganggur kini produktif, dan inilah akar percepatan 25,6x. Kedua, capaian ini bukan karena kernel komputasi yang lebih cepat semata, melainkan karena *throughput* dihasilkan dari memuat lebih banyak request dalam satu waktu (*max batch size* 64+). Ketiga, *latency* P50 vLLM sebesar 195 ms — angka yang tampak tidak jauh berbeda dengan Orca, tetapi dicapai sambil melayani dua kali lipat volume request; inilah makna "lebih cepat sambil lebih sibuk".
 
 ### Tabel 2: Benchmark Throughput vLLM (Request/s)

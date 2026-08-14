@@ -143,6 +143,10 @@ Berikut peta lengkap tangga kuantisasi GGUF — perhatikan bagaimana ukuran meng
 
 Fenomena paling menarik dari tabel ini adalah kurva *perplexity loss* yang tidak linear. Dari FP16 ke Q6_K, kerugiannya hanya 0,05-0,1 poin — wilayah "gratis". Dari Q6_K ke Q4_K_M, kerugian merangkak ke 0,2-0,4 — masih sangat wajar. Tetapi dari Q3_K_M ke Q2_K, kerugian melonjak dua kali lipat dari langkah sebelumnya. Artinya: jangan takut pada Q4_K_M (hampir tidak terlihat degradasinya), tetapi waspadalah pada Q2_K — wilayah ini adalah "zona bahaya" di mana model mulai kehilangan sebagian karakternya. Pro dan kontranya jelas: Q4_K_M adalah keseimbangan emas, Q8_0 adalah "asuransi kualitas" bagi yang bisa membayar VRAM, dan Q2_K adalah kartu darurat yang hanya digunakan saat tidak ada pilihan lain.
 
+![Trade-off kuantisasi: perplexity loss dan ukuran model](../../assets/images/bab-01-model/sub-bab-4/tradeoff-kuantisasi.png)
+
+*Gambar 1.4-1 — kerugian kualitas (batang) melandai di wilayah Q4-Q6 lalu melonjak di Q2; ukuran model (garis) justru turun linier — wilayah "gratis" ada di Q5_Q6.*
+
 ### Tabel 2: Trade-off Kecepatan vs Kualitas (7B, RTX 4090)
 
 Jika Tabel 1 menunjukkan peta teori, tabel berikut menunjukkan peta pengalaman nyata — diukur pada model 7B di GPU RTX 4090.
@@ -154,6 +158,10 @@ Jika Tabel 1 menunjukkan peta teori, tabel berikut menunjukkan peta pengalaman n
 | Q8_0 | ~55 t/s | ~8.5 GB | 5.62 |
 
 Perhatikan tiga angka ini sekaligus: dari Q4_K_M ke Q8_0, *perplexity* hanya membaik 0,22 poin (dari 5,84 ke 5,62) — tetapi kecepatan jatuh dari 85 t/s ke 55 t/s, hampir sepertiga lebih lambat, dan VRAM naik 63%. Ini adalah contoh sempurna *diminishing returns*: Anda membayar kecepatan dan VRAM untuk peningkatan kualitas yang tidak akan pernah Anda rasakan dalam percakapan sehari-hari. Kecuali Anda sedang menulis evaluasi formal atau memproses teks yang sangat sensitif, Q4_K_M tetap menjadi nilai terbaik.
+
+![Benchmark nyata: kecepatan vs perplexity di RTX 4090](../../assets/images/bab-01-model/sub-bab-4/kecepatan-vs-perplexity.png)
+
+*Gambar 1.4-2 — kecepatan (batang) naik 55% saat beralih ke Q4_K_M, sementara perplexity (garis) nyaris tidak berubah — bukti diminishing returns kualitas.*
 
 ### Tabel 3: Perbandingan Tools Konversi
 

@@ -136,6 +136,14 @@ Data ini bersumber dari benchmark resmi WebLLM (Ruan et al., 2024) [1] pada Appl
 | **Prefill (2048 tok)** | 4.1s | 3.6s | ~88% |
 | **Memory Usage** | 5.8 GB | 5.2 GB | ~112% |
 
+![Perbandingan performa WebLLM versus native pada M3 Max dengan model 7B](../../assets/images/bab-03-software/sub-bab-8/performa-browser-vs-native.png)
+
+*Gambar 3.8-1 — WebGPU mencapai 42,5 t/s atau ~83% dari kecepatan decode native; pada prefill panjang (2048 token) gap menyempit menjadi ~88%, dan memori hanya bertambah 0,6 GB.*
+
+![Perbandingan rating kecepatan framework LLM yang berjalan di browser](../../assets/images/bab-03-software/sub-bab-8/kecepatan-framework-browser.png)
+
+*Gambar 3.8-2 — WebLLM memimpin dengan akselerasi GPU penuh (WebGPU), sementara framework berbasis CPU tertinggal jauh dalam rating kecepatan.*
+
 Analisis: pola yang paling informatif adalah *decode speed* — metrik yang paling terasa oleh pengguna akhir. Kehilangan 17% kecepatan berarti 42,5 token per detik, tetap jauh di atas kecepatan membaca manusia, sehingga hampir tidak terasa dalam percakapan biasa. Yang lebih menarik: pada prefill panjang (2048 token), rasio membaik ke 88% — konfirmasi bahwa *overhead* terjemahan WGSL ter-amortisasi pada beban komputasi yang besar. Memori ekstra 12% adalah harga wajar untuk lapisan abstraksi browser.
 
 ### Tabel C: Perbandingan Framework Browser LLM

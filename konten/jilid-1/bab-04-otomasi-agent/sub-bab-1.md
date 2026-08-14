@@ -326,6 +326,10 @@ Setelah berjalan, periksa file `hello.txt` di direktori yang sama — isinya "He
 
 **Hasil:** 10 file audio selesai dalam 3 menit tanpa intervensi — dari 2,5 jam menjadi 3 menit, sekitar 98% waktu terhemat. Angka ini bukan hasil *fine-tuning* atau arsitektur khusus; ia murni buah dari pergeseran paradigma. Rina tidak bekerja lebih cepat — ia *tidak bekerja*: komputer yang bekerja, ia yang mengawasi. Kecepatan hanya dibatasi oleh *throughput* transkripsi lokal dan kualitas model perangkum.
 
+![Perbandingan waktu pengerjaan manual vs agen OpenClaw](../../assets/images/bab-04-otomasi-agent/sub-bab-1/waktu-manual-vs-agen.png)
+
+*Gambar 4.1-1 — Waktu pengerjaan 10 file audio turun dari 150 menit (manual) menjadi 3 menit dengan agen OpenClaw; hampir 98% waktu terhemat murni dari pergeseran paradigma, bukan dari optimasi kecepatan mengetik.*
+
 **Pelajaran:** inti *agentic computing* bukanlah "komputer lebih cepat mengetik", melainkan *komputer mengerti intensi, bukan hanya instruksi*. Ketika manusia cukup berkata "apa yang diinginkan" dan komputer yang mengatur "bagaimana melakukannya", produktivitas melompat satu orde — dan inilah janji yang ditebus OpenClaw setiap hari. Dua pelajaran praktis menyertai: pertama, dokumentasikan alur Anda sebelum membuat agen — Rina menuliskan langkah-langkahnya di kertas dulu, dan *prompt* yang ia berikan kepada agen hampir sama persis dengan catatan itu; kedua, mulai dari satu alur yang paling menyakitkan, bukan dari yang paling canggih. Keberhasilan kecil pertama itulah yang membangun kepercayaan untuk migrasi alur-alur berikutnya.
 
 ---

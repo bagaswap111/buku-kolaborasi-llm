@@ -128,6 +128,12 @@ Kabar baiknya: jaringan ini murah. Seluruh "pagar" keluarga bisa dibangun di baw
 | Pi-hole / Raspberry Pi 4 | DNS filtering + AdGuard | ~Rp 700rb |
 | Kabel UTP Cat6 10m | Koneksi server ke switch | ~Rp 100rb |
 
+Proporsi biaya setiap komponen lebih jujur ditampilkan sebagai batang — router mengambil porsi terbesar, dan seluruhnya tetap di bawah Rp 3,5jt.
+
+![Biaya komponen jaringan home AI dalam juta rupiah](../../assets/images/bab-06-home/sub-bab-3/biaya-komponen-jaringan.png)
+
+*Gambar 6.3-1 — Estimasi biaya komponen jaringan (Juni 2026). Router OpenWrt mendominasi (~Rp 1,2jt), disusul access point dan Pi-hole; total seluruh "pagar" keluarga masih di bawah Rp 3,5jt — kurang dari sepersepuluh biaya server LLM.*
+
 Perbandingan yang jujur: kurang dari sepersepuluh biaya server LLM (Rp 25-45jt), tetapi komponen ini menentukan apakah seluruh sistem aman dan nyaman digunakan. Prioritas anggaran yang masuk akal: router dulu (otak dari semua kebijakan), lalu AP (jangkauan menentukan pengalaman), baru Pi-hole dan switch. Untuk rumah kecil, Pi-hole bahkan bisa diganti *container* di server LLM — menghemat satu perangkat lagi.
 
 ---

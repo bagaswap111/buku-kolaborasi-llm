@@ -113,6 +113,10 @@ Enam varian Whisper dengan kebutuhan RAM, kecepatan relatif, dan WER untuk bahas
 
 Dua pola penting muncul dari tabel ini. Pertama, WER Bahasa Indonesia konsisten lebih tinggi dari bahasa Inggris pada semua varian — bahasa dengan data pelatihan lebih sedikit memang lebih menantang, tetapi gap-nya menyempit di model besar (4,2% vs 7,1% hanya untuk large-v3). Kedua, **turbo adalah sweet spot**: dengan setengah parameter large-v3, WER-nya hanya selisih 0,3-0,7 poin, tetapi berjalan 2,5 kali lebih cepat. Untuk laptop dengan RAM terbatas, pilihan rasional adalah *small* (2 GB, cukup untuk percakapan) atau *turbo* jika kecepatan adalah prioritas.
 
+![Perbandingan WER bahasa Inggris vs Bahasa Indonesia untuk enam varian Whisper](../../assets/images/bab-04-otomasi-agent/sub-bab-7/perbandingan-wer-whisper.png)
+
+*Gambar 4.7-1 — WER Indonesia selalu lebih tinggi dari WER Inggris pada semua varian, tetapi gap menyempit seiring ukuran model; turbo (WER 7,8%) hampir menyamai large-v3 (7,1%) dengan setengah parameter.*
+
 ### Tabel 2: Perbandingan TTS Lokal
 
 Empat mesin TTS lokal dengan ukuran, kecepatan, dan cakupan bahasa yang berbeda.
@@ -139,6 +143,10 @@ Rincian alokasi waktu pada *voice pipeline* untuk percakapan yang terasa alami.
 | **Total** | **~1000-2850** | **Target tercapai** |
 
 Tabel ini adalah *budget* yang harus dikelola, bukan sekadar daftar. Total 1.000-2.850 ms masih di bawah target 3 detik, tetapi perhatikan marginnya: jika Anda mengganti Whisper small ke medium, tambah 300-500 ms; jika model LLM menulis lebih dari 128 token, tambah ratusan ms lagi. Titik paling efisien untuk berhemat adalah STT (pilih small) dan LLM (batasi panjang jawaban) — karena keduanya menyumbang porsi terbesar dari anggaran.
+
+![Alokasi latency budget voice pipeline per komponen, dengan target di bawah 3 detik](../../assets/images/bab-04-otomasi-agent/sub-bab-7/latency-budget-pipeline.png)
+
+*Gambar 4.7-2 — LLM (500-1.500 ms) adalah komponen termahal dalam anggaran, disusul Whisper STT (300-800 ms); total 1.000-2.850 ms masih lolos target 3 detik, tetapi marginnya tipis.*
 
 ---
 

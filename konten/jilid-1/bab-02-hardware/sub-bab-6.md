@@ -125,6 +125,10 @@ Tabel berikut membandingkan delapan konfigurasi multi-GPU yang umum — dari dua
 | **2x RTX A6000** | 2 × 48 GB | NVLink 112 GB/s | 96 GB | ~120 jt | ~30 t/s |
 | **8x RTX 3090 (Mistral Large 3 Q4)** | 8 × 24 GB | PCIe Gen 4 x8/x8 | 192 GB | ~96 jt | ~6 t/s |
 
+![Perbandingan tokens/s untuk model 70B Q4 pada sepuluh konfigurasi multi-GPU, dari dua kartu bekas hingga workstation delapan kartu](../../assets/images/bab-02-hardware/sub-bab-6/throughput-setup-multigpu.png)
+
+*Gambar 2.6-1 — Tokens/s 70B Q4 versus harga tiap konfigurasi: NVLink hanya menambah Rp 1 juta tetapi menaikkan throughput 37% (16 → 22 t/s), sementara konfigurasi 8 GPU untuk model raksasa justru anjlok ke 6 t/s.*
+
 Kontras paling mencolok ada di dua baris teratas: **NVLink bernilai Rp 1 juta dan menaikkan throughput 70B dari 16 ke 22 t/s** — kenaikan 37% dengan biaya kurang dari 5% total anggaran. Setelah 4 GPU, pertambahan kartu mulai kehilangan efisiensi (4x = 24 t/s, 6x untuk DeepSeek V4 Flash hanya 8 t/s) karena komunikasi antar GPU menjadi *bottleneck* — hukum *diminishing returns* yang sama yang kita temui di CPU. Perhatikan juga bahwa menjalankan model MoE raksasa terkuantisasi memerlukan porsi VRAM yang sangat besar: DeepSeek V4 Flash butuh 6 kartu (144 GB) dan Mistral Large 3 butuh 8 kartu (192 GB), dengan *throughput* yang justru rendah — biaya keanggotaan "klub tata surya" ini sangat mahal, dan di angka inilah Mac Studio 192GB atau layanan cloud mulai terlihat masuk akal.
 
 Penting juga membaca kolom *tokens/s* dengan kacamata "per rupiah per token". 2x RTX 3090 + NVLink: Rp 25 juta / 22 t/s ≈ Rp 1,1 juta per t/s. 2x RTX A6000: Rp 120 juta / 30 t/s = Rp 4 juta per t/s — empat kali lebih mahal per satuan kecepatan. 4x RTX 3090: Rp 50 juta / 24 t/s ≈ Rp 2,1 juta per t/s — dua kali lebih mahal daripada setup 2-GPU. Metrik informal semacam ini memperlihatkan alasan mengapa "dua kartu bekas + NVLink" begitu sulit dikalahkan: ia berada di titik paling murah dari kurva harga-performa, dan seluruh penambahan di luar itu adalah keputusan *kapasitas* (butuh VRAM lebih besar), bukan keputusan *kecepatan*.
@@ -142,6 +146,10 @@ Tabel ini mengukur kerugian yang harus dibayar ketika GPU dipindahkan ke luar ch
 | **Thunderbolt 4** | 4 | 3.5 GB/s (PCIe tunnel) | ~84.4% | ~81 t/s | ~3 jt |
 | **USB4** | 4 | 3.5 GB/s (PCIe tunnel) | ~82.8% | ~79.5 t/s | ~2 jt |
 | **Thunderbolt 3** | 4 | 2.8 GB/s (PCIe 3.0) | ~75% | ~72 t/s | ~2 jt |
+
+![Penurunan throughput token/detik pada lima jenis koneksi eGPU, dari slot internal hingga Thunderbolt 3](../../assets/images/bab-02-hardware/sub-bab-6/throughput-koneksi-egpu.png)
+
+*Gambar 2.6-2 — OCuLink mempertahankan 97,4% performa internal (93,5 t/s), sementara bandwidth yang menyempit dari 32 GB/s ke 2,8 GB/s hanya menurunkan throughput ~25% karena inferensi bersifat memory-bound di dalam GPU.*
 
 Pesan utama tabel ini: **inferensi LLM tidak sepenuhnya bergantung pada lebar jalur** — model yang *memory-bound* dalam GPU-nya sendiri tetap berjalan hampir penuh meskipun jembatan eksternal menyempit drastis. OCuLink (97,4%) praktis transparan; Thunderbolt 4 (84,4%) masih nyaman; bahkan Thunderbolt 3 generasi lama (75%) masih sangat bisa dipakai untuk eksperimen. Pilih jalur berdasarkan apa yang laptop Anda miliki: jika mendukung OCuLink, itu pilihan terbaik dari segi biaya *enclosure* (Rp 1,5 juta) dan performa; jika hanya ada Thunderbolt 4, kerugian ~15% adalah harga yang wajar untuk mobilitas.
 

@@ -128,6 +128,10 @@ Tabel berikut membandingkan lima tingkat isolasi sandbox, dari yang paling seder
 
 Analisis dari tabel ini: ada hubungan langsung antara *overhead* dan keamanan, tetapi tidak selalu linier. Perhatikan bahwa Firecracker justru lebih cepat boot (150ms) daripada container biasa (200ms) karena kernel-nya yang sangat ramping — bukti bahwa MicroVM modern telah memecahkan masalah kecepatan. Sementara itu, Docker-in-Docker menambah *boot time* hanya 300ms dibandingkan container biasa, tetapi secara signifikan mengurangi risiko karena agen tidak lagi memiliki akses ke Docker daemon host. Pilihan level bergantung pada apa yang dipertaruhkan: untuk eksperimen pribadi, container biasa mungkin sudah cukup; untuk produksi yang memproses data sensitif, gVisor atau Firecracker layak dipertimbangkan; untuk kepatuhan ketat, VM penuh tetap menjadi standar emas.
 
+![Boot time lima tingkat isolasi sandbox pada skala logaritmik, dengan risiko container escape](../../assets/images/bab-04-otomasi-agent/sub-bab-8/boot-time-isolasi-sandbox.png)
+
+*Gambar 4.8-1 — MicroVM Firecracker justru paling cepat boot (~150 ms) meski isolasinya jauh lebih kuat daripada container biasa (~200 ms); Full VM adalah satu-satunya level dengan boot time dalam orde detik (5-30 s).*
+
 ### Tabel B: Risk Matrix — File Operations
 
 Tabel ini memetakan setiap operasi yang mungkin dilakukan agen ke tingkat risiko, *permission* minimum yang dibutuhkan, kebutuhan *approval*, dan strategi mitigasinya.

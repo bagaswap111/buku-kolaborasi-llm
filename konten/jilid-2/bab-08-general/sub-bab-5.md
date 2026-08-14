@@ -168,6 +168,10 @@ Akhirnya, berikut contoh katalog aturan DLP yang siap diadaptasi — perhatikan 
 | **DLP-005** | Nama+Alamat (NER) | Marketing | WARN | Medium |
 | **DLP-006** | URL internal `*.kantor.com` | All users | LOG | Low |
 
+![Distribusi enam aturan DLP menurut kolom prioritas pada Tabel 3.](../../assets/images/bab-08-general/sub-bab-5/distribusi-prioritas-aturan-dlp.png)
+
+*Gambar 8.5-1 — Separuh katalog (DLP-001, DLP-002, DLP-003) berprioritas Critical-High untuk data berformat baku yang harus ditolak keras, sementara sisanya Medium-Low untuk konteks kerja yang membutuhkan penilaian departemen.*
+
 Pembelajaran dari tabel ini: *scope* dan *prioritas* bekerja sama. DLP-003 menandai semua angka 6+ digit sebagai "NIK mungkin" tetapi hanya untuk non-HR — karena HR justru sah memproses NIK kandidat; tanpa *scope*, aturan ini akan memblokir pekerjaan inti HR setiap hari. DLP-004 hanya berlaku untuk Engineering karena hanya departemen inilah konteks *source code*-nya bermakna. Sedangkan prioritas memastikan **determinisme**: DLP-001 (credit card) dievaluasi sebelum DLP-003 (angka panjang umum)**, sehingga satu kartu kredit tidak dianggap "NIK mungkin" dan lolos dengan WARN. Urutan prioritas inilah yang sering dilupakan saat menyusun aturan — dan justru menjadi sumber *false negative* paling umum.
 
 ---
@@ -360,6 +364,10 @@ Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/
 **Analisis pilihan.** Tim IT mengevaluasi: melarang penggunaan AI sama sekali (realistis tetapi membunuh produktivitas), atau memasang DLP penuh (biaya jam kerja *setup* tetapi menyelesaikan akar masalah). Mereka memilih **LLMGuard + LiteLLM guardrails** — dual pendekatan yang menyaring prompt di sisi aplikasi (LLMGuard) dan di sisi *gateway* (LiteLLM *guardrails*). Aturan kunci baru ditambahkan: **prompt yang mengandung "nama klien" dan "nilai transaksi" secara bersamaan langsung BLOCK** — kombinasi yang perilaku bisnisnyalah yang dianggap sensitif muncul bersama, bukan masing-masing elemennya.
 
 **Hasil.** Pada minggu-minggu pertama, 15-20 prompt per hari terblokir — angka yang mencurigakan tinggi, dan *review* menunjukkan **false positive rate 12%**: banyak partner yang sah menuliskan nama klien saat *summarizing* dokumen publik. Alih-alih menghapus aturan, tim melakukan *fine-tuning*: classifier baru diberikan contoh nyata dokumen publik vs draf internal, dan *threshold vector similarity* disesuaikan. Setelah sebulan, *false positive rate* turun ke **5%** sementara insiden *credential* dan kontrak rahasia yang berhasil dicegat tetap terdeteksi.
+
+![Penurunan false positive rate DLP dari 12% menjadi 5% setelah satu bulan fine-tuning.](../../assets/images/bab-08-general/sub-bab-5/penurunan-false-positive-rate.png)
+
+*Gambar 8.5-2 — False positive rate turun dari 12% menjadi 5% setelah sebulan fine-tuning classifier dan penyesuaian threshold vector similarity — turun lebih dari separuh tanpa kehilangan deteksi insiden kredensial dan kontrak rahasia.*
 
 **Pelajaran.** Kasus ini menegaskan dua hal yang menjadi tema sub-bab ini. Pertama, **DLP bukan hanya teknologi** — kebijakan dan sosialisasi karyawan sama pentingnya: firma menambahkan sesi *onboarding* "cara aman memakai AI" dan kanal Slack untuk bertanya sebelum menempelkan dokumen sensitif. Kedua, **false positive yang tinggi di awal adalah harga yang harus dibayar**, bukan alasan menyerah — diukur, dianalisis, dan diturunkan dengan *fine-tuning* berkelanjutan. Tanggungan yang tersisa adalah *false negative* yang tidak terlihat: karenanya *audit log* dari setiap keputusan (BLOCK, WARN, LOG) menjadi aset utama — topik yang kita dalami penuh di Bab 8.6.
 

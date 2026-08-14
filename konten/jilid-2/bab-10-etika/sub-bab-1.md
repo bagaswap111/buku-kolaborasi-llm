@@ -141,6 +141,10 @@ Angka pada tabel ini membantu Anda menilai model mana yang butuh pelapis mitigas
 | **Llama 3.1 70B** | 70B | 5.8% | — | 128K | Baseline dense model |
 | **GPT-4o** | Proprietary | 5.2% | <1% | 128K | Generasi sebelumnya |
 
+![Grafik batang horizontal hallucination rate delapan model dari yang tertinggi hingga terendah, dengan Llama 3.1 70B di puncak (5,8%) dan Claude Fable 5 di dasar (1,8%)](../../assets/images/bab-10-etika/sub-bab-1/hallucination-rate-model.png)
+
+*Gambar 10.1-1 — Urutan hallucination rate delapan model pada benchmark TruthfulQA 2026. Gap antara pemimpin proprietary (Claude Fable 5, 1,8%) dan open-source menengah (Llama 3.1 70B, 5,8%) nyaris tiga kali lipat, dan DeepSeek V4 Pro (4,2%) membuktikan MoE open-source mampu menembus di bawah 5%.*
+
 Analisis: gap antara model proprietary terbaik (1,8%) dan open-source menengah (5,8%) hampir tiga kali lipat — tetapi gap ini bisa ditutup secara arsitektural. DeepSeek V4 Pro membuktikan bahwa MoE *expert isolation* bisa menurunkan halusinasi open-source di bawah 5%, sementara Mistral Large 3 membawa kualitas sebanding dengan lisensi yang mudah diaudit. Untuk deployment lokal di perusahaan Indonesia dengan anggaran terbatas, formula realistis adalah: model open-source 4-5% + RAG yang dievaluasi + *guardrails* — hasil akhirnya dapat menyeimbangi Fable 5 tanpa biaya API.
 
 ### Tabel 3: Matriks Risiko Halusinasi per Sektor Bisnis

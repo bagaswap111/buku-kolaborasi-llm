@@ -157,6 +157,14 @@ Tabel berikut memperkirakan volume data khas keluarga aktif beserta biaya pemros
 | Foto + Caption (10.000) | ~50 GB (foto) | Caption 128 token | ~10.000 | ~50 MB | 15 menit |
 | **Total** | **~50,3 GB** | — | **~20.000** | **~100 MB** | **~25 menit** |
 
+![Gambar berikut menampilkan sebaran ~20.000 chunk di empat tipe data keluarga, dengan foto mendominasi setengah dari totalnya.](../../assets/images/bab-06-home/sub-bab-5/jumlah-chunk-per-tipe-data.png)
+
+*Gambar 6.5-1 — Foto + caption menghasilkan 10.000 dari ~20.000 chunk — setengah arsip vektor keluarga berasal dari satu jenis data, sehingga kualitas *caption*-nya sangat menentukan retrieval.*
+
+![Gambar ini membandingkan waktu embedding CPU antartipe data, menunjukkan foto menempati porsi terbesar dari total 25 menit.](../../assets/images/bab-06-home/sub-bab-5/waktu-embedding-cpu.png)
+
+*Gambar 6.5-2 — Foto menghabiskan 15 dari 25 menit waktu embedding CPU; *captioning* bertahap (500 foto/malam) menjadi strategi yang masuk akal agar ingestion tidak mengganggu server di siang hari.*
+
 Analisis: dua insight penting muncul dari tabel ini. *Pertama*, penyimpanan vektor total hanya ~100 MB untuk seluruh arsip — hampir tidak terasa di era NVMe 1 TB, dan ini membuktikan bahwa RAG keluarga bukan masalah kapasitas, melainkan disiplin pipeline. *Kedua*, *ingestion* sekali jalan memakan waktu paling banyak dari foto (15 menit dari total 25 menit) karena 10.000 foto harus lewat LLM *vision* untuk *captioning* — jadi lakukan *captioning* bertahap, misalnya 500 foto per malam, agar tidak mengganggu penggunaan server siang hari.
 
 ### Tabel 3: Struktur Direktori RAG Keluarga

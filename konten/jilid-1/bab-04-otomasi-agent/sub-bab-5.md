@@ -146,6 +146,10 @@ Tabel ini adalah peta pilihan, bukan papan skor — tidak ada jawaban "terbaik" 
 
 Dua pelajaran penting dari tabel ini. Pertama, **navigasi web masih sulit** — bahkan model terbaik hanya mencapai 22,5% di WebArena, yang mengharuskan agent beradaptasi dengan situs dinamis. Kedua, jarak antara model besar dan model lokal tidak terlalu ekstrem di tugas dasar (MiniWoB++: 75% vs 94%), tetapi melebar drastis di tugas kompleks. Untuk penggunaan pribadi — monitoring harga, isi form, ekstraksi sederhana — kombinasi **Playwright + Qwen-VL** (~40% *real-world*) masih berguna; untuk keandalan tinggi, pertimbangkan Skyvern dengan model API yang kuat.
 
+![Task success rate browser agent per benchmark](../../assets/images/bab-04-otomasi-agent/sub-bab-5/task-success-rate-browser-agent.png)
+
+*Gambar 4.5-1 — Semua agent menurun drastis dari MiniWoB++ (75-94%) ke WebArena (10-22,5%): tugas dasar bisa dikuasai model kecil, tetapi navigasi situs dinamis masih menjadi tantangan bahkan bagi model frontier.*
+
 ### Tabel 3: Resource Usage Browser Agent Lokal
 
 Biaya menjalankan agent web lokal, komponen demi komponen.

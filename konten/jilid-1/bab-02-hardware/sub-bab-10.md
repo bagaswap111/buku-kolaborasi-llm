@@ -94,6 +94,10 @@ Berikut empat paket konfigurasi lengkap — dari ekonomis hingga flagship — be
 
 *DeepSeek V4 Flash Q4 (~160 GB) hanya muat di konfigurasi flagship 8x GPU; untuk Mistral Large 3 Q4 (~380 GB) butuh 16x RTX 3090 atau server-grade.
 
+![Perbandingan harga komponen dan TCO tiga tahun pada empat level budget workstation LLM](../../assets/images/bab-02-hardware/sub-bab-10/tco-3-tahun-per-level.png)
+
+*Gambar 2.10-1 — TCO 3 tahun level tinggi (Rp 65 jt) hampir dua kali lipat level menengah (Rp 30 jt) meskipun selisih harga komponennya hanya Rp 25 jt — biaya listrik RTX 4090 dan AIO cooling melahap sisanya.*
+
 Perhatikan jurang antar level yang paling mengejutkan: *TCO 3 tahun* level "tinggi" (Rp 65 jt) hampir dua kali lipat level "menengah" (Rp 30 jt), padahal selisih harga komponennya hanya Rp 25 jt — selisih itu adalah biaya listrik RTX 4090 yang jauh lebih rakus dan *AIO cooling* yang mahal. Sementara itu, lompatan terbesar dalam kapabilitas terjadi antara level menengah dan tinggi: dari "70B Q3 yang tersiksa" menjadi "70B yang nyaman" — dan level flagship baru membuka pintu ke model frontier DeepSeek V4 Flash Q4 (284B) yang selama ini hanya ada di cloud. Strategi umum yang disarankan: masuk di level menengah dengan RTX 3090 *used*, lalu *upgrade path* ke 2x GPU (48GB VRAM) — jalur yang lebih murah daripada langsung membangun flagship dari nol. Klasifikasi model-maksimum per konfigurasi ini merujuk survey *edge LLM* dari Qu dkk. (2024) [2].
 
 ### Tabel 2: PC Rakitan vs Mac Studio vs Laptop
@@ -133,6 +137,10 @@ Akhirnya, pertanyaan paling mendasar: berapa sebenarnya biaya setiap juta token 
 | **Gemini 2.5 Pro** | Rp 50.000 | via API, 1M context, thinking mode |
 | **DeepSeek API** | Rp 2.100 | Termurah untuk cloud |
 | **Groq API** | Rp 5.800 | LPU inference cloud |
+
+![Perbandingan biaya per juta token dua belas platform lokal dan cloud pada skala logaritmik, dengan platform lokal berwarna hijau](../../assets/images/bab-02-hardware/sub-bab-10/biaya-per-juta-token-lokal-vs-cloud.png)
+
+*Gambar 2.10-2 — Inferensi lokal 40-140x lebih murah per token daripada API frontier: RTX 3090 used Rp 520 melawan GPT-4o Rp 77.000, dan bahkan DeepSeek API termurah (Rp 2.100) masih 4x lebih mahal.*
 
 Angka-angka ini menceritakan dua cerita. Cerita pertama: **inferensi lokal 40–140 kali lebih murah per token daripada API frontier** — RTX 3090 *used* memproses satu juta token dengan biaya setara Rp 520, sementara GPT-4o meminta Rp 77.000. Bahkan DeepSeek API yang termurah di dunia cloud (Rp 2.100) masih 4x lebih mahal dari RTX 3090 lokal. Cerita kedua, yang sering terlewat: **lokal lebih murah hanya jika volume pemakaian cukup besar** — Rp 12 juta hardware RTX 3090 yang hanya dipakai 10.000 token per hari membutuhkan lebih dari 6 tahun untuk balik modal, sementara pengguna 500.000 token/hari mencapai *break-even* dalam 8 bulan. Untuk pengguna hybrid, strategi optimal ada di tengah: jalankan tugas rutin bervolume besar di lokal, simpan API cloud untuk tugas frontier sesekali yang butuh kualitas GPT-5.5 atau Claude Fable 5. Data efisiensi per platform pada tabel ini diverifikasi dengan studi pengukuran energi 32.500 titik data dari Liu dkk. (2025) [4].
 

@@ -136,6 +136,10 @@ Tabel berikut merangkum enam skenario kegagalan — cara deteksi, dampak, target
 | **Power Outage** | UPS alarm | Total shutdown | 30 menit | 5 menit | Auto-shutdown + UPS power |
 | **Storage Down** | NFS timeout | RAG tidak bisa akses | 15 menit | 1 menit | Switch ke read-replica |
 
+![GPU Physical adalah satu-satunya skenario dengan RTO 4 jam — 8-120x lebih lama dari skenario lain — karena menunggu penggantian unit fisik; semua skenario lain pulih di bawah 30 menit dengan RPO 0](../../assets/images/bab-08-general/sub-bab-8/rto-skenario-kegagalan.png)
+
+*Gambar 8.8-1 — Target RTO per skenario kegagalan pada skala logaritmik: Node Down pulih dalam 2 menit, GPU Physical menunggu 4 jam, dan hanya Power Outage (RPO 5 menit) serta Storage Down (RPO 1 menit) yang berisiko kehilangan data.*
+
 Bacaan kunci dari tabel ini ada dua. Pertama, perhatikan kesenjangan RTO: *GPU Physical* butuh 4 jam — satu-satunya skenario yang tidak bisa dipangkas oleh software, karena menunggu penggantian fisik. Inilah mengapa *cold standby* (Bagian 4) adalah investasi minimum yang masuk akal: 4 jam downtime bukanlah insiden kecil, melainkan kehilangan produktivitas satu hari penuh bagi sebagian besar pengguna. Kedua, perhatikan RPO pada *Power Outage* (5 menit) dan *Storage Down* (1 menit) — satu-satunya skenario yang kehilangan data. Semua skenario lain memiliki RPO 0, artinya data aman asalkan database memakai *WAL archiving* dari Bagian 5.
 
 ### Tabel 2: Perbandingan Strategi Failover
@@ -148,6 +152,10 @@ Empat strategi failover dibandingkan dari sisi RTO, biaya tambahan, tingkat GPU 
 | **Warm Standby** | 30-60 detik | Rp 250-400jt | ~50% | Sedang | Standard, 31-40 user |
 | **Active-Active** | < 5 detik | Rp 400-700jt | ~20% | Tinggi | Premium, 41-50 user |
 | **Cloud Failover** | 2-5 menit | Pay-per-use | 0% | Sedang | Hybrid on-prem + cloud |
+
+![Semakin kecil RTO, semakin boros sumber daya: cold standby menyia-nyiakan >90% GPU idle dengan biaya Rp 150-250 jt, sementara active-active menekan idle ke ~20% tetapi biaya naik ke Rp 400-700 jt](../../assets/images/bab-08-general/sub-bab-8/idle-vs-biaya-failover.png)
+
+*Gambar 8.8-2 — Trade-off empat strategi failover: RTO yang makin cepat selalu dibeli dengan GPU idle yang makin rendah dan biaya tambahan yang makin tinggi — dari >90% idle (cold standby) hingga 0% pada cloud failover yang bayar per pemakaian.*
 
 Pola yang terlihat jelas: RTO yang semakin kecil selalu dibeli dengan biaya dan kompleksitas yang semakin besar. Tidak ada strategi yang "benar" secara absolut — yang benar adalah strategi yang selaras dengan SLA perusahaan (Bagian 3). Perusahaan 21-30 user yang baru memulai cukup mengambil *cold standby*; perusahaan 41-50 user dengan layanan *customer-facing* tidak punya pilihan selain *active-active*. Satu hal yang sering terlupakan: pilih strategi, lalu *uji* strategi itu berkala — RTO pada tabel ini adalah angka desain, dan angka sesungguhnya baru diketahui setelah DR drill pertama.
 

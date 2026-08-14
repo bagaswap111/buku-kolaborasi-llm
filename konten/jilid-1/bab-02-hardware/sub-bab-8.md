@@ -125,6 +125,10 @@ Tabel berikut mengukur penurunan performa secara nyata pada satu konfigurasi: RT
 | **Throttle parah** | 88°C | 1100 | 45 t/s | -47% | 220W |
 | **Setelah undervolt 220W** | 68°C | 1650 | 80 t/s | -6% | 220W |
 
+![Kurva penurunan tokens/s dan clock GPU saat suhu naik dari 65°C ke 88°C pada RTX 3090](../../assets/images/bab-02-hardware/sub-bab-8/dampak-throttle-performa.png)
+
+*Gambar 2.8-1 — Setelah ambang 83°C, clock dan tokens/s jatuh beriringan: throttle parah di 88°C kehilangan 47% performa (85 → 45 t/s), sementara undervolt 220W mempertahankan 80 t/s di suhu hanya 68°C.*
+
 Analisis dari tabel ini sangat instruktif. Pertama, perhatikan enam baris pertama: sejak *throttle* dimulai di 83°C, performa jatuh 24%, dan pada *throttle* parah di 88°C — hampir separuh performa (45 t/s vs 85 t/s) hilang padahal model dan hardware sama persis. Kedua, perhatikan baris terakhir: *undervolt* ke 220W mengembalikan performa ke 80 t/s (hanya -6%) sambil mengurangi konsumsi daya sebesar 100W — bukti bahwa panas, bukan daya, adalah musuh sebenarnya. Kapan memilih antara pendinginan mahal vs *undervolt*? Jika penurunan 5-6% masih bisa diterima untuk beban kerja harian Anda, *undervolt* selalu menang dalam rasio biaya-manfaat; jika target Anda adalah performa maksimum yang dapat dipertahankan berjam-jam, baru pertimbangkan investasi pendinginan di Tabel 2 [1][4].
 
 ### Tabel 2: Solusi Pendinginan — Biaya vs Efektivitas
@@ -142,6 +146,10 @@ Setiap solusi memiliki posisi berbeda pada peta biaya vs usaha. Tabel ini memban
 | **Watercooling AIO GPU** | ~3-5 jt | 15-20°C | Maksimal | Sulit | Rendah |
 | **Watercooling custom loop** | ~8-15 jt | 20-25°C | Maksimal | Sangat sulit | Sangat rendah |
 | **AC ruangan 0.5 PK** | ~3-4 jt | 5-8°C (ambient) | Signifikan | Mudah | Sedang |
+
+![Efektivitas sembilan metode pendinginan diurutkan dari penurunan suhu terbesar, lengkap dengan kisaran biayanya](../../assets/images/bab-02-hardware/sub-bab-8/efektivitas-solusi-pendinginan.png)
+
+*Gambar 2.8-2 — Solusi gratis (undervolt 8-12°C, fan curve 3-5°C) berada di puncak rasio biaya-manfaat, sementara custom loop menurunkan 20-25°C tetapi menuntut Rp 8-15 juta.*
 
 Ada pola menarik di deret ini: tiga solusi teratas (fan curve, repaste, undervolt) hampir tidak menyentuh dompet, sementara tiga terbawah (watercooling AIO, custom loop, AC ruangan) memakan jutaan rupiah. Di tengahnya — *open bench table* seharga ~Rp 300 rb — adalah "hack" termal paling undervalued: membuang saja *case* yang sempit bisa menurunkan suhu 10–15°C. Untuk kebanyakan pengguna Indonesia dengan ambient 28–32°C, kombinasi *fan curve* + repaste + *undervolt* biasanya sudah menutup defisit 10–15°C, dan *open bench* atau AC 0.5 PK menjadi penyelamat ketika di atas itu. Data pengurangan suhu pada kolom ketiga juga dikuatkan oleh penelitian InferCool (Liu dkk., USENIX ATC 2025) yang menunjukkan bahwa *task reassignment* cerdas mampu mengurangi suhu GPU hingga 5°C dan menghemat 20% energi pendinginan [3].
 

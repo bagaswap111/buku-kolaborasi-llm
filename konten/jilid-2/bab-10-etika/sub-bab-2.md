@@ -129,6 +129,10 @@ Kepatuhan bukan konsep gratis. Tabel ini memperkirakan investasi yang diperlukan
 | **Legal Review & Compliance** | Rp 30-80jt | Rp 20-40jt | Rendah | Tinggi |
 | **Licensed Dataset Procurement** | Rp 200-500jt | Rp 100-200jt | Tinggi | Sangat Tinggi |
 
+![Grafik batang horizontal berkelompok membandingkan biaya setup dan biaya operasional tahunan lima langkah kepatuhan copyright, dengan pengadaan dataset berlisensi paling mahal dan dokumentasi provenance paling murah](../../assets/images/bab-10-etika/sub-bab-2/biaya-kepatuhan-copyright.png)
+
+*Gambar 10.2-1 — Perkiraan biaya lima lapisan kepatuhan copyright (titik tengah rentang estimasi Tabel 3). Pengadaan dataset berlisensi membutuhkan setup hingga Rp 350 juta — sepuluh kali lipat dokumentasi provenance (Rp 35 juta) — tetapi keduanya "membeli" jenis keamanan hukum yang berbeda.*
+
 Analisis: bandingkan baris pertama dan terakhir — *provenance documentation* (Rp 20-50jt) dan *licensed dataset procurement* (Rp 200-500jt) berbeda kelipatan sepuluh, tetapi keduanya "membeli" jenis keamanan yang berbeda: *provenance* membeli pembelaan hukum saat sengketa terjadi, sementara *licensed dataset* membeli ketenangan sejak awal. Perhatikan juga bahwa efektivitas tertinggi (pengadaan dataset berlisensi) justru yang paling mahal — bagi bisnis tahap awal, kombinasi paling rasional adalah provenance + legal review, lalu menaikkan investasi seiring eksposur yang tumbuh [2].
 
 ---

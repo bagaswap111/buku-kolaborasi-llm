@@ -136,6 +136,10 @@ Pendekatan yang berbeda menghasilkan tingkat akurasi berbeda pada dua benchmark 
 | **Claude Fable 5 (zero-shot)** | **79.1%** | **62.0%** | <3 detik | Rendah | Minimal |
 | **Mistral Large 3 (few-shot)** | **80.4%** | **61.8%** | <4 detik | Rendah | Update examples |
 
+![Akurasi sepuluh pendekatan NL2SQL pada benchmark Spider dan BIRD](../../assets/images/bab-09-integrasi/sub-bab-5/akurasi-nl2sql.png)
+
+*Gambar 9.5-1 — Akurasi NL2SQL per pendekatan: SuperSQL memuncak di Spider (87,0%), tetapi DeepSeek V4 Pro few-shot justru terbaik di BIRD (63,5%) dengan latensi <4 detik — kombinasi akurasi dan biaya terbaik untuk laporan rutin.*
+
 Analisis tabel ini memberi tiga wawasan. Pertama, **few-shot hampir selalu mengalahkan zero-shot dengan biaya sama**: menambahkan 5 contoh menaikkan akurasi DeepSeek V4 Pro dari 76,8% menjadi 82,3% di Spider (+5,5 poin) dan dari 59,1% menjadi 63,5% di BIRD (+4,4 poin) — peningkatan terbesar untuk peningkatan biaya terkecil. Kedua, **DeepSeek V4 Pro justru unggul di BIRD**: 63,5% (few-shot) melampaui *schema linking* 62,7% dan menyamai multi-agent — berkat konteks 1 juta token yang menampung skema database besar tanpa *chunking*, validasi silang dari benchmark internal dan kerangka NL2SQL360 [2]. Ketiga, *schema linking* + CoT (85,4% Spider) relevan justru ketika skema besar dan biaya latensi <8 detik masih diterima; untuk kueri rutin dengan latensi <4 detik, *fine-tuning* Llama-3.1-8B dan few-shot DeepSeek V4 Pro adalah pilihan yang lebih hemat operasi. Data model GPT-4o, SuperSQL, Llama-3.1-8B diverifikasi terhadap Luo et al. [2]; angka DeepSeek V4 Pro, GPT-5.5, Claude Fable 5, dan Mistral Large 3 berasal dari benchmark internal penulis dengan *framework* NL2SQL360 [1] [2].
 
 ### Tabel 2: Komponen Pipeline Laporan Harian

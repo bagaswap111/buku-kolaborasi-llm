@@ -98,6 +98,10 @@ Pada seksi ini kita membandingkan tiga skala yang sudah disinggung di awal, lalu
 
 Tabel ini menunjukkan bahwa setiap perpindahan skala menaikkan tuntutan secara non-linear. Lonjakan paling drastis terjadi antara small office dan general office: uptime naik dari 99,9% ke 99,999% (perbedaan 43 menit *downtime* per tahun), redundansi menjadi wajib penuh di tiga lapisan, dan biaya hampir empat kali lipat. Keputusan penting bagi pembaca: jangan membangun "small office yang diperbesar" — karena menambal arsitektur tanpa redundansi jauh lebih mahal daripada membangunnya benar sejak awal. Di sisi lain, koncurrency peak 25 bukan berarti kapasitas 25 *session* sepanjang hari; beban puncak itu hanya muncul pada momen-momen tertentu, sehingga investasi *auto-scaling* (Kubernetes HPA/VPA) justru yang paling masuk akal secara ekonomi.
 
+![Rentang estimasi biaya naik dari Rp 25-45 jt (home) menjadi Rp 60-120 jt (small office) hingga Rp 200-500 jt+ (general office) — nyaris empat kali lipat per perpindahan skala](../../assets/images/bab-08-general/sub-bab-1/biaya-per-skala.png)
+
+*Gambar 8.1-1 — Rentang biaya melebar dari Rp 25-45 jt (home) ke Rp 200-500 jt+ (general office), hampir 10x lipat di titik tengah — kenaikan ini membeli redundansi penuh tiga lapisan (LB + GPU + storage) yang wajib pada skala 21-50 user.*
+
 ### Tabel 2: SLA Target General Office
 
 | Metrik | Target | Metode Pengukuran |
@@ -123,6 +127,10 @@ Kedua metrik pertama layak dibaca bersama. **TTFT P50 di bawah 1 detik** berarti
 | **Database** | PostgreSQL Patroni | Streaming replication | < 30 detik |
 
 Bacaan penting dari tabel ini: *failover time* terkumpul secara **berurutan**, bukan paralel. Jika GPU mati (30 detik) lalu Qdrant kehilangan satu replika (60 detik berikutnya), total waktu pemulihan bisa menembus hitungan menit. Karena itu, urutan prioritas optimasi adalah: pastikan lapisan yang paling sering gagal (storage dan inference, yang punya komponen bergerak paling banyak) memiliki *recovery time* terendah, dan jangan pernah menaruh dua titik kegagalan potensial dalam satu jalur kritis. Strategi *active-active* lebih dipilih ketika *failover* harus tanpa jeda (LB, gateway, jaringan), sementara *active-passive* cukup untuk lapisan yang boleh menunda beberapa detik (inference) [3][4].
+
+![Failover tercepat ada di API Gateway (< 1 detik) dan Network (< 5 detik), sementara Storage Vector DB paling lambat (< 60 detik) — skala log menegaskan urutan prioritas optimasi](../../assets/images/bab-08-general/sub-bab-1/waktu-failover-per-lapisan.png)
+
+*Gambar 8.1-2 — Lapisan yang dilindungi *active-active* (gateway < 1 dtk, network < 5 dtk) pulih jauh lebih cepat daripada lapisan *stateful* (Qdrant < 60 dtk); karena waktu ini terakumulasi berurutan, storage dan inference adalah sasaran optimasi pertama.*
 
 ---
 

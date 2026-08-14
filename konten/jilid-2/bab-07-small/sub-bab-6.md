@@ -115,6 +115,10 @@ Jika Anda memilih jalur self-hosted, alokasikan sumber daya sekecil ini untuk ID
 
 Tabel ini menegaskan bahwa biaya identitas self-hosted nyaris nol — Authentik butuh 2 core dan 4 GB RAM karena menumpang database Postgres dan Redis, sementara Authelia cukup 512 MB. Keduanya bahkan bisa berbagi host dengan Open WebUI atau IDP server lain. Bandingkan dengan biaya tiket cloud tahunan; secara strategis, keputusan self-hosted IDP hampir selalu layak dipertimbangkan meski kompleksitas setup-nya "Sedang".
 
+![Sumber daya minimal server identitas self-hosted: RAM dan storage Authentik versus Authelia](../../assets/images/bab-07-small/sub-bab-6/resource-identity-server.png)
+
+*Gambar 7.6-1 — Authentik menuntut 8x RAM (4 GB vs 512 MB) dan 10x storage (10 GB vs 1 GB) karena membawa Postgres + Redis, sementara Authelia cukup satu core. Selisih ini tetap nol rupiah berlisensi — hanya berpengaruh saat menyewa VPS atau berbagi host.*
+
 ### Tabel 3: Konfigurasi RBAC untuk Small Office
 
 Matriks peran berikut adalah cetak biru kebijakan akses yang akan Anda terjemahkan ke grup di IDP:

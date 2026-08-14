@@ -121,6 +121,12 @@ Berikut peta skor model-model yang akan Anda temui di pasar 2026 — perhatikan 
 
 *\* MMLU-Pro untuk DeepSeek V4 (bukan MMLU standar). †LiveCodeBench dan SWE-bench untuk DeepSeek V4 Pro. ‡SWE-bench untuk Claude Fable 5 (bukan HumanEval). Data diambil dari paper resmi dan Open LLM Leaderboard [4][9][11][12][13].*
 
+Dua kolom paling pembeda — MMLU dan GSM8K — divisualisasikan untuk memperlihatkan pola pemeringkatan antar model secara sekilas:
+
+![Perbandingan Skor MMLU dan GSM8K Lintas 14 Model](../../assets/images/bab-01-model/sub-bab-5/perbandingan-mmlu-gsm8k.png)
+
+*Gambar 1.5-3 — Tiga model frontier (GPT-5.5, Claude Fable 5, Gemini 2.5 Pro) menduduki puncak kedua metrik, sementara Mistral 7B v0.2 tercecer di dasar GSM8K (45,2%). Perhatikan Phi-4 14B yang mengejar Llama-3.1 70B di kedua kolom — bukti bahwa jumlah parameter bukan takdir. Catatan: angka DeepSeek V4 Pro berasal dari MMLU-Pro dan LiveCodeBench (†), bukan MMLU/GSM8K standar.*
+
 Analisis tabel ini mengajarkan tiga hal sekaligus. Pertama, **model kecil tidak harus kalah**: Phi-4 14B mengungguli Llama-3.1 70B di MMLU dan GSM8K, membuktikan bahwa kurasi data sintetis berkualitas bisa mengalahkan jumlah parameter mentah. Kedua, **tidak ada juara mutlak**: GPT-5.5 memimpin MMLU dan GPQA, tetapi Claude Fable 5 lebih unggul di coding (SWE-bench 95,0%), sementara DeepSeek V4 Pro — meski mencatatkan MMLU-Pro 87,5% — memilih mempublikasikan angka LiveCodeBench 93,5% sebagai pembuktiannya. Ketiga, perhatikan simbol-simbol kecil: beberapa angka tidak diukur dengan benchmark yang sama (†), dan membandingkan MMLU dengan MMLU-Pro secara langsung adalah perbandingan apel dengan jeruk. Selalu cek *catatan kaki* sebelum merayakan skor.
 
 ### Tabel 2: Interpretasi Benchmark

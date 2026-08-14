@@ -151,6 +151,10 @@ Tabel ini membantu Anda menjawab pertanyaan paling sering di kantor kecil: "bera
 | **16-20 user, full stack** | 2x RTX 4090 24GB (PCIe 5) | 48 GB | Qwen-3-32B Q4_K_M + Codestral / DeepSeek V4 Flash Q4 | ~10 concurrent |
 | **20 user, server-class open** | 2x RTX 5090 32GB | 64 GB | DeepSeek V4 Flash (284B/13B active, 1M ctx) | ~15 concurrent |
 
+![Perbandingan VRAM total dan dukungan concurrency untuk empat skenario user, dari 24 GB/~5 user hingga 64 GB/~15 user](../../assets/images/bab-07-small/sub-bab-1/vram-vs-concurrency-per-skenario.png)
+
+*Gambar 7.1-1 — VRAM dan concurrency naik berpasangan: setiap lonjakan kelas user menuntut VRAM yang lebih besar sekaligus kapasitas paralel yang lebih tinggi. Skenario puncak 20 user butuh VRAM 2,7x lipat dan concurrency 3x lipat dari skenario paling ringan.*
+
 Pola pada tabel ini mengajarkan dua hal. Pertama, *range* 9-12 user masih bisa dilayani satu GPU 24GB — hemat biaya, tapi *headroom* tipis saat satu developer menjalankan *benchmark* besar. Kedua, setelah 12 user, dua GPU bukan lagi pilihan melainkan keharusan: di sinilah muncul pertanyaan *NVLink vs PCIe* yang dibahas tuntas di Bab 7.2, dan pada skala 20 user, model berbasis MoE seperti **DeepSeek V4 Flash** (284B total, hanya 13B aktif per token, konteks 1 juta token, lisensi MIT) memberi *quality jump* besar dengan biaya komputasi yang masih masuk akal [12].
 
 ### Tabel 3: SLA Target Small Office

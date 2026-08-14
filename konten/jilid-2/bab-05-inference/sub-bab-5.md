@@ -127,6 +127,10 @@ Bagaimana angka-angka ini berterjemah ke performa server nyata? Tabel berikut me
 | NVFP4 | Mistral Large 3 (675B) | 48 GB | 22.400 | 256 | 145 |
 | FP8 | DeepSeek V4 Pro (1.6T) | 96 GB | 15.800 | 96 | 240 |
 
+![Pada Llama-3.1-70B, AWQ memakai VRAM jauh lebih kecil (42 GB) tetapi FP8 lebih cepat (21.500 vs 16.800 tok/s); NVFP4 menggabungkan keduanya dengan 22.400 tok/s di 48 GB](../../assets/images/bab-05-inference/sub-bab-5/benchmark-kuantisasi-server-h100.png)
+
+*Gambar 5.5-1 — Peta kuantisasi server di H100: AWQ menjual ruang (42 GB, batch 256), FP8 menjual kecepatan dan responsivitas (21.500 tok/s, TTFT 128 ms), dan NVFP4 memenangkan keduanya untuk Mistral Large 3 — 23% lebih cepat dari FP8 sambil hemat VRAM 43%.*
+
 Perhatikan kontras antara FP8 dan AWQ pada Llama-3.1-70B. AWQ memakai VRAM jauh lebih sedikit (42 GB vs 72 GB) dan *batch size* maksimumnya lebih besar (256 vs 144) — unggul saat ruang memori adalah segalanya. Tetapi FP8 unggul di *throughput* (21.500 vs 16.800 token/detik, sekitar 1,3x lebih cepat) **dan** di TTFT (128 ms vs 165 ms) — unggul di dua dimensi yang dirasakan langsung oleh pengguna. Inilah inti trade-off AWQ vs FP8: AWQ menjual ruang, FP8 menjual kecepatan dan responsivitas. Sementara itu, **NVFP4 menyatukan keduanya** untuk Mistral Large 3: VRAM 48 GB (hampir separuh FP8) namun *throughput* 22.400 token/detik — 23% lebih cepat dari FP8 dan hemat VRAM 43%. DeepSeek V4 Pro menunjukkan satu pelengkap penting: karena KV-cache-nya hanya 10% dari V3.2, konteks 1M token hanya menghabiskan ~3,2 GB VRAM (bandingkan ~32 GB di V3.2) — sehingga model 1,6 triliun parameter total / 49 miliar aktif ini bisa dilayani dengan 96 GB VRAM dalam FP8.
 
 ### Tabel 3: Rekomendasi Berdasarkan GPU

@@ -139,6 +139,14 @@ Tabel berikut memetakan endpoint inti OpenAI dengan dukungannya di LocalAI — p
 | `/v1/audio/speech` | Ya | Ya | Piper/Bark TTS |
 | `/v1/moderations` | Tidak | Ya | Belum support |
 
+![Jumlah endpoint OpenAI yang didukung LocalAI dibandingkan OpenAI asli](../../assets/images/bab-03-software/sub-bab-7/dukungan-endpoint-openai.png)
+
+*Gambar 3.7-1 — Dari delapan endpoint yang dibandingkan, LocalAI mendukung tujuh; satu-satunya celah adalah `/v1/moderations` yang belum support.*
+
+![Matriks cakupan modalitas empat API server lokal](../../assets/images/bab-03-software/sub-bab-7/kapabilitas-modalitas.png)
+
+*Gambar 3.7-2 — LocalAI adalah satu-satunya yang menangani empat modalitas sekaligus; vLLM hanya LLM, sementara LiteLLM berperan sebagai proxy ke berbagai API.*
+
 Analisis: cakupan delapan dari sembilan endpoint utama berarti sebagian besar aplikasi yang dibangun di atas OpenAI SDK dapat langsung berjalan. Satu-satunya celah yang menonjol adalah `/v1/moderations` — filter moderasi konten bawaan OpenAI. Jika aplikasi Anda mengandalkan fitur ini, penggantinya harus dibangun sendiri (misalnya dengan model classifier lokal), atau moderasi dijalankan pada lapisan aplikasi. Ini adalah *trade-off* yang wajar: kontrol penuh atas data berarti tanggung jawab moderasi juga menjadi milik Anda.
 
 ### Tabel B: Perbandingan API Server Lokal

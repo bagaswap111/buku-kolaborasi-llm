@@ -129,6 +129,10 @@ Inilah tabel yang paling sering difotokopi untuk rapat anggaran:
 
 Perhatikan bagaimana cerita berubah seiring waktu. Di tahun pertama, cloud "hanya" Rp 126 juta dan seolah unggul dari Medium (Rp 192 juta) — inilah mengapa proposal cloud selalu menang di slide pertama. Tetapi di tahun ketiga, kurvanya bersilangan telak: Budget menghemat **Rp 153 juta**, dan bahkan Medium yang lebih mahal tetap menghemat Rp 24 juta *plus* menyisakan aset hardware bernilai jual. Cloud tidak pernah berhenti menagih; server lokal berhenti setelah lunas. *Break-even* ±6 bulan (Budget) membuat keputusan ini bukan lagi soal "mampukah menunggu", melainkan soal disiplin menjalankan setup.
 
+![Kurva TCO akumulatif tiga tahun: cloud API naik tanpa henti, self-hosted menanjak di awal lalu mendatar](../../assets/images/bab-07-small/sub-bab-8/tco-cloud-vs-self-hosted.png)
+
+*Gambar 7.8-1 — Cloud API (Rp 126jt → Rp 378jt dalam tiga tahun) selalu lebih murah hanya di tahun pertama; Budget self-hosted memotong garis cloud di bulan ke-6 dan menghemat Rp 153jt di akhir tahun ketiga, sementara Medium baru menyusul di bulan ke-11.*
+
 ### Tabel 4: Perbandingan Model Berdasarkan Budget VRAM
 
 Terakhir, peta kualitas yang bisa Anda beli di setiap rentang VRAM — untuk memastikan tier yang dipilih benar-benar menghidupkan model yang dibutuhkan:

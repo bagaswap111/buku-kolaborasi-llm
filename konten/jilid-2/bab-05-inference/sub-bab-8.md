@@ -120,6 +120,10 @@ Perbandingan kinerja pengukuran nyata di atas empat replica vLLM dengan base mod
 | Power-of-two choices | 182 | 190 | 490 | 73% |
 | **Splitwise** (Prefill + Decode) | **210** | **165** | **380** | **85%** |
 
+![Strategi load balancing menaikkan throughput dari 168 req/s (tanpa LB) hingga 182 req/s (power-of-two), dengan Splitwise melompat ke 210 req/s sambil memangkas P99 dari 1.200 ms menjadi 380 ms](../../assets/images/bab-05-inference/sub-bab-8/benchmark-load-balancer.png)
+
+*Gambar 5.8-1 — Semua strategi "cerdas" memangkas P99 dramatis (dari 1.200 ms menjadi ~500 ms); Splitwise unggul mutlak dengan 210 req/s dan P99 380 ms karena pemisahan fase menghilangkan prefill yang memblokir antrean decode.*
+
 Dua cerita terpenting tersembunyi di kolom ekor. Pertama, semua strategi "cerdas" memangkas P99 dramatis — dari 1.200 ms (random) menjadi sekitar 500 ms. Kedua, Splitwise melompat jauh dari semua strategi sebelumnya: 210 req/s dengan P99 380 ms, karena pemisahan fase menghilangkan salah satu sumber tail latency terbesar — prefill panjang yang memblokir antrean decode. Ini menjelaskan mengapa penyedia cloud besar kini beralih ke arsitektur disaggregated: perbaikan bukan di lapisan routing, melainkan di struktur komputasi itu sendiri.
 
 Ada nuansa penting yang tidak terlihat langsung dari angka throughput: *tail latency* adalah indikator kesehatan yang lebih sensitif daripada rata-rata. Round-robin dan random memiliki P99 yang membengkak karena request dapat menumpuk di replica yang sedang sibuk — kasir yang kebetulan mendapat giliran rantai pembeli rumit. Strategi berbasis beban memecahkan masalah ini di lapisan routing dengan biaya hampir nol: P99 turun dari 850-1.200 ms ke kisaran 480-520 ms hanya dengan memilih replica yang tepat. Bagi pengalaman pengguna, perbedaan ini adalah jarak antara "lancar" dan "putus-putus". Catatan praktis: saat membaca benchmark seperti ini, pastikan kondisi pengukurannya serupa dengan beban Anda — P50 yang rendah di benchmark laboratorium seringkali tidak mewakili perilaku ekor saat trafik campuran mulai masuk.

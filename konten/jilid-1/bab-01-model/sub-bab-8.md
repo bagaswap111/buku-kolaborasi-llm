@@ -107,6 +107,12 @@ Tabel berikut merangkum biaya dan hasil setiap metode — perhatikan kolom VRAM 
 
 Perhatikan pola menariknya: *full fine-tuning* 7B membutuhkan 56 GB — lebih banyak dari LoRA untuk 70B versi QLoRA (48 GB). Dengan kata lain, parameter-efficient methods melipatgandakan ukuran model yang bisa Anda latih dengan anggaran yang sama. Untuk GPU konsumen, QLoRA selalu menjadi pintu masuk; **DoRA** layak dicoba jika Anda ingin kualitas terbaik (≈99,5%) dengan VRAM LoRA biasa — ia memisahkan *magnitude* dan *direction* bobot agar adaptasi lebih stabil.
 
+Grafik berikut memperjelas jurang memori antar metode — skala log sengaja dipakai agar perbedaan 6 GB (QLoRA 7B) hingga 560 GB (Full FT 70B) bisa terbaca dalam satu layar:
+
+![Perbandingan kebutuhan VRAM tiga kelas ukuran model untuk setiap metode fine-tuning](../../assets/images/bab-01-model/sub-bab-8/perbandingan-vram-metode-ft.png)
+
+*Gambar 1.8-1 — QLoRA menurunkan kebutuhan VRAM hingga 9× dibanding *full fine-tuning* di kelas 70B (48 GB vs 560 GB), sekaligus membuka pintu fine-tuning model MoE 284–675B di GPU 48–96 GB.*
+
 ### Tabel 2: Rekomendasi Konfigurasi per Hardware
 
 Konfigurasi berikut adalah titik awal yang terbukti berjalan baik di berbagai kelas hardware:

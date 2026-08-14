@@ -130,6 +130,10 @@ Tabel ini adalah jantung sub-bab: perbandingan kumulatif tiga opsi untuk lima an
 | **Nilai Jual Kembali (30%)** | -Rp 8.100.000 | -Rp 13.500.000 | Rp 0 |
 | **TCO 3 Tahun Bersih** | **~Rp 25.800.000** | **~Rp 40.200.000** | **Rp 72.000.000** |
 
+![Grafik garis berikut menelusuri akumulasi biaya tiga opsi dari tahun 1 hingga 3, memperlihatkan garis cloud yang melesat pada tahun kedua dan ketiga.](../../assets/images/bab-06-home/sub-bab-8/akumulasi-biaya-3-tahun.png)
+
+*Gambar 6.8-1 — Cloud unggul di Tahun 1 (Rp 24jt) tetapi menembus Rp 72jt di Tahun 3, sementara build hemat hanya bertambah Rp 4,6jt — arah perbandingan berbalik total setelah tahun pertama.*
+
 > Asumsi: tarif listrik Rp 1.500/kWh, GPU hidup 16 jam/hari, cloud ChatGPT Team ($25/user/bulan).
 
 Analisis: baca tabel ini baris per baris dan perhatikan *moral* utamanya. Cloud menang di Tahun 1 (Rp 24jt vs Rp 29,3jt vs Rp 47,9jt) — itulah umpan yang membuat banyak keluarga terjebak *subscription*: tampak murah, padahal belum memiliki apa pun. Di Tahun 3, arah berbalik total: cloud Rp 72jt, build hemat Rp 33,9jt — dan setelah *resale value* dimasukkan, build hemat hanya ~Rp 25,8jt. Artinya: **cloud tiga tahun = hampir 3× build hemat, dan 1,8× build performa**, dengan catatan penting bahwa build lokal tetap menjadi aset fisik di akhir periode. Satu-satunya argumen kuat untuk cloud adalah kebutuhan *frontier model* (yang belum bisa dijalankan lokal) — jika keluarga Anda membutuhkan itu, perlakukan cloud sebagai pelengkap, bukan pengganti.
@@ -146,6 +150,10 @@ Kalkulasi tagihan listrik tahunan untuk setiap build — data ini paling mudah d
 | **Mac Studio M2 Ultra** | 30W | 150W | ~60W | 0.96 | ~Rp 43rb | ~Rp 516rb |
 | **NUC Edge (Ministral 3)** | 8W | 35W | ~15W | 0.24 | ~Rp 11rb | ~Rp 130rb |
 | **2x RTX 4090 (DeepSeek V4 Flash)** | 100W | 800W | ~350W | 5.60 | ~Rp 252rb | ~Rp 3.02jt |
+
+![Grafik horizontal berikut membandingkan perkiraan biaya listrik bulanan keenam build server LLM, urut dari yang termahal.](../../assets/images/bab-06-home/sub-bab-8/biaya-listrik-per-bulan.png)
+
+*Gambar 6.8-2 — Build GPU menghabiskan Rp 130-252rb/bulan, sedangkan Mac Mini M4 Pro dan NUC Edge hanya Rp 11-25rb — konsumsi idle-lah pembeda terbesar antar build.*
 
 > Asumsi: 16 jam operasi/hari, tarif Rp 1.500/kWh. GPU dimatikan 8 jam saat tidur.
 

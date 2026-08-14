@@ -167,6 +167,10 @@ Tabel ini membandingkan tiga konfigurasi retrieval pada korpus campuran dokumen 
 | **Multi-hop Accuracy** | 34.2% | 71.5% | 83.1% | +48.9 pp |
 | **End-to-end Latency** | 340ms | 890ms | 1.21s | +0.87s |
 
+![Hybrid (RRF) menaikkan Hit Rate@5 dari 72,3% menjadi 89,5% dan multi-hop accuracy dari 34,2% (vector-only) menjadi 83,1%, dengan harga latensi naik ke 1,21 detik](../../assets/images/bab-08-general/sub-bab-7/benchmark-hybrid-retrieval.png)
+
+*Gambar 8.7-1 — Benchmark hybrid retrieval: RRF mengangkat kedua metrik akurasi jauh di atas jalur tunggal — multi-hop accuracy naik 48,9 poin persentase dari vector-only — sementara latensi tetap di bawah 2 detik yang masih nyaman bagi pengguna general office.*
+
 Dua wawasan penting muncul dari tabel ini. Pertama, *multi-hop accuracy* graph-only (71.5%) jauh mengungguli vector-only (34.2%) — bukti bahwa pertanyaan lintas hop memang butuh struktur, bukan sekadar kemiripan teks. Kedua, hybrid berhasil menaikkan *Hit Rate@5* dari 72.3% menjadi 89.5% — peningkatan 17.2 poin persentase — dengan *trade-off* latency yang meningkat sekitar 0.87 detik. Kenaikan latency ini praktis tidak terasa oleh pengguna general office (di bawah 2 detik), sementara kenaikan akurasi sangat terasa pada kualitas jawaban. Untuk konteks di mana latency adalah prioritas mutlak, pertimbangkan *cache* (Bagian 7) untuk meniadakan biaya latency pada pertanyaan berulang.
 
 ---

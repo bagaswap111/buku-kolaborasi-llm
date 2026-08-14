@@ -266,6 +266,10 @@ Inilah potret jujur medan perang performa.
 \* Model MoE besar: DeepSeek V4 Flash (284B) butuh ~150 GB FP16 / ~90 GB Q4; Mistral
 Large 3 (675B) butuh ~380 GB Q4 — hanya *feasible* dengan multi-GPU.
 
+![Perbandingan kecepatan inferensi Llama-3-8B Q4_K_M di delapan platform, dari RTX 4090 yang paling cepat (110 t/s) hingga sistem multi-GPU untuk model MoE raksasa (10-20 t/s), dengan label daya dan harga masing-masing.](../../assets/images/bab-02-hardware/sub-bab-1/kecepatan-token-per-gpu.png)
+
+*Gambar 2.1-1 — RTX 4090 unggul mutlak di 110 t/s, tetapi RTX 3090 used (85 t/s) dan RX 7900 XTX (75 t/s) menawarkan 70-77% kecepatannya dengan harga kurang dari separuhnya; M4 Pro membuktikan efisiensinya dengan 70 t/s hanya dari ~45W.*
+
 Mari baca angka-angkanya dengan cermat. **RTX 4090** adalah raja kecepatan: 110
 token/detik untuk model 8B — sekitar 1,5x lebih cepat dari RX 7900 XTX yang harganya
 setengahnya. Namun perhatikan *rasio*: dari 4090 (Rp 30 jt, 110 t/s) ke **RTX 3090

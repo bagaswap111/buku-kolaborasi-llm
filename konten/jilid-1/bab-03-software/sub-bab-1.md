@@ -120,6 +120,12 @@ Tabel berikut merangkum parameter Modelfile yang paling sering digunakan, lengka
 | `num_gpu` | int | -1 | GPU layers to offload | `PARAMETER num_gpu 99` |
 | `mirostat` | int | 0 | Mirostat sampling mode | `PARAMETER mirostat 2` |
 
+Gambar berikut memetakan nilai *default* keenam parameter ke dua kelompok fungsinya.
+
+![Perbandingan nilai default parameter Modelfile: kelompok sampling vs kelompok eksekusi](../../assets/images/bab-03-software/sub-bab-1/default-parameter-modelfile.png)
+
+*Gambar 3.1-1 — Parameter sampling (temperature 0,8, top_p 0,9, mirostat 0) bekerja pada skala kecil dan mengontrol "rasa" keluaran, sementara parameter eksekusi bekerja pada skala jauh lebih besar — num_ctx 2048 token dan num_gpu -1 yang berarti "semua lapisan ke GPU".*
+
 Pola yang muncul dari tabel ini: parameter sampling (`temperature`, `top_p`) mengontrol *rasa* keluaran, sedangkan parameter eksekusi (`num_ctx`, `num_gpu`) mengontrol *kemampuan* — seberapa banyak konteks yang bisa dipegang dan seberapa banyak komputasi yang dijalankan di GPU. Nilai *default* `temperature 0.8` memang relatif kreatif, cocok untuk percakapan umum; untuk tugas yang menuntut presisi seperti coding atau analisis data, turunkan ke 0,2-0,4. `num_gpu` dengan nilai -1 berarti "semua lapisan ke GPU", dan inilah yang paling sering digunakan pengguna desktop.
 
 ### Tabel 2: Perbandingan Backend Ollama

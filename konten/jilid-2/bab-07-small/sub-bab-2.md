@@ -161,6 +161,10 @@ Semua angka benchmark di bawah berasal dari pengukuran komunitas (r/LocalLLaMA d
 | **DeepSeek V4 Flash** | Q4_K_M | OOM | ~20 t/s | ~18 t/s |
 | **Mistral Large 3** | Q3_K_M | OOM | ~15 t/s | ~13 t/s |
 
+![Throughput token/detik tiap model di tiga konfigurasi GPU — model 8-14B semua kartu melayani, model 27B ke atas hanya dua kartu yang sanggup](../../assets/images/bab-07-small/sub-bab-2/benchmark-throughput-multi-gpu.png)
+
+*Gambar 7.2-1 — throughput tiap model di tiga konfigurasi GPU (batang kosong = OOM). Pada model kecil 8-14B satu kartu 4090 sudah kompetitif, sementara semua model 70B+ hanya bisa berjalan di dua kartu; 2x RTX 3090 NVLink bahkan mengungguli 2x RTX 4090 PCIe pada model terbesar (18 vs 16 t/s pada Llama-70B Q3).*
+
 Bacaan penting tabel ini ada tiga. **Pertama**, pada model 8-14B, satu GPU 4090 saja sudah *competitive* — jangan beli kartu kedua hanya untuk model kecil; utilitas kartu kedua muncul pada model 27B ke atas. **Kedua**, semua model penguji 70B+ menghasilkan "OOM" pada satu kartu — inilah bukti mengapa *multi-GPU* bukan tren tetapi kebutuhan. **Ketiga**, pola menarik antara kolom 3090-NVLink dan 4090-PCIe: pada model besar, 3090 bekas justru mengungguli 4090 baru (18 vs 16 t/s untuk Llama-70B Q3) — persis karena NVLink menebus kekurangan kartu yang lebih tua. Untuk DeepSeek V4 Flash yang berjalan 20 t/s di 64GB NVLink: angka itu berarti **~1.200 token/menit** per sesi — cukuplah untuk 8-10 user chat ringan sekaligus saat digabung dengan model kecil untuk *completion*.
 
 Perhatikan juga apa yang *tidak* ada di tabel: angka untuk 2x RTX 5090 (64 GB). Alasannya instruktif — pada saat tabel ini ditulis, data *benchmark* publik untuk model 70B di konfigurasi tersebut masih terlalu jarang untuk diklaim, dan ini sendiri adalah pelajaran: **jangan mempercayai angka *benchmark* yang tidak bisa Anda lacak sumbernya** [10]. Alur kerja yang benar: ambil tabel ini sebagai hipotesis, bangun sistem Anda, lalu jalankan `all_reduce_perf` dan `lm-eval` sendiri (Tutorial A) — angka di meja Anda adalah satu-satunya kebenaran yang relevan.

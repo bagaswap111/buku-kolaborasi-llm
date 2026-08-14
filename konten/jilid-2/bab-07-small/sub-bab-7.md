@@ -133,6 +133,10 @@ Sebelum mengatur *knob*, Anda harus tahu batas fisiknya. Tabel ini memetakan keb
 
 Tabel ini mengajarkan pelajaran yang mahal jika terlambat dipahami: **konteks tumbuh lebih cepat daripada pengguna**. Menambah konteks dari 8K ke 32K meningkatkan konsumsi per pengguna hampir dua kali lipat, sementara menggandakan pengguna hanya menambah secara linear. Pada 2× RTX 4090 (48 GB total), titik aman berada di **10 pengguna dengan konteks 8K** — di luar itu, Anda bukan menghadapi *bottleneck*, melainkan tembok. Inilah mengapa `--max-model-len` adalah *knob* paling penting untuk ditekan.
 
+![Kurva pertumbuhan estimasi VRAM model 14B Q4_K_M terhadap jumlah pengguna pada empat panjang konteks](../../assets/images/bab-07-small/sub-bab-7/vram-per-user.png)
+
+*Gambar 7.7-1 — Konteks 4K dan 8K tetap di bawah 30 GB bahkan untuk 20 pengguna, sementara kurva 16K terputus di 10 pengguna (~30 GB) dan 32K di 5 pengguna (~30 GB) karena OOM setelahnya. Garis konteks yang "gratis" justru menyandera VRAM paling cepat — itulah alasan `--max-model-len` menjadi knob paling penting.*
+
 ### Tabel 4: Estimasi VRAM per User — Model Baru (MoE & Granular)
 
 Generasi model MoE mengubah papan permainan: karena hanya parameter aktif yang dikomputasi, pengguna lebih banyak dapat dilayani per GB:

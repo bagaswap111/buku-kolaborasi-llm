@@ -211,3 +211,53 @@ Setiap file guideline berisi 7 seksi wajib:
 
 ### Build
 - `mkdocs build --clean` sukses (±3,5 dtk, 0 error; hanya warning nav untuk 15 placeholder kosong yang memang tak terdaftar)
+
+
+---
+
+## 2026-08-14
+
+### 08:00 WIB — Pelengkapan Aset Visual Seluruh Buku
+
+### Temuan Utama
+- Diagram mermaid selama ini **tidak pernah dirender** saat build: bundle Material hanya berisi style CSS mermaid; runtime dimuat dinamis dari CDN unpkg saat halaman dibuka (gagal jika offline/terblokir, dan tidak terverifikasi saat build)
+
+### Perbaikan
+- **Mermaid runtime di-self-host**: `konten/assets/javascripts/mermaid.min.js` (mermaid@11.16.1, 3,4 MB) diunduh dari unpkg dan disimpan offline
+- `mkdocs.yml` ditambah `extra_javascript: [assets/javascripts/mermaid.min.js]` — bundle Material mendeteksi `window.mermaid` global dan langsung memakainya tanpa fetch CDN
+- **`bab-01/sub-bab-1.md`** (satu-satunya file tanpa diagram) dilengkapi:
+  - Diagram 1 — Peta lintasan evolusi 2017-2027 (flowchart mermaid)
+  - Diagram 2 — Alur keputusan memilih model lokal berdasarkan VRAM (flowchart mermaid)
+  - **Gambar 1.1** — PNG chart "Evolusi Model: Parameter vs Performa (2019-2026)" benar-benar dibuat dari script matplotlib Tutorial 3 dengan matplotlib 3.11.1, disimpan di `konten/assets/images/bab-01/sub-bab-1/evolusi-model-2019-2026.png` (74 KB, dpi 150, skala log), di-embed via path relatif `../../assets/images/...`
+
+### Hasil Audit
+- **151 diagram mermaid** tersebar di 85 file konten; 100% file punya minimal 1 diagram (protokol terpenuhi)
+- 0 referensi gambar putus (semua referensi `assets/images/...` yang file-nya tak ada sudah diganti mermaid di sesi sebelumnya)
+- 0 script lain yang menulis file gambar selain sub-bab-1
+- Build sukses: `mermaid.min.js` tersalin ke `site/assets/javascripts/` dan direferensikan di semua halaman; PNG chart tersalin ke `site/assets/images/`
+
+
+---
+
+## 2026-08-14
+
+### 09:00 WIB — Gambar Statis PNG untuk Seluruh Sub-Bab + Pelonggaran Protokol Paragraf
+
+### Pelonggaran Protokol (templates/writing-protocol.md + templates/chart-style.md baru)
+- **Aturan paragraf dilonggarkan**: tidak ada batas maksimum paragraf per seksi. Yang dilarang: seksi kering 1 kalimat tanpa substansi dan paragraf berulang. Penulis bebas memvariasikan ritme (paragraf pendek untuk penekanan, panjang untuk pembahasan mendalam) — lihat "Aturan Kualitas Naratif" poin 3 & 8
+- **Aturan Gambar Statik diperketat**: setiap file WAJIB minimal 1 gambar statis PNG hasil generate (matplotlib) dari data tabel file sendiri — bukan hanya mermaid
+- `templates/chart-style.md` dibuat: panduan gaya grafik resmi (palet #3949ab/#00897b/#f9a825/#e53935/#6a1b9a/#546e7a, dpi 150, figsize 11×5/8×6, skala log untuk rentang lebar, label Bahasa Indonesia)
+
+### Pelaksanaan (20 Agen Paralel, 2 Wave)
+- Wave A (10 agen): bab-01 s.d bab-05 sub-bab 1-5 — 44 file
+- Wave B (10 agen): bab-05 sub-bab 6-10 s.d bab-10 — 40 file
+- 3 file yang gagal dikerjakan agen (bab-01 sub-bab 2/3/4) digarap manual: 6 PNG (memori per presisi, distribusi parameter, dense vs MoE, VRAM FP16 vs Q4, trade-off kuantisasi, kecepatan vs perplexity)
+
+### Hasil
+- **116 gambar PNG** dibuat dan di-embed (`konten/assets/images/<bab>/sub-bab-N/<nama>.png`)
+- **85/85 file** punya minimal 1 gambar statis + minimal 1 mermaid + minimal 2 tabel (semua aturan protokol terpenuhi)
+- **0 path putus**: semua embed `../../assets/images/...` menunjuk ke file yang benar-benar ada
+- Semua PNG valid (file magic `PNG image data`, ukuran 34-174 KB)
+- Data grafik 100% dari tabel file sendiri — tidak ada angka dikarang
+- Penomoran caption `Gambar X.N-i` tidak bentrok dengan mermaid
+- Build sukses: gambar tersalin ke `site/assets/images/` (semua bab ter-cover)

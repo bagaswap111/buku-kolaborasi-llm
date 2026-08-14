@@ -148,6 +148,14 @@ Peta lanskap model untuk *roleplay*, dengan estimasi kecepatan pada kuantisasi Q
 | **Mistral-7B-RP** | 7B | **** | *** | 10-15 t/s |
 | **DeepSeek V4 Flash** | 284B/13B aktif | **** | **** | 15-25 t/s (MoE efisien) |
 
+![Rentang kecepatan inferensi model roleplay dalam token per detik pada kuantisasi Q4](../../assets/images/bab-03-software/sub-bab-6/kecepatan-model-roleplay.png)
+
+*Gambar 3.6-1 — Rentang kecepatan model roleplay (Q4). DeepSeek V4 Flash paling cepat berkat arsitektur MoE, sementara Noromaid-20B paling lambat karena ukurannya yang besar.*
+
+![Perbandingan peringkat kualitas roleplay dan writing per model](../../assets/images/bab-03-software/sub-bab-6/kualitas-model-roleplay.png)
+
+*Gambar 3.6-2 — Peringkat kualitas roleplay vs writing. Mythomax-L2-13B adalah satu-satunya yang unggul di keduanya, menjadikannya *sweet spot* kualitas/kinerja.*
+
 Analisis: pola yang terlihat jelas adalah *trade-off* kualitas versus kecepatan. Mythomax-L2-13B adalah *all-rounder* yang tepat — kualitas *roleplay* dan *writing* sama-sama bintang lima, dan 3–5 t/s masih nyaman untuk membaca *output* sambil menyunting. Noromaid-20B unggul dalam *roleplay* tetapi menuntut 48 GB VRAM — investasi yang hanya masuk akal bagi *power user*. Di ujung lain, Mistral-7B-RP dan DeepSeek V4 Flash menawarkan kecepatan tinggi — penting untuk *roleplay* *real-time* yang responsif — dengan kompromi kualitas. Catatan menarik: DeepSeek V4 Flash, meski bukan model *roleplay*-spesifik, unggul dalam kecepatan berkat *MoE*; untuk pengalaman terbaik, gunakan *preset* parameter *roleplay* (Tabel 3) sebagai kompensasi.
 
 ### Tabel 3: Parameter Optimal untuk Roleplay

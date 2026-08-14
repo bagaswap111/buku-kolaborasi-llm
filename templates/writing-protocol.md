@@ -46,7 +46,7 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 ## 2. [Seksi teori pertama — judul sesuaikan topik]
 ### Sub-judul naratif A
 ### Sub-judul naratif B
-[2-5 paragraf per sub-judul. Bahasa mengalir: analogi hidup → konsep → detail teknis → implikasi praktis.]
+[Panjang paragraf BEBAS — tidak ada batas maksimum. Aturan satu-satunya: setiap paragraf membawa informasi baru dan mengalir. Vary: paragraf pendek (1-2 kalimat) untuk efek/simpulan, paragraf panjang (5-8 kalimat) untuk pembahasan mendalam. Bahasa mengalir: analogi hidup → konsep → detail teknis → implikasi praktis.]
 
 ## 3. [Seksi teori berikutnya]
 ...
@@ -70,11 +70,11 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 ---
 
 ## N+1. Diagram & Visualisasi
-### Gambar 1: [Judul]
+### Gambar 1: [Judul]  — WAJIB: setidaknya 1 GAMBAR STATIS PNG + 1 mermaid
 ```mermaid
 [gambar/flowchart/sequencediagram yang DIVERIFIKASI sintaksnya]
 ```
-[1-2 paragraf penjelasan gambar: apa yang dilihat, mengapa penting.]
+[Penjelasan gambar: apa yang dilihat, mengapa penting. Panjang bebas.]
 
 ### Gambar 2: [Judul]
 [dsb]
@@ -86,7 +86,19 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 - Pastikan semua panah `-->` tersambung ke node yang ada; TIDAK BOLEH ada node yang didefinisikan tapi tidak direferensikan (atau sebaliknya) → akan gagal render.
 - Setelah ditulis, lakukan pencermatan ulang sintaks baris per baris (agen penulis wajib memeriksa Mermaid sendiri sebelum menyimpan).
 
-**Aturan Gambar Statik (jika perlu):** hanya gunakan jalur `assets/images/jilidX/...` bila gambar benar-benar dibuat. JANGAN mereferensikan file gambar yang tidak ada. Lebih disukai Mermaid inline.
+**Aturan Gambar Statik (WAJIB minimal 1 per file):**
+- Setiap file konten WAJIB memiliki **minimal 1 gambar statis PNG** yang di-generate (matplotlib) dari data nyata tabel di file tersebut — bukan sekadar mermaid.
+- Lokasi penyimpanan: `konten/assets/images/<nama-folder-bab>/sub-bab-N/<deskripsi>.png` (contoh: `konten/assets/images/bab-01-model/sub-bab-2/perbandingan-vram.png`).
+- Embed dengan path relatif dari file konten ke `../../assets/images/...` (contoh dari `konten/jilid-1/bab-01-model/sub-bab-2.md` → `../../assets/images/bab-01-model/sub-bab-2/perbandingan-vram.png`).
+- Format embed:
+  ```markdown
+  ![Judul Gambar](../../assets/images/<folder>/sub-bab-N/<file>.png)
+
+  *Gambar X.N-i — keterangan singkat + insight 1-2 kalimat.*
+  ```
+- Gambar HANYA boleh memakai angka yang sudah ada di file (dari tabel/data guideline). JANGAN mengarang data baru hanya untuk grafik.
+- Verifikasi: script matplotlib dijalankan sampai berhasil, file PNG ada (ukuran > 0), dan path relatif benar (file editor harus bisa menampilkan gambar di posisi embed).
+- Gaya gambar: ikuti `templates/chart-style.md`.
 
 ---
 
@@ -118,11 +130,12 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 
 1. **Alur baca seperti sedang diajak bertualang** — mulai dari *mengapa topik ini penting bagi pembaca* → konsep → detail → perbandingan → praktik → studi kasus → referensi. Setiap transisi ada "jembatan" kalimat.
 2. **Gaya bahasa**: bahasa Indonesia teknis tetapi komunikatif; istilah asing tetap disertakan dengan *italic* (mis. *inference*, *throughput*, *quantization*); gunakan **bold** untuk istilah kunci.
-3. **Kedalaman**: target **350-450+ baris per file**. Setiap seksi teori 2-5 paragraf. Jangan ada seksi yang hanya 1 kalimat.
+3. **Kedalaman**: target **350-450+ baris per file**. TIDAK ada batasan jumlah paragraf per seksi — yang dilarang adalah seksi kering 1 kalimat tanpa substansi dan paragraf berulang. Variasikan ritme: paragraf pembuka pendek yang "menangkap", pembahasan inti yang panjang dan mendalam, satu kalimat penekanan untuk menutup.
 4. **Analogi hidup**: gunakan analogi sehari-hari (dapur, lalu lintas, perpustakaan, orkestra) untuk menjelaskan konsep teknis — tetapi tetap akurat secara teknis.
 5. **Tidak ada *filler***: setiap paragraf membawa informasi baru; tidak ada paragraf berulang atau basa-basi.
 6. **Netral & objektif**: sebutkan kelebihan DAN kekurangan setiap teknologi; gunakan data aktual (token/s, GB, harga IDR, skor benchmark) bukan kata sifat kosong.
 7. **Konsistensi internal buku**: sebutkan model/teknologi yang sama dengan istilah yang sama seperti di guideline (mis. DeepSeek V4 Flash, Mistral Large 3, Qwen3.6, GPT-5.5, Claude Fable 5). Jangan menciptakan produk fiktif baru.
+8. **Dinamika naratif**: boleh memecah seksi panjang menjadi sub-judul bernomor, list, *admonition* (mis. `> **Catatan:**`), atau blok tanya-jawab — selama tidak merusak alur. Akhiri setiap seksi dengan "jembatan" menuju seksi berikutnya.
 
 ---
 
@@ -149,9 +162,9 @@ Setiap file konten mengikuti struktur berikut. Penomoran seksi **dimulai dari 1*
 ## 7. CHECKLIST SEBELUM MENYIMPAN (WAJIB DILALUI)
 
 - [ ] Semua seksi guideline (Tujuan, Kerangka, Tabel, Diagram, Tutorial, Studi Kasus, Referensi) TERCOVER di konten.
-- [ ] Minimal 2 tabel valid + minimal 1 mermaid valid per file.
+- [ ] Minimal 2 tabel valid + minimal 1 mermaid valid + minimal 1 GAMBAR STATIS PNG (data asli dari file) per file.
 - [ ] Minimal 5 paper 5-10 tahun terakhir di Referensi.
-- [ ] Tidak ada gambar yang mereferensikan file yang tidak ada.
+- [ ] Semua embed gambar statis menunjuk ke file PNG yang benar-benar ada (path relatif benar).
 - [ ] Sintaks mermaid diperiksa baris per baris.
 - [ ] Tidak ada kalimat/kata yang tercetak dobel atau *placeholder* ("...", "TBD", "Lorem").
 - [ ] File tidak kurang dari 350 baris.

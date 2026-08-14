@@ -91,6 +91,10 @@ Dimensi embedding menentukan tiga biaya sekaligus — penyimpanan, latensi, dan 
 | **2048** (DeepSeek V4) | ~8 GB (FP32) | 12-25 ms | **0.97** | Milvus, Qdrant cluster |
 | **3072** (text-embedding-3-large) | ~12 GB (FP32) | 18-35 ms | 0.96 | Milvus (GPU indexing) |
 
+![Kebutuhan storage per juta vektor dan Recall@10 untuk setiap dimensi embedding](../../assets/images/bab-09-integrasi/sub-bab-4/dampak-dimensi-embedding.png)
+
+*Gambar 9.4-1 — Storage naik hampir linear seiring dimensi (768 → 3072 = 4×), tetapi Recall@10 memuncak pada 2048 dimensi (0,97) lalu turun di 3072 (0,96) — dimensi bukan satu-satunya penentu kualitas.*
+
 *Data diukur pada Qdrant v1.12, HNSW M=16, ef=128.*
 
 Analisis tabel ini menceritakan tiga kisah. Pertama, *recall* tidak monoton naik seiring dimensi: 3072 dimensi justru sedikit lebih rendah (0.96) daripada 2048 dimensi (0.97) — penambahan dimensi tanpa kualitas pelatihan embedding hanya menambah "dekorasi" yang tidak membantu pemisahan makna. Kedua, biaya penyimpanan naik hampir linear terhadap dimensi: 768 → 2048 berarti 2,7× ruang *(dari ~3 GB ke ~8 GB)*, persis konsisten dengan perbandingan dimensi. Ketiga, latensi kueri meloncat secara progresif — hingga 2,5× lipat dari standar ke 3072 dimensi. Konsekuensi praktisnya jelas: *recall@10* 0.97 dari DeepSeek V4 Embedding terasa sia-sia jika cache memori server Anda meluap; kompensasi dengan *scalar quantization* (INT8) adalah kunci (lihat Tabel 2).

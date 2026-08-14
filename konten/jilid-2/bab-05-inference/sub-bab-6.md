@@ -113,6 +113,10 @@ Berikut dampak kombinasi TP/PP pada *throughput* dan efisiensi, diukur atas Llam
 | 32x H100 (4 node, Ethernet) | 32 | 4 | 8 | 11.500 | 68% |
 | 64x H100 (8 node, Ethernet) | 64 | 4 | 16 | 18.000 | 54% |
 
+![Setiap penggandaan GPU menaikkan throughput Llama-3.1-405B tetapi efisiensi scaling terus merosot — dari 100% di 8 GPU menjadi 54% di 64 GPU](../../assets/images/bab-05-inference/sub-bab-6/benchmark-scaling-llama405b.png)
+
+*Gambar 5.6-1 — Interconnect menentukan segalanya: 16 GPU NVLink mencapai 7.800 tok/s (93%) sedangkan Ethernet hanya 6.200 tok/s (74%); diminishing returns tak terhindarkan hingga efisiensi 54% di 64 GPU.*
+
 Tidak ada baris dalam tabel ini yang memberikan 8x lipat *throughput* saat GPU dikalikan 8x — dan itu memang mustahil. Perhatikan dua pelajaran. **Pertama, *interconnect* adalah segalanya**: 16 GPU terhubung NVLink lintas node mencapai efisiensi 93%, sementara konfigurasi yang sama dengan Ethernet anjlok ke 74%. **Kedua, *diminishing returns* tak terhindarkan**: dari 8 GPU ke 16 GPU, *throughput* naik 86%; dari 32 ke 64, hanya naik 57% — efisiensi turun ke 54%. Biaya komunikasi yang tumbuh bersama jumlah GPU akhirnya memakan *speedup* linear. Proyeksi jujur untuk 64 GPU: *throughput* 18.000 token/detik mungkin, tetapi dengan efisiensi hanya sedikit di atas setengah.
 
 Bagi perencana, tabel ini berfungsi sebagai *kalkulator cepat*: jika *throughput* target Anda 10.000 token/detik, 32 GPU Ethernet sudah mencukupi (11.500 tok/s), sedangkan 16 GPU NVLink (7.800 tok/s) belum. Selisihnya adalah perbedaan dua kali lipat biaya *hardware* — dan sering kali, jawabannya bukan membeli GPU lebih banyak, melainkan menutup *gap* jaringan dengan InfiniBand atau NVLink antar-node, yang menggeser Anda dari baris 74% ke baris 93%.

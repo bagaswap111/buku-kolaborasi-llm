@@ -126,6 +126,12 @@ Untuk menyentuh kasus nyata, mari bandingkan empat tokenizer terhadap lima frasa
 | "Berkebinekaan" | 5 | 3 | 3 | 2 |
 | **Rata-rata token/kata** | **1.8** | **1.2** | **1.3** | **0.9** |
 
+Pola boros-hemat antar tokenizer terlihat lebih jelas ketika kelima frasa dipetakan bersisian:
+
+![Efisiensi Token 5 Frasa Bahasa Indonesia per Model](../../assets/images/bab-01-model/sub-bab-6/efisiensi-token-frasa-id.png)
+
+*Gambar 1.6-3 — Llama-3 selalu paling boros di kelima frasa (4-5 token), sementara Nusantara-7B paling hemat (1-3 token) dan bahkan memecah "Ketidakadilan" menjadi satu token utuh. Dengan rata-rata token/kata 0,9, Nusantara lebih efisien dari satu token per kata, sedangkan Llama-3 di angka 1,8.*
+
 Rata-rata token/kata adalah metrik yang paling mudah diingat: **Llama-3 1,8, Qwen 1,2, Gemma 1,3, Nusantara 0,9**. Terjemahan langsungnya: untuk kalimat yang sama, Llama-3 mengonsumsi 50% lebih banyak token daripada Qwen — dan hampir dua kali lipat Nusantara. Ini bukan sekadar statistik salon: 1,8 vs 1,2 berarti setiap dokumen Bahasa Indonesia yang Anda proses di Llama-3 membebani *context window* 50% lebih berat dan memperlambat *inference* dengan proporsi yang sama. Sementara Nusantara yang mencetak 0,9 bahkan lebih efisien daripada satu token per kata — karena kata majemuk dan bentukan umum digabung menjadi satu token utuh — menandakan tokenizer yang benar-benar "hidup" dalam morfologi Indonesia.
 
 ### Tabel 3: Dampak Tokenisasi pada Biaya Inferensi

@@ -180,6 +180,10 @@ Bagaimana kecepatan model-model 2026 dibandingkan Llama-3.1-8B di atas?
 | Claude Fable 5 | — | 2-6 detik (API) | 1M | Safety-critical, SWE-bench 95% |
 | Ministral 3 (8B) | 8B | 0.5-1 detik | 128K | Edge device, simple classification |
 
+![Rentang latency tiap model saat satu panggilan LLM di workflow n8n](../../assets/images/bab-09-integrasi/sub-bab-1/latency-model-n8n.png)
+
+*Gambar 9.1-1 — Rentang latency per panggilan LLM di n8n: model MoE ringan (Ministral 3, DeepSeek V4 Flash) melayani tugas harian dalam 0,5-3 detik, sementara DeepSeek V4 Pro dengan 49B aktif membutuhkan hingga 8 detik — pilihan model menentukan batas kecepatan workflow interaktif.*
+
 Pola menarik dari tabel ini: model MoE modern justru lebih cepat daripada Llama-3.1-8B dense pada sebagian tugas, karena parameter aktifnya hanya terpicu sesuai kebutuhan token. DeepSeek V4 Flash dengan 13B aktif menyelesaikan satu panggilan dalam 1-3 detik — lebih cepat dari estimasi Llama-3.1-8B pada pola yang sama, dengan kualitas jauh lebih tinggi. Ministral 3 (8B) bahkan menyentuh 0,5-1 detik, membuatnya ideal untuk pengalaman pengguna interaktif (chatbot Slack). Trade-off-nya jelas: latency model API sangat andal sebagai angka, tetapi menambahkan *network round-trip* dan *throttling* provider — dan menyerahkan data ke pihak ketiga.
 
 ---

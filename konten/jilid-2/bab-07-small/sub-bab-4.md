@@ -121,6 +121,10 @@ Pertanyaan finansial terakhir dijawab tabel ini: berapa biaya penyimpanan vektor
 | **Codebase Legacy** | 10.000 file | ~500 MB | ~50.000 chunks | ~400 MB | ~Rp 100rb/bln |
 | **Jurnal/Paper** | 500 dokumen | ~250 MB | ~25.000 chunks | ~200 MB | ~Rp 50rb/bln |
 
+![Ukuran dokumen sumber versus ukuran embedding storage per tipe dokumen, dengan skala logaritmik dari 1,5 MB hingga 500 MB](../../assets/images/bab-07-small/sub-bab-4/ukuran-dokumen-vs-embedding-storage.png)
+
+*Gambar 7.4-1 — embedding selalu lebih ringkas dari dokumen sumbernya: 10 MB teks SOP terkompresi menjadi 1,5 MB vektor, dan bahkan codebase 500 MB hanya menyisakan 400 MB. Inilah alasan storage vektor RAG kantor kecil hampir selalu gratis atau di bawah Rp 100 ribu/bulan.*
+
 Insight tabel ini menenangkan: untuk kantor kecil, storage vektor **hampir selalu gratis** atau di bawah Rp 100 ribu/bulan bahkan di cloud Qdrant — karena embedding terkompresi jauh lebih kecil dari dokumen sumbernya (10 MB teks menjadi 1,5 MB vektor). Biaya besar sebenarnya bukan di penyimpanan, tetapi di komputasi embedding awal dan *maintenance* pipeline. Ini menjawab pertanyaan "RAG mahal?" dengan tegas: tidak — jika dibangun *self-hosted*.
 
 ---

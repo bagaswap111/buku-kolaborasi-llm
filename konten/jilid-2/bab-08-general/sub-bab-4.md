@@ -159,6 +159,10 @@ Empat *tier* kunci berikut memetakan kebutuhan kerja departemen ke kuota model, 
 | **Standard** | HR, Finance, Legal | 8B only | Rp 2jt | 20 | 100k |
 | **Guest** | Intern, Trainee | 8B only, no RAG | Rp 500k | 10 | 50k |
 
+![Perbandingan batas kecepatan empat tier virtual key — Admin, Power, Standard, dan Guest — untuk RPM dan TPM.](../../assets/images/bab-08-general/sub-bab-4/batas-rpm-tpm-tier.png)
+
+*Gambar 8.4-1 — Kuota menurun drastis dari Admin (RPM 100, TPM 500k) ke Guest (RPM 10, TPM 50k), dengan penurunan sepuluh kali lipat di kedua metrik; hierarki ini memastikan pengguna sementara tidak pernah memonopoli gateway.*
+
 Analisis singkat: hierarki kuota mengikuti pola *diminishing need* — departemen yang paling bergantung pada AI (Engineering, Data) mendapat kuota tertinggi, sementara pengguna sementara (Intern) dibatasi seperdua puluh kuota admin. Perhatikan bahwa *tier* Standard tetap mendapat akses model 8B penuh; pembeda utamanya adalah kuota token per menit, bukan kualitas model. Ini adalah keputusan desain yang bijak: kualitas jawaban tidak berbeda antar departemen, tetapi volume pemakaian harus terkendali. Sedangkan *tier* Guest tanpa RAG berarti pengguna sementara tidak bisa menarik data internal melalui *retrieval* — lapisan keamanan ekstra yang murah.
 
 ### Tabel 2: Perbandingan AI Gateway
@@ -190,6 +194,10 @@ Berikut contoh nyata pemakaian satu bulan di kantor 40 user — angka yang bisa 
 | **Legal** | 4 | Standard | Rp 2jt | Rp 1.8jt | Rp 200k |
 | **IT Ops** | 2 | Admin | Rp 10jt | Rp 3.5jt | Rp 6.5jt |
 | **Total** | **40** | | **Rp 26jt** | **Rp 16.9jt** | **Rp 9.1jt** |
+
+![Perbandingan budget dan pemakaian bulanan enam departemen di kantor 40 user, dalam juta rupiah.](../../assets/images/bab-08-general/sub-bab-4/budget-vs-pemakaian-departemen.png)
+
+*Gambar 8.4-2 — Pemakaian paling timpang ada di Data Science (96% budget, Rp 4.8jt) dan IT Ops (35%, Rp 3.5jt); dengan total sisa Rp 9.1jt dari budget Rp 26jt, alokasi hulu terbukti lebih longgar dari kebutuhan aktual.*
 
 Dua *insight* langsung terlihat. Pertama, **pemakaian tidak merata**: Data Science memakai 96% budget-nya (Rp 4.8jt dari Rp 5jt) sementara IT Ops baru 35% — signal untuk audit internal: apakah workload Data Science memang sedang tinggi, atau ada *script* yang berulang sia-sia? Kedua, **total sisa Rp 9.1jt (35%)** menunjukkan budget hulu Rp 26jt lebih longgar dari kebutuhan aktual Rp 16.9jt; kantor bisa menurunkan alokasi atau menyalurkan sisa ke pelatihan AI karyawan. Tabel seperti ini juga menjadi bahan introspeksi: kalau sebuah departemen selalu habis di minggu ketiga, itu bukan masalah budget, melainkan masalah kebutuhan yang tidak dipetakan sejak awal — persis kasus yang terjadi pada departemen Legal di studi kasus PT Finansial Sejahtera (Seksi 11).
 

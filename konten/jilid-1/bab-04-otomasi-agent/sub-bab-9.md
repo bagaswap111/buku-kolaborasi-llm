@@ -147,6 +147,10 @@ Tabel ini adalah bukti kuantitatif mengapa multi-agent bekerja — bandingkan me
 
 Data ini menunjukkan pola *diminishing return* yang penting untuk dipahami. Peningkatan terbesar terjadi pada putaran pertama: *factual accuracy* melompat 13 poin (72% → 85%), *completeness* naik 15 poin (65% → 80%). Putaran kedua masih memberikan peningkatan, tetapi lebih kecil: akurasi 85% → 91%, kelengkapan 80% → 88%. Sementara itu, biaya token naik secara linear (1.500 → 2.500 → 3.500). Kesimpulan praktisnya: putaran review pertama dan kedua hampir selalu sepadan; putaran ketiga dan seterusnya jarang memberikan nilai yang sebanding dengan biayanya. Desain workflow Anda harus menetapkan batas iterasi dengan angka ini sebagai acuan.
 
+![Peningkatan kualitas multi-agent review: akurasi, skor /5, dan biaya token dari satu agen hingga dua putaran review](../../assets/images/bab-04-otomasi-agent/sub-bab-9/kualitas-multi-agent-review.png)
+
+*Gambar 4.9-1 — Putaran pertama memberi lompatan terbesar (akurasi +13 poin, kelengkapan +15 poin) dengan tambahan 1.000 token, sedangkan putaran kedua meningkat lebih tipis; inilah dasar menetapkan batas 2-3 putaran review.*
+
 ---
 
 ## 9. Diagram: Workflow Multi-Agent Writer-Editor

@@ -90,6 +90,10 @@ Tabel berikut memperlihatkan transformasi paling dramatis dalam satu keluarga mo
 | **Rilis** | Jul 2024 | Apr 2025 | Apr 2025 | N/A |
 | **Min VRAM (Q4)** | ~6 GB (8B) / ~45 GB (70B) | ~35 GB | ~65 GB | >400 GB |
 
+![Grafik batang horizontal kebutuhan VRAM minimum lima varian Llama 3 dan Llama 4 pada skala logaritmik, dari Llama 3.1 8B (6 GB) hingga Llama 4 Behemoth (lebih dari 400 GB)](../../assets/images/bab-10-etika/sub-bab-3/vram-llama-3-vs-llama-4.png)
+
+*Gambar 10.3-1 — Kebutuhan VRAM minimum (Q4) dari generasi Llama 3 ke Llama 4 pada skala logaritmik. MoE membuat model "besar" lebih murah dijalankan — Scout 109B total hanya butuh ~35 GB — sementara Behemoth (>400 GB) menegaskan bahwa tidak semua rilis cocok untuk semua infrastruktur.*
+
 Analisis: tiga observasi penting. Pertama, *dense* 405B membutuhkan ~45 GB untuk varian 70B — sementara Scout 109B total membutuhkan ~35 GB — MoE membuat model "besar" lebih murah dijalankan. Kedua, gap konteks 128K→10M adalah lompatan kualitatif: aplikasi yang dulu butuh *chunking* agresif kini bisa memproses dokumen utuh. Ketiga, *knowledge cutoff* — Desember 2023 untuk Llama 3.1 vs Agustus 2024 untuk Llama 4 — adalah pengingat bahwa migrasi sering kali berarti mendapatkan pengetahuan yang delapan bulan lebih baru tanpa biaya tambahan. Batas VRAM >400 GB Behemoth menegaskan: tidak semua rilis layak untuk semua infrastruktur [1][6].
 
 ### Tabel 2: Matriks Keputusan Migrasi per Use Case

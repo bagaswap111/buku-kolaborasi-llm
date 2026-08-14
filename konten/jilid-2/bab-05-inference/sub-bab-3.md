@@ -133,6 +133,10 @@ Berikut *trade-off* kuantisasi terhadap VRAM, *throughput*, konteks maksimal, da
 | FP8 (E4M3) | 7 GB | 98 | 16K | ~0.1 loss |
 | NVFP4 (Mistral Large 3) | 3.8 GB | 118 | 24K | ~0.6 loss |
 
+![Semakin rendah bit kuantisasi, semakin kecil VRAM (14 GB FP16 → 3,2 GB AQLM 3-bit) tetapi throughput justru naik hingga 130 t/s — dengan harga kualitas hingga ~1,5 loss](../../assets/images/bab-05-inference/sub-bab-3/tradeoff-kuantisasi-vram-throughput.png)
+
+*Gambar 5.3-1 — Trade-off kuantisasi di RTX 4090: AQLM 3-bit memenangkan throughput (130 t/s) dengan VRAM terkecil (3,2 GB), tetapi kualitas turun ~1,5 loss; AWQ 4-bit menjadi titik manis (105 t/s, ~0,8 loss).*
+
 Bacaan penting dari tabel ini: *throughput* tertinggi (130 t/s) justru diraih AQLM 3-bit, bukan FP16 — karena bobot yang lebih kecil berarti lebih sedikit data yang ditarik dari *memory bandwidth*, dan pada kartu gaming *memory bandwidth* adalah *bottleneck* utama. Namun kualitas turun ~1.5 *loss* dari baseline; untuk teks kreatif yang panjang, degradasi ini bisa terasa. Titik manis praktis adalah **AWQ 4-bit**: VRAM 4,5 GB, *throughput* 105 t/s, konteks 32K, dengan penalti kualitas yang masih terkendali (~0.8). Sementara itu **NVFP4** — format 4-bit *floating point* NVIDIA yang didukung native oleh Mistral Large 3 — menjadi opsi menarik modern: 118 t/s dengan hanya ~0.6 loss [9]. Aphrodite adalah engine pertama yang membawa NVFP4 ke kartu gaming consumer.
 
 Perhatikan juga kolom *Max Context*: kuantisasi yang lebih kecil secara tidak langsung membuka konteks yang lebih panjang. Ini efek domino memori — model FP16 memakai 14 GB hanya untuk bobot, menyisakan sedikit ruang KV-cache, sehingga batas konteks tersendat di 8K; sebaliknya AQLM 3-bit memakan 3,2 GB dan membiarkan konteks membengkak ke 48K. Jika kebutuhan Anda adalah percakapan panjang dengan memori karakter, pilihan format kuantisasi sama pentingnya dengan pilihan model itu sendiri. Untuk konteks setara, jumlah VRAM yang tersisa setelah bobot, dibagi kebutuhan KV-cache per token, menentukan "umur" percakapan Anda.

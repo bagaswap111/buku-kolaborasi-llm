@@ -115,6 +115,10 @@ Peta lengkap enam strategi penalaran — dari yang termurah hingga termahal — 
 
 Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prompting murah tetapi lemah (~20%); Self-Consistency dan ToT mencapai ~72-74% tetapi menuntut 5-20x biaya token. Keputusan pemilihan metode karenanya bukan "metode mana yang terbaik" melainkan *"metode mana yang paling murah untuk tingkat akurasi yang dibutuhkan tugas ini"*. Panduan praktis: mulai dari *zero-shot CoT* (satu kalimat, gratis, 43%); bila akurasi kurang, naik ke *few-shot CoT* (58%) dengan 2-3 contoh; gunakan *Self-Consistency* hanya untuk keputusan penting; dan cadangkan ToT untuk tugas eksplorasi yang benar-benar membutuhkannya. ReAct adalah kasus khusus: akurasinya sedang, tetapi *kemampuannya bertindak* membuatnya tak tergantikan untuk agen [2][3][5].
 
+![Akurasi metode reasoning pada GSM8K](../../assets/images/bab-04-otomasi-agent/sub-bab-3/akurasi-metode-reasoning.png)
+
+*Gambar 4.3-1 — Akurasi naik dari ~20% (standard prompting) menjadi ~74% (Tree-of-Thoughts); perbaikannya selalu berbanding lurus dengan biaya token, sehingga pemilihan metode adalah keputusan tentang harga akurasi, bukan sekadar pilihan teknik.*
+
 ### Tabel 2: Performa CoT pada Model Lokal (GSM8K)
 
 Bagaimana model-model lokal 2026 menanggapi tiap metode? Tabel ini menjawabnya.
@@ -129,6 +133,10 @@ Bagaimana model-model lokal 2026 menanggapi tiap metode? Tabel ini menjawabnya.
 | Mistral-7B | 16.8% | 48.5% | 35.2% | 60.8% |
 
 Empat wawasan penting. *Pertama*, semua model memperoleh manfaat CoT — bahkan Mistral-7B (model kecil dari 2023) nyaris melipatgandakan akurasinya dengan few-shot CoT. *Kedua*, ukuran bukan satu-satunya penentu: DeepSeek-R1-Distill-Qwen-7B mengungguli Qwen-2.5-7B di semua kolom meskipun berarsitektur sama — bukti bahwa *distilasi kemampuan reasoning* benar-benar menurunkan skill dari model besar [1]. *Ketiga*, kesenjangan antara model kecil dan besar menyempit saat metode semakin canggih: pada Self-Consistency, selisih Llama-3.1-8B terhadap DeepSeek V4 Pro adalah 21 poin — masih besar, tetapi jauh lebih kecil daripada selisih 24 poin pada mode standard. *Keempat*, DeepSeek V4 Pro menunjukkan konsistensi: ia unggul di semua kolom, menegaskan bahwa arsitektur CSA/HCA memang dirancang untuk *reasoning* mendalam. Bagi pengguna laptop, DeepSeek-R1-Distill-Qwen-7B (72,4% dengan Self-Consistency) adalah pilihan menarik: kualitas mendekati model besar dengan biaya model kecil.
+
+![Performa CoT pada model lokal](../../assets/images/bab-04-otomasi-agent/sub-bab-3/performa-cot-model-lokal.png)
+
+*Gambar 4.3-2 — Semua model lokal naik tajam dari standard ke few-shot CoT; DeepSeek V4 Pro konsisten unggul di semua metode (42,1% → 85,2%), dan DeepSeek-R1-Distill-Qwen-7B menyalip Qwen-2.5-7B di seluruh kolom berkat distilasi kemampuan reasoning.*
 
 ### Tabel 3: Penggunaan Sumber Daya per Metode (Model 7B)
 

@@ -103,6 +103,10 @@ Lima strategi penyortiran dari yang paling sederhana hingga paling kompleks, len
 
 Tabel ini menunjukkan *trade-off* yang tidak bisa dihindari: kecerdasan membutuhkan waktu. *By extension* menyortir 10.000 file per detik tetapi tidak memahami apa pun; *by content* memahami isi tetapi hanya 10 file per detik — 1.000 kali lebih lambat karena setiap file harus dikirim ke LLM. Strategi hibrid mengatasi ini dengan *multi-pass*: lintasan cepat (extension, metadata) menyelesaikan mayoritas file, lalu lintasan LLM hanya untuk sisanya yang ambigu. Pendekatan inilah yang dipakai pada studi kasus 50.000 foto di seksi 10.
 
+![Trade-off strategi organisasi file: kecepatan sortir (skala log) versus akurasi lima strategi dari Tabel 1](../../assets/images/bab-04-otomasi-agent/sub-bab-6/kecepatan-akurasi-sortir.png)
+
+*Gambar 4.6-1 — By usage pattern adalah yang tercepat (100.000 file/detik) tetapi paling tidak akurat (70-80%), sedangkan by content justru kebalikannya (10 file/detik, 90-95%); hibrid menggabungkan keduanya lewat multi-pass.*
+
 ### Tabel 2: Tools Comparison
 
 Peta peralatan — dari pustaka Python hingga tool baris perintah — menurut fungsi, dukungan batch, dan keamanannya.

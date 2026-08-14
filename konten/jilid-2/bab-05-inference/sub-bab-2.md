@@ -122,6 +122,10 @@ Untuk menilai dampak kuantisasi secara kuantitatif, perhatikan *throughput*, TTF
 | TGI + Ministral 3 8B (AWQ) | 58.7 | 112 | 680 |
 | vLLM (comparison, Llama-3.1-8B) | 45.3 | 195 | 1120 |
 
+![Kuantisasi menaikkan throughput TGI dari 28,5 req/s (no quant) menjadi 52,1 req/s (FP8), dengan latensi P50 turun dari 1250 ms ke 760 ms](../../assets/images/bab-05-inference/sub-bab-2/throughput-dan-latensi-tgi.png)
+
+*Gambar 5.2-1 — Kuantisasi bukan hanya mengecilkan model: bobot yang lebih kecil memangkas beban memory bandwidth, sehingga throughput naik ~1,8x dan latensi turun ~40% tanpa mengganti GPU.*
+
 Tiga baris pertama menunjukkan pola yang sangat instruktif: kuantisasi bukan hanya mengecilkan *footprint* model, tetapi juga menaikkan *throughput* — dari 28,5 req/s (tanpa kuantisasi) menjadi 52,1 req/s (FP8) — karena pesos yang lebih kecil mengurangi beban *memory bandwidth* yang memang menjadi *bottleneck* *decode*. Bandingkan juga dengan vLLM pada model sama: vLLM unggul pada konfigurasi standar (45,3 vs 28,5 req/s), menegaskan bahwa vLLM memang lebih agresif dalam *throughput* murni. Sementara itu, **Ministral 3 8B** (seri edge-optimized Mistral, Apache 2.0) menunjukkan performa terbaik di tabel — 58,7 req/s dengan TTFT 112 ms — menjadikannya pilihan menarik untuk TGI di *home server* dan *edge*. **Mistral Large 3** (675B/41B aktif) yang mendukung FP8 dan NVFP4 secara native tetap layak untuk beban bertonase besar di empat A100 [7][8].
 
 ### Tabel 3: Opsi Environment TGI yang Penting

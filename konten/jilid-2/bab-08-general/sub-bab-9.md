@@ -128,6 +128,10 @@ Tabel berikut merinci seluruh komponen biaya untuk tiga skenario — Entry, Medi
 
 *Catatan: M = miliar. Semua harga bersifat indikatif.*
 
+![TCO 3 tahun menanjak hampir tiga kali lipat dari Entry (Rp 610 jt) ke Premium (Rp 1,83 M), dengan CAPEX premium Rp 1,16 M dan OPEX/tahun premium Rp 335 jt](../../assets/images/bab-08-general/sub-bab-9/anggaran-capex-opex-tco.png)
+
+*Gambar 8.9-1 — Rincian anggaran tiga skenario: CAPEX dan TCO membentuk kurva yang sama-sama menanjak dari Entry ke Premium, sementara OPEX/tahun hanya naik sekitar 2,3x — isyarat bahwa skala lebih besar lebih banyak dibayar di muka, bukan per bulan.*
+
 Pesan utama tabel ini ada di tiga baris terakhir. Pertama, GPU memang mendominasi CAPEX, tetapi perhatikan bahwa *SDM/tahun* — bukan GPU — adalah komponen OPEX terbesar, dan pada skenario premium nilainya (Rp 240 juta/tahun) menyamai harga satu H100. Kedua, TCO 3 tahun menanjak hampir tiga kali lipat dari Entry (Rp 610 juta) ke Premium (Rp 1,83 miliar) — kenaikan yang harus dihubungkan langsung dengan jumlah user yang dilayani pada Bagian 3. Ketiga, model terpilih evolusinya mengikuti anggaran: DeepSeek V4 Flash Q4 untuk entry, Mistral Large 3 Q4 untuk medium, dan DeepSeek V4 Pro Q4 untuk premium — semuanya *open-weight* yang menghapus komponen biaya lisensi.
 
 ### Tabel 2: Perbandingan On-premise vs Cloud vs Hybrid (40 User, 3 Tahun)
@@ -160,6 +164,10 @@ Tabel terakhir membandingkan on-premise medium dengan dua langganan SaaS paling 
 | **Payback vs GitHub Copilot** | - | - | 30 bulan |
 
 *\*TCO per user per bulan (Rp 1.32M / 36 bulan / 40 user). \*\*Termasuk depresiasi hardware.*
+
+![On-premise medium (Rp 275 rb/user/bulan) hanya sekitar seperempat biaya ChatGPT Enterprise (Rp 960 rb) dan sedikit di bawah GitHub Copilot (Rp 304 rb)](../../assets/images/bab-08-general/sub-bab-9/biaya-per-user-saas.png)
+
+*Gambar 8.9-2 — Biaya per user per bulan: on-premise medium hampir 3,5x lebih murah dari ChatGPT Enterprise — namun payback terhadap Copilot yang sudah murah tetap berlangsung 30 bulan, bukan 18 bulan.*
 
 Perhatikan dua hal menarik. Pertama, on-premise medium secara per-user (Rp 275 ribu) hampir seperempat biaya ChatGPT Enterprise (Rp 960 ribu) — tetapi *payback* terhadap GitHub Copilot (30 bulan) jauh lebih lama daripada terhadap ChatGPT Enterprise (18 bulan), karena titik tolak Copilot sudah murah. Ini membuka pertanyaan yang jujur: jika kebutuhan kantor hanya *coding assistance*, Copilot mungkin sudah menjadi keputusan yang lebih efisien daripada membangun infrastruktur. Kedua, keputusan akhir tidak pernah murni finansial — keamanan data, kedaulatan data (tidak bocor ke server AS), dan latency ikut menentukan; studi kasus Bagian 11 menunjukkan bagaimana ketiganya digabung dalam satu keputusan nyata.
 

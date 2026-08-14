@@ -86,6 +86,12 @@ Enam kandidat model — dari yang paling hemat daya hingga paling akurat.
 | **Ministral 3 8B** | ~4.8 GB | Sangat Baik | 1.2 detik | 5 detik | **Sweet spot home** |
 | **Qwen-2.5-14B** | ~8.5 GB | Sangat Baik | 3.0 detik | 15 detik | Akurasi maksimal |
 
+Kesenjangan latensi GPU versus CPU hanya bisa dirasakan ketika digambar — semua model lolos SLA 5 detik di GPU, sementara di CPU hanya model terkecil yang aman.
+
+![Perbandingan latensi GPU vs CPU enam model untuk home assistant](../../assets/images/bab-06-home/sub-bab-4/latensi-model-gpu-vs-cpu.png)
+
+*Gambar 6.4-1 — Latensi response enam kandidat model pada GPU dan CPU, dengan garis SLA 5 detik. Di GPU semua model lolos, tetapi di CPU hanya Ministral 3 3B (~2 detik) dan Phi-4-mini (~3 detik) yang berada di bawah batas nyaman.*
+
 Ministral 3 (Apache 2.0, Desember 2025) adalah pilihan terbaik untuk Home Assistant karena *edge-optimized* dengan *function calling* yang baik. **Ministral 3 3B** berjalan di CPU dengan latensi hanya 2 detik — ideal untuk perangkat tanpa GPU. Untuk keluarga dengan GPU, **Ministral 3 8B** menawarkan keseimbangan terbaik antara akurasi dan kecepatan. Pola penting dari tabel ini: perbedaan latensi GPU hanya beberapa detik, tetapi selisih CPU bisa 3-8 kali lipat — bagi rumah tanpa GPU, pilihan model adalah segalanya.
 
 ### Tabel 2: Komponen Voice Pipeline Wyoming

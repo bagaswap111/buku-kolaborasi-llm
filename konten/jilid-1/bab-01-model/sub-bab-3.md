@@ -190,6 +190,14 @@ Pengguna Apple Silicon dengan M2 Max 96GB memiliki keunggulan unified memory. Mi
 
 Tabel A menunjukkan kontras yang jelas antara parameter total dan parameter aktif. Perhatikan bahwa Mixtral 8x7B dengan 12,9B aktif membutuhkan VRAM yang sama dengan dense model 50B (90 GB FP16), tetapi memberikan kualitas yang mendekati Llama-3 70B pada sebagian benchmark. DeepSeek V4 Flash dengan 13B aktif adalah contoh paling efisien dalam tabel — ia memberikan kapasitas model 284B tetapi dengan kebutuhan komputasi hanya setara 13B.
 
+![Perbandingan parameter total, parameter aktif, dan skor MMLU](../../assets/images/bab-01-model/sub-bab-3/dense-vs-moe-param.png)
+
+*Gambar 1.3-1 — model MoE tampil sebagai "tiang" biru muda yang tinggi dengan "tiang" aktif yang pendek; skor MMLU (garis merah) tidak terkait langsung dengan ukuran total.*
+
+![Kebutuhan VRAM FP16 vs Q4 untuk model dense dan MoE](../../assets/images/bab-01-model/sub-bab-3/vram-fp16-vs-q4.png)
+
+*Gambar 1.3-2 — kuantisasi Q4 memangkas VRAM 3-5x; pada model MoE besar, selisih ini menentukan apakah model bisa berjalan di satu node atau membutuhkan kluster.*
+
 ### Tabel B: Trade-off Berdasarkan Skenario
 
 | Skenario | Pilihan Terbaik | Alasan |

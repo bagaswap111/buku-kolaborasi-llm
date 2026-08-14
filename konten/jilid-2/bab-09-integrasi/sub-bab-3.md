@@ -111,6 +111,10 @@ Hasil eksperimen Flowise pada dataset 500 dokumen PDF perusahaan menunjukkan pen
 | **Markdown splitter** | Per header | 0 | 0.88 | 0.85 | Dokumen dengan struktur jelas |
 | **Semantic chunking** | Variabel | 10% | 0.91 | 0.87 | Konten padat informasi |
 
+![Perbandingan Recall dan Precision kelima strategi chunking pada dataset 500 dokumen PDF](../../assets/images/bab-09-integrasi/sub-bab-3/strategi-chunking.png)
+
+*Gambar 9.3-1 — Perbandingan strategi chunking: semantic chunking unggul di kedua metrik (recall 0,91 / precision 0,87), tetapi markdown splitter menawarkan precision tertinggi bagi dokumen berstruktur jelas dengan biaya komputasi nol.*
+
 Analisis dari tabel ini: tidak ada satu strategi yang menang untuk semua dokumen. Dokumen naratif seperti laporan dan memo paling baik dengan chunk 500 karakter (recall 0,81) — chunk kecil menjaga fokus topik. Dokumen teknis justru lebih baik dengan chunk besar 1000 + overlap 200 (recall 0,85) karena unit makna (misalnya satu prosedur SOP) lebih panjang. Markdown splitter yang memotong per header mencapai precision tertinggi (0,85) — untuk dokumen berstruktur jelas seperti panduan dengan judul bermakna. *Semantic chunking* unggul telak (recall 0,91) pada konten padat informasi, tetapi biaya komputasinya paling tinggi karena butuh *embedding* tambahan untuk menentukan batas chunk. Catatan: data berasal dari eksperimen dengan dataset internal; verifikasi ulang dengan dataset Anda sendiri sebelum mengambil keputusan produksi.
 
 ### Tabel 2: Perbandingan Mode Retrieval di Flowise

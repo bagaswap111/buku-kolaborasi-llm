@@ -153,6 +153,14 @@ Angka *tokens per second* berikut menggambarkan performa aktual di perangkat mai
 | **Samsung S24** | Exynos 2400 | 8GB | 2.8 t/s | 7.2 t/s | - |
 | **Pixel 9** | Tensor G4 | 12GB | 2.5 t/s | 6.8 t/s | - |
 
+![Perbandingan kecepatan CPU, GPU, dan NPU antar perangkat mobile pada model 7B Q4](../../assets/images/bab-03-software/sub-bab-9/performa-unit-komputasi-mobile.png)
+
+*Gambar 3.9-1 — NPU Snapdragon 8 Gen 3 melesat 5,8× dari CPU (18,4 t/s vs 3,2 t/s); GPU 8–12 t/s tetap di bawah pengalaman desktop.*
+
+![Trade-off ukuran model versus akurasi zero-shot untuk model mobile](../../assets/images/bab-03-software/sub-bab-9/ukuran-vs-akurasi-mobile.png)
+
+*Gambar 3.9-2 — Setiap kenaikan akurasi ~2–3% menuntut lompatan ukuran 2–3× lipat; Ministral 3B (1,8 GB) adalah titik keseimbangan terbaik.*
+
 Analisis: pola yang paling menonjol adalah lompatan besar CPU → GPU → NPU. Di Xiaomi 14, GPU 2,7× lebih cepat dari CPU, dan NPU lebih dari 2× di atas GPU — total 5,8× lompatan dari CPU ke NPU. Perlu dicatat bahwa angka GPU 8–12 t/s ini masih di bawah pengalaman desktop; pada kecepatan ini, respons panjang tetap terasa lambat. Angka NPU 18,4 t/s, bagaimanapun, mendekati pengalaman desktop — dan itulah mengapa prefill di NPU terasa "instan". Untuk aplikasi produksi, kombinasi yang disarankan: **NPU untuk prefill, GPU untuk decode**, dengan CPU sebagai jaring pengaman termal.
 
 ### Tabel C: MobileLLM Model Sizes vs Akurasi

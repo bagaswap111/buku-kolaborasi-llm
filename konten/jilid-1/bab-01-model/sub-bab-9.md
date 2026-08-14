@@ -139,6 +139,12 @@ Angka riil pada hardware nyata — Llama-3 8B di RTX 4090:
 
 Dua temuan mengejutkan dari tabel ini. Pertama, **EXL2 4.0 bpw adalah yang tercepat (~125 TPS)** sambil mempertahankan *perplexity* hampir sebaik Q5_K_M — kombinasi kecepatan-kualitas yang hanya mungkin berkat bit-width per lapisan. Kedua, FP16 Safetensors justru paling lambat per gigabyte (16 GB harus ditransfer) dan GPTQ paling lambat dimuat (~5s). Jika ukuran file paling kecil yang Anda kejar, EXL2 dan AWQ (4,5 GB) menang tipis atas GGUF Q4_K_M (4,9 GB); jika kecepatan *switching* model yang Anda incar, GGUF tak terkalahkan.
 
+Grafik berikut membacakan kolom TPS secara visual — urutannya menurun dari format tercepat ke terlambat:
+
+![Kecepatan inferensi token per detik dari delapan format pada Llama-3 8B di RTX 4090](../../assets/images/bab-01-model/sub-bab-9/kecepatan-tps-per-format.png)
+
+*Gambar 1.9-1 — EXL2 4.0 bpw memimpin dengan ~125 token/s, disusul AWQ dan GPTQ; FP16 dan GGUF Q8_0 justru paling lambat karena bobot presisi tinggi harus ditransfer lebih banyak.*
+
 ---
 
 ## 9. Diagram & Visualisasi

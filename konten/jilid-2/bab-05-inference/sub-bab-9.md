@@ -140,6 +140,10 @@ Acuan angka latency yang diukur pada 8x H100 — jadikan tabel ini kertas ukur s
 | Ministral 3 8B | 512 | 128 | 78 | 7.1 | 1.0 | 128 |
 | Gemini 2.5 Pro (via API) | 512 | 128 | 210 | 15.0 | 2.1 | 62 |
 
+![Memperpanjang prompt dari 512 ke 8.192 token melipatgandakan TTFT: Llama-3.1-8B dari 95 ms ke 1.100 ms, sementara DeepSeek V4 Pro hanya naik ke 680 ms berkat KV-cache yang hemat](../../assets/images/bab-05-inference/sub-bab-9/ttft-vs-panjang-prompt.png)
+
+*Gambar 5.9-1 — Panjang prompt adalah musuh TTFT (Llama-3.1-8B melonjak >10x); pada konteks 8K, DeepSeek V4 Pro justru mengungguli model kecil karena efisiensi KV-cache mengalahkan ukuran model.*
+
 Tabel ini mengajarkan dua pelajaran. Pertama, **panjang prompt adalah musuh TTFT**: melanjutkan Llama-3.1-8B dari prompt 512 ke 8.192 token menaikkan TTFT lebih dari 10x lipat (95 → 1.100 ms). Kedua, efisiensi KV cache nyata terlihat pada DeepSeek V4 Pro: dengan 8.192 token konteks, TTFT-nya hanya 680 ms — bandingkan estimasi 6+ detik pada DeepSeek V3.2 untuk panjang yang sama, karena KV cache V4 Pro hanya 10% ukuran V3.2. Ini menjelaskan mengapa penyedia API dapat menjual konteks panjang dengan harga yang masuk akal — strukturnya memang murah.
 
 Ada satu pola lagi yang tidak boleh terlewat: **jarak antara model kecil dan model besar menyempit saat konteks memanjang**. Pada prompt 512 token, Llama-3.1-8B unggul jauh dalam TTFT (95 ms vs 145 ms DeepSeek V4 Pro). Namun pada 8K token, DeepSeek V4 Pro justru lebih cepat (680 ms vs 1.100 ms) meskipun parameter aktifnya 6x lebih besar — karena efisiensi KV cache mengalahkan ukuran model. Implikasinya praktis: jika mayoritas trafik Anda ber-*konteks panjang*, memilih model dengan arsitektur KV cache efisien lebih berdampak pada latency daripada memilih model kecil. Ketika membandingkan angka sistem Anda sendiri dengan Tabel C, ingat juga bahwa angka ini diukur pada 8x H100 — pada GPU yang lebih lemah, skala perbedaannya tetap (proporsional), tetapi absolutnya bisa jauh berbeda. Gunakan tabel ini sebagai *sanity check*, bukan kitab suci.

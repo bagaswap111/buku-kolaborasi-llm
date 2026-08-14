@@ -123,6 +123,12 @@ Tabel berikut membandingkan tiga skala deployment secara berdampingan — dari s
 | **Cooling** | Fan standar | Silent/low noise | Rack cooling |
 | **Biaya Estimasi** | ~Rp 15-30jt | ~Rp 25-45jt | ~Rp 60-120jt |
 
+Rentang daya dan biaya ketiga skala ini lebih mudah dibaca sebagai batang — perhatikan bagaimana *Home Assistant* justru duduk di tengah, jauh lebih ringan dari *Small Office* namun lebih besar dari sistem personal.
+
+![Perbandingan power budget dan biaya estimasi antar skala deployment](../../assets/images/bab-06-home/sub-bab-1/power-budget-dan-biaya.png)
+
+*Gambar 6.1-1 — Rentang power budget dan biaya estimasi Personal, Home Assistant, dan Small Office. Home Assistant menuntut idle serendah 30-100W dan biaya ~Rp 25-45jt — jauh di bawah beban dan anggaran kantor, tetapi lebih besar dari sistem satu pengguna.*
+
 Perhatikan dua kolom yang paling sering salah dikelola. Pertama, **power budget**: dari ~100-300W saat *running* pada sistem personal, *Home Assistant* menuntut idle rendah 30-100W — tuntutan yang tidak pernah ada di kantor 300-600W. Kedua, **IAM**: keluarga cukup dengan *family account* sederhana, sementara kantor butuh SSO/OAuth. Artinya, membeli solusi kantor lalu "mengecilkannya" untuk rumah adalah kesalahan arah — yang benar adalah mendesain dari kebutuhan rumah itu sendiri. Studi *Small Language Models: Survey, Measurements, and Insights* [3] menegaskan bahwa karakterisasi beban kerja yang tepat (token/s, *memory footprint*, konsumsi energi) menentukan kelayakan *edge deployment* — dan keluarga adalah kasus penggunaan *edge* paling jujur.
 
 ### Tabel 2: Rekomendasi Hardware per Skenario Keluarga

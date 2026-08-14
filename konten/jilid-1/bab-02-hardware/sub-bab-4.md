@@ -166,6 +166,10 @@ Tabel ini membandingkan total waktu dari perintah dijalankan hingga siap berprod
 | DeepSeek V4 Flash Q4 (160 GB) load | 12s | 6.0s | 3.0s |
 | Mistral Large 3 Q3 (280 GB) load | 21s | 10.5s | 5.5s |
 
+![Waktu cold start enam skenario model pada SSD Gen 3, Gen 4, dan Gen 5 (skala log): setiap lompatan generasi memangkas waktu hampir tepat setengahnya, dari 0,45 detik untuk model 7B hingga 21 detik untuk Mistral Large 3 di Gen 3.](../../assets/images/bab-02-hardware/sub-bab-4/ttft-cold-start-per-generasi.png)
+
+*Gambar 2.4-1 — Pola pemangkasan "setengah per generasi" konsisten di semua ukuran model; untuk model raksasa seperti DeepSeek V4 Flash (160 GB) dan Mistral Large 3 (280 GB), transisi Gen 3 ke Gen 5 menurunkan waktu tunggu dari belasan-dua puluhan detik menjadi 3-5,5 detik.*
+
 Pola yang tampak di sini konsisten dan mudah dibaca: setiap lompatan generasi memangkas waktu hampir tepat setengahnya. Untuk model hingga 13B, perbedaannya terasa sebagai "kedipan mata" — tetapi bagi pengguna yang menjalankan DeepSeek V4 Flash Q4 (160 GB) atau Mistral Large 3 Q3 (280 GB), transisi Gen 3 ke Gen 5 memotong waktu tunggu dari belasan-dua puluhan detik menjadi hanya sekitar 3-5,5 detik. Kotak hijau pada *TTFT* Anda adalah SSD Gen 5; jika motherboard belum mendukung Gen 5, Gen 4 tetaplah pilihan yang jauh lebih baik daripada bertahan di Gen 3.
 
 Perhatikan juga bahwa waktu yang tercantum adalah *best case* pembacaan murni. Di dunia nyata, TTFT dipengaruhi faktor tambahan: *filesystem* (btrfs dan ZFS memiliki *overhead* metadata lebih besar daripada ext4 dalam beberapa kasus), fragmentasi file pada SSD yang sudah padat, *thermal throttle* controller saat pembacaan sangat panjang, hingga driver NVMe dan versi kernel. Bagi pengguna yang menginginkan angka jujur, cara terbaik adalah mengukur sendiri dengan metode praktikum seksi 10. Namun arah umumnya tidak pernah berubah: berapa pun *overhead*-nya, selisih antar generasi SSD tetap dominan — dan membeli Gen 4/5 bukan berarti "menang", melainkan "menghilangkan kalah" dari antrean paling awal di pipeline inferensi Anda.

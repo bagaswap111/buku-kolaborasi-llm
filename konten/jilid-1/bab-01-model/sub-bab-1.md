@@ -193,6 +193,24 @@ Berdasarkan tren yang terlihat pada 2025-2026, beberapa proyeksi dapat dibuat un
 
 **Potensi perubahan paradigma.** Apakah *scaling law* (lebih besar = lebih baik) masih berlaku? Atau *synthetic data* dan teknik distilasi (seperti yang digunakan Phi-4 dan Ministral 3) akan menjadi kunci utama? Indikasi awal menunjukkan bahwa kualitas data dan arsitektur efisien mungkin lebih penting daripada jumlah parameter mentah.
 
+### Diagram 1: Peta Lintasan Evolusi (2017-2026)
+
+```mermaid
+graph LR
+    A[2017<br/>Transformer<br/>Vaswani et al.] --> B[2018<br/>GPT-1 / BERT<br/>0,1-0,3B param]
+    B --> C[2019-2020<br/>GPT-2 → GPT-3<br/>1,5B → 175B param]
+    C --> D[2023<br/>LLaMA-1 bocor +<br/>Mistral 7B + llama.cpp]
+    D --> E[2024<br/>Llama-3 8B-405B +<br/>DeepSeek-V3 MoE]
+    E --> F[2025<br/>R1 reasoning +<br/>Llama 4 MoE + Mistral L3]
+    F --> G[2026<br/>DeepSeek V4 MIT +<br/>Qwen3.5/3.6 + Fable 5]
+    G --> H[2027<br/>Proyeksi: SLM wearable,<br/>reasoning native, Green AI]
+    style A fill:#3949ab,color:#fff
+    style G fill:#00897b,color:#fff
+    style H fill:#6a1b9a,color:#fff
+```
+
+> **Bacaan diagram:** setiap balok mewakili satu era. Perhatikan loncatan arsitektur (RNN → attention → MoE → hybrid attention) dan bagaimana setiap era menurunkan hambatan masuk — dari model 175B yang hanya bisa diakses via API, menjadi model 1,6T yang bisa diunduh bebas dengan lisensi MIT.
+
 ---
 
 ## 14. Tabel Wajib
@@ -269,6 +287,27 @@ Berdasarkan tren yang terlihat pada 2025-2026, beberapa proyeksi dapat dibuat un
 | Claude Fable 5 | - | - | 95,0% (SWE-bench) | 2026 | Mythos-class proprietary |
 
 *\* Perkiraan berdasarkan data benchmark tidak langsung / third-party. Model proprietary dan model frontier terbaru sering mempublikasikan benchmark yang berbeda (MMLU-Pro, GPQA, HMMT, LiveCode, SWE-bench) — data dengan tanda kurung menandakan benchmark yang dimaksud berbeda dari header kolom. Lihat paper asli untuk detail.*
+
+### Diagram 2: Alur Keputusan Memilih Model Lokal
+
+```mermaid
+graph TD
+    START([Mulai: apa perangkat Anda?]) --> Q1{VRAM / RAM<br/>tersedia?}
+    Q1 -->|< 8 GB| S1[CPU saja / iGPU<br/>Ministral 3 3B<br/>Qwen3-30B-A3B]
+    Q1 -->|8-16 GB| S2[GPU mid-range<br/>Llama-3 8B · Phi-4 14B<br/>Ministral 3 14B]
+    Q1 -->|24-32 GB| S3[GPU high-end<br/>Qwen3.6-27B<br/>Llama 4 Scout INT4]
+    Q1 -->|48-192 GB| S4[Multi-GPU / Mac Studio<br/>DeepSeek V4 Flash INT4<br/>Llama-3 70B]
+    Q1 -->|1 TB+| S5[Cluster GPU<br/>DeepSeek V4 Pro<br/>Mistral Large 3 FP8]
+    S1 --> R1(Tugas ringan: chat,<br/>ringkasan, agent kecil)
+    S2 --> R2(Coding assistant,<br/>RAG pribadi, multimodal)
+    S3 --> R3(Coding berat, spreadsheet,<br/>agent kompleks)
+    S4 --> R4(Multi-user kecil,<br/>konteks 1 juta token)
+    S5 --> R5(Frontier open-weight,<br/>enterprise multi-user)
+    style Q1 fill:#f9a825,color:#212121
+    style START fill:#3949ab,color:#fff
+```
+
+> **Cara pakai:** tentukan total VRAM/RAM yang bisa dialokasikan, lalu pilih jalur yang sesuai. Aturan praktis: model dengan ukuran Q4_K_M ~4,5 GB per 7B parameter harus muat di memori dengan sisa ruang untuk KV cache dan sistem operasi.
 
 ---
 
@@ -349,6 +388,10 @@ plt.savefig('evolusi-model-2019-2026.png', dpi=150, bbox_inches='tight')
 ```
 
 Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar secara eksponensial, tetapi (2) parameter aktif (untuk model MoE) jauh lebih kecil, dan (3) skor MMLU meningkat dari 32% (GPT-2) menjadi 87,2% (DeepSeek V4 Pro) — peningkatan hampir 3x dalam 7 tahun.
+
+![Evolusi Model: Parameter vs Performa (2019-2026)](../../assets/images/bab-01/sub-bab-1/evolusi-model-2019-2026.png)
+
+*Gambar 1.1 — Visualisasi hasil script di atas: total parameter (batang biru muda), parameter aktif (batang biru tua), dan skor MMLU (garis merah). Skala parameter logaritmik agar era 2020-2026 tetap terbaca.*
 
 ---
 

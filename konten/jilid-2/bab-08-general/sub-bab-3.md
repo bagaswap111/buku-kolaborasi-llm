@@ -115,6 +115,10 @@ Tabel ini menjawab pertanyaan "mengapa bukan yang lain?" dalam satu pandang. **D
 
 Tiga bacaan penting dari tabel alokasi ini. Pertama, **GPU bukan satu-satunya sumber daya yang harus di-*request***: pod Mistral Large 3 meminta 12 core dan 48 GB RAM karena *prefill*, tokenizer, dan scheduler vLLM hidup di CPU/RAM — meminta GPU saja akan membuat pod *pending* karena kelaparan CPU. Kedua, perhatikan **pola *replicas***: workload besar (DeepSeek V4 Flash, Mistral Large 3) justru berreplica rendah (1-2) karena setiap replica menelan satu GPU H100 — *scaling* dilakukan lewat model kecil yang murah (Llama 8B, Ministral 3 14B: 2-4 replica) yang menyerap lonjakan trafik harian. Ketiga, **komponen non-GPU (LiteLLM, Qdrant, PostgreSQL, MinIO) berreplica 2-3** untuk memenuhi tuntutan redundansi Tabel 3 Bab 8.1 — semuanya *stateless-proxies* atau *stateful dengan replikasi*, dan semuanya menuntut disiplin: setiap *request limit* yang terlalu kecil adalah undangan *throttling* di jam puncak [4].
 
+![Model GPU berat memakan CPU 12 core/RAM 48 GB dan storage 80 GB, sedangkan MinIO paling besar di storage (500 GB) dengan replika 2-3 — skala log memperlihatkan kebutuhan pendukung yang sering dilupakan](../../assets/images/bab-08-general/sub-bab-3/alokasi-resource-per-pod.png)
+
+*Gambar 8.3-1 — Pod vLLM Mistral Large 3 menuntut paling banyak CPU/RAM (12 core/48 GB) di antara semua workload, sementara MinIO (500 GB) mendominasi storage; storage log tidak lain wujud pilar redundansi: semua komponen non-GPU berreplica 2-3.*
+
 ### Tabel 3: HPA Auto-scaling Rules
 
 | Metric | Target | Scale Up | Scale Down | Cool Down |

@@ -160,6 +160,10 @@ Angka *Pass@1* pada benchmark di bawah menunjukkan persentase tugas yang berhasi
 
 Tiga baris pertama adalah model API kelas atas dengan akurasi tertinggi, tetapi semuanya membutuhkan koneksi internet dan biaya per token. Di sisi lokal, pola yang menarik terlihat pada **DeepSeek V4 Flash**: dengan kecepatan 55 t/s yang tercepat di antara model yang bisa dijalankan di mesin pribadi, ia menembus 82% di HumanEval+ — jauh di atas model 7-8B lainnya. Berkat arsitektur MoE, ia memberikan kualitas model yang jauh lebih besar dengan kecepatan model kecil. Sementara itu, model 7B seperti Llama-3.1-8B dan Qwen-2.5-Coder-7B tetap layak untuk tugas harian ringan, meski SWE-bench-nya (38-42%) menunjukkan keterbatasannya pada tugas dunia nyata yang kompleks [1].
 
+![Performa coding agent per model](../../assets/images/bab-04-otomasi-agent/sub-bab-4/performa-coding-agent.png)
+
+*Gambar 4.4-1 — Semua agent mengikuti pola yang sama: Pass@1 Cline sedikit di atas Aider, dan gap terbesar muncul di SWE-bench (95,0% Claude Fable 5 vs 38,5% Llama-3.1-8B); DeepSeek V4 Flash memimpin di antara model lokal.*
+
 ### Tabel 3: Resource Usage
 
 Sumber daya adalah pertimbangan penting karena kedua agent berjalan bersamaan dengan editor dan browser di Mac Anda.
@@ -171,6 +175,10 @@ Sumber daya adalah pertimbangan penting karena kedua agent berjalan bersamaan de
 | Cline + OpenAI | ~200 MB | 0 | ~100 MB | ~0.5s (network) |
 
 Pola yang patut dicatat: Aider lebih ringan di RAM idle (80 MB vs 120 MB) dan lebih cepat pada *first token* (0,8s vs 1,2s) karena tidak menampilkan antarmuka grafis yang berat seperti Cline. VRAM 4,5 GB untuk model 7B adalah biaya yang dibayarkan bersama untuk *inference* lokal — setara menjalankan satu game ringan. Konfigurasi cloud (Cline + OpenAI) membebaskan VRAM tetapi menukarnya dengan latensi jaringan dan biaya per permintaan. Pilihan antara ketiganya adalah pilihan antara privasi, biaya, dan kecepatan.
+
+![Sumber daya yang dipakai tiap konfigurasi agent](../../assets/images/bab-04-otomasi-agent/sub-bab-4/sumber-daya-agent.png)
+
+*Gambar 4.4-2 — Aider paling ringan di RAM idle (80 MB) dan tercepat di first token (0,8s), sementara Cline + OpenAI paling ringan di sumber daya lokal (0 VRAM) tetapi menambahkan ketergantungan jaringan dan biaya per permintaan.*
 
 ---
 

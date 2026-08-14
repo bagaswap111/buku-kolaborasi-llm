@@ -179,6 +179,10 @@ Inilah inti matematis keputusan deployment. Tabel ini membandingkan biaya lokal 
 | **Enterprise (>100 user)** | 4x A100 80GB | DS V4 Pro + Mistral L3 | Rp 2,5 miliar | Rp 200 | Rp 60.000 (Claude Fable 5) | ~42K |
 | **Catatan:** | Estimasi 3 tahun depresiasi | | | Rp/kWh = 1.500 | Harga API | Semakin besar volume, semakin murah lokal |
 
+![Grafik batang horizontal berkelompok pada skala logaritmik membandingkan biaya per satu juta token antara deployment lokal dan cloud API untuk lima skenario organisasi, dengan gap hingga 300 kali lipat pada profil enterprise](../../assets/images/bab-10-etika/sub-bab-4/biaya-lokal-vs-cloud.png)
+
+*Gambar 10.4-1 — Perbandingan biaya per 1 juta token lokal vs cloud untuk lima profil organisasi (skala logaritmik). Gap 300x pada profil enterprise (Rp 200 vs Rp 60.000) membuat break-even tercapai hanya dalam ribuan token per bulan, sedangkan profil kecil menghadapi gap 18x yang memerlukan ~1,4 juta token.*
+
 Perhatikan dua *insight* kunci. Pertama, **volume menentukan pemenang**: satu tim kecil dengan 200 ribu token/bulan (sekitar 10 ribu percakapan) tidak akan pernah *break-even* — cloud tetap menang; tetapi organisasi besar yang memproses 50 juta token/bulan *harus* beralih ke lokal, karena penghematannya mencapai puluhan juta rupiah per bulan. Kedua, **jarak harga per token menentukan kecepatan *break-even***: maskot yang paling cepat balik modal adalah konfigurasi enterprise (volume tinggi + biaya lokal per token yang sangat rendah Rp 200 vs cloud Rp 60.000) — gap 300x yang membuat *break-even* tercapai hanya dalam hitungan ribuan token per bulan. Angka-angka ini sensitif terhadap asumsi — harga listrik, harga GPU, dan harga API berubah seiring waktu — sehingga sebelum keputusan besar, jalankan ulang kalkulator *break-even* di Tutorial B dengan harga pasar terkini.
 
 ### Tabel C: Matriks Keputusan per Skenario

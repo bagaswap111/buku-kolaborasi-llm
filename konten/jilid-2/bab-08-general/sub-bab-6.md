@@ -149,6 +149,14 @@ Kebijakan retensi menyatukan biaya, kecepatan akses, dan kepatuhan dalam satu ma
 | **Cold** | 91-365 hari | MinIO/Glacier 5TB | < 1 menit | AES-256 + KMS | Gzip (85%) |
 | **Archive** | 1-3 tahun | Tape / Cold Storage | > 1 jam | AES-256 + KMS | Zstd (90%) |
 
+![Kapasitas penyimpanan per tier retensi menurut Tabel 3, dalam GB dengan skala log.](../../assets/images/bab-08-general/sub-bab-6/kapasitas-storage-tier.png)
+
+*Gambar 8.6-1 — Kapasitas naik sepuluh kali lipat tiap jenjang, dari Hot 500 GB ke Cold 5 TB, mengikuti umur log yang makin tua dan makin jarang diakses; tier Archive tidak mencantumkan kapasitas karena memakai tape/cold storage.*
+
+![Batas waktu akses log per tier retensi menurut Tabel 3, dalam detik dengan skala log.](../../assets/images/bab-08-general/sub-bab-6/batas-akses-tier.png)
+
+*Gambar 8.6-2 — Waktu akses melonjak dari ≤1 detik di Hot menjadi ≥1 jam di Archive — selisih lebih dari 3.600 kali — harga yang dibayar agar biaya penyimpanan log lama tetap rendah.*
+
 Dua *trade-off* yang disengaja terlihat di sini. *Trade-off* pertama: **harga vs kecepatan** — *hot* memberi akses < 1 detik tetapi PostgreSQL 500 GB mahal; *archive* murah hingga 90% kompresi, tetapi akses > 1 jam cukup untuk bukti di persidangan. *Trade-off* kedua: **keamanan berlapis** — enkripsi AES-256 berlaku di semua *tier*, tetapi manajemen kunci (KMS) baru masuk di *cold* dan *archive*, karena data yang sudah dingin justru berisiko terabaikan dan lupa dienkripsi. Catatan penting: periode *hot* 30 hari dan *warm* 90 hari bukanlah angka final — kantor boleh memendekkannya sesuai UU PDP, tetapi **tidak boleh memanjangkan di atas 3 tahun** untuk data pribadi, karena penghapusan adalah kewajiban, bukan pilihan.
 
 ---

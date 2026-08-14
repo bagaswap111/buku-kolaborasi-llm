@@ -113,6 +113,10 @@ Tabel berikut membandingkan performa kedua pendekatan pada model 7B di satu GPU 
 | Max Batch Size | 8 | 64 | 8x |
 | VRAM Waste | ~50% | ~4% | 12.5x lebih baik |
 
+![Continuous batching menggandakan utilisasi GPU (28% → 85%), throughput hampir 7x (4,2 → 28,5 req/s), dan memangkas latency P99 dari 12,5 detik menjadi 2,8 detik](../../assets/images/bab-05-inference/sub-bab-4/static-vs-continuous-batching.png)
+
+*Gambar 5.4-1 — Continuous batching menukar TTFT yang sedikit lebih lambat (+17%) dengan kemenangan besar di ekor latensi: P99 membaik 4,5x dan utilisasi GPU naik 3x — pola yang justru paling penting untuk pengalaman multi-user.*
+
 Pembacaan tabel ini penuh nuansa. *Throughput* melonjak 6,8x dan utilisasi GPU naik 3x — itu kabar baik utama. Namun perhatikan **TTFT (Time To First Token) P50**: dari 180 ms menjadi 210 ms, lebih lambat 17%. Ini bukan bug, melainkan konsekuensi logis dari berbagi GPU — karena batch lebih penuh, setiap request harus mengantre sedikit lebih lama untuk slot komputasi pertama. Sementara itu, *latency* P99 — ukuran pengalaman user terburuk — membaik 4,5x dari 12,5 detik menjadi 2,8 detik. Di sinilah trade-off *continuous batching*: sedikit pengorbanan di median, kelegaan besar di ekor. Untuk pengalaman multi-user, ekor yang pendek jauh lebih penting daripada median yang super cepat.
 
 Perlu dicatat: efisiensi KV-cache model modern memperbesar keunggulan ini. DeepSeek V4 Pro dengan hybrid CSA/HCA attention hanya membutuhkan **10% KV-cache dibandingkan generasi V3.2** — artinya dalam satu batch yang sama, *continuous batching* bisa memuat jauh lebih banyak request karena ruang cache yang tersedia jauh lebih besar.
@@ -128,6 +132,10 @@ Bagaimana performa berubah ketika angka pengguna naik dari 1 menjadi 50? Tabel b
 | 10 | 165 | 720 | 7.200 | 95 |
 | 20 | 250 | 1.100 | 10.500 | 180 |
 | 50 | 480 | 2.400 | 14.200 | 380 |
+
+![Dari 1 hingga 50 user concurrent, throughput vLLM tumbuh 11,4x (1.250 → 14.200 tok/s) sementara TTFT naik perlahan dari 85 ms ke 480 ms](../../assets/images/bab-05-inference/sub-bab-4/pengaruh-user-concurrent.png)
+
+*Gambar 5.4-2 — Trade-off yang "dijual" continuous batching: throughput naik jauh lebih cepat (11,4x) daripada latensi yang naik secara predictable — dari 1,250 token/detik dengan 1 user menjadi 14.200 token/detik dengan 50 user.*
 
 Pola yang terbaca jelas: *throughput* terus naik (1.250 → 14.200 token/detik), tetapi TTFT dan latensi juga naik secara perlahan dan *predictable*. Pada 10 user, TTFT rata-rata hanya 165 ms — tidak terasa. Pada 50 user, TTFT masih 480 ms, setengah detik, masih dalam batas yang bisa diterima untuk chat interaktif. Perhatikan *queue time*: dari 0 ms menjadi 380 ms — ini "harga" dari batch penuh, tetapi tetap jauh lebih kecil dibandingkan antrean request-level pada static batching. Inilah bukti kunci bahwa *continuous batching* "menjual" *latency* yang naik perlahan demi *throughput* yang naik jauh lebih cepat.
 

@@ -134,6 +134,12 @@ Tabel berikut memetakan ukuran model terhadap kebutuhan CPU dan RAM, beserta est
 | 7B (tanpa AVX2) | Tidak | 8 GB | 16 GB | 1-4 t/s |
 | 13B | Ya | 16 GB | 32 GB | 1-5 t/s |
 
+Gambar berikut menerjemahkan kolom kecepatan tabel ini menjadi rentang nyata di CPU.
+
+![Rentang kecepatan token/detik per kelas model di perangkat CPU](../../assets/images/bab-03-software/sub-bab-3/rentang-kecepatan-per-kelas.png)
+
+*Gambar 3.3-1 — Model 7B yang sama berjalan 3-12 t/s dengan AVX2 tetapi merosot ke 1-4 t/s tanpanya (penurunan hingga 3 kali lipat); model 1-3B tetap kelas tercepat (10-25 t/s) — pendukung aturan "mulai dari yang paling kecil yang cukup".*
+
 Insight dari tabel ini: kolom CPU (AVX2) dan kecepatan adalah pasangan yang tidak bisa dipisahkan. Model 7B yang sama berjalan 3-12 t/s dengan AVX2 tetapi merosot ke 1-4 t/s tanpanya — penurunan hingga 3 kali lipat yang langsung terasa di percakapan. Perhatikan juga lonjakan kebutuhan RAM dari 8GB (7B) ke 16GB (13B): *doubling* parameter berarti *doubling* memori minimum. Aturan emasnya: pilih ukuran model satu tingkat di bawah kemampuan RAM Anda, agar tersisa ruang untuk sistem operasi dan KV cache.
 
 Cara terbaik menggunakan tabel ini adalah dengan **menandai kolom yang relevan dengan perangkat Anda** sebelum mengunduh apa pun. Pemilik laptop 4GB cukup membaca baris pertama dan mengabaikan sisanya; pemilik 16GB boleh melirik baris 13B, tetapi harus siap dengan kecepatan 1-5 t/s yang menguji kesabaran. Bagi pengguna yang perangkatnya belum jelas dukungan AVX2-nya, cek dulu dengan `lscpu | grep avx2` (Langkah 3) sebelum memilih baris — karena memilih baris yang salah berarti membuang waktu unduhan dan memori. Tabel ini dirancang untuk dipakai, bukan untuk dihafal.
@@ -163,6 +169,12 @@ Pengukuran berikut dilakukan pada laptop generasi 2017 — Intel i5-7200U dengan
 | Phi-3-mini-3.8B | Q4_0 | 3.2s | 8.5 t/s | 0 GB | 3.1 GB |
 | Mistral-7B | Q4_0 | 8.1s | 3.2 t/s | 0 GB | 5.8 GB |
 | TinyLlama-1.1B | Q4_0 | 1.5s | 22 t/s | 0 GB | 1.2 GB |
+
+Gambar berikut menampilkan dua kolom paling menentukan dari tabel ini: kecepatan dan konsumsi RAM ketiga model.
+
+![Kecepatan token/detik dan penggunaan RAM pada benchmark hardware lawas](../../assets/images/bab-03-software/sub-bab-3/benchmark-hardware-lawas.png)
+
+*Gambar 3.3-2 — Phi-3-mini-3.8B adalah titik keseimbangan emas (8,5 t/s dengan RAM 3,1 GB), sementara Mistral-7B menyedot 5,8 GB untuk 3,2 t/s dan TinyLlama-1.1B lincah (22 t/s) namun kualitasnya terbatas — segitiga kualitas, kecepatan, dan memori yang hanya bisa memilih dua.*
 
 Tabel ini merangkum semua *trade-off* yang dibahas di seksi 6 ke dalam satu set angka. Phi-3-mini 3.8B adalah titik keseimbangan emas: *load* 3,2 detik, kecepatan 8,5 t/s, dan RAM hanya 3,1GB — meninggalkan ruang cukup untuk sistem. Mistral-7B menunjukkan mengapa model besar terasa menyakitkan di perangkat ini: *load* 8 detik, kecepatan merosot ke 3,2 t/s, dan RAM 5,8GB membuat sistem nyaris kehabisan napas. Sementara TinyLlama 1.1B, dengan 22 t/s, terasa lincah tetapi kualitasnya terbatas. Keputusan akhir selalu berupa segitiga: kualitas, kecepatan, dan memori — dan di perangkat lawas, Anda hanya bisa memilih dua.
 

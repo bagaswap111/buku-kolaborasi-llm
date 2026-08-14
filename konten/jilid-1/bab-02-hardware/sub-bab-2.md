@@ -289,6 +289,10 @@ bahwa bandwidth adalah prediktor utama kecepatan.
 Catatan: Scaling hampir linear — bandwidth adalah prediktor utama tokens/s untuk model
 yang muat di VRAM.
 
+![Hasil llama-bench untuk Llama-3-8B Q4_K_M di lima GPU: garis hampir lurus dari RTX 4060 (272 GB/s, ~30 t/s) hingga RTX 4090 (1.008 GB/s, ~110 t/s), dengan RTX 3090 sedikit menyimpang dari garis tersebut.](../../assets/images/bab-02-hardware/sub-bab-2/scaling-tokens-vs-bandwidth.png)
+
+*Gambar 2.2-1 — Dua kali bandwidth berarti hampir dua kali token/detik: garis scaling mendekati linear sempurna dari 272 hingga 1.008 GB/s; RTX 3090 (85 t/s dari 936 GB/s) sedikit di bawah garis karena memori GDDR6X generasi pertamanya kurang efisien per gigabyte aliran.*
+
 Empat baris pertama menunjukkan keteraturan yang nyaris membosankan: setiap kenaikan
 bandwidth ~230 GB/s menambah ~25 t/s, dan kolom "bandwidth per token/s" hampir konstan
 di 9,1-9,2 GB/s — artinya setiap token baru yang dihasilkan memakan sekitar 9,2 GB

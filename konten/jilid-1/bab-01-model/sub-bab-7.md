@@ -126,6 +126,12 @@ Berikut perbandingan kebutuhan memori KV-cache dari beberapa model populer — p
 
 *Estimasi untuk model MoE dengan *hybrid attention* — KV-cache hanya untuk *attention heads* aktif.
 
+Pertumbuhan memori per model terlihat dramatis ketika kolom-kolom panjang konteks dipetakan dalam satu kurva:
+
+![Pertumbuhan Memori KV-Cache vs Panjang Konteks per Model](../../assets/images/bab-01-model/sub-bab-7/pertumbuhan-kv-cache.png)
+
+*Gambar 1.7-3 — Semua kurva naik sejajar pada skala log; pada 128K token Llama-3 70B menuntut 89,6 GB KV-cache, sementara Qwen 2.5 7B dengan 4 KV head hanya 12,8 GB. GPT-2 (1,5B, tanpa GQA) dan Mistral 7B tidak tercatat pada 128K (ditandai "—" di Tabel 1).*
+
 Analisis di balik angka-angka ini: Qwen 2.5 7B dengan 4 KV head menekan biaya per token hingga 0,1 MB — sepertiga dari GPT-2 yang lebih kecil tetapi tanpa GQA. Perhatikan juga bahwa pada konteks 128K, bahkan Llama-3 70B dengan GQA membutuhkan 89,6 GB KV-cache — satu-satunya entri yang tetap realistis adalah model yang memang dirancang untuk konteks raksasa seperti DeepSeek V4 Pro. Kesimpulannya: jika konteks panjang adalah kebutuhan Anda, arsitektur model lebih menentukan daripada jumlah parameter.
 
 ### Tabel 2: Perbandingan Flash Attention vs Standard
@@ -140,6 +146,12 @@ Tabel ini merangkum evolusi Flash Attention — lihat bagaimana *speedup* dan ka
 | **FP8 support** | Tidak | Tidak | Tidak | Ya |
 | **GPU minimal** | Semua | Volta+ | Ampere+ | Hopper+ |
 | **FLOPs utilization** | ~20% | ~40% | ~72% | ~85% |
+
+Lompatan efisiensi setiap generasi Flash Attention terangkum dalam satu metrik:
+
+![Pemanfaatan FLOPs: Standard vs Flash Attention v1-v3](../../assets/images/bab-01-model/sub-bab-7/pemanfaatan-flops-flash-attention.png)
+
+*Gambar 1.7-4 — Pemanfaatan FLOPs naik dari ~20% (standard) menjadi ~40% (v1), ~72% (v2), hingga ~85% (v3). Flash Attention v2 tetap pilihan terbaik untuk GPU konsumen Ampere/Ada, karena v3 menuntut GPU Hopper untuk FP8.*
 
 Dua temuan penting. Pertama, lonjakan kapasitas konteks di A100 80 GB — dari ~32K pada standard attention menjadi ~512K pada Flash Attention v3 — terjadi tanpa mengubah model sama sekali, murni dari pengelolaan memori yang lebih baik. Kedua, perhatikan syarat GPU: v1 bisa berjalan di GPU Volta (RTX 20-series), tetapi v3 menuntut Hopper (H100) untuk FP8. Di GPU konsumen Ampere atau Ada seperti RTX 3090/4090, Flash Attention v2 tetap pilihan terbaik Anda.
 
