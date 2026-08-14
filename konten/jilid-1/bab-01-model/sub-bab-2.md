@@ -259,11 +259,33 @@ graph TD
 
 ### Gambar 2: Visualisasi Tensor Shape
 
-Gambar ini (lihat `assets/images/jilid1/j1-b1-s2-tensor-shapes.png`) menunjukkan dimensi tensor di setiap tahap pemrosesan — dari input dengan bentuk (batch, sequence, d_model) hingga attention scores dan output FFN. Setiap kotak dalam diagram merepresentasikan satu matriks yang harus disimpan di VRAM selama inferensi.
+Diagram berikut menunjukkan dimensi tensor di setiap tahap pemrosesan — dari input dengan bentuk (batch, sequence, d_model) hingga attention scores dan output FFN. Setiap kotak dalam diagram merepresentasikan satu matriks yang harus disimpan di VRAM selama inferensi.
+
+```mermaid
+flowchart LR
+    A[Input\n(batch, seq, d_model)] --> B[Q Projection\nd_model x d_model]
+    A --> C[K Projection\nd_model x d_model]
+    A --> D[V Projection\nd_model x d_model]
+    B --> E[Attention Scores\n(seq x seq x heads)]
+    C --> E
+    E --> F[Weighted Sum\n(seq, d_model)]
+    D --> F
+    F --> G[FFN Up Projection\n(d_model x ffn_dim)]
+    G --> H[FFN Down Projection\n(ffn_dim x d_model)]
+    H --> I[Output\n(batch, seq, d_model)]
+```
 
 ### Gambar 3: Perbandingan Fisik Ukuran Model
 
-Untuk memberikan intuisi tentang skala: model 1,5B (GPT-2) seukuran buku novel (~1,2 GB Q4). Model 7B seukuran ensiklopedia satu jilid (~4,5 GB). Model 70B sebesar rak buku penuh (~42 GB Q4). Model 405B membutuhkan perpustakaan kecil (~220 GB). Dan DeepSeek V4 Pro 1,6T membutuhkan ruang server khusus (~865 GB INT4). Visualisasi ini ada di `assets/images/jilid1/j1-b1-s2-physical-size.png`.
+Untuk memberikan intuisi tentang skala: model 1,5B (GPT-2) seukuran buku novel (~1,2 GB Q4). Model 7B seukuran ensiklopedia satu jilid (~4,5 GB). Model 70B sebesar rak buku penuh (~42 GB Q4). Model 405B membutuhkan perpustakaan kecil (~220 GB). Dan DeepSeek V4 Pro 1,6T membutuhkan ruang server khusus (~865 GB INT4). Perbandingan visualnya dapat dibayangkan sebagai tangga berikut:
+
+```mermaid
+flowchart LR
+    A[GPT-2 1,5B\n1,2 GB - Novel] --> B[Model 7B\n4,5 GB - Ensiklopedia]
+    B --> C[Model 70B\n42 GB - Rak Buku]
+    C --> D[Model 405B\n220 GB - Perpustakaan]
+    D --> E[DeepSeek V4 Pro 1,6T\n865 GB - Ruang Server]
+```
 
 ---
 

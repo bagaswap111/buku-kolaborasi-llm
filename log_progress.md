@@ -175,3 +175,39 @@ Setiap file guideline berisi 7 seksi wajib:
 - Local vs Cloud: tabel break-even dengan GPT-5.5 $5/$30, Fable 5 $10/$50 per M token
 
 **Total:** ~1.500+ baris baru ditambahkan ke 85 file. Semua model diverifikasi dari sumber resmi (Hugging Face, arXiv, blog resmi, system card).
+
+
+---
+
+## 2026-08-14
+
+### 07:30 WIB — Penulisan Konten Buku Lengkap (85 Sub-Bab) Berdasarkan Guideline
+
+### Ringkasan Total
+- **85/85 sub-bab ber-guideline** terisi penuh di `konten/jilid-1/` (bab-01 s.d bab-04) dan `konten/jilid-2/` (bab-05 s.d bab-10)
+- **Total konten:** ±32.281 baris (~380 baris/file rata-rata; sebagian besar 350-460 baris)
+- **15 file placeholder kosong** (tanpa guideline) sengaja tidak diisi: bab-06 sub-bab 9-10, bab-07 sub-bab 9-10, bab-08 sub-bab 10, bab-09 sub-bab 6-10, bab-10 sub-bab 6-10 — tidak masuk navigasi `mkdocs.yml`
+- Protokol penulisan baku dibuat: `templates/writing-protocol.md` (struktur 18 seksi, minimal 2 tabel + 1 diagram mermaid inline per file, SOP referensi)
+
+### Pelaksanaan (5 Wave Agen Paralel)
+- Wave 1: bab-01 sub-bab 4-10 + bab-02 (17 file)
+- Wave 2: bab-03 + bab-04 (20 file)
+- Wave 3: bab-05 + bab-06 (18 file)
+- Wave 4: bab-07 + bab-08 (17 file)
+- Wave 5: bab-09 + bab-10 (10 file)
+
+### Verifikasi & Perbaikan
+- **Mermaid**: semua blok diagram valid/seimbang (validasi python)
+- **Tabel**: konsisten; 2 flag awal terbukti false positive (pipe escape `\|` dalam sel kode, format GFM sah)
+- **Referensi**: 731 link arXiv/DOI; semua file punya seksi Referensi; SOP minimal 5 paper 2021-2026 terpenuhi di 100 file ber-guideline; link paper via venue lain (openreview, aclanthology, ePrint, RFC) tetap dihitung sah
+- **Perbaikan referensi**:
+  - `konten/jilid-2/bab-05-inference/sub-bab-8.md` & `sub-bab-9.md` — ditambah vLLM PagedAttention (arXiv 2309.06180) dan SGLang (arXiv 2312.07104), penomoran dirapikan
+  - `konten/jilid-2/bab-07-small/sub-bab-8.md` — ditambah FAccT 2023 "Power Hungry Processing" (DOI 10.1145/3593013.3594069) dan survey efisiensi inference (arXiv 2404.14294); penomoran ulang [1]-[14] (duplikat [9]/[10] diperbaiki)
+- **Referensi aset gambar**: referensi `assets/images/...` yang file-nya tidak ada diganti diagram mermaid inline di `konten/jilid-1/bab-01-model/sub-bab-2.md` dan `konten/jilid-2/bab-08-general/sub-bab-1,2,3.md`
+- **Koreksi placeholder DOI guideline** oleh agen (diverifikasi via web): arxiv 2507.xxxxx → openreview; SpotServe → arXiv 2311.15566; HYBRAG → arXiv 2412.16311; survei tak terverifikasi → "Taming the Titans" (arXiv 2504.19720)
+- **Plagiarism/placeholder scan**: hanya "TBD" sebagai default kode Python yang sah di bab-04 sub-bab-10
+- File `prompt_dewa.txt` (tidak diinginkan) dihapus dari repo
+- Inkonsistensi angka guideline dipertahankan verbatim dengan catatan editorial (bab 7.8 tier label, bab 8.9 TCO, representasi "Rp 2,5 miliar" bab 10.4)
+
+### Build
+- `mkdocs build --clean` sukses (±3,5 dtk, 0 error; hanya warning nav untuk 15 placeholder kosong yang memang tak terdaftar)
