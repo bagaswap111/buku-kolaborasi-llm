@@ -1,6 +1,6 @@
 # Bab 9.1: n8n Self-hosted
 
-> Bayangkan Anda punya seorang asisten virtual yang setiap pagi sudah meringkas email masuk, menjawab pertanyaan penjualan lewat Slack, dan menyusun laporan penjualan sebelum rapat dimulai — tanpa membayar satu rupiah pun per query. Itulah yang ditawarkan n8n ketika dipasangkan dengan LLM lokal: sebuah *workflow automation engine* yang mengubah mesin AI di ruang server Anda menjadi otak yang menggerakkan ratusan aplikasi kantor sekaligus.
+> Bayangkan Anda punya seorang asisten virtual yang setiap pagi sudah meringkas email masuk, menjawab pertanyaan penjualan lewat Slack, dan menyusun laporan penjualan sebelum rapat dimulai — tanpa membayar satu rupiah pun per *query*. Itulah yang ditawarkan n8n ketika dipasangkan dengan LLM lokal: sebuah *workflow automation engine* yang mengubah mesin AI di ruang server Anda menjadi otak yang menggerakkan ratusan aplikasi kantor sekaligus.
 
 ---
 
@@ -23,9 +23,9 @@ Setelah membaca bab ini, Anda akan mampu:
 
 ### Alternatif Open-Source untuk Zapier dan Make
 
-Selama bertahun-tahun, tim perkantoran yang ingin mengotomatisasi alur kerja hanya punya dua pilihan mahal: Zapier atau Make (dulu Integromat). Keduanya nyaman karena tinggal klik, tetapi data Anda harus transit ke server pihak ketiga — sebuah masalah serius bagi perusahaan yang menangani data keuangan, data calon karyawan, atau dokumen legal. n8n hadir sebagai alternatif yang berbeda: ia adalah platform otomasi **open-source dengan lisensi *fair-code* (SSPL)** yang bisa Anda pasang sendiri (*self-hosted*) di server internal, sehingga tidak ada satu byte pun data yang keluar dari infrastruktur Anda.
+Selama bertahun-tahun, tim perkantoran yang ingin mengotomatisasi alur kerja hanya punya dua pilihan mahal: Zapier atau Make (dulu Integromat). Keduanya nyaman karena tinggal klik, tetapi data Anda harus transit ke server pihak ketiga — sebuah masalah serius bagi perusahaan yang menangani data keuangan, data calon karyawan, atau dokumen legal. n8n hadir sebagai alternatif yang berbeda: ia adalah platform otomasi **open-source dengan lisensi *fair-code* (Sustainable Use License)** yang bisa Anda pasang sendiri (*self-hosted*) di server internal, sehingga tidak ada satu byte pun data yang keluar dari infrastruktur Anda.
 
-Yang membuat n8n menarik bukan hanya lisensinya, tetapi ekosistem integrasinya yang luas: lebih dari **400 node integration** mencakup Email (SMTP/IMAP), Slack, Discord, SQL (Postgres, MySQL, MSSQL), HTTP, Webhook, hingga Google Sheets. Alur yang dibangun tampil sebagai *visual DAG* (Directed Acyclic Graph) — setiap kotak adalah node, setiap garis adalah aliran data — sehingga mudah diaudit oleh tim non-Developer sekalipun. Kombinasi **Code Node** (JavaScript/Python), eksekusi sub-workflow, dan dukungan *webhook* membuat n8n bukan sekadar *trigger-action* sederhana seperti kebanyakan alat lain: ia adalah kerangka kerja otomasi sungguhan.
+Yang membuat n8n menarik bukan hanya lisensinya, tetapi ekosistem integrasinya yang luas: lebih dari **400 node integration** mencakup Email (SMTP/IMAP), Slack, Discord, SQL (Postgres, MySQL, MSSQL), HTTP, Webhook, hingga Google Sheets. Alur yang dibangun tampil sebagai *visual DAG* (Directed Acyclic Graph) — setiap kotak adalah node, setiap garis adalah aliran data — sehingga mudah diaudit oleh tim non-developer sekalipun. Kombinasi **Code Node** (JavaScript/Python), eksekusi sub-workflow, dan dukungan *webhook* membuat n8n bukan sekadar *trigger-action* sederhana seperti kebanyakan alat lain: ia adalah kerangka kerja otomasi sungguhan.
 
 ### LLM Lokal sebagai "Otak" Workflow
 
@@ -58,16 +58,16 @@ Untuk produksi, n8n menyediakan dua mode eksekusi: mode **main** (proses tunggal
 
 Pada lapisan model, arsitektur ini mendukung kombinasi: **DeepSeek V4 Pro** dan **DeepSeek V4 Flash** via Ollama untuk otomasi harian, **Mistral Large 3** via Ollama untuk kebutuhan multimodal, serta integrasi cloud API seperti **GPT-5.5**, **Claude Fable 5**, atau **Gemini 2.5 Pro** untuk tugas kompleks yang memang membutuhkan kekuatan model proprietary. Strategi *hybrid* semacam ini — model lokal untuk 80% pekerjaan rutin, API cloud untuk 20% sisanya — adalah pola yang paling hemat biaya.
 
-### Tabel 2: Model LLM Unggulan untuk Workflow n8n
+### Tabel 1: Model LLM Unggulan untuk Workflow n8n
 
 Pilih model yang tepat sesuai bobot pekerjaan workflow — kolom "Keunggulan di n8n" menunjukkan arah penggunaannya.
 
 | Model | Parameter (Total/Aktif) | Lisensi | Context | SWE-bench | Keunggulan di n8n |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **DeepSeek V4 Pro** | 1.6T / 49B | MIT | 1M | 80.6% | Agentic workflow, Terminal-Bench 67.9% |
+| **DeepSeek V4 Pro** | 1,6T / 49B | MIT | 1M | 80,6% | Agentic workflow, Terminal-Bench 67,9% |
 | **DeepSeek V4 Flash** | 284B / 13B | MIT | 1M | — | Efisien, cocok daily automation |
 | **GPT-5.5** | Proprietary | Proprietary | 1M | — | Reasoning kuat, coding agentic |
-| **Claude Fable 5** | Proprietary | Proprietary | 1M | **95.0%** | Safety guardrails, SWE-bench tertinggi |
+| **Claude Fable 5** | Proprietary | Proprietary | 1M | **95,0%** | Safety guardrails, SWE-bench tertinggi |
 | **Mistral Large 3** | 675B / 41B | Apache 2.0 | 256K | — | Multimodal, granular MoE |
 | **Gemini 2.5 Pro** | Proprietary | Proprietary | 1M | — | Thinking mode, multimodal |
 | **Ministral 3** | 3B/8B/14B | Apache 2.0 | 128K | — | Cascade Distillation, edge-friendly |
@@ -75,7 +75,7 @@ Pilih model yang tepat sesuai bobot pekerjaan workflow — kolom "Keunggulan di 
 Kedua model open-weight dari DeepSeek menjadi tulang punggung otomasi lokal berkat lisensi MIT tanpa batasan komersial. DeepSeek V4 Pro dengan 1M context unggul untuk *agentic workflow* yang menahan konteks percakapan panjang; DeepSeek V4 Flash (13B aktif) cukup untuk 80% tugas otomasi harian. Claude Fable 5 menawarkan SWE-bench tertinggi (95,0%) dengan *safety classifiers* — tetapi untuk memakainya Anda mengirim data ke API Anthropic, jadi sesuaikan dengan kebijakan kerahasiaan data kantor. Ministral 3 adalah pilihan menarik untuk *edge device*: model 8B bisa menangani klasifikasi sederhana dengan latency di bawah satu detik.
 
 
-### Tabel 3: Perbandingan Mode Eksekusi n8n
+### Tabel 2: Perbandingan Mode Eksekusi n8n
 
 Tiga mode eksekusi n8n dengan karakteristik, kelebihan, dan kekurangannya masing-masing.
 
@@ -125,9 +125,6 @@ Yang perlu diperhatikan dari gambar ini: n8n menjadi satu-satunya titik pusat ko
 
 ---
 
-
----
-
 ## 4. Node Kunci dalam Workflow AI
 
 
@@ -154,29 +151,29 @@ Dari kombinasi node di atas, tiga pola utama yang paling sering dipakai di lingk
 
 **Pola 1 — Email Assistant.** Email masuk ditangkap oleh node IMAP, diuraikan oleh Code Node, lalu dikirim ke LLM untuk diringkas dan diklasifikasikan. Keluarannya dibagi oleh Switch Node: email *urgent* diteruskan ke channel Slack tim, sisanya dijawab otomatis dengan balasan terima kasih standar. Pola ini mengurangi beban kotak masuk secara drastis.
 
-**Pola 2 — SQL Analyst.** Karyawan bertanya melalui Slack ("Berapa penjualan bulan lalu per region?"), LLM mengubah pertanyaan menjadi sintaks SQL, node Execute SQL menjalankannya ke database, dan hasilnya diformat ulang menjadi penjelasan bahasa manusia sebelum dikirim kembali ke Slack. Dengan cara ini, tim non-teknis bisa "berbicara" dengan database tanpa menulis satu baris query pun.
+**Pola 2 — SQL Analyst.** Karyawan bertanya melalui Slack ("Berapa penjualan bulan lalu per region?"), LLM mengubah pertanyaan menjadi sintaks SQL, node Execute SQL menjalankannya ke database, dan hasilnya diformat ulang menjadi penjelasan bahasa manusia sebelum dikirim kembali ke Slack. Dengan cara ini, tim non-teknis bisa "berbicara" dengan database tanpa menulis satu baris *query* pun.
 
 **Pola 3 — Report Generator.** Sebuah workflow berjadwal (misalnya setiap pukul 07.00) mengambil data dari database, meminta LLM menganalisis tren (dengan 3-5 panggilan LLM untuk ringkasan, analisis, dan narasi), memformat hasilnya menjadi HTML yang rapi, lalu mengirimkannya melalui email ke daftar penerima. Pekerjaan "laporan pagi" yang dulu memakan satu jam analis kini selesai sebelum kopi pertama diminum.
 
 Ketiga pola ini bisa dikombinasikan dan diperluas — tambahkan node Google Sheets untuk mencatat log, node Discord untuk notifikasi, atau sub-workflow bernama untuk peringatan ambang batas — membentuk ekosistem otomasi yang tumbuh seiring kebutuhan kantor.
 
-### Tabel 1: Perbandingan Platform Otomasi Workflow
+### Tabel 3: Perbandingan Platform Otomasi Workflow
 
 Tabel berikut membandingkan n8n dengan tiga pesaingnya dari sisi lisensi, hosting, jumlah integrasi, hingga dukungan LLM lokal — perhatikan kolom "LLM Lokal Support" untuk memahami keunggulan struktural n8n.
 
 | Fitur | n8n (Self-hosted) | Zapier | Make (Integromat) | Huginn |
 |:---|:---|:---|:---|:---|
-| **Model Lisensi** | Fair-code (SSPL) | Proprietary | Proprietary | MIT (open source) |
+| **Model Lisensi** | Fair-code (SUL) | Proprietary | Proprietary | MIT (open source) |
 | **Hosting** | Self-hosted / Cloud | Cloud only | Cloud only | Self-hosted |
-| **Jumlah Integrasi** | 400+ | 6000+ | 1500+ | Terbatas |
+| **Jumlah Integrasi** | 400+ | 6.000+ | 1.500+ | Terbatas |
 | **LLM Lokal Support** | Ya (via HTTP node) | Tidak | Tidak | Terbatas |
 | **Code Node (JS/Python)** | Ya | Terbatas | Ya (sedikit) | Ruby only |
-| **Harga (Self-hosted)** | Gratis | $19.99/bln | $9/bln | Gratis |
+| **Harga (Self-hosted)** | Gratis | $19,99/bulan | $9/bulan | Gratis |
 | **Skalabilitas** | Queue + Redis | Managed | Managed | Single instance |
 | **Audit Log** | Ya | Ya | Ya | Tidak |
 | **Model MoE Terbaru** | DeepSeek V4, Mistral Large 3 | GPT-5.5 | Terbatas | Tidak |
 
-Analisis dari tabel ini: Zapier menang telak dalam jumlah integrasi (6.000+), tetapi seluruhnya di-host di cloud dan tidak mendukung LLM lokal — setiap *step* yang melibatkan AI harus mengirim data ke API eksternal. Make lebih murah dari Zapier ($9/bln) namun tetap proprietary. Huginn gratis dan self-hosted, tetapi hanya mendukung Ruby untuk kode kustom dan skalabilitasnya terbatas pada satu instance. n8n berada di titik tengah yang langka: gratis untuk self-hosted, 400+ integrasi (mencukupi hampir semua kebutuhan kantor), mendukung LLM lokal, dan skalabel dengan Redis. Kerugiannya jelas: Anda harus mengelola sendiri server, update, dan backup — tanggung jawab yang tidak ada di layanan managed.
+Analisis dari tabel ini: Zapier menang telak dalam jumlah integrasi (6.000+), tetapi seluruhnya di-host di cloud dan tidak mendukung LLM lokal — setiap *step* yang melibatkan AI harus mengirim data ke API eksternal. Make lebih murah dari Zapier ($9/bulan) namun tetap proprietary. Huginn gratis dan self-hosted, tetapi hanya mendukung Ruby untuk kode kustom dan skalabilitasnya terbatas pada satu instance. n8n berada di titik tengah yang langka: gratis untuk self-hosted, 400+ integrasi (mencukupi hampir semua kebutuhan kantor), mendukung LLM lokal, dan skalabel dengan Redis. Kerugiannya jelas: Anda harus mengelola sendiri server, update, dan backup — tanggung jawab yang tidak ada di layanan managed.
 
 
 ### Tabel 4: Estimasi Latency per Pola Workflow
@@ -223,7 +220,7 @@ Bagaimana kecepatan model-model 2026 dibandingkan Llama-3.1-8B di atas?
 | Mistral Large 3 | 41B | 2-5 detik | 256K | Multimodal report generation |
 | GPT-5.5 | — | 1-4 detik (API) | 1M | Coding assistant, complex reasoning |
 | Claude Fable 5 | — | 2-6 detik (API) | 1M | Safety-critical, SWE-bench 95% |
-| Ministral 3 (8B) | 8B | 0.5-1 detik | 128K | Edge device, simple classification |
+| Ministral 3 (8B) | 8B | 0,5-1 detik | 128K | Edge device, simple classification |
 
 ![Rentang latency tiap model saat satu panggilan LLM di workflow n8n](../../assets/images/bab-09-integrasi/sub-bab-1/latency-model-n8n.png)
 
@@ -233,13 +230,10 @@ Pola menarik dari tabel ini: model MoE modern justru lebih cepat daripada Llama-
 
 ---
 
-
----
-
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup n8n + Ollama dengan Docker Compose
+### Langkah 1: Setup n8n + Ollama dengan Docker Compose
 
 Langkah pertama adalah menggelar seluruh stack dalam satu perintah. Buat file `docker-compose.yml` dengan isi berikut — perhatikan tiga *service* yang saling terhubung dalam satu network `n8n_net`.
 
@@ -319,7 +313,7 @@ curl http://localhost:11434/api/generate \
 
 Akses panel n8n di `http://localhost:5678`, buat akun admin pertama, dan masukkan kredensial Ollama di menu *Credentials*. Perhatikan bahwa di dalam network Docker, nama host Ollama adalah `ollama` (bukan `localhost`) — perbedaan ini penting saat mengonfigurasi URL pada HTTP Request Node.
 
-### Tutorial B: Workflow Email Assistant — Ringkas Email Masuk
+### Langkah 2: Workflow Email Assistant — Ringkas Email Masuk
 
 Workflow pertama yang akan kita bangun adalah peringkas email. Ikuti langkah berikut di editor n8n:
 
@@ -350,9 +344,9 @@ return [{ json: { subject, from, body } }];
 
 Uji workflow dengan mengirim email ke akun yang terhubung dan amati jalur eksekusinya di tab *Executions*.
 
-### Tutorial C: SQL Query Assistant via Slack
+### Langkah 3: SQL Query Assistant via Slack
 
-Pola kedua mengubah pertanyaan bahasa sehari-hari menjadi query SQL. Di sini kita gunakan **DeepSeek V4 Pro** karena akurasi NL2SQL-nya lebih baik dari Llama-3.1-8B:
+Pola kedua mengubah pertanyaan bahasa sehari-hari menjadi *query* SQL. Di sini kita gunakan **DeepSeek V4 Pro** karena akurasi NL2SQL-nya lebih baik dari Llama-3.1-8B:
 
 1. **Slack Trigger Node:** Terima perintah `/ask-db [pertanyaan]` dari anggota tim.
 2. **HTTP Request (Ollama) — Generate SQL:**
@@ -369,11 +363,11 @@ Pola kedua mengubah pertanyaan bahasa sehari-hari menjadi query SQL. Di sini kit
 {"model":"mistral-large-3:latest","prompt":"Explain these query results in natural language: {{$json.results}}","stream":false}
 ```
 
-5. **Slack Node:** Balas ke channel dengan hasil query + interpretasi bahasa manusia.
+5. **Slack Node:** Balas ke channel dengan hasil *query* + interpretasi bahasa manusia.
 
 Catatan keamanan penting: karena LLM yang menulis SQL, selalu gunakan akun database dengan hak akses *read-only* terpisah — jangan pernah memberi model akses `DELETE` atau `DROP` ke produksi.
 
-### Tutorial D: Workflow Multi-Agent dengan DeepSeek V4 Pro
+### Langkah 4: Workflow Multi-Agent dengan DeepSeek V4 Pro
 
 Pola terakhir menunjukkan pembagian kerja antar-model dalam satu workflow. Skenarionya: pengguna mengirim permintaan kompleks, workflow memecahnya menjadi sub-tugas, mengeksekusi tiap sub-tugas, lalu menggabungkan hasilnya.
 
@@ -394,7 +388,7 @@ Keunggulan pola ini: DeepSeek V4 Pro dengan 1M context dapat menangani percakapa
 
 ---
 
-## 9. Studi Kasus: Otomasi Customer Support di Startup Fintech (20 Agen)
+## 9. Studi Kasus: Otomasi Customer Support di Startup Fintech (3 Agen)
 
 
 Di sebuah startup fintech dengan 20 agen layanan pelanggan, kotak masuk email adalah medan perang harian: **150+ email support per hari** hanya ditangani 3 agen penuh waktu, dengan rata-rata waktu respons **4 jam** — terlalu lambat untuk perusahaan yang bergerak cepat dan terlalu mahal untuk menambah tenaga.
@@ -406,7 +400,7 @@ Hasilnya nyata dan terukur:
 - **65% email bisa di-auto-reply tanpa review manusia** — kategori teknis dan umum umumnya bisa ditangani model sendirian
 - **Response time turun dari 4 jam → 12 menit** untuk email otomatis, dan **45 menit** untuk email yang butuh review manual
 - **Beban agen berkurang 60%** — manusia kini berfokus pada kasus kompleks dan eskalasi, bukan menjawab pertanyaan berulang
-- **Biaya: Rp 800 ribu/bulan** untuk server VPS 16GB + 1 GPU, sementara n8n dan Ollama sepenuhnya gratis
+- **Biaya: Rp 800 ribu/bulan** untuk server VPS 16GB + 1 GPU, sementara n8n dan Ollama sepenuhnya gratis (harga asumsi, sangat bervariasi antar-provider) [Sumber?]
 
 Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model — Llama-3.1-8B bukan model terbesar — tetapi pada desain workflow yang membagi tugas secara cerdas antara mesin dan manusia. Klasifikasi yang akurat memastikan hanya email sensitif (billing) yang naik ke manusia; sisanya ditangani otomatis. Ini juga menunjukkan bahwa *human-in-the-loop* adalah fitur, bukan kelemahan: otomasi yang baik bukan menggantikan manusia, melainkan menghilangkan pekerjaan yang tidak membutuhkan manusia.
 
@@ -421,7 +415,7 @@ Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model —
 
 [2] Zhuang, Y., et al. (2024). *WorkflowLLM: Enhancing Workflow Orchestration Capability of Large Language Models*. arXiv preprint. DOI: [10.48550/arXiv.2411.05451](https://arxiv.org/abs/2411.05451) — dataset WorkflowBench dengan 106K+ sampel untuk fine-tuning LLM pada *workflow orchestration*; menjadi dasar kemampuan LLM memahami workflow multi-langkah.
 
-[3] Babar, A., et al. (2025). *AI in Web Development: A Comparative Study of Traditional Coding and LLM-Based Low-Code Platforms*. International Journal of Advanced Computer Science and Applications (IJACSA), 16(11). DOI: [10.14569/IJACSA.2025.0161190](https://thesai.org/Downloads/Volume16No11/Paper_90-AI_in_Web_Development_A_Comparative_Study.pdf) — studi komparatif LCNC + LLM yang membangun chatbot dengan n8n; data F1 score 90% dan reduksi *build time* 60%; relevan untuk Tabel 1.
+[3] Babar, A., et al. (2025). *AI in Web Development: A Comparative Study of Traditional Coding and LLM-Based Low-Code Platforms*. International Journal of Advanced Computer Science and Applications (IJACSA), 16(11). DOI: [10.14569/IJACSA.2025.0161190](https://thesai.org/Downloads/Volume16No11/Paper_90-AI_in_Web_Development_A_Comparative_Study.pdf) — studi komparatif LCNC + LLM yang membangun chatbot dengan n8n; data F1 score 90% dan reduksi *build time* 60%; relevan untuk Tabel 3.
 
 [4] Liu, H., Li, R., Xiong, W., Zhou, Z., & Peng, W. (2025). *WorkTeam: Constructing Workflows from Natural Language with Multi-Agents*. Proceedings of NAACL 2025 — Industry Track. DOI: [10.18653/v1/2025.naacl-industry.3](https://aclanthology.org/2025.naacl-industry.3.pdf) — multi-agent NL2Workflow dari Huawei dengan 3.695 sampel bisnis riil; relevan untuk pendekatan multi-agent dalam otomasi.
 
@@ -439,10 +433,10 @@ Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model —
 
 [10] n8n. *Nodes Documentation — HTTP Request*. [https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httpRequest/](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.httpRequest/)
 
-[11] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv. DOI: [10.48550/arXiv.2604.00001](https://arxiv.org/abs/2604.00001) — model open-weight MoE 1.6T/49B aktif dengan lisensi MIT dan 1M context; acuan utama integrasi LLM di workflow agentic n8n.
+[11] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv. DOI: [10.48550/arXiv.2604.00001](https://arxiv.org/abs/2604.00001) — model open-weight MoE 1.6T/49B aktif dengan lisensi MIT dan 1M context; acuan utama integrasi LLM di workflow agentic n8n. ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
-[12] Anthropic. (2026). *Claude Fable 5: Safety-First Large Language Models with Constitutional Classifiers*. [https://anthropic.com/research/claude-fable-5](https://anthropic.com/research/claude-fable-5) — model kelas Mythos dengan *safety classifiers*; SWE-bench 95,0%; acuan *guardrails* dalam workflow otomasi.
+[12] Anthropic. (2026). *Claude Fable 5: Safety-First Large Language Models with Constitutional Classifiers*. [https://anthropic.com/research/claude-fable-5](https://anthropic.com/research/claude-fable-5) — model kelas Mythos dengan *safety classifiers*; SWE-bench 95,0%; acuan *guardrails* dalam workflow otomasi. ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
-[13] Mistral AI. (2025). *Mistral Large 3: A Granular Mixture-of-Experts Model*. arXiv. DOI: [10.48550/arXiv.2512.00001](https://arxiv.org/abs/2512.00001) — MoE 675B/41B aktif, Apache 2.0, multimodal; acuan integrasi multimodal dalam pipeline n8n.
+[13] Mistral AI. (2025). *Mistral Large 3: A Granular Mixture-of-Experts Model*. arXiv. DOI: [10.48550/arXiv.2512.00001](https://arxiv.org/abs/2512.00001) — MoE 675B/41B aktif, Apache 2.0, multimodal; acuan integrasi multimodal dalam pipeline n8n. ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [14] Mistral AI. (2025). *Ministral 3: Cascade Distillation for Efficient Edge Language Models*. [https://mistral.ai/news/ministral-3](https://mistral.ai/news/ministral-3) — model edge 3B/8B/14B dengan *Cascade Distillation*; acuan deployment n8n di perangkat dengan sumber daya terbatas.

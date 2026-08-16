@@ -28,7 +28,7 @@ Kegagalan ini bukan kasus langka: setiap kali sebuah situs e-commerce besar memp
 
 ### Agent yang "Melihat"
 
-*Browser agent* mengambil pendekatan berbeda. Alih-alih bergantung pada struktur HTML yang rapuh, ia **mengamati halaman seperti manusia**: mengambil *screenshot* dan membaca struktur DOM, lalu memutuskan aksi berikutnya — klik, ketik, scroll, atau navigasi. Tidak ada selector yang di-hardcode; setiap keputusan dibuat berdasarkan pemahaman tentang apa yang sedang dilihat. Siklusnya sederhana namun kuat:
+*Browser agent* mengambil pendekatan berbeda. Alih-alih bergantung pada struktur HTML yang rapuh, ia **mengamati halaman seperti manusia**: mengambil *screenshot* dan membaca struktur DOM, lalu memutuskan aksi berikutnya — klik, ketik, scroll, atau navigasi. Tidak ada selector yang dihardcode; setiap keputusan dibuat berdasarkan pemahaman tentang apa yang sedang dilihat. Siklusnya sederhana namun kuat:
 
 **Observasi → Decision → Action → New State → Repeat**
 
@@ -65,11 +65,11 @@ Tabel ini adalah peta pilihan, bukan papan skor — tidak ada jawaban "terbaik" 
 
 | Agent | WebArena | Mind2Web | MiniWoB++ | Real-world Tasks |
 |:---|:---:|:---:|:---:|:---:|
-| **Claude Fable 5** + Vision | 22.5% | 55.8% | 94.2% | **72.3%** |
-| GPT-5.5 + Vision | 20.1% | 52.4% | 92.8% | 68.9% |
-| GPT-4V + ReAct | 14.4% | 42.3% | 88.7% | 55.7% (WebVoyager) |
-| AutoWebGLM-6B | 17.2%* | 38.5% | 82.1% | - |
-| DeepSeek V4 Pro + Vision | 18.5% | 48.2% | 90.5% | 60.3% |
+| **Claude Fable 5** + Vision | 22,5% | 55,8% | 94,2% | **72,3%** |
+| GPT-5.5 + Vision | 20,1% | 52,4% | 92,8% | 68,9% |
+| GPT-4V + ReAct | 14,4% | 42,3% | 88,7% | 55,7% (WebVoyager) |
+| AutoWebGLM-6B | 17,2%* | 38,5% | 82,1% | - |
+| DeepSeek V4 Pro + Vision | 18,5% | 48,2% | 90,5% | 60,3% |
 | Skyvern (GPT-4V) | - | - | - | ~65% |
 | Playwright + Qwen-VL | ~10% | ~30% | ~75% | ~40% |
 
@@ -95,7 +95,7 @@ Pendekatan visual ini adalah jawaban langsung atas masalah yang dibahas di seksi
 
 Secara internal, Skyvern menggunakan **Playwright** sebagai lapisan kontrol browser, dengan model multimodal di belakangnya. Anda bisa mengarahkannya ke model cloud seperti GPT-4V, atau ke model lokal — yang menarik untuk pembaca buku ini — dengan menyetel `LLM_PROVIDER=ollama` dan menyebutkan model seperti `qwen2.5:7b`. Server Skyvern mengekspos API REST (`POST /task`) sehingga workflow bisa dipicu dari skrip, cron, maupun aplikasi lain.
 
-Keputusan untuk *self-host* Skyvern adalah keputusan arsitektur yang perlu disadari: Anda bertanggung jawab atas server, *database*, dan browser yang berjalan di dalamnya. Tabel 3 pada seksi 2 memperlihatkan biayanya — sekitar 2 GB RAM, 6-24 GB VRAM, dan latensi 3-8 detik per aksi. Untuk alur produksi yang dijalankan per jam, pastikan host Anda sanggup; untuk percobaan pertama, laptop pribadi sudah lebih dari cukup.
+Keputusan untuk *self-host* Skyvern adalah keputusan arsitektur yang perlu disadari: Anda bertanggung jawab atas server, *database*, dan browser yang berjalan di dalamnya. Tabel 3 pada seksi 3 memperlihatkan biayanya — sekitar 2 GB RAM, 6-24 GB VRAM, dan latensi 3-8 detik per aksi. Untuk alur produksi yang dijalankan per jam, pastikan host Anda sanggup; untuk percobaan pertama, laptop pribadi sudah lebih dari cukup.
 
 ### Tabel 3: Resource Usage Browser Agent Lokal
 
@@ -103,8 +103,8 @@ Biaya menjalankan agent web lokal, komponen demi komponen.
 
 | Komponen | RAM | VRAM | Storage | Latency per Action |
 |:---|:---:|:---:|:---:|:---:|
-| Playwright (headless) | ~200 MB | 0 | ~300 MB | 0.1s (browser) |
-| Qwen-VL 7B (VLM) | ~200 MB | ~6 GB | ~15 GB | ~2s (inference) |
+| Playwright (headless) | ~200 MB | 0 | ~300 MB | 0,1 s (browser) |
+| Qwen-VL 7B (VLM) | ~200 MB | ~6 GB | ~15 GB | ~2 s (inference) |
 | Skyvern (full stack) | ~2 GB | ~6-24 GB | ~20 GB | 3-8s |
 
 Perhatikan bahwa browser itu sendiri murah — 200 MB RAM dan latensi 0,1 detik — sementara *inference* model multimodal adalah bagian paling mahal: 2 detik per keputusan dengan Qwen-VL 7B. Skyvern menumpuk semua komponen sehingga memakan hingga 24 GB VRAM dengan latensi 3-8 detik per aksi. Artinya, untuk satu tugas 10 langkah, Anda harus bersiap menunggu 30-80 detik — sebuah pengingat bahwa kesabaran adalah bagian dari biaya *self-hosting*.
@@ -119,7 +119,7 @@ Perhatikan bahwa browser itu sendiri murah — 200 MB RAM dan latensi 0,1 detik 
 
 ### MultiOn: API-First, Closed-Source
 
-**MultiOn** adalah *browser agent* komersial yang berorientasi API — Anda mengirim deskripsi tugas dan menerima hasil eksekusi, tanpa perlu mengelola browser sendiri. Nyaman dan tangguh, tetapi *closed-source* dan berbiaya *per call*. Untuk pengguna yang mengejar kendali penuh dan biaya nol, alternatifnya adalah kombinasi **Playwright + Ollama** yang dirakit sendiri, sebagaimana ditunjukkan Tutorial 1 nanti.
+**MultiOn** adalah *browser agent* komersial yang berorientasi API — Anda mengirim deskripsi tugas dan menerima hasil eksekusi, tanpa perlu mengelola browser sendiri. Nyaman dan tangguh, tetapi *closed-source* dan berbiaya *per call*. Untuk pengguna yang mengejar kendali penuh dan biaya nol, alternatifnya adalah kombinasi **Playwright + Ollama** yang dirakit sendiri, sebagaimana ditunjukkan pada Langkah 1 nanti.
 
 Kapan MultiOn layak dipilih? Ketika kecepatan pengembangan lebih berharga daripada biaya dan privasi — misalnya untuk *proof of concept* yang harus berjalan hari ini juga, atau ketika sumber daya mesin lokal terbatas. Model bisnis ini juga berarti Anda menyerahkan data halaman yang Anda akses kepada penyedia — keputusan yang perlu dipertimbangkan untuk data sensitif.
 
@@ -129,7 +129,7 @@ Dua nama dari riset perlu dikenal sebagai titik acuan. **WebVoyager** [2] adalah
 
 ### Playwright + LLM: Rakitan Sendiri
 
-Kombinasi terakhir — *Playwright + LLM* — adalah strategi yang penulis rekomendasikan untuk belajar: tidak ada framework, hanya library kontrol browser (Playwright), server model (Ollama), dan logika loop yang Anda tulis sendiri, persis seperti Tutorial 1. Kelebihannya: setiap baris kode dipahami, biaya nol, dan mudah dimodifikasi. Kekurangannya: performa di bawah framework jadi-jadian — lihat baris terakhir Tabel 2 (~40% pada *real-world tasks*). Ini bukan alat produksi akhir, melainkan *laboratorium belajar* yang ideal sebelum naik kelas ke Skyvern.
+Kombinasi terakhir — *Playwright + LLM* — adalah strategi yang penulis rekomendasikan untuk belajar: tidak ada framework, hanya library kontrol browser (Playwright), server model (Ollama), dan logika loop yang Anda tulis sendiri, persis seperti pada Langkah 1. Kelebihannya: setiap baris kode dipahami, biaya nol, dan mudah dimodifikasi. Kekurangannya: performa di bawah framework jadi-jadian — lihat baris terakhir Tabel 2 (~40% pada *real-world tasks*). Ini bukan alat produksi akhir, melainkan *laboratorium belajar* yang ideal sebelum naik kelas ke Skyvern.
 
 ---
 
@@ -167,7 +167,7 @@ Skenario paling menguntungkan adalah **pemantauan berkala**: harga tiket, keters
 
 ### Batasan dan Etika Otomasi Web
 
-Kekuatan untuk mengotomasi apa pun di browser membawa tanggung jawab. Tiga batasan yang harus selalu diingat: (1) **hormati *terms of service*** — beberapa situs melarang akses otomatis; baca kebijakannya sebelum membangun workflow, dan jaga *rate* permintaan tetap wajar agar tidak membebani server; (2) **lindungi akun** — jangan pernah menyimpan kredensial login dalam teks polos di skrip atau env var yang ikut ter-*commit* ke git; (3) **batasi dampak** — workflow yang menulis data (misalnya mengirim form) harus punya *dry-run* dan konfirmasi, seperti halnya prinsip *file agent* pada sub-bab 4.6.
+Kekuatan untuk mengotomasi apa pun di browser membawa tanggung jawab. Tiga batasan yang harus selalu diingat: (1) **hormati *terms of service*** — beberapa situs melarang akses otomatis; baca kebijakannya sebelum membangun workflow, dan jaga *rate* permintaan tetap wajar agar tidak membebani server; (2) **lindungi akun** — jangan pernah menyimpan kredensial login dalam teks polos di skrip atau env var yang ikut tercatat di git; (3) **batasi dampak** — workflow yang menulis data (misalnya mengirim form) harus punya *dry-run* dan konfirmasi, seperti halnya prinsip *file agent* pada sub-bab 4.6.
 
 ---
 
@@ -194,7 +194,7 @@ Perhatikan juga bahwa *screenshot* dan *DOM* diambil pada setiap iterasi — buk
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
 ### Langkah 1: Browser Agent Sederhana dengan Playwright + Ollama
@@ -228,7 +228,7 @@ class SimpleBrowserAgent:
                 prompt = f"""Task: {task}
 Halaman: {title}
 URL: {page.url}
-Actions available: CLICK_BUTTON, TYPE_TEXT, SCROLL, EXTRACT, NAVIGATE
+Actions available: CLICK_BUTTON, TYPE_TEXT, SCROLL, EXTRACT
 Pilih action dan argumen dalam JSON."""
 
                 resp = requests.post("http://localhost:11434/api/generate", json={
@@ -247,7 +247,9 @@ Pilih action dan argumen dalam JSON."""
                 elif decision["action"] == "SCROLL":
                     await page.evaluate(f"window.scrollBy(0, {decision['amount']})")
 
-                # 4. Cek selesai
+                # 4. Cek selesai — pendekatan sederhana: tugas dianggap selesai
+                #    bila teks tugas muncul di konten halaman (bukan pengukuran
+                #    semantik; untuk produksi gunakan evaluasi yang lebih ketat)
                 if task.lower() in (await page.content()).lower():
                     print("Task selesai!")
                     break
@@ -264,7 +266,7 @@ asyncio.run(agent.run(
 
 Jalankan dengan `pip install playwright && playwright install chromium`, lalu pastikan Ollama aktif (`ollama pull llama3.1:8b`). Mulailah dari tugas Wikipedia di atas. Jika LLM menjawab di luar format JSON, tambahkan contoh output di *prompt* — penyetelan *prompt* adalah 80% dari seni membuat agent lokal bekerja.
 
-**Catatan penting:** model 7B yang tidak *vision* (seperti llama3.1) tidak bisa membaca *screenshot* — pada skrip di atas, keputusan hanya berdasarkan judul, URL, dan konten halaman yang dikirim sebagai teks. Jika ingin agent yang benar-benar "melihat", ganti dengan model multimodal seperti **Qwen-VL** dan sertakan deskripsi visual dalam *prompt*; konsekuensinya, VRAM naik ke sekitar 6 GB (Tabel 3). Mulailah dari versi teks ini, lalu naik kelas ketika kebutuhan memaksa.
+**Catatan penting:** model 7B yang tidak *vision* (seperti Llama 3.1) tidak bisa membaca *screenshot* — pada skrip di atas, keputusan hanya berdasarkan judul, URL, dan konten halaman yang dikirim sebagai teks. Jika ingin agent yang benar-benar "melihat", ganti dengan model multimodal seperti **Qwen-VL** dan sertakan deskripsi visual dalam *prompt*; konsekuensinya, VRAM naik ke sekitar 6 GB (Tabel 3). Mulailah dari versi teks ini, lalu naik kelas ketika kebutuhan memaksa.
 
 ### Langkah 2: Setup Skyvern Lokal
 
@@ -325,15 +327,13 @@ Sebelum membangun, ia mempertimbangkan alternatif: *scraper* statis ditolak kare
 4. *Search* → ekstrak harga
 5. Bandingkan dengan harga kemarin → kirim notifikasi jika turun
 
-**Hasil:** Workflow dijalankan harian melalui **cron** pada pagi hari. Ketika harga turun di bawah ambang yang ditentukan, notifikasi dikirim dan pembelian dilakukan. Dalam sebulan pemakaian, penghematan tercatat sekitar **30%** dari biaya tiket karena pembelian selalu dilakukan saat harga turun — tanpa sekali pun membuka situs secara manual.
+**Hasil:** Workflow dijalankan harian melalui **cron** pada pagi hari. Ketika harga turun di bawah ambang yang ditentukan, notifikasi dikirim dan pembelian dilakukan. Dalam sebulan pemakaian, penghematan tercatat sekitar **30%** [Sumber?] dari biaya tiket karena pembelian selalu dilakukan saat harga turun — tanpa sekali pun membuka situs secara manual.
 
 Sebagian eksekusi memang sesekali perlu intervensi — biasanya ketika situs menampilkan *pop-up* yang tidak terduga. Di sinilah nilai *screenshot* per langkah terasa: setiap kegagalan langsung bisa ditelusuri dan ditangani dengan menambahkan satu instruksi di *prompt*, tanpa menulis ulang seluruh workflow. Untuk tugas pemantauan, kegagalan sesekali tidak pernah berarti kehilangan kesempatan permanen — esok hari, cron menjalankannya lagi.
 
 **Pelajaran:** Kekuatan studi kasus ini bukan pada kecanggihan model, melainkan pada **konsistensi**. Agent tidak lebih pintar dari manusia dalam menilai harga — tetapi ia tidak pernah lupa, tidak pernah malas, dan selalu datang tepat waktu. Untuk pekerjaan pemantauan berulang seperti ini, keandalan jadwal lebih berharga daripada akurasi sesaat. Satu catatan etis: pastikan otomasi mematuhi *terms of service* situs dan tidak membebani server dengan permintaan berlebihan — prinsip yang dibahas pada seksi 6.
 
-Dari proyek ini, ada tiga kebiasaan yang layak dibawa ke proyek otomasi berikutnya: (1) **catat riwayat data** — menyimpan harga harian dalam CSV sederhana memungkinkan analisa tren di kemudian hari, bukan hanya notifikasi sesaat; (2) **buat fallback** — jika eksekusi gagal berulang kali, kirim peringatan dan hentikan *retry* agar tidak menggandakan beban server; (3) **evaluasi berkala** — periksa log secara rutin untuk melihat pola kegagalan dan perbaiki *prompt* atau alur sebelum kegagalan itu menjadi mahal.
-
-Dari proyek ini, ada tiga kebiasaan yang layak dibawa ke proyek otomasi berikutnya: (1) **catat riwayat data** — menyimpan harga harian dalam CSV sederhana memungkinkan analisa tren di kemudian hari, bukan hanya notifikasi sesaat; (2) **buat fallback** — jika eksekusi gagal tiga kali berturut-turut, kirim peringatan dan hentikan *retry* agar tidak menggandakan beban; (3) **evaluasi berkala** — seminggu sekali, periksa log untuk melihat pola kegagalan dan perbaiki *prompt* atau alur sebelum kegagalan itu menjadi mahal.
+Dari proyek ini, ada tiga kebiasaan yang layak dibawa ke proyek otomasi berikutnya: (1) **catat riwayat data** — menyimpan harga harian dalam CSV sederhana memungkinkan analisis tren di kemudian hari, bukan hanya notifikasi sesaat; (2) **buat fallback** — jika eksekusi gagal tiga kali berturut-turut, kirim peringatan dan hentikan *retry* agar tidak menggandakan beban; (3) **evaluasi berkala** — seminggu sekali, periksa log untuk melihat pola kegagalan dan perbaiki *prompt* atau alur sebelum kegagalan itu menjadi mahal.
 
 ---
 

@@ -37,7 +37,7 @@ Masalah utama *single agent* adalah konflik peran. Model dengan *temperature* ti
 
 ### Sequential: Rantai Produksi
 
-Pola paling sederhana adalah **sequential** — agen A memproses tugas, menghasilkan output, lalu meneruskannya ke agen B, dan seterusnya. Ini adalah *pipeline* klasik: dalam konteks penulisan, Writer menghasilkan draf → Editor mereview → Writer merevisi. Setiap tahap bergantung pada output tahap sebelumnya, seperti rantai produksi di pabrik. Keuntungannya: alur mudah dipahami, mudah di-debug, dan setiap agen bisa diuji secara terpisah. Kelemahannya: latensi menumpuk secara linear, dan jika satu agen gagal, seluruh rantai berhenti.
+Pola paling sederhana adalah **sequential** — agen A memproses tugas, menghasilkan output, lalu meneruskannya ke agen B, dan seterusnya. Ini adalah *pipeline* klasik: dalam konteks penulisan, Writer menghasilkan draf → Editor mereview → Writer merevisi. Setiap tahap bergantung pada output tahap sebelumnya, seperti rantai produksi di pabrik. Keuntungannya: alur mudah dipahami, mudah didebug, dan setiap agen bisa diuji secara terpisah. Kelemahannya: latensi menumpuk secara linear, dan jika satu agen gagal, seluruh rantai berhenti.
 
 ### Hierarchical: Manajer dan Bawahan
 
@@ -49,9 +49,20 @@ Pola **debate** adalah yang paling dramatis: dua agen dengan perspektif berbeda 
 
 ### Peer Review: Siklus Kritik dan Revisi
 
-Pola **peer review** — yang menjadi inti bab ini — bekerja dalam siklus: agen A menghasilkan karya, agen B mengkritik, agen A merevisi, dan siklus berulang hingga agen B menyetujui. Ini adalah cerminan langsung dari proses *peer review* akademik dan editorial. Keunggulan terbesarnya adalah kualitas yang meningkat secara iteratif: setiap putaran review menangkap lapisan kesalahan baru — putaran pertama menangkap fakta, putaran kedua menangkap struktur, putaran ketiga menangkap gaya. Data pada Tabel C di bagian 4 menunjukkan peningkatan ini secara kuantitatif.
+Pola **peer review** — yang menjadi inti bab ini — bekerja dalam siklus: agen A menghasilkan karya, agen B mengkritik, agen A merevisi, dan siklus berulang hingga agen B menyetujui. Ini adalah cerminan langsung dari proses *peer review* akademik dan editorial. Keunggulan terbesarnya adalah kualitas yang meningkat secara iteratif: setiap putaran review menangkap lapisan kesalahan baru — putaran pertama menangkap fakta, putaran kedua menangkap struktur, putaran ketiga menangkap gaya. Data pada Tabel 3 di bagian 7 menunjukkan peningkatan ini secara kuantitatif.
 
-Diagram berikut menggambarkan loop kerja *Writer vs Editor* — perhatikan bagaimana jalur revisi kembali ke Writer ketika editor belum menyetujui. ```mermaid flowchart TD T[Task] --> W[Writer Agent\nmenulis draft, temp 0.7] W --> E[Editor Agent\nreview, temp 0.1] E --> F{Feedback\nlulus review?} F -- "belum — beri catatan revisi" --> W F -- "ya" --> D[Artikel Final\nmenunggu approval] ``` Diagram ini menunjukkan dua komponen utama. Di sisi kiri, Writer menerima tugas dan menghasilkan draf dengan *temperature* tinggi. Di tengah, Editor mereview draf dengan *temperature* rendah dan menilai apakah lolos. Keputusan diwakili oleh node diamond `F` — jika belum lulus, feedback dikirim kembali ke Writer untuk revisi (loop atas); jika lulus, artikel final diteruskan ke tahap approval manusia. Pola loop inilah yang membuat kualitas meningkat secara iteratif: setiap putaran melewati jalur yang sama, tetapi dengan draf yang semakin baik. Dalam praktiknya, tambahkan penghitung iterasi untuk membatasi loop — misalnya maksimal tiga putaran — seperti yang dibahas pada bagian 7.
+Diagram berikut menggambarkan loop kerja *Writer vs Editor* — perhatikan bagaimana jalur revisi kembali ke Writer ketika editor belum menyetujui.
+
+```mermaid
+flowchart TD
+    T[Task] --> W[Writer Agent\nmenulis draft, temp 0.7]
+    W --> E[Editor Agent\nreview, temp 0.1]
+    E --> F{Feedback\nlulus review?}
+    F -- "belum — beri catatan revisi" --> W
+    F -- "ya" --> D[Artikel Final\nmenunggu approval]
+```
+
+Diagram ini menunjukkan dua komponen utama. Di sisi kiri, Writer menerima tugas dan menghasilkan draf dengan *temperature* tinggi. Di tengah, Editor mereview draf dengan *temperature* rendah dan menilai apakah lolos. Keputusan diwakili oleh node diamond `F` — jika belum lulus, feedback dikirim kembali ke Writer untuk revisi (loop atas); jika lulus, artikel final diteruskan ke tahap approval manusia. Pola loop inilah yang membuat kualitas meningkat secara iteratif: setiap putaran melewati jalur yang sama, tetapi dengan draf yang semakin baik. Dalam praktiknya, tambahkan penghitung iterasi untuk membatasi loop — misalnya maksimal tiga putaran — seperti yang dibahas pada bagian 7.
 
 ### Diagram Pelengkap: Empat Pola Kolaborasi
 
@@ -97,9 +108,9 @@ Keempat subgraf ini menunjukkan bentuk kolaborasi yang berbeda. *Sequential* ada
 
 ### Use Case: Writer Assistant dan Editor Critic
 
-Untuk bab ini, pola yang paling relevan adalah dua peran: *Writer Assistant* yang menghasilkan draf dan *Editor Critic* yang mengkritisi. Keduanya didefinisikan sebagai `AssistantAgent` dengan *system message* berbeda, lalu `UserProxyAgent` memulai percakapan dan memoderasi alurnya. Keunggulan AutoGen adalah fleksibilitas: karena komunikasi berbasis chat, Anda bisa menambahkan agen ketiga, keempat, atau kelima — misalnya *fact-checker* — tanpa mengubah struktur dasar. Tutorial A di bagian 8 menunjukkan implementasi lengkapnya.
+Untuk bab ini, pola yang paling relevan adalah dua peran: *Writer Assistant* yang menghasilkan draf dan *Editor Critic* yang mengkritisi. Keduanya didefinisikan sebagai `AssistantAgent` dengan *system message* berbeda, lalu `UserProxyAgent` memulai percakapan dan memoderasi alurnya. Keunggulan AutoGen adalah fleksibilitas: karena komunikasi berbasis chat, Anda bisa menambahkan agen ketiga, keempat, atau kelima — misalnya *fact-checker* — tanpa mengubah struktur dasar. Langkah 1 di bagian 8 menunjukkan implementasi lengkapnya.
 
-### Tabel A: Perbandingan Multi-Agent Framework
+### Tabel 1: Perbandingan Multi-Agent Framework
 
 Tabel berikut membandingkan empat framework multi-agent yang paling populer saat ini — AutoGen, CrewAI, LangGraph, dan MetaGPT — berdasarkan fitur yang paling menentukan saat membangun sistem.
 
@@ -127,7 +138,7 @@ Dari tabel ini, pilihan framework sangat tergantung pada kebutuhan. Jika Anda me
 
 ### Delegasi Tugas dan Shared Context
 
-Perbedaan kunci dengan AutoGen: dalam CrewAI, alur tugas ditentukan di level *crew*, bukan melalui percakapan bebas antar-agen. Hasil satu tugas diteruskan ke tugas berikutnya sebagai *shared context*, sehingga editor otomatis menerima draf yang dihasilkan writer tanpa perlu "bertanya". Ini membuat kode lebih mudah dibaca dan diprediksi — Anda tahu persis urutan eksekusinya. Trade-off-nya: fleksibilitas percakapan bebas lebih rendah dibandingkan AutoGen. Untuk workflow yang alurnya sudah jelas — seperti *Writer → Editor → Revisi* — CrewAI sering kali lebih mudah dikelola. Tutorial B di bagian 8 menunjukkan implementasinya.
+Perbedaan kunci dengan AutoGen: dalam CrewAI, alur tugas ditentukan di level *crew*, bukan melalui percakapan bebas antar-agen. Hasil satu tugas diteruskan ke tugas berikutnya sebagai *shared context*, sehingga editor otomatis menerima draf yang dihasilkan writer tanpa perlu "bertanya". Ini membuat kode lebih mudah dibaca dan diprediksi — Anda tahu persis urutan eksekusinya. Trade-off-nya: fleksibilitas percakapan bebas lebih rendah dibandingkan AutoGen. Untuk workflow yang alurnya sudah jelas — seperti *Writer → Editor → Revisi* — CrewAI sering kali lebih mudah dikelola. Langkah 2 di bagian 8 menunjukkan implementasinya.
 
 ---
 
@@ -138,20 +149,20 @@ Perbedaan kunci dengan AutoGen: dalam CrewAI, alur tugas ditentukan di level *cr
 
 Pola **Writer vs Editor** adalah aplikasi paling langsung dari prinsip multi-agent. **Writer Agent** bertanggung jawab atas kreativitas: ia menulis draf panjang, detail, dan imajinatif dengan *temperature* tinggi (0,7) agar bahasa mengalir dan ide berkembang. **Editor Agent** bertanggung jawab atas akurasi: ia mengoreksi fakta, gramatika, dan struktur dengan *temperature* rendah (0,1) agar penilaiannya konsisten dan tidak berfantasi. Dua kepribadian ini sengaja dirancang berlawanan — yang satu memaksimalkan eksplorasi, yang lain memaksimalkan verifikasi.
 
-Perhatikan perbedaan model yang disarankan pada Tabel B di bagian 4: Writer menggunakan model yang lebih kuat seperti **DeepSeek V4 Pro** atau **Llama-3.1-8B**, sementara Editor bisa menggunakan model yang lebih kecil dan hemat seperti **Claude Fable 5** atau **Qwen-2.5-7B**. Ini adalah strategi biaya: tugas kritis (menulis) memakai model terbaik, sementara tugas berulang (mengoreksi) memakai model yang cukup baik dengan biaya lebih rendah — prinsip yang sama dibahas pada bagian 7.
+Perhatikan perbedaan model yang disarankan pada Tabel 2 di bagian 6: Writer menggunakan model yang lebih kuat seperti **DeepSeek V4 Pro** atau **Llama 3.1 (8B)**, sementara Editor bisa menggunakan model yang lebih kecil dan hemat seperti **DeepSeek V4 Flash** atau **Qwen 2.5 (7B)**. Ini adalah strategi biaya: tugas kritis (menulis) memakai model terbaik, sementara tugas berulang (mengoreksi) memakai model yang cukup baik dengan biaya lebih rendah — prinsip yang sama dibahas pada bagian 7.
 
 ### Alur Empat Langkah
 
 Alur kerja pola ini terdiri dari empat langkah yang berulang: **Writer draft** → **Editor review** → **Writer revise** → **Editor approve**. Draf awal hampir selalu lolos dengan banyak catatan; setelah revisi, kualitas naik; pada akhirnya, editor menyetujui. Jika editor belum puas, siklus kembali ke langkah ketiga — ini adalah loop yang dikendalikan oleh penilaian editor. Diagram pada bagian 3 menggambarkan loop ini secara visual. Batasan jumlah iterasi perlu ditetapkan (misalnya maksimal 3 putaran) untuk mencegah biaya token yang tidak terkendali.
 
-### Tabel B: Role Configuration — Writer vs Editor
+### Tabel 2: Role Configuration — Writer vs Editor
 
 Tabel ini menunjukkan bagaimana dua agen dengan peran berbeda dikonfigurasi secara teknis — perhatikan bagaimana setiap parameter dirancang untuk mendukung kepribadian yang bertolak belakang.
 
 | Parameter | Writer Agent | Editor Agent |
 |:---|:---|:---|
-| **Model** | DeepSeek V4 Pro / Llama-3.1-8B | Claude Fable 5 / Qwen-2.5-7B |
-| **Temperature** | 0.7 — kreatif | 0.1 — presisi |
+| **Model** | DeepSeek V4 Pro / Llama 3.1 (8B) | DeepSeek V4 Flash / Qwen 2.5 (7B) |
+| **Temperature** | 0,7 — kreatif | 0,1 — presisi |
 | **System Prompt** | "Kamu penulis kreatif..." | "Kamu editor kritis..." |
 | **Tools** | Search web, read files | Calculator, fact-check |
 | **Max Tokens Output** | 2048 (draft panjang) | 512 (review singkat) |
@@ -167,21 +178,21 @@ Kontras pada tabel ini adalah kunci dari keseluruhan pola. *Temperature* 0,7 mem
 
 ### Latensi, Konsistensi, dan Biaya
 
-Multi-agent tidak gratis. Tiga tantangan utama harus diperhitungkan sejak awal. **Latensi**: dengan n agen, total waktu proses kira-kira n kali latensi satu agen — draf 30 detik menjadi 2 menit setelah tiga putaran review. **Konsistensi**: agen bisa saling kontradiksi — editor menyuruh menyingkat, revisi malah memperpanjang; perlu *system prompt* yang jelas tentang hierarki keputusan. **Biaya**: *token usage* berlipat setiap kali sebuah teks diproses ulang — data Tabel C menunjukkan kenaikan dari 1.500 token (single agent) menjadi 3.500 token (dua putaran review), lebih dari dua kali lipat.
+Multi-agent tidak gratis. Tiga tantangan utama harus diperhitungkan sejak awal. **Latensi**: dengan n agen, total waktu proses kira-kira n kali latensi satu agen — draf 30 detik menjadi 2 menit setelah tiga putaran review. **Konsistensi**: agen bisa saling kontradiksi — editor menyuruh menyingkat, revisi malah memperpanjang; perlu *system prompt* yang jelas tentang hierarki keputusan. **Biaya**: *token usage* berlipat setiap kali sebuah teks diproses ulang — data Tabel 3 menunjukkan kenaikan dari 1.500 token (single agent) menjadi 3.500 token (dua putaran review), lebih dari dua kali lipat.
 
 ### Strategi Mitigasi
 
 Solusi yang paling efektif adalah **penggunaan model kecil untuk agen non-kritis**. Editor, *fact-checker*, dan agen pendukung lainnya tidak perlu menjadi model terbesar — model 7B sudah cukup untuk menemukan inkonsistensi gramatika. Hanya agen yang menghasilkan karya (Writer) yang layak mendapat model besar. Strategi kedua: batasi iterasi. Tiga putaran review biasanya mencapai titik diminishing return; setelah itu, setiap putaran tambahan hanya menambah biaya tanpa peningkatan kualitas berarti. Strategi ketiga: gunakan *structured output* untuk komunikasi antar-agen — editor mengembalikan daftar koreksi berformat, bukan prosa bebas, sehingga revisi lebih terarah.
 
-### Tabel C: Quality Improvement dengan Multi-Agent Review
+### Tabel 3: Quality Improvement dengan Multi-Agent Review
 
 Tabel ini adalah bukti kuantitatif mengapa multi-agent bekerja — bandingkan metrik kualitas antara satu agen, satu putaran review, dan dua putaran review.
 
 | Metrik | Single Agent (Writer only) | Writer + Editor (1 round) | Writer + Editor (2 rounds) |
 |:---|:---:|:---:|:---:|
 | **Factual Accuracy** | 72% | 85% | 91% |
-| **Grammar Score** | 3.8/5 | 4.5/5 | 4.7/5 |
-| **Coherence** | 4.0/5 | 4.3/5 | 4.5/5 |
+| **Grammar Score** | 3,8/5 | 4,5/5 | 4,7/5 |
+| **Coherence** | 4,0/5 | 4,3/5 | 4,5/5 |
 | **Completeness** | 65% | 80% | 88% |
 | **Token Usage** | 1500 | 2500 | 3500 |
 
@@ -189,19 +200,19 @@ Data ini menunjukkan pola *diminishing return* yang penting untuk dipahami. Peni
 
 ![Peningkatan kualitas multi-agent review: akurasi, skor /5, dan biaya token dari satu agen hingga dua putaran review](../../assets/images/bab-04-otomasi-agent/sub-bab-9/kualitas-multi-agent-review.png)
 
-*Gambar 4.9-1 — Putaran pertama memberi lompatan terbesar (akurasi +13 poin, kelengkapan +15 poin) dengan tambahan 1.000 token, sedangkan putaran kedua meningkat lebih tipis; inilah dasar menetapkan batas 2-3 putaran review.*
+*Gambar 4.9-1 — Putaran pertama memberi lompatan terbesar (akurasi +13 poin, kelengkapan +15 poin) dengan tambahan 1.000 token, sedangkan putaran kedua meningkat lebih tipis; inilah dasar menetapkan batas dua-tiga putaran review.*
 
 ---
 
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Writer vs Editor dengan AutoGen
+### Langkah 1: Writer vs Editor dengan AutoGen
 
-Tutorial pertama mengimplementasikan pola *Writer vs Editor* menggunakan AutoGen — Writer memakai **DeepSeek V4 Pro**, Editor memakai **DeepSeek V4 Flash** yang lebih ringan, keduanya berjalan via Ollama di localhost.
+Langkah pertama mengimplementasikan pola *Writer vs Editor* menggunakan AutoGen — Writer memakai **DeepSeek V4 Pro**, Editor memakai **DeepSeek V4 Flash** yang lebih ringan, keduanya berjalan via Ollama di localhost.
 
 ```python
 # writer_editor_autogen.py
@@ -282,9 +293,9 @@ print(user.last_message())
 
 Perhatikan dua hal penting dalam kode ini. Pertama, *system message* masing-masing agen dirancang saling melengkapi: Writer diminta berfokus pada kualitas tulisan dan "tidak khawatir tentang kesalahan — Editor akan mereview", sementara Editor diberi daftar tugas review yang spesifik dengan format output `[ERROR/SARAN]` yang terstruktur. Kedua, alur dijalankan dalam tiga fase eksplisit melalui `UserProxyAgent` — ini memastikan urutan *draft → review → revisi* selalu diikuti. Untuk mengulang putaran review, cukup ulangi fase 2 dan 3 beberapa kali dengan menyisipkan hasil revisi terbaru.
 
-### Tutorial B: Multi-Agent dengan CrewAI
+### Langkah 2: Multi-Agent dengan CrewAI
 
-Tutorial kedua mengimplementasikan workflow yang sama — termasuk tahap revisi — menggunakan CrewAI dengan pendekatan berbasis peran dan tugas.
+Langkah kedua mengimplementasikan workflow yang sama — termasuk tahap revisi — menggunakan CrewAI dengan pendekatan berbasis peran dan tugas.
 
 ```python
 # crew_writer_editor.py
@@ -356,11 +367,11 @@ Perbedaan gaya dengan AutoGen terlihat jelas. Dalam CrewAI, setiap agen didefini
 
 **Alur kerja:** Writer menghasilkan draf → Editor mereview dan mengembalikan catatan → Writer merevisi → Fact-Checker memverifikasi setiap klaim → Editor memberikan persetujuan final. Fact-Checker ditempatkan setelah revisi — bukan sebelumnya — sehingga fakta yang diverifikasi adalah fakta pada versi final, bukan versi awal.
 
-**Hasil:** Dalam pengujian pada 20 bab, kualitas tulisan meningkat 40% menurut skor internal penerbit. Yang lebih dramatis: jumlah fakta salah turun dari rata-rata 12 per bab menjadi 1 per bab — penurunan 92%. Fact-Checker adalah pahlawan tak terlihat dalam sistem ini; tanpa agen ketiga, editor yang sibuk mengoreksi struktur akan melewatkan banyak klaim yang salah.
+**Hasil:** Dalam pengujian pada 20 bab, kualitas tulisan meningkat 40% menurut skor internal penerbit [Sumber?]. Yang lebih dramatis: jumlah fakta salah turun dari rata-rata 12 per bab menjadi 1 per bab — penurunan 92%. Fact-Checker adalah pahlawan tak terlihat dalam sistem ini; tanpa agen ketiga, editor yang sibuk mengoreksi struktur akan melewatkan banyak klaim yang salah.
 
 **Biaya:** Sistem mengonsumsi sekitar 8.000 token per bab, dibandingkan 3.000 token jika hanya menggunakan satu agen — hampir tiga kali lipat. Namun, penerbit menghitung bahwa biaya token 8.000 hanya beberapa ribu rupiah per bab dengan model lokal, jauh lebih murah daripada dua minggu kerja editorial manusia. Trade-off ini — kualitas +40% dengan biaya token ×2,7 — adalah contoh nyata dari prinsip yang dibahas di bagian 7: investasi token menghasilkan kualitas, selama Anda mengendalikan jumlah iterasi.
 
-**Pelajaran:** Multi-agent paling efektif ketika setiap peran memiliki *alat* yang berbeda. Writer tidak pernah memverifikasi fakta, Editor tidak pernah mencari di web, dan Fact-Checker tidak pernah menulis — pembagian alat yang ketat ini mencegah redundansi dan konflik. Selain itu, hasil studi kasus ini menegaskan data Tabel C: putaran review berlapis memberikan peningkatan terbesar pada akurasi dan kelengkapan, bukan pada gaya — karena *coherence* dan *grammar* yang sudah baik sejak awal hanya naik tipis.
+**Pelajaran:** Multi-agent paling efektif ketika setiap peran memiliki *alat* yang berbeda. Writer tidak pernah memverifikasi fakta, Editor tidak pernah mencari di web, dan Fact-Checker tidak pernah menulis — pembagian alat yang ketat ini mencegah redundansi dan konflik. Selain itu, hasil studi kasus ini menegaskan data Tabel 3: putaran review berlapis memberikan peningkatan terbesar pada akurasi dan kelengkapan, bukan pada gaya — karena *coherence* dan *grammar* yang sudah baik sejak awal hanya naik tipis.
 
 ---
 
@@ -369,17 +380,17 @@ Perbedaan gaya dengan AutoGen terlihat jelas. Dalam CrewAI, setiap agen didefini
 
 ### Paper Jurnal/Konferensi
 
-[1] Wu, Q., Bansal, G., Zhang, J., et al. (2023). *AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation*. arXiv:2308.08155. DOI: [10.48550/arXiv.2308.08155](https://arxiv.org/abs/2308.08155) — Framework *multi-agent conversation* dari Microsoft; dasar implementasi Tutorial A.
+[1] Wu, Q., Bansal, G., Zhang, J., et al. (2023). *AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation*. arXiv:2308.08155. DOI: [10.48550/arXiv.2308.08155](https://arxiv.org/abs/2308.08155) — Framework *multi-agent conversation* dari Microsoft; dasar implementasi Langkah 1.
 
-[2] Duan, Z., et al. (2024). *Exploration of LLM Multi-Agent Application Implementation Based on LangGraph + CrewAI*. arXiv:2411.18241. DOI: [10.48550/arXiv.2411.18241](https://arxiv.org/abs/2411.18241) — Implementasi multi-agent berbasis peran dengan CrewAI; dasar Tutorial B.
+[2] Duan, Z., et al. (2024). *Exploration of LLM Multi-Agent Application Implementation Based on LangGraph + CrewAI*. arXiv:2411.18241. DOI: [10.48550/arXiv.2411.18241](https://arxiv.org/abs/2411.18241) — Implementasi multi-agent berbasis peran dengan CrewAI; dasar Langkah 2.
 
 [3] Guo, T., Chen, X., Wang, Y., et al. (2024). *Large Language Model based Multi-Agents: A Survey of Progress and Challenges*. arXiv:2402.01680. DOI: [10.48550/arXiv.2402.01680](https://arxiv.org/abs/2402.01680) — Survey multi-agent: taksonomi pola kolaborasi, komunikasi antar-agen, dan tantangan.
-
-[4] Ahmad, M.S.J. (2025). *Benchmarking Multi-Agent Frameworks: LangGraph vs. CrewAI vs. AutoGen*. JATIR, 3 — Benchmark 80-task suite; data untuk Tabel A perbandingan framework.
 
 [5] Papadakis, E., et al. (2024). *Towards Effective GenAI Multi-Agent Collaboration: Design and Evaluation for Enterprise Applications*. arXiv:2412.05449. DOI: [10.48550/arXiv.2412.05449](https://arxiv.org/abs/2412.05449) — Koordinasi multi-agent untuk enterprise: *payload referencing*, *routing*, dan evaluasi.
 
 ### Referensi Pendukung
+
+[4] Ahmad, M.S.J. (2025). *Benchmarking Multi-Agent Frameworks: LangGraph vs. CrewAI vs. AutoGen*. JATIR, 3 [Sumber?] — Benchmark 80-task suite; data untuk Tabel 1 perbandingan framework.
 
 [6] AutoGen Documentation. [https://microsoft.github.io/autogen](https://microsoft.github.io/autogen)
 

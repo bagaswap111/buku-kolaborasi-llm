@@ -1,6 +1,6 @@
 # Bab 4.2: Tool Use — Function Calling dengan JSON Schema
 
-> Seorang resepsionis tidak membawakan barangnya sendiri — ia menulis surat tugas yang jelas, lalu bagian lain yang mengerjakan. Demikian pula LLM: ia tidak bisa menyentuh file, membuka browser, atau menjalankan perintah, tetapi ia bisa *menuliskan instruksi yang tepat* dalam format yang bisa dieksekusi mesin. Format itu bernama *function calling*, dan bahasanya adalah JSON Schema. Bab ini mengajarkan Anda menjadi penterjemah antara bahasa manusia, keputusan model, dan eksekusi sistem operasi.
+> Seorang resepsionis tidak membawakan barangnya sendiri — ia menulis surat tugas yang jelas, lalu bagian lain yang mengerjakan. Demikian pula LLM: ia tidak bisa menyentuh file, membuka browser, atau menjalankan perintah, tetapi ia bisa *menuliskan instruksi yang tepat* dalam format yang bisa dieksekusi mesin. Format itu bernama *function calling*, dan bahasanya adalah JSON Schema. Bab ini mengajarkan Anda menjadi penerjemah antara bahasa manusia, keputusan model, dan eksekusi sistem operasi.
 
 ---
 
@@ -137,7 +137,7 @@ API *chat completion* OpenAI memperkenalkan pola yang kini menjadi standar *de f
 
 Ekosistem lokal tidak ketinggalan. **Ollama** mendukung tool melalui parameter `tools` pada endpoint `/api/chat` — format JSON Schema yang sama dengan OpenAI, sehingga kode Anda bisa portabel. **Llama 3.1** sejak Juli 2024 dilatih khusus dengan *function calling native*; **Mistral** juga menyertakan dukungan *function calling* pada model-model terbarunya. Yang menarik, **DeepSeek V4** (Pro dan Flash) mendukung format JSON Schema dengan *strict* parsial dan *parallel call* — cukup mumpuni untuk agen lokal di workstation.
 
-Bagaimana mengukur kualitas dukungan ini? Standar pengukurannya adalah **Berkeley Function Calling Leaderboard (BFCL)** [6], yang menguji model pada tiga kelas tugas: *simple function* (satu fungsi), *multiple function* (memilih di antara banyak fungsi), dan *parallel function* (beberapa panggilan sekaligus). Tabel 3 di seksi tabel nanti akan membandingkan skor model-model utama — dan hasilnya mengejutkan: model lokal seperti DeepSeek V4 Flash (90,6%) kini berada dalam jarak dekat dengan model proprietary termahal. Dasar teknis di balik angka-angka itu adalah *multi-task learning* — teknik yang digunakan Granite-Function Calling untuk melatih model memilih dan mengisi fungsi secara presisi [4].
+Bagaimana mengukur kualitas dukungan ini? Standar pengukurannya adalah **Berkeley Function Calling Leaderboard (BFCL)** [6], yang menguji model pada tiga kelas tugas: *simple function* (satu fungsi), *multiple function* (memilih di antara banyak fungsi), dan *parallel function* (beberapa panggilan sekaligus). Tabel 3 pada seksi 5 akan membandingkan skor model-model utama — dan hasilnya mengejutkan: model lokal seperti DeepSeek V4 Flash (90,6%) [Sumber?] kini berada dalam jarak dekat dengan model proprietary termahal. Dasar teknis di balik angka-angka itu adalah *multi-task learning* — teknik yang digunakan Granite-Function Calling untuk melatih model memilih dan mengisi fungsi secara presisi [4].
 
 ---
 
@@ -160,19 +160,23 @@ Seberapa baik masing-masing model *mengerti* tool definitions? BFCL memberikan a
 
 | Model | Simple Function | Multiple Function | Parallel Function | Overall |
 |:---|:---:|:---:|:---:|:---:|
-| **Claude Fable 5** | 97.8% | 95.2% | 93.1% | **95.6%** |
-| **GPT-5.5** | 97.1% | 94.5% | 91.8% | 94.8% |
-| **DeepSeek V4 Pro** | 96.3% | 93.8% | 90.5% | 93.9% |
-| GPT-4o | 94.2% | 89.1% | 86.5% | 90.3% |
-| Llama-3.1-70B | 88.5% | 81.3% | 75.2% | 82.7% |
-| Mistral Large 3 | 93.8% | 88.2% | 84.7% | 89.1% |
-| DeepSeek V4 Flash | 94.5% | 90.1% | 86.3% | 90.6% |
+| **Claude Fable 5** | 97,8% | 95,2% | 93,1% | **95,6%** |
+| **GPT-5.5** | 97,1% | 94,5% | 91,8% | 94,8% |
+| **DeepSeek V4 Pro** | 96,3% | 93,8% | 90,5% | 93,9% |
+| GPT-4o | 94,2% | 89,1% | 86,5% | 90,3% |
+| Llama 3.1 (70B) | 88,5% | 81,3% | 75,2% | 82,7% |
+| Mistral Large 3 | 93,8% | 88,2% | 84,7% | 89,1% |
+| DeepSeek V4 Flash | 94,5% | 90,1% | 86,3% | 90,6% |
 
-Tiga wawasan penting muncul dari angka-angka ini. Pertama, semua model menurun saat tugas beralih dari *simple* ke *multiple* ke *parallel* — memilih di antara banyak fungsi lebih sulit daripada mengisi satu fungsi, dan paralel lebih sulit lagi. Kedua, *gap* antara model proprietary termahal (Claude Fable 5, 95,6%) dan model lokal (DeepSeek V4 Flash, 90,6%) hanya sekitar 5 poin persentase — margin yang kecil untuk selisih biaya per *token* yang sangat besar. Ketiga, Llama-3.1-70B tertinggal cukup jauh (82,7%) meskipun memiliki *function calling native* — bukti bahwa dukungan format tidak identik dengan kemampuan. Bagi pengguna lokal, DeepSeek V4 Flash dan Mistral Large 3 adalah pilihan rasional; bagi aplikasi kritis dengan toleransi kesalahan minimum, Claude Fable 5 atau GPT-5.5 masih layak dibayar [3][6].
+Tiga wawasan penting muncul dari angka-angka ini. Pertama, semua model menurun saat tugas beralih dari *simple* ke *multiple* ke *parallel* — memilih di antara banyak fungsi lebih sulit daripada mengisi satu fungsi, dan paralel lebih sulit lagi.
+
+Kedua, *gap* antara model proprietary termahal (Claude Fable 5, 95,6%) dan model lokal (DeepSeek V4 Flash, 90,6%) [Sumber?] hanya sekitar 5 poin persentase — margin yang kecil untuk selisih biaya per *token* yang sangat besar. Ketiga, Llama 3.1 (70B) tertinggal cukup jauh (82,7%) meskipun memiliki *function calling native* — bukti bahwa dukungan format tidak identik dengan kemampuan.
+
+Bagi pengguna lokal, DeepSeek V4 Flash dan Mistral Large 3 adalah pilihan rasional; bagi aplikasi kritis dengan toleransi kesalahan minimum, Claude Fable 5 atau GPT-5.5 masih layak dibayar [3][6].
 
 ![Skor BFCL antar model](../../assets/images/bab-04-otomasi-agent/sub-bab-2/skor-bfcl-antar-model.png)
 
-*Gambar 4.2-1 — Semua model menurun saat tugas berpindah dari simple ke multiple ke parallel function; gap overall antara Claude Fable 5 (95,6%) dan DeepSeek V4 Flash (90,6%) hanya ~5 poin persentase, sementara Llama-3.1-70B (82,7%) tertinggal meskipun punya function calling native.*
+*Gambar 4.2-1 — Semua model menurun saat tugas berpindah dari simple ke multiple ke parallel function; gap overall antara Claude Fable 5 (95,6%) dan DeepSeek V4 Flash (90,6%) hanya ~5 poin persentase, sementara Llama 3.1 (70B) tertinggal meskipun punya function calling native.*
 
 ---
 
@@ -208,7 +212,7 @@ graph TD
     G --> C
 ```
 
-Titik keputusan di kotak *Berisiko tinggi?* adalah garis batas otonomi: operasi aman (membaca file, daftar direktori) berjalan tanpa persetujuan, sementara operasi destruktif (menimpa, menghapus, eksekusi *shell*) berhenti di meja user. Bila user menolak, penolakan itu dikirim kembali ke LLM sebagai observasi — ia harus mencari alternatif, bukan mengulangi permintaan yang sama. Pola ini yang membuat agen otonom dan aman secara bersamaan: kecepatan untuk hal-hal yang rutin, kontrol untuk hal-hal yang berisiko. Implementasi teknisnya ada pada Tutorial B di bawah.
+Titik keputusan di kotak *Berisiko tinggi?* adalah garis batas otonomi: operasi aman (membaca file, daftar direktori) berjalan tanpa persetujuan, sementara operasi destruktif (menimpa, menghapus, eksekusi *shell*) berhenti di meja user. Bila user menolak, penolakan itu dikirim kembali ke LLM sebagai observasi — ia harus mencari alternatif, bukan mengulangi permintaan yang sama. Pola ini yang membuat agen otonom dan aman secara bersamaan: kecepatan untuk hal-hal yang rutin, kontrol untuk hal-hal yang berisiko. Implementasi teknisnya ada pada Langkah 2 di bawah.
 
 ---
 
@@ -290,11 +294,12 @@ response = requests.post("http://localhost:11434/api/chat", json={
 })
 
 data = response.json()
-for msg in data["message"]["content"]:
-    if "tool_calls" in msg:
-        for tc in msg["tool_calls"]:
-            result = handle_tool_call(tc)
-            print(f"Tool: {tc['function']['name']} → {result}")
+message = data["message"]
+for tc in message.get("tool_calls", []):
+    if isinstance(tc["function"]["arguments"], str):
+        tc["function"]["arguments"] = json.loads(tc["function"]["arguments"])
+    result = handle_tool_call(tc)
+    print(f"Tool: {tc['function']['name']} → {result}")
 ```
 
 ```bash

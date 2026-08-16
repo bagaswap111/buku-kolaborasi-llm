@@ -32,6 +32,8 @@ Fokus pada skalabilitas, keamanan jaringan, dan implementasi berdasarkan skala o
 | **09** | [Integrasi Ekosistem Otomasi](jilid-2/bab-09-integrasi/sub-bab-1.md) |
 | **10** | [Etika, Keamanan & Masa Depan](jilid-2/bab-10-etika/sub-bab-1.md) |
 
+> **Catatan:** Bab 09 dan 10 kini masing-masing terdiri dari 10 sub-bab (yang baru masih dalam penyusunan).
+
 ---
 
 ## Cara Menggunakan

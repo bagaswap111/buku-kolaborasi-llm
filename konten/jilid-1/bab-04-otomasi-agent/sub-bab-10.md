@@ -11,7 +11,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 - Membangun pipeline otomasi lengkap: audio meeting → transkrip → rangkuman → *task tracker*
 - Mengintegrasikan *speech-to-text* (Whisper), LLM lokal, dan alat otomasi dalam satu *workflow* agen
-- Mengonfigurasi *speaker diarization* untuk membedakan siapa berbicara kapan
+- Mengonfigurasi *speaker diarization* untuk membedakan siapa berbicara kapan (dibahas secara konseptual; di luar lingkup kode praktikum)
 - Menjadwalkan *workflow* harian dengan cron atau launchd agar berjalan otomatis
 - Mengintegrasikan output ke *task tracker* seperti Taskwarrior, Todoist, atau Obsidian
 
@@ -37,9 +37,9 @@ Solusinya adalah **pipeline otomatis yang berjalan sepenuhnya lokal**: audio dir
 
 ### Alur Lengkap
 
-Pipeline ini memiliki tujuh tahap yang berurutan: **Audio → STT (Whisper) → Speaker Diarization → Rangkuman (LLM) → Ekstrak Action Items → Simpan ke Markdown → Integrasi Task Tracker**. Setiap tahap menghasilkan output yang menjadi input tahap berikutnya, membentuk rantai otomasi yang utuh. Diagram pada bagian 6 menggambarkan keseluruhan alur secara visual; Tutorial A pada bagian 8 memberikan implementasi Python lengkap dalam satu kelas.
+Pipeline ini memiliki tujuh tahap yang berurutan: **Audio → STT (Whisper) → Speaker Diarization → Rangkuman (LLM) → Ekstrak Action Items → Simpan ke Markdown → Integrasi Task Tracker**. Setiap tahap menghasilkan output yang menjadi input tahap berikutnya, membentuk rantai otomasi yang utuh. Diagram pada bagian 6 menggambarkan keseluruhan alur secara visual; Langkah 1 pada bagian 8 memberikan implementasi Python lengkap dalam satu kelas. Perlu dicatat: *speaker diarization* adalah tahap ketiga dalam rantai, tetapi sengaja tidak diimplementasikan pada kode praktikum — diarization dijalankan sebagai proses terpisah via pyannote-audio agar fokus tetap pada empat tahap inti.
 
-Perhatikan filosofi desain *pipeline* ini: pemisahan tanggung jawab yang ketat. Whisper tidak merangkum, LLM tidak mentranskripsi, dan *task tracker* tidak berpikir — setiap komponen melakukan satu pekerjaan dengan baik. Ini membuat pipeline mudah di-debug (jika transkrip jelek, masalahnya di Whisper, bukan di LLM) dan mudah di-upgrade (ganti Whisper dengan model lebih baik tanpa menyentuh tahap lain).
+Perhatikan filosofi desain *pipeline* ini: pemisahan tanggung jawab yang ketat. Whisper tidak merangkum, LLM tidak mentranskripsi, dan *task tracker* tidak berpikir — setiap komponen melakukan satu pekerjaan dengan baik. Ini membuat pipeline mudah didebug (jika transkrip jelek, masalahnya di Whisper, bukan di LLM) dan mudah diupgrade (ganti Whisper dengan model lebih baik tanpa menyentuh tahap lain).
 
 ### Semua Lokal, Privasi Terjaga
 
@@ -52,29 +52,29 @@ Keunggulan arsitektur ini dibandingkan layanan cloud seperti Otter.ai adalah ked
 
 ### Audio Capture: Sumber Bahan Baku
 
-Semua dimulai dari rekaman audio. Opsi yang umum digunakan: **Otter.ai** untuk mereka yang sudah menggunakannya di cloud, **QuickTime recording** di macOS untuk rekaman cepat, atau **Zoom lokal** yang menyimpan rekaman meeting otomatis ke folder tertentu. Apapun alatnya, aturannya sama: pastikan semua rekaman berakhir di satu folder pemantauan (misalnya `~/Documents/Meetings/Audio`) dalam format `.wav` atau `.m4a` — dua format yang didukung langsung oleh pipeline pada Tutorial A.
+Semua dimulai dari rekaman audio. Opsi yang umum digunakan: **Otter.ai** untuk mereka yang sudah menggunakannya di cloud — satu-satunya opsi cloud dalam daftar ini; bila privasi adalah prioritas, pilih rekaman lokal — **QuickTime recording** di macOS untuk rekaman cepat, atau **Zoom lokal** yang menyimpan rekaman meeting otomatis ke folder tertentu. Apapun alatnya, aturannya sama: pastikan semua rekaman berakhir di satu folder pemantauan (misalnya `~/Documents/Meetings/Audio`) dalam format `.wav` atau `.m4a` — dua format yang didukung langsung oleh pipeline pada Langkah 1.
 
 ### STT: Whisper untuk Bahasa Indonesia
 
-**Whisper** dari OpenAI adalah tulang punggung *speech-to-text* pipeline ini. Model *medium* dan *large-v3* adalah pilihan utama untuk Bahasa Indonesia — keduanya mendukung bahasa secara native dengan parameter `language="id"`. Dari Tabel A di bagian 4: Whisper *medium* membutuhkan sekitar 5 GB memori dengan akurasi sekitar 9% *Word Error Rate* (WER), sementara *large-v3* menawarkan akurasi lebih baik (sekitar 7% WER) dengan biaya 10 GB memori dan waktu proses hampir dua kali lipat. Untuk meeting harian, *medium* biasanya merupakan titik keseimbangan yang baik [3].
+**Whisper** dari OpenAI adalah tulang punggung *speech-to-text* pipeline ini. Model *medium* dan *large-v3* adalah pilihan utama untuk Bahasa Indonesia — keduanya mendukung bahasa secara native dengan parameter `language="id"`. Dari Tabel 1 di bagian 4: Whisper *medium* membutuhkan sekitar 5 GB memori dengan akurasi sekitar 9% *Word Error Rate* (WER), sementara *large-v3* menawarkan akurasi lebih baik (sekitar 7% WER) dengan biaya 10 GB memori dan waktu proses hampir dua kali lipat. Untuk meeting harian, *medium* biasanya merupakan titik keseimbangan yang baik [3].
 
 ### Speaker Diarization: Siapa Bicara Kapan
 
-Transkrip mentah hanyalah aliran kata tanpa pemilik. **Speaker diarization** — diimplementasikan oleh **pyannote-audio** — menjawab pertanyaan "siapa bicara kapan" dengan membagi transkrip ke dalam segmen-segmen pembicara. Dengan informasi ini, rangkuman bisa menyebut nama: "Alice memutuskan bahwa Feature X akan dideploy Jumat," bukan sekadar "diputuskan bahwa...". Akurasi diarization pyannote berada di sekitar 85% pada kondisi meeting normal; segmen yang salah diklasifikasikan biasanya pendek dan jarang mengubah makna keseluruhan. Perhatikan bahwa diarization memproses audio kedua (tahap terpisah dari transkripsi) sehingga waktu proses total bertambah sekitar 12 menit per jam audio — sesuai Tabel A.
+Transkrip mentah hanyalah aliran kata tanpa pemilik. **Speaker diarization** — diimplementasikan oleh **pyannote-audio** — menjawab pertanyaan "siapa bicara kapan" dengan membagi transkrip ke dalam segmen-segmen pembicara. Dengan informasi ini, rangkuman bisa menyebut nama: "Alice memutuskan bahwa Feature X akan dideploy Jumat," bukan sekadar "diputuskan bahwa...". Akurasi diarization pyannote berada di sekitar 85% pada kondisi meeting normal [Sumber?]; segmen yang salah diklasifikasikan biasanya pendek dan jarang mengubah makna keseluruhan. Perhatikan bahwa diarization memproses audio kedua (tahap terpisah dari transkripsi) sehingga waktu proses total bertambah sekitar 12 menit per jam audio — sesuai Tabel 1.
 
 ### Summarization: LLM Menyusun Rangkuman
 
-Tahap ketiga menggunakan LLM lokal — **DeepSeek V4 Flash** atau **Llama-3.1-8B** — untuk menyusun rangkuman terstruktur dari transkrip. *Prompt* dirancang untuk menghasilkan keluaran dengan format standar: key points dalam bentuk *bullet*, daftar *action items*, dan kesimpulan. *Temperature* rendah (0,2) digunakan di sini dengan sengaja: tugas perangkuman adalah pengurangan informasi, bukan kreativitas — kita ingin LLM konsisten, bukan imajinatif. LLM lokal menyelesaikan tahap ini dalam sekitar 2 menit untuk satu jam audio, dengan kebutuhan memori sekitar 4 GB.
+Tahap ketiga menggunakan LLM lokal — **DeepSeek V4 Flash** atau **Llama 3.1 (8B)** — untuk menyusun rangkuman terstruktur dari transkrip. *Prompt* dirancang untuk menghasilkan keluaran dengan format standar: key points dalam bentuk *bullet*, daftar *action items*, dan kesimpulan. *Temperature* rendah (0,2) digunakan di sini dengan sengaja: tugas perangkuman adalah pengurangan informasi, bukan kreativitas — kita ingin LLM konsisten, bukan imajinatif. LLM lokal menyelesaikan tahap ini dalam sekitar 2 menit untuk satu jam audio, dengan kebutuhan memori sekitar 4 GB.
 
 ### Action Items Extraction: Dari Prosa ke Tugas
 
-Tahap keempat adalah pemisahan ulang: dari rangkuman prosa, ekstrak semua *action items* ke dalam **JSON array** berisi `task`, `owner`, dan `deadline`. Format JSON penting karena beberapa alasan: ia bisa di-*parse* secara deterministik (tidak ada prosa yang ambigu), bisa langsung dimasukkan ke *task tracker*, dan bisa diproses oleh script lain tanpa melibatkan LLM lagi. Jika parsing gagal, pipeline menangani *edge case* dengan mengembalikan array kosong daripada menabrak — desain yang toleran terhadap kesalahan.
+Tahap keempat adalah pemisahan ulang: dari rangkuman prosa, ekstrak semua *action items* ke dalam **JSON array** berisi `task`, `owner`, dan `deadline`. Format JSON penting karena beberapa alasan: ia bisa diparse secara deterministik (tidak ada prosa yang ambigu), bisa langsung dimasukkan ke *task tracker*, dan bisa diproses oleh script lain tanpa melibatkan LLM lagi. Jika parsing gagal, pipeline menangani *edge case* dengan mengembalikan array kosong daripada menabrak — desain yang toleran terhadap kesalahan.
 
 ### Output: Markdown dan Integrasi Task Tracker
 
-Tahap terakhir menyimpan hasil sebagai **file Markdown** dengan *frontmatter* YAML (judul, tanggal, durasi, peserta) dan menuliskan *action items* terstruktur di bawah rangkuman. Format Markdown dipilih karena universal: bisa dibuka di editor apa pun, mudah dibaca manusia, dan mudah diproses script. Dari sini, integrasi ke *task tracker* — Taskwarrior, Todoist, Notion, atau Obsidian — dilakukan melalui API atau CLI masing-masing, seperti dibahas di Tabel C bagian 4.
+Tahap terakhir menyimpan hasil sebagai **file Markdown** dengan *frontmatter* YAML (judul, tanggal, durasi, peserta) dan menuliskan *action items* terstruktur di bawah rangkuman. Format Markdown dipilih karena universal: bisa dibuka di editor apa pun, mudah dibaca manusia, dan mudah diproses script. Dari sini, integrasi ke *task tracker* — Taskwarrior, Todoist, Notion, atau Obsidian — dilakukan melalui API atau CLI masing-masing, seperti dibahas pada Tabel 3 di bagian 4.
 
-### Tabel A: Pipeline Components & Resource
+### Tabel 1: Pipeline Components & Resource
 
 Tabel ini merangkum setiap komponen pipeline beserta kebutuhan sumber daya dan waktu pemrosesan untuk satu jam audio — jadikan ini acuan saat memilih konfigurasi mesin Anda.
 
@@ -83,18 +83,18 @@ Tabel ini merangkum setiap komponen pipeline beserta kebutuhan sumber daya dan w
 | **STT (Indonesia)** | Whisper medium | ~5 GB | ~5 GB | ~8 menit | ~9% WER |
 | **STT (Indonesia)** | Whisper large-v3 | ~10 GB | ~10 GB | ~15 menit | ~7% WER |
 | **Speaker Diarization** | pyannote-audio | ~2 GB | ~2 GB | ~12 menit | ~85% |
-| **Summarization** | DeepSeek V4 Flash / Llama-3.1-8B | ~4 GB | ~4 GB | ~2 menit | - |
-| **Action Items Extraction** | DeepSeek V4 Flash / Qwen-2.5-7B | ~4 GB | ~4 GB | ~1 menit | - |
+| **Summarization** | DeepSeek V4 Flash / Llama 3.1 (8B) | ~4 GB | ~4 GB | ~2 menit | - |
+| **Action Items Extraction** | DeepSeek V4 Flash / Qwen 2.5 (7B) | ~4 GB | ~4 GB | ~1 menit | - |
 | **Total Pipeline** | - | ~16 GB | ~16 GB | ~25-35 menit | - |
 
-Dari tabel ini, pesan utama tentang sumber daya: pipeline kelas ini berjalan nyaman di mesin dengan **16 GB memori** — angka yang sama untuk RAM dan VRAM karena pada Mac Apple Silicon keduanya adalah *unified memory*, sedangkan pada GPU NVIDIA Anda perlu memastikan VRAM setidaknya 10 GB untuk Whisper *large-v3*. Perhatikan trade-off Whisper: *large-v3* hanya menghemat 2 poin WER (9% → 7%) tetapi menggandakan waktu proses dan memori. Untuk meeting internal yang tidak terlalu menuntut, *medium* adalah pilihan rasional. Waktu total 25-35 menit untuk satu jam audio berarti pipeline paling praktis dijalankan sebagai *batch* malam hari — dan karena source file dipindahkan setelah diproses (lihat Tutorial C), pipeline secara alami hanya memproses audio baru.
+Dari tabel ini, pesan utama tentang sumber daya: pipeline kelas ini berjalan nyaman di mesin dengan **16 GB memori** — angka yang sama untuk RAM dan VRAM karena pada Mac Apple Silicon keduanya adalah *unified memory*, sedangkan pada GPU NVIDIA Anda perlu memastikan VRAM setidaknya 10 GB untuk Whisper *large-v3*. Perhatikan trade-off Whisper: *large-v3* hanya menghemat 2 poin WER (9% → 7%) tetapi menggandakan waktu proses dan memori. Untuk meeting internal yang tidak terlalu menuntut, *medium* adalah pilihan rasional. Waktu total 25-35 menit untuk satu jam audio berarti pipeline paling praktis dijalankan sebagai *batch* malam hari — dan karena source file dipindahkan setelah diproses (lihat Langkah 3), pipeline secara alami hanya memproses audio baru.
 
 ![Waktu proses dan kebutuhan memori setiap komponen pipeline meeting untuk satu jam audio](../../assets/images/bab-04-otomasi-agent/sub-bab-10/resource-waktu-pipeline.png)
 
 *Gambar 4.10-1 — Whisper large-v3 adalah komponen termahal (15 menit, 10 GB) sementara diarization menyusul (12 menit); total 25-35 menit dan ~16 GB memori membuat pipeline ideal dijalankan sebagai batch malam hari.*
 
 
-### Tabel C: Task Tracker Integration
+### Tabel 3: Task Tracker Integration
 
 Terakhir, perbandingan lima platform *task tracker* yang dapat menjadi tujuan akhir *action items* — dari yang paling sederhana hingga yang paling enterprise.
 
@@ -118,20 +118,20 @@ Dari tabel ini, rekomendasi berbeda untuk kebutuhan berbeda. **Taskwarrior** ada
 
 ### Frontmatter Standar
 
-Setiap file hasil pipeline mengikuti format yang konsisten — ini bukan sekadar kerapian, melainkan desain yang membuat output bisa di-*parse* oleh alat lain. File dimulai dengan *frontmatter* YAML berisi `title`, `date`, `duration`, dan daftar `attendees`. Kemudian tiga bagian utama: **Key Points** (poin-poin diskusi dalam *bullet*), **Action Items** (tugas dengan pemilik dan *deadline*), dan referensi ke **Full Transcript** lengkap. Tutorial bagian 8 menghasilkan output persis dengan format ini; Tabel B memperlihatkan contoh lengkapnya.
+Setiap file hasil pipeline mengikuti format yang konsisten — ini bukan sekadar kerapian, melainkan desain yang membuat output bisa diparse oleh alat lain. File dimulai dengan *frontmatter* YAML berisi `title`, `date`, `duration`, dan daftar `attendees`. Kemudian tiga bagian utama: **Key Points** (poin-poin diskusi dalam *bullet*), **Action Items** (tugas dengan pemilik dan *deadline*), dan referensi ke **Full Transcript** lengkap. Langkah pada bagian 8 menghasilkan output persis dengan format ini; Tabel 2 memperlihatkan contoh lengkapnya.
 
 ### Mengapa Struktur Ini Penting
 
 Format standar memberikan tiga keuntungan. Pertama, *action items* dengan format `[ ] tugas → deadline: tanggal` bisa dikenali oleh kode — sebuah *regex* sederhana cukup untuk mengekstraknya tanpa melibatkan LLM. Kedua, konsistensi format membuat file dari meeting yang berbeda bisa dibandingkan dan diagregasi — misalnya, rangkuman semua meeting minggu ini dalam satu tampilan. Ketiga, *frontmatter* memungkinkan integrasi langsung dengan alat seperti Obsidian yang membaca metadata YAML untuk menampilkan properti dokumen. Dengan kata lain: pilih format sekali, dan semua alat lain menyesuaikan.
 
-### Tabel B: Format Structured Output
+### Tabel 2: Format Structured Output
 
 Tabel ini menunjukkan format output final yang dihasilkan pipeline — perhatikan struktur *frontmatter*, *key points*, dan *action items* yang konsisten, lengkap dengan pemilik dan *deadline*.
 
 ```markdown
 ---
 title: "Sprint Planning Week 24"
-date: 2025-06-16
+date: 2026-06-16
 duration: 45 menit
 attendees: ["Alice", "Bob", "Charlie"]
 ---
@@ -166,7 +166,20 @@ Pipeline yang harus dijalankan manual bukanlah otomasi. Untuk membuatnya berjala
 
 Selain penjadwalan berbasis waktu, pipeline bisa dipicu oleh **peristiwa**: sebuah *watchdog* memantau folder audio dan memproses setiap berkas baru begitu muncul. Library `watchdog` (Python) atau `inotifywait` (Linux) melayani tujuan ini; di macOS, `fswatch` adalah alternatif native. Dengan *watchdog*, hasil rangkuman tersedia dalam hitungan menit setelah meeting berakhir, bukan menunggu jadwal malam. Setelah proses selesai, **terminal-notifier** di macOS menampilkan notifikasi — "Rangkuman selesai: Sprint_Planning_W24.md" — sehingga Anda tidak perlu memeriksa folder secara manual.
 
-Diagram berikut menggambarkan keseluruhan pipeline meeting otomasi — perhatikan urutan tahap yang membentuk rantai dari audio mentah hingga notifikasi selesai. ```mermaid flowchart LR A[Folder Audio\n.wav / .m4a] --> B[Whisper STT\nid language] B --> C[Speaker Diarization\npyannote-audio] C --> D[LLM Summarization\nDeepSeek V4 Flash] D --> E[Action Items\nEkstrak JSON] E --> F[Markdown Output\nfrontmatter + key points] F --> G[Task Tracker\nTaskwarrior / Notion] G --> H[Notifikasi\nterminal-notifier] ``` Diagram ini menunjukkan rantai tujuh tahap yang berurutan. Dimulai dari folder audio yang dipantau *watchdog*, pipeline mentranskripsi dengan Whisper (dengan parameter bahasa Indonesia), memisahkan pembicara dengan pyannote-audio, merangkum dengan LLM lokal, mengekstrak *action items* berformat JSON, menulis output Markdown, memasukkan tugas ke *task tracker*, dan menutupnya dengan notifikasi ke pengguna. Setiap tahap bergantung pada output tahap sebelumnya seperti rantai produksi. Keindahan desain ini: setiap *box* bisa diganti tanpa merusak yang lain — misalnya mengganti Whisper *medium* dengan *large-v3* hanya mengubah *box* kedua, sementara seluruh rantai tetap bekerja identik.
+Diagram berikut menggambarkan keseluruhan pipeline meeting otomasi — perhatikan urutan tahap yang membentuk rantai dari audio mentah hingga notifikasi selesai.
+
+```mermaid
+flowchart LR
+    A[Folder Audio\n.wav / .m4a] --> B[Whisper STT\nid language]
+    B --> C[Speaker Diarization\npyannote-audio]
+    C --> D[LLM Summarization\nDeepSeek V4 Flash]
+    D --> E[Action Items\nEkstrak JSON]
+    E --> F[Markdown Output\nfrontmatter + key points]
+    F --> G[Task Tracker\nTaskwarrior / Notion]
+    G --> H[Notifikasi\nterminal-notifier]
+```
+
+Diagram ini menunjukkan rantai tujuh tahap yang berurutan. Dimulai dari folder audio yang dipantau *watchdog*, pipeline mentranskripsi dengan Whisper (dengan parameter bahasa Indonesia), memisahkan pembicara dengan pyannote-audio, merangkum dengan LLM lokal, mengekstrak *action items* berformat JSON, menulis output Markdown, memasukkan tugas ke *task tracker*, dan menutupnya dengan notifikasi ke pengguna. Setiap tahap bergantung pada output tahap sebelumnya seperti rantai produksi. Keindahan desain ini: setiap *box* bisa diganti tanpa merusak yang lain — misalnya mengganti Whisper *medium* dengan *large-v3* hanya mengubah *box* kedua, sementara seluruh rantai tetap bekerja identik.
 
 ### Diagram Pelengkap: Trigger Scheduling
 
@@ -201,12 +214,12 @@ Semua ekstensi di atas berbagi satu prinsip: jangan mengubah pipeline inti. Rang
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Full Pipeline Meeting Summarizer
+### Langkah 1: Full Pipeline Meeting Summarizer
 
-Tutorial pertama adalah inti dari bab ini: satu kelas Python yang menjalankan seluruh pipeline — transkripsi, perangkuman, ekstraksi *action items*, dan penyimpanan output.
+Langkah pertama adalah inti dari bab ini: satu kelas Python yang menjalankan seluruh pipeline — transkripsi, perangkuman, ekstraksi *action items*, dan penyimpanan output.
 
 ```python
 # meeting_pipeline.py
@@ -320,16 +333,16 @@ JSON:"""
 
 # Penggunaan
 pipeline = MeetingPipeline()
-pipeline.run("meeting_2025-06-16.wav",
+pipeline.run("meeting_2026-06-16.wav",
              title="Sprint Planning Week 24",
              duration=45)
 ```
 
 Beberapa detail penting dalam kode ini. Metode `transcribe` memanggil Whisper dengan `language="id"` — parameter yang menentukan akurasi untuk Bahasa Indonesia — dan menyimpan transkrip ber-timestamp dalam format `[detik] teks` untuk keperluan navigasi. Metode `summarize` mengirim transkrip (dipotong 8.000 karakter pertama) ke LLM lokal dengan `temperature 0.2` dan *prompt* yang mendefinisikan format output secara eksplisit. Metode `extract_actions` meminta LLM mengembalikan JSON — perhatikan opsi `"format": "json"` pada *payload* yang membuat Ollama memaksa output terstruktur, plus blok `try/except` yang mengembalikan list kosong jika parsing gagal agar pipeline tidak menabrak. Terakhir, `save_output` menulis frontmatter YAML dan `action items` terstruktur; penggunaan `item.get("owner", "TBD")` menjamin nilai *default* jika LLM tidak menyebut pemilik. Jalankan dengan file `.wav` meeting Anda dan amati empat tahap pencetakannya di terminal.
 
-### Tutorial B: Folder Watcher Otomatis (macOS + launchd)
+### Langkah 2: Folder Watcher Otomatis (Linux — cron/inotifywait)
 
-Tutorial kedua membuat pipeline berjalan sendiri: script pemantau folder yang memproses setiap audio baru dan memberi notifikasi.
+Langkah kedua membuat pipeline berjalan sendiri: script pemantau folder yang memproses setiap audio baru dan memberi notifikasi.
 
 ```bash
 # 1. Buat script watcher
@@ -358,9 +371,9 @@ echo "0 18 * * 1-5 cd ~/Documents/Meetings && python3 batch_process.py" | cronta
 
 Skrip ini menjalankan loop tak berujung: `inotifywait` memantau folder `WATCH_DIR` untuk peristiwa pembuatan berkas baru dan pemindahan masuk (`-e create -e moved_to`). Untuk setiap berkas `.wav` atau `.m4a` yang muncul, pipeline Python dipanggil, berkas asli dipindahkan ke folder `Processed` (mencegah pemrosesan ulang), dan notifikasi dikirim. Catatan untuk pengguna macOS: `inotifywait` adalah alat Linux — gunakan **fswatch** sebagai pengganti native, atau jalankan skrip ini di mesin Linux/WSL. Alternatif kedua pada baris terakhir menggunakan `cron` untuk *batch* harian setiap hari kerja pukul 18:00 — kombinasi yang umum digunakan: *watchdog* untuk respons cepat terhadap meeting mendadak, *cron* sebagai jaring pengaman untuk semua rekaman yang terlewat.
 
-### Tutorial C: Batch Process Harian
+### Langkah 3: Batch Process Harian
 
-Tutorial terakhir adalah versi *batch* — memproses semua audio yang mengantri di folder dalam satu kali jalan, yang dipicu oleh *cron* malam hari.
+Langkah terakhir adalah versi *batch* — memproses semua audio yang mengantri di folder dalam satu kali jalan, yang dipicu oleh *cron* malam hari.
 
 ```python
 # batch_process.py — proses semua audio hari ini
@@ -393,9 +406,9 @@ Kode ini menunjukkan pola *idempotent batch* yang aman untuk dijalankan berulang
 
 **Latar:** Sebuah startup teknologi beranggotakan 10 orang di Jakarta menghabiskan rata-rata 15 jam per minggu untuk meeting — sekitar 1,5 jam per orang, setiap hari. Notulensi ditulis bergiliran oleh anggota tim, sering terlambat dua hari, dan *action items* sering hilang antar-sprint. Dua pertanyaan berulang di setiap meeting mingguan: "apa hasil meeting kemarin?" dan "siapa yang pegang tugas ini?".
 
-**Setup:** Tim engineering membangun pipeline yang dibahas di bab ini di atas **Mac Mini M4 Pro 48GB** — mesin yang cukup untuk menangani Whisper *medium* + LLM lokal 8B secara bersamaan (lihat Tabel A: total kebutuhan sekitar 16 GB, jauh di bawah kapasitas mesin). Semua meeting direkam melalui **Zoom** dengan opsi rekaman lokal yang otomatis tersimpan di folder `Documents/Meetings/Audio`.
+**Setup:** Tim engineering membangun pipeline yang dibahas di bab ini di atas **Mac Mini M4 Pro 48GB** — mesin yang cukup untuk menangani Whisper *medium* + LLM lokal 8B secara bersamaan (lihat Tabel 1: total kebutuhan sekitar 16 GB, jauh di bawah kapasitas mesin). Semua meeting direkam melalui **Zoom** dengan opsi rekaman lokal yang otomatis tersimpan di folder `Documents/Meetings/Audio`.
 
-**Workflow harian:** Setiap pukul 18:00, *cron* men-trigger `batch_process.py`. Pipeline menjalankan empat tahap: Whisper mentranskripsi semua audio hari itu, pyannote mengidentifikasi pembicara, DeepSeek V4 Flash (via Ollama) merangkum dan mengekstrak *action items*, lalu hasilnya disimpan ke vault **Obsidian** — yang juga berfungsi sebagai *knowledge base* tim — dan di-sinkronkan ke **Taskwarrior** melalui script kecil yang membaca JSON *action items*.
+**Workflow harian:** Setiap pukul 18:00, *cron* men-trigger `batch_process.py`. Pipeline menjalankan empat tahap: Whisper mentranskripsi semua audio hari itu, pyannote mengidentifikasi pembicara, DeepSeek V4 Flash (via Ollama) merangkum dan mengekstrak *action items*, lalu hasilnya disimpan ke vault **Obsidian** — yang juga berfungsi sebagai *knowledge base* tim — dan disinkronkan ke **Taskwarrior** melalui script kecil yang membaca JSON *action items*.
 
 **Hasil:** Angka yang paling mencolok adalah waktu review: dari 15 jam meeting per minggu, tim kini hanya menghabiskan **30 menit** untuk mereview semua rangkuman — efisiensi 96% waktu yang dihemat untuk notulensi. *Action items* tidak lagi hilang: setiap tugas muncul di Taskwarrior dengan *owner* dan *deadline* dari hasil ekstraksi JSON, dan akhir sprint tidak lagi dimulai dengan pertanyaan "tugas siapa ini?". Satu penyesuaian yang mereka lakukan di minggu kedua: *prompt* rangkuman diperjelas agar menuliskan keputusan secara eksplisit ("KEPUTUSAN: ..."), karena tim menemukan bahwa keputusan sering tenggelam di antara diskusi.
 
@@ -412,11 +425,12 @@ Kode ini menunjukkan pola *idempotent batch* yang aman untuk dijalankan berulang
 
 [2] Kirstein, F., et al. (2025). *Re-FRAME the Meeting Summarization SCOPE: Fact-Based Summarization and Personalization via Questions*. arXiv:2503.19843. DOI: [10.48550/arXiv.2503.19843](https://arxiv.org/abs/2503.19843) — *FRAME pipeline* untuk perangkuman meeting: *richness extraction* dan verifikasi fakta.
 
-[3] Radford, A., Kim, J.W., Xu, T., et al. (2023). *Robust Speech Recognition via Large-Scale Weak Supervision*. Proceedings of the 40th International Conference on Machine Learning (ICML), 28492-28518. DOI: [10.48550/arXiv.2212.04356](https://arxiv.org/abs/2212.04356) — Paper Whisper: backbone *speech-to-text* pipeline; akurasi dan kebutuhan sumber daya pada Tabel A.
+[3] Radford, A., Kim, J.W., Xu, T., et al. (2023). *Robust Speech Recognition via Large-Scale Weak Supervision*. Proceedings of the 40th International Conference on Machine Learning (ICML), 28492-28518. DOI: [10.48550/arXiv.2212.04356](https://arxiv.org/abs/2212.04356) — Paper Whisper: backbone *speech-to-text* pipeline; akurasi dan kebutuhan sumber daya pada Tabel 1.
 
 [4] Zhang, Y., et al. (2024). *AutoFlow: Automated Workflow Generation for Large Language Model Agents*. arXiv:2407.12821. DOI: [10.48550/arXiv.2407.12821](https://arxiv.org/abs/2407.12821) — Generasi *workflow* otomatis: dari bahasa alami ke pipeline agen.
 
 [5] Patel, N., Patel, K. (2025). *AI-Powered Meeting Assistant: An LLM-Centric, Agentic AI Approach for Automating Post-Meeting Workflows*. Scientific Research Journal of Science, Engineering and Technology, 3(1), 55-60 — Arsitektur *end-to-end meeting assistant*: dari *audio ingestion* hingga integrasi *task tracker*.
+- ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Referensi Pendukung
 

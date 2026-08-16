@@ -9,10 +9,10 @@
 
 Setelah membaca sub-bab ini, Anda akan mampu:
 
-- Membangun agent yang bisa *sortir*, *rename*, dan menganalisa file secara otonom dengan bantuan LLM
+- Membangun agent yang bisa *sortir*, *rename*, dan menganalisis file secara otonom dengan bantuan LLM
 - Menggunakan *function calling* untuk operasi file system secara *batch* yang aman
 - Membandingkan lima strategi organisasi file berdasarkan akurasi, kecepatan, dan kesesuaiannya
-- Membuat workflow backup dan organisasi file berbasis AI dengan prinsip *dry-run first*
+- Membuat *workflow* backup dan organisasi file berbasis AI dengan prinsip *dry-run first*
 - Menerapkan lapisan keamanan: *permission level*, snapshot, dan deteksi duplikat
 
 ---
@@ -40,11 +40,11 @@ Lima strategi penyortiran dari yang paling sederhana hingga paling kompleks, len
 | **By Usage Pattern** | atime/mtime log | 70-80% | 100.000 file/detik | Arsip, backup |
 | **Hybrid** | Multi-pass | 95%+ | Bervariasi | Best practice |
 
-Tabel ini menunjukkan *trade-off* yang tidak bisa dihindari: kecerdasan membutuhkan waktu. *By extension* menyortir 10.000 file per detik tetapi tidak memahami apa pun; *by content* memahami isi tetapi hanya 10 file per detik — 1.000 kali lebih lambat karena setiap file harus dikirim ke LLM. Strategi hibrid mengatasi ini dengan *multi-pass*: lintasan cepat (extension, metadata) menyelesaikan mayoritas file, lalu lintasan LLM hanya untuk sisanya yang ambigu. Pendekatan inilah yang dipakai pada studi kasus 50.000 foto di seksi 9.
+Tabel ini menunjukkan *trade-off* yang tidak bisa dihindari: kecerdasan membutuhkan waktu. *By extension* menyortir 10.000 file per detik, tetapi tidak memahami apa pun; *by content* memahami isi, tetapi hanya 10 file per detik — 1.000 kali lebih lambat karena setiap file harus dikirim ke LLM. Strategi hibrid mengatasi ini dengan *multi-pass*: lintasan cepat (extension, metadata) menyelesaikan mayoritas file, lalu lintasan LLM hanya untuk sisanya yang ambigu. Pendekatan inilah yang dipakai pada studi kasus 50.000 foto di seksi 9.
 
 ![Trade-off strategi organisasi file: kecepatan sortir (skala log) versus akurasi lima strategi dari Tabel 1](../../assets/images/bab-04-otomasi-agent/sub-bab-6/kecepatan-akurasi-sortir.png)
 
-*Gambar 4.6-1 — By usage pattern adalah yang tercepat (100.000 file/detik) tetapi paling tidak akurat (70-80%), sedangkan by content justru kebalikannya (10 file/detik, 90-95%); hibrid menggabungkan keduanya lewat multi-pass.*
+*Gambar 4.6-1 — By usage pattern adalah yang tercepat (100.000 file/detik), tetapi paling tidak akurat (70-80%), sedangkan by content justru kebalikannya (10 file/detik, 90-95%); hibrid menggabungkan keduanya lewat multi-pass.*
 
 
 ---
@@ -72,7 +72,8 @@ Organisasi file bisa dilakukan pada lima tingkat kecerdasan yang berbeda:
 1. **By file type (extension)** — aturan sederhana: `.jpg` → folder Gambar. Cepat dan 100% pasti, tetapi dangkal: foto liburan dan screenshot kerja masuk folder yang sama.
 2. **By content** — LLM membaca isi file (teks awal dokumen, judul, atau *metadata*) lalu mengkategorikannya: "ini laporan keuangan", "ini notulensi rapat". Jauh lebih bermakna.
 3. **By date/usage pattern** — memanfaatkan *access time* (atime) dan *modification time* (mtime) untuk membedakan file aktif dari file yang sudah bertahun-tahun tidak disentuh.
-4. **Hybrid** — kombinasi metadata + analisis konten dalam beberapa lintasan (*multi-pass*). Inilah yang penulis rekomendasikan sebagai *best practice*.
+4. **By metadata** — membaca EXIF/ID3 (tanggal, lokasi, kamera, kreator) yang melekat pada foto, musik, dan dokumen; cepat seperti aturan ekstensi, tetapi memberikan kategori yang lebih bermakna seperti "Liburan 2019" alih-alih sekadar "Gambar".
+5. **Hybrid** — kombinasi metadata + analisis konten dalam beberapa lintasan (*multi-pass*). Inilah yang penulis rekomendasikan sebagai *best practice*.
 
 Perbandingan kuantitatif kelima strategi ini ada pada Tabel 1.
 
@@ -94,7 +95,7 @@ Perhatikan kolom terakhir: tool tradisional menyerahkan keamanan kepada pemakain
 
 ---
 
-## 5. Rename Cerdas dan Analisa Otomatis
+## 5. Rename Cerdas dan Analisis Otomatis
 
 
 ### Pattern Nama yang Bermakna
@@ -105,11 +106,11 @@ Nama file yang baik adalah sistem informasi yang ringkas: ia harus bisa dibaca m
 [YYYY-MM-DD]_[Kategori]_[Deskripsi_Pendek].[ext]
 ```
 
-LLM berperan di bagian `Deskripsi_Pendek`: setelah membaca konten, model menghasilkan 2-5 kata yang meringkas isi — misalnya `2026-08-13_Laporan_Anggaran-Q3-2026.pdf` menggantikan `FINAL_rev3_fix(1).pdf`. Dengan pattern ini, `find`, pencarian Spotlight, dan bahkan penyortiran otomatis berikutnya menjadi jauh lebih efektif.
+LLM berperan di bagian `Deskripsi_Pendek`: setelah membaca konten, model menghasilkan dua-lima kata yang meringkas isi — misalnya `2026-08-13_Laporan_Anggaran-Q3-2026.pdf` menggantikan `FINAL_rev3_fix(1).pdf`. Dengan pattern ini, `find`, pencarian Spotlight, dan bahkan penyortiran otomatis berikutnya menjadi jauh lebih efektif.
 
-### Analisa dan Deteksi Duplikat
+### Analisis dan Deteksi Duplikat
 
-Tahap analisa melengkapi organisasi: *scan* folder → ekstrak metadata → hasilkan laporan ringkas. Dua analisa yang paling bernilai: **deteksi duplikat** — membandingkan hash file, bukan hanya nama, sehingga file identik dengan nama berbeda tetap terdeteksi — dan **identifikasi file tidak terpakai** (yang terakhir diakses lebih dari satu tahun). Keduanya memberi dasar untuk keputusan besar: apa yang diarsipkan, dan apa yang bisa dihapus.
+Tahap analisis melengkapi organisasi: *scan* folder → ekstrak metadata → hasilkan laporan ringkas. Dua analisis yang paling bernilai: **deteksi duplikat** — membandingkan hash file, bukan hanya nama, sehingga file identik dengan nama berbeda tetap terdeteksi — dan **identifikasi file tidak terpakai** (yang terakhir diakses lebih dari satu tahun). Keduanya memberi dasar untuk keputusan besar: apa yang diarsipkan, dan apa yang bisa dihapus.
 
 ---
 
@@ -122,7 +123,7 @@ Memberi agent kekuatan memindahkan ribuan file adalah memberi senjata yang bisa 
 
 1. **Read before write** — agent boleh membaca apa saja, tetapi menulis hanya setelah proposal ditinjau.
 2. **Backup before modify** — sebelum operasi massal, buat *snapshot* atau salinan ke media eksternal.
-3. **Tiga level permission** — *read-only* (analisa saja), *dry-run* (tunjukkan rencana tanpa eksekusi), dan *full-access* (eksekusi nyata). Alur ini persis yang dilaksanakan agent pada Tutorial 1: `dry_run=True` secara default.
+3. **Tiga level permission** — *read-only* (analisis saja), *dry-run* (tunjukkan rencana tanpa eksekusi), dan *full-access* (eksekusi nyata). Alur ini persis yang dilaksanakan agent pada Langkah 1: `dry_run=True` secara default.
 
 Prinsip ini juga berlaku untuk tool: `rsync` memiliki `--dry-run`, dan skrip Python yang baik meniru perilaku itu dengan mode simulasi.
 
@@ -168,7 +169,7 @@ Ada dua hal yang perlu diperhatikan dari diagram ini. Pertama, **titik krusial d
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
 ### Langkah 1: File Sorting Agent dengan Python + Ollama

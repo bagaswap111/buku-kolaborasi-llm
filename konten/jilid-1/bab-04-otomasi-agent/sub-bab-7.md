@@ -9,8 +9,8 @@
 
 Setelah membaca sub-bab ini, Anda akan mampu:
 
-- Menginstall dan menjalankan **Whisper** (termasuk *faster-whisper*) untuk *speech-to-text* lokal di Mac
-- Menginstall dan menjalankan **Piper** TTS untuk *text-to-speech* lokal yang ringan
+- Menginstal dan menjalankan **Whisper** (termasuk *faster-whisper*) untuk *speech-to-text* lokal di Mac
+- Menginstal dan menjalankan **Piper** TTS untuk *text-to-speech* lokal yang ringan
 - Membangun *voice pipeline* lengkap: *Mic → STT → LLM → TTS → Speaker*
 - Memilih varian model Whisper yang tepat berdasarkan kebutuhan WER dan sumber daya
 - Menghitung *latency budget* end-to-end dengan target di bawah 3 detik
@@ -28,18 +28,18 @@ Suara adalah antarmuka yang paling alami bagi manusia, tetapi mesin butuh dua je
 
 Tiga alasan yang sama-sama kuat. **Privasi**: tidak ada satu byte audio pun yang dikirim ke server pihak ketiga — penting untuk jurnal pribadi atau rekaman rapat internal. **Latensi**: tanpa perjalanan jaringan, waktu respons lebih bisa diprediksi. **Biaya**: setelah model diunduh, semua penggunaan gratis tanpa langganan. Ketiganya menjadikan integrasi suara lokal fondasi alami untuk *voice assistant* yang dibangun pada bab-bab sebelumnya.
 
-### Tabel 2: Perbandingan TTS Lokal
+### Tabel 1: Perbandingan TTS Lokal
 
 Empat mesin TTS lokal dengan ukuran, kecepatan, dan cakupan bahasa yang berbeda.
 
 | Engine | Kualitas Suara | Kecepatan (RTF) | Bahasa | Parameter | Platform |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **Piper** | Medium-Tinggi | 0.3-0.8 RTF | 30+ | ~50M | CPU/GPU |
-| **Coqui TTS** | Tinggi | 0.5-1.5 RTF | 20+ | ~100M | GPU |
-| **eSpeak-NG** | Rendah (robotik) | 0.01 RTF | 100+ | 0 (rule-based) | CPU |
-| **MeloTTS** | Tinggi | 0.2-0.5 RTF | 5 | ~80M | CPU/GPU |
+| **Piper** | Medium-Tinggi | 0,3-0,8 RTF | 30+ | ~50M | CPU/GPU |
+| **Coqui TTS** | Tinggi | 0,5-1,5 RTF | 20+ | ~100M | GPU |
+| **eSpeak-NG** | Rendah (robotik) | 0,01 RTF | 100+ | 0 (rule-based) | CPU |
+| **MeloTTS** | Tinggi | 0,2-0,5 RTF | 5 | ~80M | CPU/GPU |
 
-Konsep **RTF** (*Real-Time Factor*) perlu dipahami: nilai 0,5 berarti untuk setiap 1 detik audio, mesin butuh 0,5 detik untuk menghasilkan. eSpeak-NG berkecepatan ekstrem (0,01) tetapi suaranya robotik dan tidak neural. Coqui TTS menghasilkan suara terbaik tetapi menuntut GPU. **Piper berada di zona nyaman**: suara neural yang layak, RTF di bawah 1 (bisa *real-time* di CPU), dan 30+ bahasa. MeloTTS lebih cepat dan berkualitas tinggi, tetapi hanya mendukung 5 bahasa.
+Konsep **RTF** (*Real-Time Factor*) perlu dipahami: nilai 0,5 berarti untuk setiap 1 detik audio, mesin butuh 0,5 detik untuk menghasilkan. eSpeak-NG berkecepatan ekstrem (0,01), tetapi suaranya robotik dan tidak neural. Coqui TTS menghasilkan suara terbaik, tetapi menuntut GPU. **Piper berada di zona nyaman**: suara neural yang layak, RTF di bawah 1 (bisa *real-time* di CPU), dan 30+ bahasa. MeloTTS lebih cepat dan berkualitas tinggi, tetapi hanya mendukung 5 bahasa.
 
 
 ---
@@ -53,24 +53,24 @@ Whisper adalah *encoder-decoder Transformer* yang dilatih dengan *weak supervisi
 
 ### Peta Varian
 
-Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (74M), **small** (244M), **medium** (769M), **large-v3** (1,55B), dan **turbo** (809M). Aturan praktisnya: semakin besar model, semakin rendah *Word Error Rate* (WER) — tetapi semakin besar pula RAM dan waktu komputasinya. Untuk Bahasa Indonesia, **large-v3** mencapai WER 7,1% (hampir setara manusia untuk transkripsi umum), sementara **small** yang jauh lebih ringan masih mencatat 11,8% — angka yang sangat layak untuk sebagian besar kebutuhan praktis.
+Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (74M), **small** (244M), **medium** (769M), **large-v3** (1,55B), dan **turbo** (809M). Aturan praktisnya: semakin besar model, semakin rendah *Word Error Rate* (WER) — tetapi semakin besar pula RAM dan waktu komputasinya. Untuk Bahasa Indonesia [Sumber?], **large-v3** mencapai WER 7,1% (hampir setara manusia untuk transkripsi umum), sementara **small** yang jauh lebih ringan masih mencatat 11,8% — angka yang sangat layak untuk sebagian besar kebutuhan praktis.
 
 ### faster-whisper: Turbo untuk Transkripsi
 
 Implementasi asli Whisper berjalan di PyTorch. **faster-whisper** menggantinya dengan backend **CTranslate2** — optimasi runtime yang membuat transkripsi **4 kali lebih cepat** dengan akurasi yang sama. Untuk keperluan *batch* transkripsi puluhan file, selisih ini terasa nyata. Di Mac berbasis Apple Silicon, ada pula **mlx-whisper** (CoreML/MLX) yang mencatat akselerasi sekitar 2 kali lipat.
 
-### Tabel 1: Perbandingan Varian Whisper
+### Tabel 2: Perbandingan Varian Whisper
 
 Enam varian Whisper dengan kebutuhan RAM, kecepatan relatif, dan WER untuk bahasa Inggris serta Bahasa Indonesia. Angka kecepatan relatif terhadap `large-v3` (1x).
 
 | Model | Parameter | RAM | Relative Speed | WER (English) | WER (Indonesia) |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **tiny** | 39M | ~1 GB | ~10x | 9.8% | 18.5% |
-| **base** | 74M | ~1 GB | ~7x | 7.9% | 15.2% |
-| **small** | 244M | ~2 GB | ~4x | 6.1% | 11.8% |
-| **medium** | 769M | ~5 GB | ~2x | 5.0% | 9.3% |
-| **large-v3** | 1550M | ~10 GB | 1x | 4.2% | 7.1% |
-| **turbo** | 809M | ~6 GB | ~2.5x | 4.5% | 7.8% |
+| **tiny** | 39M | ~1 GB | ~10x | 9,8% | 18,5% |
+| **base** | 74M | ~1 GB | ~7x | 7,9% | 15,2% |
+| **small** | 244M | ~2 GB | ~4x | 6,1% | 11,8% |
+| **medium** | 769M | ~5 GB | ~2x | 5,0% | 9,3% |
+| **large-v3** | 1550M | ~10 GB | 1x | 4,2% | 7,1% |
+| **turbo** | 809M | ~6 GB | ~2,5x | 4,5% | 7,8% |
 
 Dua pola penting muncul dari tabel ini. Pertama, WER Bahasa Indonesia konsisten lebih tinggi dari bahasa Inggris pada semua varian — bahasa dengan data pelatihan lebih sedikit memang lebih menantang, tetapi gap-nya menyempit di model besar (4,2% vs 7,1% hanya untuk large-v3). Kedua, **turbo adalah sweet spot**: dengan setengah parameter large-v3, WER-nya hanya selisih 0,3-0,7 poin, tetapi berjalan 2,5 kali lebih cepat. Untuk laptop dengan RAM terbatas, pilihan rasional adalah *small* (2 GB, cukup untuk percakapan) atau *turbo* jika kecepatan adalah prioritas.
 
@@ -90,7 +90,7 @@ Piper dibangun di atas **VITS** (*Variational Inference with adversarial Trainin
 
 ### Bahasa dan Kualitas
 
-Piper mendukung **30+ bahasa** dengan empat tingkat kualitas suara: *x_low*, *low*, *medium*, dan *high*. Untuk Bahasa Indonesia tersedia suara seperti `id_ID-female-medium` — cukup untuk asisten suara dan pembacaan teks. Jika Anda sudah menikmati kualitas LLM besar, suara Piper memang belum setara aktor manusia — tetapi untuk kecepatan (RTF 0,3-0,8, lihat Tabel 2) dan kemudahan instalasi, Piper adalah pilihan terbaik untuk pemrosesan lokal.
+Piper mendukung **30+ bahasa** dengan empat tingkat kualitas suara: *x_low*, *low*, *medium*, dan *high*. Untuk Bahasa Indonesia tersedia suara seperti `id_ID-female-medium` — cukup untuk asisten suara dan pembacaan teks. Jika Anda sudah menikmati kualitas LLM besar, suara Piper memang belum setara aktor manusia — tetapi untuk kecepatan (RTF 0,3-0,8, lihat Tabel 1) dan kemudahan instalasi, Piper adalah pilihan terbaik untuk pemrosesan lokal.
 
 ---
 
@@ -154,7 +154,7 @@ Rekaman rapat berjam-jam bisa diubah menjadi transkrip dalam hitungan menit meng
 
 ### Audio Journaling dengan LLM
 
-Skenario dari studi kasus seksi 10 — bercerita setiap malam, mendapat ringkasan tertulis yang bisa dicari. Ini kombinasi paling menarik ketiga pola di atas: privasi jurnal pribadi, kemudahan bicara, dan nilai analisa teks. Ketiga *use case* ini akan kembali Anda temui di studi kasus.
+Skenario dari studi kasus seksi 10 — bercerita setiap malam, mendapat ringkasan tertulis yang bisa dicari. Ini kombinasi paling menarik ketiga pola di atas: privasi jurnal pribadi, kemudahan bicara, dan nilai analisis teks. Ketiga *use case* ini akan kembali Anda temui di studi kasus.
 
 ---
 
@@ -176,7 +176,7 @@ Diagram ini menunjukkan aliran satu arah namun dua dunia: dari sinyal analog (au
 
 ---
 
-## 9. Tutorial / Hands-On
+## 9. Praktikum / Hands-On
 
 
 ### Langkah 1: STT Lokal dengan Whisper
@@ -223,7 +223,7 @@ Instalasi: `pip install openai-whisper sounddevice`. Percobaan pertama yang baik
 
 ### Langkah 2: TTS Lokal dengan Piper
 
-Piper diinstall sebagai CLI dan juga tersedia sebagai pustaka Python.
+Piper diinstal sebagai CLI dan juga tersedia sebagai pustaka Python.
 
 ```bash
 # Install CLI
@@ -339,11 +339,11 @@ Jalankan dengan Ollama aktif (`ollama pull deepseek-v4-flash` atau ganti nama mo
 
 **Pipeline yang dibangun:**
 
-- **Mic → Whisper STT** — transkripsi 5 menit cerita harian dengan model `small` (cukup untuk Bahasa Indonesia dengan WER 11,8%)
-- **DeepSeek V4 Flash / Llama 3.1 via Ollama** — merangkum cerita menjadi 3-5 poin dan menambahkan refleksi
+- **Mic → Whisper STT** — transkripsi 5 menit cerita harian dengan model `small` (cukup untuk Bahasa Indonesia dengan WER 11,8% [Sumber?])
+- **DeepSeek V4 Flash / Llama 3.1 via Ollama** — merangkum cerita menjadi tiga-lima poin dan menambahkan refleksi
 - **Penyimpanan** — ringkasan ditulis ke file `.md` bernama `2026-08-14-jurnal.md` di folder Jurnal
 
-**Hasil:** Setelah satu bulan, terkumpul **30 file jurnal terstruktur** yang bisa di-*search* dan dianalisa — dari tumpukan rekaman suara yang tidak pernah didengar lagi menjadi arsip teks yang berguna. Penulis mencatat bahwa **DeepSeek V4 Flash** memberikan ringkasan yang lebih detail berkat *context window* 1M token — seluruh riwayat jurnal bulan tersebut bisa masuk dalam satu konteks untuk analisa lintas hari.
+**Hasil:** Setelah satu bulan, terkumpul **30 file jurnal terstruktur** yang bisa dicari dan dianalisis — dari tumpukan rekaman suara yang tidak pernah didengar lagi menjadi arsip teks yang berguna. Penulis mencatat bahwa **DeepSeek V4 Flash** memberikan ringkasan yang lebih detail berkat *context window* 1M token — seluruh riwayat jurnal bulan tersebut bisa masuk dalam satu konteks untuk analisis lintas hari.
 
 **Pelajaran:** Dua hal yang membuat kebiasaan ini bertahan — dan keduanya berasal dari arsitektur lokal. Pertama, **privasi** (tidak ada audio yang meninggalkan Mac) menurunkan hambatan untuk menulis hal-hal jujur. Kedua, **latensi rendah** (tanpa jaringan) membuat alur 5 menit terasa seperti mengobrol, bukan "menggunakan aplikasi". Perhatikan juga pilihan model: tugas transkripsi memakai Whisper *small* yang ringan, sementara tugas ringkasan memakai model yang lebih besar — setiap komponen dipilih sesuai kebutuhan, persis filosofi *latency budget* di Tabel 3.
 
@@ -364,7 +364,7 @@ Jalankan dengan Ollama aktif (`ollama pull deepseek-v4-flash` atau ganti nama mo
 - Whisper-Streaming — *local agreement policy* untuk transkripsi real-time dengan latensi 3,3 detik.
 
 [4] Rhasspy contributors (2023). *Piper: A Fast, Local Neural Text to Speech System*. GitHub repository: [https://github.com/rhasspy/piper](https://github.com/rhasspy/piper)
-- Mesin TTS Piper — berbasis VITS, ONNX runtime, 30+ bahasa; dasar pemilihan pada Tabel 2.
+- Mesin TTS Piper — berbasis VITS, ONNX runtime, 30+ bahasa; dasar pemilihan pada Tabel 1.
 
 [5] Lang, M., et al. (2025). *On-Device LLMs for Home Assistant: Dual Role in Intent Detection and Response Generation*. arXiv preprint arXiv:2502.12923. DOI: [10.48550/arXiv.2502.12923](https://arxiv.org/abs/2502.12923)
 - Integrasi STT/TTS dengan LLM lokal untuk *voice assistant* — arsitektur *voice pipeline*.

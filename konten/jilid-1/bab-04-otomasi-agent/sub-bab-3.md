@@ -22,7 +22,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ### Berpikir dengan Suara
 
-Pada tahun 2022, tim peneliti Google Brain yang dipimpin Jason Wei menemukan sesuatu yang tampak sepele tetapi mengubah cara kita menggunakan LLM: jika model diminta *menuliskan langkah-langkah penalarannya* sebelum memberikan jawaban akhir, akurasinya melonjak drastis [1]. Teknik ini disebut **Chain-of-Thought (CoT)** — rantai pemikiran — dan efeknya paling kuat pada model di atas 100 miliar parameter, sebuah fenomena yang oleh para peneliti disebut *emergent ability*: kemampuan yang tidak dilatih secara eksplisit, tetapi muncul dengan sendirinya seiring ukuran model.
+Pada tahun 2022, tim peneliti Google Brain yang dipimpin Jason Wei menemukan sesuatu yang tampak sepele, tetapi mengubah cara kita menggunakan LLM: jika model diminta *menuliskan langkah-langkah penalarannya* sebelum memberikan jawaban akhir, akurasinya melonjak drastis [1]. Teknik ini disebut **Chain-of-Thought (CoT)** — rantai pemikiran — dan efeknya paling kuat pada model di atas 100 miliar parameter, sebuah fenomena yang oleh para peneliti disebut *emergent ability*: kemampuan yang tidak dilatih secara eksplisit, tetapi muncul dengan sendirinya seiring ukuran model.
 
 Contohnya sederhana. Pertanyaan *"Hitung 25 × 4 + 10"*: tanpa CoT, model menebak jawaban dalam satu langkah dan sering salah. Dengan CoT, model menulis: *"25 × 4 = 100, lalu 100 + 10 = 110, jadi jawabannya 110"*. Setiap langkah dijalankan sebagai langkah komputasi yang bisa diperiksa — dan kesalahan, bila terjadi, bisa ditelusuri di langkah mana. CoT tidak membuat model "lebih pintar" secara fundamental; ia mengubah model menjadi *pekerja yang menunjukkan pekerjaannya* — dan cara itu mengurangi kesalahan secara drastis.
 
@@ -37,7 +37,7 @@ Alasan mengapa CoT bekerja masih diperdebatkan, tetapi hipotesis yang paling kua
 
 ### Few-shot CoT
 
-**Few-shot CoT** bekerja dengan menyertakan 2-3 contoh soal *beserta langkah-langkah penyelesaiannya* di dalam prompt, sebelum memberikan soal sebenarnya. Contoh yang baik harus mencerminkan struktur soal yang akan dijawab: jika soalnya aritmetika, berikan contoh aritmetika; jika logika berurutan, berikan contoh logika. Dari paper asli Wei et al. [1], pola ini menghasilkan akurasi GSM8K sekitar 58% pada model besar — jauh di atas *standard prompting* yang hanya ~20%. Kelemahannya: prompt menjadi panjang, dan kualitas jawaban sangat sensitif terhadap kualitas contoh.
+**Few-shot CoT** bekerja dengan menyertakan dua-tiga contoh soal *beserta langkah-langkah penyelesaiannya* di dalam prompt, sebelum memberikan soal sebenarnya. Contoh yang baik harus mencerminkan struktur soal yang akan dijawab: jika soalnya aritmetika, berikan contoh aritmetika; jika logika berurutan, berikan contoh logika. Dari paper asli Wei et al. [1], pola ini menghasilkan akurasi GSM8K sekitar 58% pada model besar — jauh di atas *standard prompting* yang hanya ~20%. Kelemahannya: prompt menjadi panjang, dan kualitas jawaban sangat sensitif terhadap kualitas contoh.
 
 ### Zero-shot CoT
 
@@ -45,7 +45,7 @@ Alasan mengapa CoT bekerja masih diperdebatkan, tetapi hipotesis yang paling kua
 
 ### Self-Consistency
 
-**Self-Consistency** (konsistensi diri) membawa ide *"tanya banyak ahli, ambil suara terbanyak"* ke ranah CoT. Model diminta menghasilkan beberapa rantai penalaran independen untuk pertanyaan yang sama (biasanya 5 kali, dengan *temperature* lebih tinggi), lalu jawaban akhir ditentukan dengan *majority voting* [3]. Di kertas aslinya, teknik ini menaikkan akurasi GSM8K hingga ~72% — perbaikan besar di atas CoT tunggal. Harganya jelas: lima kali *inference* berarti lima kali biaya token dan latensi. Self-Consistency paling masuk akal untuk keputusan *high-stakes* yang kebetulan murah untuk dihitung ulang — misalnya verifikasi logika bisnis, bukan untuk percakapan real-time.
+**Self-Consistency** (konsistensi diri) membawa ide *"tanya banyak ahli, ambil suara terbanyak"* ke ranah CoT. Model diminta menghasilkan beberapa rantai penalaran independen untuk pertanyaan yang sama (biasanya lima kali, dengan *temperature* lebih tinggi), lalu jawaban akhir ditentukan dengan *majority voting* [3]. Di kertas aslinya, teknik ini menaikkan akurasi GSM8K hingga ~72% — perbaikan besar di atas CoT tunggal. Harganya jelas: lima kali *inference* berarti lima kali biaya token dan latensi. Self-Consistency paling masuk akal untuk keputusan *high-stakes* yang kebetulan murah untuk dihitung ulang — misalnya verifikasi logika bisnis, bukan untuk percakapan real-time.
 
 ### Tree-of-Thoughts (ToT)
 
@@ -101,7 +101,7 @@ Peta lengkap enam strategi penalaran — dari yang termurah hingga termahal — 
 
 > \*ReAct diukur pada HotpotQA (EM), bukan GSM8K.
 
-Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prompting murah tetapi lemah (~20%); Self-Consistency dan ToT mencapai ~72-74% tetapi menuntut 5-20x biaya token. Keputusan pemilihan metode karenanya bukan "metode mana yang terbaik" melainkan *"metode mana yang paling murah untuk tingkat akurasi yang dibutuhkan tugas ini"*. Panduan praktis: mulai dari *zero-shot CoT* (satu kalimat, gratis, 43%); bila akurasi kurang, naik ke *few-shot CoT* (58%) dengan 2-3 contoh; gunakan *Self-Consistency* hanya untuk keputusan penting; dan cadangkan ToT untuk tugas eksplorasi yang benar-benar membutuhkannya. ReAct adalah kasus khusus: akurasinya sedang, tetapi *kemampuannya bertindak* membuatnya tak tergantikan untuk agen [2][3][5].
+Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prompting murah, tetapi lemah (~20%); Self-Consistency dan ToT mencapai ~72-74%, tetapi menuntut 5-20x biaya token. Keputusan pemilihan metode karenanya bukan "metode mana yang terbaik", melainkan *"metode mana yang paling murah untuk tingkat akurasi yang dibutuhkan tugas ini"*. Panduan praktis: mulai dari *zero-shot CoT* (satu kalimat, gratis, 43%); bila akurasi kurang, naik ke *few-shot CoT* (58%) dengan dua-tiga contoh; gunakan *Self-Consistency* hanya untuk keputusan penting; dan cadangkan ToT untuk tugas eksplorasi yang benar-benar membutuhkannya. ReAct adalah kasus khusus: akurasinya sedang, tetapi *kemampuannya bertindak* membuatnya tak tergantikan untuk agen [2][3][5].
 
 ![Akurasi metode reasoning pada GSM8K](../../assets/images/bab-04-otomasi-agent/sub-bab-3/akurasi-metode-reasoning.png)
 
@@ -115,9 +115,9 @@ Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prom
 
 ### Model Kecil Bisa — dengan Syarat
 
-Fakta penting yang sering disalahpahami: *emergent ability* CoT ditemukan pada model >100B, tetapi model kecil juga mendapat manfaat — hanya dengan akurasi yang lebih rendah. Llama-3.1-8B naik dari 18,2% (standard) menjadi 52,3% (few-shot CoT); Qwen-2.5-7B dari 22,5% menjadi 56,8% — hampir tiga kali lipat. Kuncinya adalah **prompt engineering + format terstruktur**: model kecil lebih sensitif terhadap kualitas instruksi, sehingga format yang konsisten ("Thought:", "Answer:") dan contoh yang baik jauh lebih menentukan.
+Fakta penting yang sering disalahpahami: *emergent ability* CoT ditemukan pada model >100B, tetapi model kecil juga mendapat manfaat — hanya dengan akurasi yang lebih rendah. Llama 3.1 (8B) naik dari 18,2% (standard) menjadi 52,3% (few-shot CoT); Qwen 2.5 (7B) dari 22,5% menjadi 56,8% — hampir tiga kali lipat. Kuncinya adalah **prompt engineering + format terstruktur**: model kecil lebih sensitif terhadap kualitas instruksi, sehingga format yang konsisten ("Thought:", "Answer:") dan contoh yang baik jauh lebih menentukan.
 
-Pilihan model untuk *reasoning* lokal di 2026 sangat kuat: **Llama-3.1-8B** (keseimbangan terbaik ukuran/kualitas), **Qwen-2.5-7B** (unggul di beberapa benchmark), **DeepSeek-R1-Distill** (model kecil yang didistilasi dari R1, spesialis *reasoning*), hingga **DeepSeek V4 Pro** yang arsitekturnya (hybrid CSA/HCA attention) dirancang khusus untuk *reasoning* mendalam dengan konteks panjang. Untuk agen di laptop, *DeepSeek V4 Flash* menjadi pilihan menarik: kualitas *reasoning* kelas atas dengan 13 miliar parameter aktif.
+Pilihan model untuk *reasoning* lokal di 2026 sangat kuat: **Llama 3.1 (8B)** (keseimbangan terbaik ukuran/kualitas), **Qwen 2.5 (7B)** (unggul di beberapa benchmark), **DeepSeek R1 Distill** (model kecil yang didistilasi dari R1, spesialis *reasoning*), hingga **DeepSeek V4 Pro** yang arsitekturnya (hybrid CSA/HCA attention) [Sumber?] dirancang khusus untuk *reasoning* mendalam dengan konteks panjang. Untuk agen di laptop, *DeepSeek V4 Flash* menjadi pilihan menarik: kualitas *reasoning* kelas atas dengan 13 miliar parameter aktif.
 
 ### Kontrol Kedalaman: Reasoning Effort
 
@@ -129,21 +129,21 @@ Bagaimana model-model lokal 2026 menanggapi tiap metode? Tabel ini menjawabnya.
 
 | Model | Standard | Few-shot CoT | Zero-shot CoT | Self-Consistency (5) |
 |:---|:---:|:---:|:---:|:---:|
-| **DeepSeek V4 Pro** | 42.1% | 78.3% | 62.5% | 85.2% |
-| Llama-3.1-8B | 18.2% | 52.3% | 38.7% | 64.1% |
-| Qwen-2.5-7B | 22.5% | 56.8% | 42.1% | 68.3% |
-| DeepSeek-R1-Distill-Qwen-7B | 25.1% | 61.2% | 45.6% | 72.4% |
-| Mistral Large 3 | 35.8% | 72.5% | 55.3% | 80.1% |
-| Mistral-7B | 16.8% | 48.5% | 35.2% | 60.8% |
+| **DeepSeek V4 Pro** | 42,1% | 78,3% | 62,5% | 85,2% |
+| Llama 3.1 (8B) | 18,2% | 52,3% | 38,7% | 64,1% |
+| Qwen 2.5 (7B) | 22,5% | 56,8% | 42,1% | 68,3% |
+| DeepSeek R1 Distill Qwen 7B | 25,1% | 61,2% | 45,6% | 72,4% |
+| Mistral Large 3 | 35,8% | 72,5% | 55,3% | 80,1% |
+| Mistral 7B | 16,8% | 48,5% | 35,2% | 60,8% |
 
-Empat wawasan penting. *Pertama*, semua model memperoleh manfaat CoT — bahkan Mistral-7B (model kecil dari 2023) nyaris melipatgandakan akurasinya dengan few-shot CoT. *Kedua*, ukuran bukan satu-satunya penentu: DeepSeek-R1-Distill-Qwen-7B mengungguli Qwen-2.5-7B di semua kolom meskipun berarsitektur sama — bukti bahwa *distilasi kemampuan reasoning* benar-benar menurunkan skill dari model besar [1]. *Ketiga*, kesenjangan antara model kecil dan besar menyempit saat metode semakin canggih: pada Self-Consistency, selisih Llama-3.1-8B terhadap DeepSeek V4 Pro adalah 21 poin — masih besar, tetapi jauh lebih kecil daripada selisih 24 poin pada mode standard. *Keempat*, DeepSeek V4 Pro menunjukkan konsistensi: ia unggul di semua kolom, menegaskan bahwa arsitektur CSA/HCA memang dirancang untuk *reasoning* mendalam. Bagi pengguna laptop, DeepSeek-R1-Distill-Qwen-7B (72,4% dengan Self-Consistency) adalah pilihan menarik: kualitas mendekati model besar dengan biaya model kecil.
+Empat wawasan penting. *Pertama*, semua model memperoleh manfaat CoT — bahkan Mistral 7B (model kecil dari 2023) nyaris melipatgandakan akurasinya dengan few-shot CoT. *Kedua*, ukuran bukan satu-satunya penentu: DeepSeek R1 Distill Qwen 7B mengungguli Qwen 2.5 (7B) di semua kolom meskipun berarsitektur sama — bukti bahwa *distilasi kemampuan reasoning* benar-benar menurunkan skill dari model besar [1]. *Ketiga*, kesenjangan antara model kecil dan besar menyempit saat metode semakin canggih: pada Self-Consistency, selisih Llama 3.1 (8B) terhadap DeepSeek V4 Pro adalah 21 poin — masih besar, tetapi jauh lebih kecil daripada selisih 24 poin pada mode standard. *Keempat*, DeepSeek V4 Pro menunjukkan konsistensi: ia unggul di semua kolom, menegaskan bahwa arsitektur CSA/HCA memang dirancang untuk *reasoning* mendalam. Bagi pengguna laptop, DeepSeek R1 Distill Qwen 7B (72,4% dengan Self-Consistency) adalah pilihan menarik: kualitas mendekati model besar dengan biaya model kecil.
 
 ![Performa CoT pada model lokal](../../assets/images/bab-04-otomasi-agent/sub-bab-3/performa-cot-model-lokal.png)
 
-*Gambar 4.3-2 — Semua model lokal naik tajam dari standard ke few-shot CoT; DeepSeek V4 Pro konsisten unggul di semua metode (42,1% → 85,2%), dan DeepSeek-R1-Distill-Qwen-7B menyalip Qwen-2.5-7B di seluruh kolom berkat distilasi kemampuan reasoning.*
+*Gambar 4.3-2 — Semua model lokal naik tajam dari standard ke few-shot CoT; DeepSeek V4 Pro konsisten unggul di semua metode (42,1% → 85,2%), dan DeepSeek R1 Distill Qwen 7B menyalip Qwen 2.5 (7B) di seluruh kolom berkat distilasi kemampuan reasoning.*
 
 
-### Gambar 2: Contoh Output CoT di Terminal
+### Contoh Output: CoT di Terminal
 
 Untuk melihat bentuk nyata rantai penalaran, berikut output Llama 3.1-8B menjawab soal matematika berbahasa Indonesia dengan *zero-shot CoT*.
 
@@ -195,11 +195,11 @@ Metode yang canggih harus dibayar — tabel ini menghitung harganya pada model 7
 
 | Metode | VRAM | Latency per Task | Cost (Token) |
 |:---|:---:|:---:|:---:|
-| Standard | ~4 GB | ~0.5s | ~100 tokens |
-| Zero-shot CoT | ~4 GB | ~1.2s | ~250 tokens |
-| Few-shot CoT (3-shot) | ~4 GB | ~1.5s | ~400 tokens |
-| Self-Consistency (5) | ~4 GB | ~6.0s | ~1250 tokens |
-| Tree-of-Thoughts (3 branches) | ~6 GB | ~10s | ~2000 tokens |
+| Standard | ~4 GB | ~0,5 s | ~100 tokens |
+| Zero-shot CoT | ~4 GB | ~1,2 s | ~250 tokens |
+| Few-shot CoT (3-shot) | ~4 GB | ~1,5 s | ~400 tokens |
+| Self-Consistency (5) | ~4 GB | ~6,0 s | ~1250 tokens |
+| Tree-of-Thoughts (3 branches) | ~6 GB | ~10 s | ~2000 tokens |
 
 Catatan pertama yang menenangkan: **VRAM hampir tidak berubah** — semua metode memakai model yang sama (7B, ~4 GB), perbedaan hanya pada jumlah token yang dihasilkan. Perbedaan sebenarnya ada di *latency* dan *cost token*: Self-Consistency menambah ~1.250 token (5x inference), ToT ~2.000 token dengan tambahan VRAM untuk menyimpan beberapa cabang sekaligus. Dalam praktik harian, angka ini berarti: pada laptop dengan kecepatan ~30 token/detik, zero-shot CoT menambah ~8 detik per pertanyaan; Self-Consistency menambah ~40 detik. Itulah mengapa keputusan memilih metode hampir selalu *keputusan tentang waktu*, bukan tentang memori — dan mengapa agen yang baik mengatur *reasoning effort* berdasarkan kompleksitas tugas, bukan memakai metode termahal untuk semua pertanyaan.
 
@@ -361,7 +361,7 @@ print(f"\n=== FINAL: {result} ===")
 python3 react_agent.py
 ```
 
-Amati *loop* yang berjalan: setiap respons model di-parse untuk mencari `Action:` dan `Action Input:`, tool dieksekusi, dan `Observation` ditambahkan ke prompt sebelum model berpikir lagi. Inilah implementasi minimal dari diagram CoT vs ReAct pada Gambar 1 — dan inilah jembatan menuju Bab 4.2: dalam produksi, `Action:` diganti *tool call* terstruktur JSON, dan `search_knowledge` diganti *function* nyata seperti `read_file` atau `search_web`. Eksperimen yang disarankan: tanyakan sesuatu yang *tidak ada* di knowledge base ("populasi Malaysia") dan perhatikan bagaimana agen menangani observasi "Tidak ditemukan" — itu ujian sebenarnya dari kualitas *reasoning* agen.
+Amati *loop* yang berjalan: setiap respons model diparse untuk mencari `Action:` dan `Action Input:`, tool dieksekusi, dan `Observation` ditambahkan ke prompt sebelum model berpikir lagi. Inilah implementasi minimal dari diagram CoT vs ReAct pada Gambar 1 — dan inilah jembatan menuju Bab 4.2: dalam produksi, `Action:` diganti *tool call* terstruktur JSON, dan `search_knowledge` diganti *function* nyata seperti `read_file` atau `search_web`. Eksperimen yang disarankan: tanyakan sesuatu yang *tidak ada* di knowledge base ("populasi Malaysia") dan perhatikan bagaimana agen menangani observasi "Tidak ditemukan" — itu ujian sebenarnya dari kualitas *reasoning* agen.
 
 ---
 
@@ -407,9 +407,9 @@ Amati *loop* yang berjalan: setiap respons model di-parse untuk mencari `Action:
 
 [5] Yao, S., Yu, D., Zhao, J., Shafran, I., Griffiths, T.L., Cao, Y., & Narasimhan, K. (2023). *Tree of Thoughts: Deliberate Problem Solving with Large Language Models*. NeurIPS. DOI: [10.48550/arXiv.2305.10601](https://arxiv.org/abs/2305.10601) — Eksplorasi *multi-path reasoning* untuk tugas yang memerlukan pencarian.
 
-### Referensi Pendukung (Dokumentasi/Repository)
+[6] Kojima, S., et al. (2022). *Large Language Models are Zero-Shot Reasoners*. NeurIPS. DOI: [10.48550/arXiv.2205.11916](https://arxiv.org/abs/2205.11916) — Paper perintis *zero-shot CoT*: frasa *"Let's think step by step"* memicu rantai penalaran tanpa contoh.
 
-[6] Kojima, S., et al. (2022). *Large Language Models are Zero-Shot Reasoners*. NeurIPS. arXiv: [2205.11916](https://arxiv.org/abs/2205.11916).
+### Referensi Pendukung (Dokumentasi/Repository)
 
 [7] GSM8K Benchmark. OpenAI. [github.com/openai/grade-school-math](https://github.com/openai/grade-school-math)
 

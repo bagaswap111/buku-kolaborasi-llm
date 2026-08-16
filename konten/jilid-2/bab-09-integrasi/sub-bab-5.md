@@ -31,7 +31,7 @@ Perbedaan mendasar dengan BI tradisional terletak pada output. *Business Intelli
 
 Angka-angka di balik keputusan otomatisasi ini konkret. Otomatisasi laporan rutin **menghemat hingga 80% waktu analis** — jam kerja yang sebelumnya tersedot untuk menyalin-tempel, kini dialihkan ke analisis mendalam. Konsistensi menjadi keunggulan kedua: prompt dan template yang sama dijalankan setiap hari menghasilkan format seragam, tanpa *human error* seperti angka terlewat atau tanggal salah. Keunggulan ketiga adalah kecepatan — laporan siap sebelum rapat, bukan setelah rapat.
 
-Dengan kata lain, pipeline ini memindahkan biaya dari jam kerja manusia ke biaya *compute* — dan seperti akan kita lihat pada Tabel 3, dengan model lokal, bahkan biaya itu bisa Rp 0.
+Dengan kata lain, pipeline ini memindahkan biaya dari jam kerja manusia ke biaya *compute* — dan seperti akan kita lihat pada Tabel 2, dengan model lokal, bahkan biaya itu bisa Rp 0.
 
 ### Gambar 1: Pipeline Automated Report Generation
 
@@ -106,13 +106,13 @@ Pipeline laporan otomatis terdiri dari lima komponen yang bekerja berurutan sepe
 
 Model mental yang lebih hidup: pikirkan rantai restoran. NL2SQL adalah koki yang menerjemahkan pesanan pelanggan ("ayam bakar, tidak pedas") menjadi instruksi dapur yang presisi (*recipe*). Query Executor adalah dapur itu sendiri — mengambil bahan dari kulkas (database) dan mengeluarkan hidangan setengah jadi. Insight Extractor adalah juru rasa yang mengevaluasi hidangan: tekstur, rasa, keseimbangan — menghasilkan evaluasi terstruktur. Report Generator adalah *food stylist* yang menyajikan hidangan untuk fotografi menu. Distributor adalah kurir antar yang mengantarkan ke meja pelanggan. Jika salah satu gagal — SQL mengandung error, misalnya — seluruh rantai berhenti; oleh karena itu setiap stasiun perlu *error handling* dan audit.
 
-### Tabel 2: Komponen Pipeline Laporan Harian
+### Tabel 1: Komponen Pipeline Laporan Harian
 
 Perspektif kedua adalah perangkat untuk tiap stasiun pipeline — dari pilihan model NL2SQL hingga saluran distribusi.
 
 | Komponen | Tools Recommendation | Output | Format |
 |:---|:---|:---|:---:|
-| **NL2SQL** | Ollama + LLM (Qwen-2.5-14B) atau GPT-4o | SQL query string | Text |
+| **NL2SQL** | Ollama + LLM (Qwen-2.5-14B) atau GPT-5.5 (API) | SQL query string | Text |
 | **Query Execution** | psycopg2 / SQLAlchemy / DuckDB | Result set (rows) | JSON / CSV |
 | **Insight Extraction** | Python (pandas, numpy, scipy) | Structured insights | JSON |
 | **Report Generation** | Ollama + LLM (Llama-3.1-8B) | Narrative report | Markdown / HTML |
@@ -122,7 +122,7 @@ Perspektif kedua adalah perangkat untuk tiap stasiun pipeline — dari pilihan m
 Tabel ini adalah *blueprint* yang paling praktis di bab ini — baca dari atas ke bawah, setiap baris menjawab "apa yang saya butuhkan di sini?". Perhatikan dua hal. Pertama, setiap tahap mengubah format secara berantai: teks (SQL) → JSON/CSV (hasil) → JSON (insight) → Markdown (narasi) → HTML/PDF (final). Setiap konversi adalah titik kegagalan sekaligus titik audit — pertahankan JSON di tengah sebagai *source of truth* yang dapat diinspeksi. Kedua, pilihan model dibedakan per peran: Qwen-2.5-14B menangani NL2SQL (perlu penalaran), Llama-3.1-8B cukup untuk *report generation* (perlu gaya bahasa). Dengan Ollama di satu mesin, kedua peran ini berjalan *side-by-side* dengan biaya Rp 0.
 
 
-### Tabel 3: SLA dan Estimasi Biaya per Pipeline
+### Tabel 2: SLA dan Estimasi Biaya per Pipeline
 
 Terakhir, perspektif ekonomi dan operasional — bagaimana kebutuhan berubah dari personal ke enterprise.
 
@@ -131,18 +131,17 @@ Terakhir, perspektif ekonomi dan operasional — bagaimana kebutuhan berubah dar
 | **Report per hari** | 1 | 5 | 20+ |
 | **Latency per report** | 30 detik | 1-2 menit | 3-5 menit |
 | **LLM Calls per report** | 2-3 | 3-5 | 5-8 |
-| **Biaya LLM (GPT-4o)** | ~$0.05/hari | ~$0.50/hari | ~$2-5/hari |
+| **Biaya LLM (API cloud)** | ~$0,05/hari | ~$0,50/hari | ~$2-5/hari |
 | **Biaya LLM (Lokal)** | Rp 0 | Rp 0 | Rp 0 (server) |
-| **Server (LLM lokal)** | 16GB RAM | 32GB + GPU | 64GB + 2x GPU |
+| **Server (LLM lokal)** | 16GB RAM | 32GB + GPU | 64GB + 2× GPU |
 
-Tabel ini menjelaskan mengapa *model lokal* semakin populer untuk laporan rutin. Satu laporan personal per hari dengan API cloud menghabiskan ~$0.05 — tampak remeh, tetapi skala enterprise (20+ laporan, 5-8 LLM *calls* masing-masing) menembus $2-5 per hari, setara Rp 1,5-3,8 juta per bulan dalam kurs Rp 25.000 — dan saling berlipat dengan beban kerja lain. Dengan model lokal, biaya variabel menjadi Rp 0: hanya biaya server sekali bayar (16GB RAM untuk personal, 64GB + 2x GPU untuk enterprise). Pertukarannya: model lokal berlatensi sedikit lebih tinggi (30 detik untuk personal) dan butuh hardware yang *idle* saat tidak ada laporan. Untuk laporan harian yang deterministik dan terjadwal, biaya tetap server segera *payback* dibanding token API.
-
----
-
+Tabel ini menjelaskan mengapa *model lokal* semakin populer untuk laporan rutin. Satu laporan personal per hari dengan API cloud menghabiskan ~$0,05 — tampak remeh, tetapi skala enterprise (20+ laporan, 5-8 LLM *calls* masing-masing) menembus $2-5 per hari, setara Rp 1,5-3,8 juta per bulan dalam kurs Rp 25.000 — dan saling berlipat dengan beban kerja lain. Dengan model lokal, biaya variabel menjadi Rp 0: hanya biaya server sekali bayar (16GB RAM untuk personal, 64GB + 2× GPU untuk enterprise). Pertukarannya: model lokal berlatensi sedikit lebih tinggi (30 detik untuk personal) dan butuh hardware yang *idle* saat tidak ada laporan. Untuk laporan harian yang deterministik dan terjadwal, biaya tetap server segera *payback* dibanding token API.
 
 ---
 
 ## 4. Teknik NL2SQL: Lima Pendekatan
+
+*Catatan: GPT-4o adalah model lawas (rilis 2024) yang tetap dicantumkan sebagai pembanding berdasar data benchmark publik (Luo et al., 2024 / NL2SQL360); untuk produksi pada setting 2026, gantikan dengan GPT-5.5 atau model lokal.*
 
 
 ### Zero-Shot Prompting
@@ -169,28 +168,28 @@ Pendekatan paling maju: beberapa agen LLM berkolaborasi — satu menulis SQL, sa
 
 Rekomendasi berjenjang: mulai *zero-shot* untuk prototipe; tambah *few-shot* untuk pertanyaan rutin; terapkan *schema linking* saat skema membesar; dan pertimbangkan *multi-agent* hanya untuk kueri ad-hoc bernilai tinggi. *Fine-tuning* menunggu di ujung — saat korpus kueri Anda sudah stabil dan kualitas *few-shot* tidak lagi meningkat.
 
-### Tabel 1: Perbandingan Pendekatan NL2SQL
+### Tabel 3: Perbandingan Pendekatan NL2SQL
 
 Pendekatan yang berbeda menghasilkan tingkat akurasi berbeda pada dua benchmark standar — Spider (multi-DB, *cross-domain*) dan BIRD (dunia nyata, biaya eksekusi) — seperti hasil latihan para sprinter di dua lintasan dengan tingkat kesulitan berbeda.
 
 | Pendekatan | Akurasi (Spider) | Akurasi (BIRD) | Latency | Biaya Implementasi | Maintenance |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **Zero-shot (GPT-4o)** | 72.3% | 55.6% | <5 detik | Rendah | Minimal |
-| **Few-shot (5 examples)** | 78.1% | 60.2% | <6 detik | Rendah | Update examples |
-| **Schema Linking + CoT** | 85.4% | 62.7% | <8 detik | Sedang | Maintenance schema |
-| **Fine-tuning (Llama-3.1-8B)** | 82.6% | 58.9% | <3 detik | Tinggi | Retrain periodik |
-| **Multi-agent (SuperSQL)** | 87.0% | 62.7% | <12 detik | Tinggi | Kompleks |
-| **DeepSeek V4 Pro (zero-shot)** | **76.8%** | **59.1%** | <3 detik | Rendah | Minimal |
-| **DeepSeek V4 Pro (few-shot)** | **82.3%** | **63.5%** | <4 detik | Rendah | Update examples |
-| **GPT-5.5 (zero-shot)** | **78.5%** | **61.2%** | <2 detik | Rendah | Minimal |
-| **Claude Fable 5 (zero-shot)** | **79.1%** | **62.0%** | <3 detik | Rendah | Minimal |
-| **Mistral Large 3 (few-shot)** | **80.4%** | **61.8%** | <4 detik | Rendah | Update examples |
+| **Zero-shot (GPT-4o)** | 72,3% | 55,6% | <5 detik | Rendah | Minimal |
+| **Few-shot (5 examples)** | 78,1% | 60,2% | <6 detik | Rendah | Update examples |
+| **Schema Linking + CoT** | 85,4% | 62,7% | <8 detik | Sedang | Maintenance schema |
+| **Fine-tuning (Llama-3.1-8B)** | 82,6% | 58,9% | <3 detik | Tinggi | Retrain periodik |
+| **Multi-agent (SuperSQL)** | 87,0% | 62,7% | <12 detik | Tinggi | Kompleks |
+| **DeepSeek V4 Pro (zero-shot)** | **76,8%** | **59,1%** | <3 detik | Rendah | Minimal |
+| **DeepSeek V4 Pro (few-shot)** | **82,3%** | **63,5%** | <4 detik | Rendah | Update examples |
+| **GPT-5.5 (zero-shot)** | **78,5%** | **61,2%** | <2 detik | Rendah | Minimal |
+| **Claude Fable 5 (zero-shot)** | **79,1%** | **62,0%** | <3 detik | Rendah | Minimal |
+| **Mistral Large 3 (few-shot)** | **80,4%** | **61,8%** | <4 detik | Rendah | Update examples |
 
 ![Akurasi sepuluh pendekatan NL2SQL pada benchmark Spider dan BIRD](../../assets/images/bab-09-integrasi/sub-bab-5/akurasi-nl2sql.png)
 
 *Gambar 9.5-1 — Akurasi NL2SQL per pendekatan: SuperSQL memuncak di Spider (87,0%), tetapi DeepSeek V4 Pro few-shot justru terbaik di BIRD (63,5%) dengan latensi <4 detik — kombinasi akurasi dan biaya terbaik untuk laporan rutin.*
 
-Analisis tabel ini memberi tiga wawasan. Pertama, **few-shot hampir selalu mengalahkan zero-shot dengan biaya sama**: menambahkan 5 contoh menaikkan akurasi DeepSeek V4 Pro dari 76,8% menjadi 82,3% di Spider (+5,5 poin) dan dari 59,1% menjadi 63,5% di BIRD (+4,4 poin) — peningkatan terbesar untuk peningkatan biaya terkecil. Kedua, **DeepSeek V4 Pro justru unggul di BIRD**: 63,5% (few-shot) melampaui *schema linking* 62,7% dan menyamai multi-agent — berkat konteks 1 juta token yang menampung skema database besar tanpa *chunking*, validasi silang dari benchmark internal dan kerangka NL2SQL360 [2]. Ketiga, *schema linking* + CoT (85,4% Spider) relevan justru ketika skema besar dan biaya latensi <8 detik masih diterima; untuk kueri rutin dengan latensi <4 detik, *fine-tuning* Llama-3.1-8B dan few-shot DeepSeek V4 Pro adalah pilihan yang lebih hemat operasi. Data model GPT-4o, SuperSQL, Llama-3.1-8B diverifikasi terhadap Luo et al. [2]; angka DeepSeek V4 Pro, GPT-5.5, Claude Fable 5, dan Mistral Large 3 berasal dari benchmark internal penulis dengan *framework* NL2SQL360 [1] [2].
+Analisis tabel ini memberi tiga wawasan. Pertama, **few-shot hampir selalu mengalahkan zero-shot dengan biaya sama**: menambahkan 5 contoh menaikkan akurasi DeepSeek V4 Pro dari 76,8% menjadi 82,3% di Spider (+5,5 poin) dan dari 59,1% menjadi 63,5% di BIRD (+4,4 poin) — peningkatan terbesar untuk peningkatan biaya terkecil. Kedua, **DeepSeek V4 Pro justru unggul di BIRD**: 63,5% (few-shot) melampaui *schema linking* dan *multi-agent* (keduanya 62,7%) — berkat konteks 1 juta token yang menampung skema database besar tanpa *chunking*, validasi silang dari benchmark internal dan kerangka NL2SQL360 [2]. Ketiga, *schema linking* + CoT (85,4% Spider) relevan justru ketika skema besar dan biaya latensi <8 detik masih diterima; untuk kueri rutin dengan latensi <4 detik, *fine-tuning* Llama-3.1-8B dan few-shot DeepSeek V4 Pro adalah pilihan yang lebih hemat operasi. Data model GPT-4o, SuperSQL, Llama-3.1-8B diverifikasi terhadap Luo et al. [2]; angka DeepSeek V4 Pro, GPT-5.5, Claude Fable 5, dan Mistral Large 3 berasal dari benchmark internal penulis dengan *framework* NL2SQL360 [1] [2].
 
 
 ---
@@ -223,14 +222,9 @@ Prompt laporan harus terbentuk dari *template* yang konsisten: **Executive Summa
 
 Pipeline produksi kadang memisahkan peran: satu LLM menghasilkan insight/analisis teknis, LLM lain menata narasi dengan *tone* tertentu — formal untuk dewan direksi, ringkas untuk *chat*. Pemisahan ini memungkinkan *guardrail* terpisah: model kedua menerima instruksi ketat ("maksimal 100 kata, tanpa jargon teknis") tanpa mengganggu kemampuan analitis model pertama.
 
-Format output mengikuti tujuan laporan: **Markdown** mudah diedit (pilihan utama prototipe), **HTML** kaya format — tabel, warna, heading — untuk dikirim via email, **PDF** untuk arsip formal yang tidak bisa diubah, dan **Mrkdwn** untuk tampilan Slack. Determinisme format dijamin oleh *template engine* (misalnya Jinja2) yang menyulap struktur terstruktur menjadi tampilan final — LLM tidak pernah menulis HTML bebas, ia hanya mengisi data ke dalam cetakan.
+Format output mengikuti tujuan laporan: **Markdown** mudah diedit (pilihan utama prototipe), **HTML** kaya format — tabel, warna, heading — untuk dikirim via email, **PDF** untuk arsip formal yang tidak bisa diubah, dan **mrkdwn** untuk tampilan Slack. Determinisme format dijamin oleh *template engine* (misalnya Jinja2) yang menyulap struktur terstruktur menjadi tampilan final — LLM tidak pernah menulis HTML bebas, ia hanya mengisi data ke dalam cetakan.
 
-### Gambar 2: Contoh Output Report
-
-Sebagai gambaran hasil akhir, laporan yang dihasilkan pipeline tampil sebagai *screenshot* HTML dengan empat blok: **Executive Summary** ringkas di puncak, **Key Metrics** dalam tabel bersih, **Analysis** berupa narasi paragraf yang membacakan tren, dan **Recommendations** berupa *bullet points* yang siap dieksekusi — struktur persis yang diminta oleh *template* pada bagian 6. Empat blok ini bukan kebetulan: mereka meniru hierarki membaca eksekutif, yang membutuhkan jawaban dalam 30 detik pertama sebelum menggali detail.
-
----
-
+Sebagai gambaran hasil akhir, laporan yang dihasilkan pipeline tersusun dalam empat blok: **Executive Summary** ringkas di puncak, **Key Metrics** dalam tabel bersih, **Analysis** berupa narasi paragraf yang membacakan tren, dan **Recommendations** berupa *bullet points* yang siap dieksekusi — struktur persis yang diminta oleh *template* pada bagian 6. Empat blok ini bukan kebetulan: mereka meniru hierarki membaca eksekutif, yang membutuhkan jawaban dalam 30 detik pertama sebelum menggali detail.
 
 ---
 
@@ -337,7 +331,8 @@ def main():
 
     print(f"[2] Executing query...")
     data = execute_sql(sql)
-    print(f"Data: {len(data)} rows")
+    rows = json.loads(data) if not data.startswith("Error") else []
+    print(f"Data: {len(rows)} rows")
 
     print(f"[3] Generating report...")
     report = generate_report(data, query)
@@ -352,7 +347,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Alur empat langkah skrip ini adalah pipeline mini dari bagian 3: *generate_sql* (NL2SQL dengan *zero-shot*), *execute_sql* (Query Executor pada SQLite in-memory), *generate_report* (Report Generator dengan template empat bagian), dan penyimpanan Markdown. Perhatikan pemisahan data dan analisis: database contoh diisi tiga baris penjualan agar skrip dapat langsung diuji, dan hasil kueri di-serialisasi ke JSON — *interface* standar antar tahap. Semua model terdaftar sebagai komentar di `MODEL` dapat ditukar bebas; mulai `deepseek-v4-flash` untuk keseimbangan kecepatan-akurasi, dan naikkan ke `deepseek-v4-pro` ketika kueri melibatkan schema besar.
+Alur empat langkah skrip ini adalah pipeline mini dari bagian 3: *generate_sql* (NL2SQL dengan *zero-shot*), *execute_sql* (Query Executor pada SQLite in-memory), *generate_report* (Report Generator dengan template empat bagian), dan penyimpanan Markdown. Perhatikan pemisahan data dan analisis: database contoh diisi tiga baris penjualan agar skrip dapat langsung diuji, dan hasil kueri diserialisasi ke JSON — *interface* standar antar tahap. Semua model terdaftar sebagai komentar di `MODEL` dapat ditukar bebas; mulai `deepseek-v4-flash` untuk keseimbangan kecepatan-akurasi, dan naikkan ke `deepseek-v4-pro` ketika kueri melibatkan schema besar.
 
 ### Tutorial 2: Setup n8n Workflow untuk Laporan Harian
 
@@ -377,6 +372,7 @@ Sebelum diserahkan ke LLM, data mentah harus diubah menjadi insight terstruktur.
 
 ```python
 # insight_extractor.py
+import json
 import pandas as pd
 import numpy as np
 
@@ -419,7 +415,7 @@ Write an executive summary highlighting:
 Keep it clear, professional, and under 300 words."""
 ```
 
-Perhatikan tiga keputusan desain. Pertama, `trend` disimpulkan dengan membandingkan nilai terakhir terhadap mean — sederhana, deterministik, dan dapat dijelaskan; jangan minta LLM menyimpulkan tren, karena gambarannya probabilistik. Kedua, *anomaly detection* memakai **Z-score > 2** — dua standar deviasi dari mean — ambang standar yang menyeimbangkan sensitivitas dan *false positive*. Ketiga, fungsi `format_insight_prompt` menyusun *prompt* dari JSON yang sama — konsisten dengan *interface* JSON pada Tabel 2, sehingga analisis dan narasi selalu menggunakan sumber fakta yang sama.
+Perhatikan tiga keputusan desain. Pertama, `trend` disimpulkan dengan membandingkan nilai terakhir terhadap mean — sederhana, deterministik, dan dapat dijelaskan; jangan minta LLM menyimpulkan tren, karena gambarannya probabilistik. Kedua, *anomaly detection* memakai **Z-score > 2** — dua standar deviasi dari mean — ambang standar yang menyeimbangkan sensitivitas dan *false positive*. Ketiga, fungsi `format_insight_prompt` menyusun *prompt* dari JSON yang sama — konsisten dengan *interface* JSON pada Tabel 1, sehingga analisis dan narasi selalu menggunakan sumber fakta yang sama.
 
 ---
 
@@ -428,11 +424,11 @@ Perhatikan tiga keputusan desain. Pertama, `trend` disimpulkan dengan membanding
 
 **Latar Belakang.** Sebuah perusahaan ritel nasional dengan 100+ toko tersebar memiliki ritual yang melelahkan: setiap pagi, dua orang analis menghabiskan **3 jam** (06:00-09:00) merangkum penjualan kemarin dari PostgreSQL — total per toko, per kategori, per wilayah — lalu menyusun laporan untuk rapat manajemen 09:00. Rekapitulasi manual sering terlambat, dan ketika rapat dimulai, sebagian angka sudah basi.
 
-**Pipeline.** Arsitektur akhirnya mengikuti Tabel 2 dengan penyesuaian lokal. **Data source**: PostgreSQL berisi tabel `sales`, `inventory`, dan `stores` — di-ETL setiap malam dan tuntas sebelum pukul 06:00. **NL2SQL**: Ollama dengan Qwen-2.5-14B dan *few-shot* (5 contoh kueri), dikalibrasi pada pola pertanyaan rutin tim. **Query Execution**: skrip Python via cron. **Insight**: pandas untuk *growth %*, *YoY*, dan *anomaly detection* — angka ditandai sebelum narasi. **Report**: Llama-3.1-8B menghasilkan narasi, divisualisasikan dengan Chart.js untuk grafik tren. **Distribution**: email ke CEO, Slack ke tim penjualan, Google Sheets sebagai arsip.
+**Pipeline.** Arsitektur akhirnya mengikuti Tabel 1 dengan penyesuaian lokal. **Data source**: PostgreSQL berisi tabel `sales`, `inventory`, dan `stores` — di-ETL setiap malam dan tuntas sebelum pukul 06:00. **NL2SQL**: Ollama dengan Qwen-2.5-14B dan *few-shot* (5 contoh kueri), dikalibrasi pada pola pertanyaan rutin tim. **Query Execution**: skrip Python via cron. **Insight**: pandas untuk *growth %*, *YoY*, dan *anomaly detection* — angka ditandai sebelum narasi. **Report**: Llama-3.1-8B menghasilkan narasi, divisualisasikan dengan Chart.js untuk grafik tren. **Distribution**: email ke CEO, Slack ke tim penjualan, Google Sheets sebagai arsip.
 
-**Hasil.** Laporan selesai pukul 06:30 — 30 menit setelah ETL, tanpa intervensi manusia, **100% otomatis** dari awal sampai akhir. Akurasi NL2SQL: **92%** pada kueri rutin dan 78% pada kueri ad-hoc — cukup andal untuk laporan rutin, sementara kueri aneh tetap dijalankan dengan jalur verifikasi manual. Dua analis dibebaskan dari ritual penyalinan-angka: mereka dialihkan ke analisis yang lebih dalam — *customer segmentation* dan *forecasting* — jenis pekerjaan yang justru sebelumnya selalu tertunda karena tersita laporan harian.
+**Hasil.** Laporan selesai pukul 06:30 — 30 menit setelah ETL, tanpa intervensi manusia, **100% otomatis** dari awal sampai akhir. Akurasi NL2SQL: **92%** pada kueri rutin dan 78% pada kueri ad-hoc [Sumber?] — cukup andal untuk laporan rutin, sementara kueri aneh tetap dijalankan dengan jalur verifikasi manual. Dua analis dibebaskan dari ritual penyalinan-angka: mereka dialihkan ke analisis yang lebih dalam — *customer segmentation* dan *forecasting* — jenis pekerjaan yang justru sebelumnya selalu tertunda karena tersita laporan harian.
 
-**ROI.** Penghematan kotor **180 jam kerja per bulan** — sekitar 45 jam per analis. Dengan asumsi biaya analyst bulanan, proyek ini membayar dirinya sendiri dalam bulan pertama, dan biaya LLM-nya Rp 0 berkat model lokal (lihat Tabel 3).
+**ROI.** Penghematan kotor **180 jam kerja per bulan** — sekitar 45 jam per analis. Dengan asumsi biaya analyst bulanan, proyek ini membayar dirinya sendiri dalam bulan pertama, dan biaya LLM-nya Rp 0 berkat model lokal (lihat Tabel 2).
 
 **Pelajaran.** (1) **Contoh adalah segalanya** — keberhasilan 92% kueri rutin berakar pada *few-shot examples* yang dikurasi dari kueri nyata, bukan teori. (2) **Insight deterministik sebelum LLM** menjaga narasi tetap berdasarkan fakta; LLM hanya menulis kalimat, tidak menghitung angka. (3) **Jalur verifikasi untuk anomali** — kueri dengan skor keyakinan rendah harus mengalihkan ke manusia, bukan berakhir sebagai angka salah di meja CEO. Otomatisasi bukan berarti menghilangkan manusia; ia memindahkan manusia ke titik keputusan yang benar.
 
@@ -444,10 +440,10 @@ Perhatikan tiga keputusan desain. Pertama, `trend` disimpulkan dengan membanding
 ### Paper Jurnal/Konferensi
 
 [1] Ozcan, F., et al. (2025). *Is Long Context All You Need? Leveraging LLM's Extended Context for NL2SQL*. Proceedings of the VLDB Endowment (PVLDB), 18(10). DOI: [10.14778/3742728.3742761](https://www.vldb.org/pvldb/vol18/p2735-ozcan.pdf)
-- Studi long-context LLM (Gemini 1.5) untuk NL2SQL tanpa fine-tuning — sumber verifikasi data akurasi Tabel 1.
+- Studi long-context LLM (Gemini 1.5) untuk NL2SQL tanpa fine-tuning — sumber verifikasi data akurasi Tabel 3.
 
 [2] Li, B., Luo, Y., Chai, C., Li, G., & Tang, N. (2024). *The Dawn of Natural Language to SQL: Are We Fully Ready?*. Proceedings of the VLDB Endowment (PVLDB), 17(11). DOI: [10.14778/3685800.3685801](https://www.vldb.org/pvldb/vol17/p3318-luo.pdf)
-- Framework evaluasi NL2SQL360 — perbandingan multi-angle; SuperSQL mencapai 87% *execution accuracy* di Spider. Rujukan langsung Tabel 1.
+- Framework evaluasi NL2SQL360 — perbandingan multi-angle; SuperSQL mencapai 87% *execution accuracy* di Spider. Rujukan langsung Tabel 3.
 
 [3] Li, Z., et al. (2025). *DAgent: A Relational Database-Driven Data Analysis Report Generation Agent*. arXiv: 2503.13269. DOI: [10.48550/arXiv.2503.13269](https://arxiv.org/abs/2503.13269)
 - Framework agen LLM untuk *report generation* RDB-DA dengan modul *planning*, *tools*, dan *memory* — acuan arsitektur pada bagian 3.
@@ -456,13 +452,13 @@ Perhatikan tiga keputusan desain. Pertama, `trend` disimpulkan dengan membanding
 - Arsitektur *Hypothesis Generator + Query Agent + Summarization* untuk insight dari *multi-table* database — rujukan bagian 5 (Insight Extraction).
 
 [5] Xie, X., et al. (2025). *SiriusBI: Building a Practical and Robust LLM-powered BI System*. Proceedings of the VLDB Endowment (PVLDB), 18(12). DOI: [10.14778/3733284.3733290](https://www.vldb.org/pvldb/vol18/p4860-xie.pdf)
-- Sistem BI LLM produksi Tencent dengan 93% akurasi *SQL generation*, di-deploy di divisi finance/advertising/cloud — referensi verifikasi SLA dan latensi Tabel 3.
+- Sistem BI LLM produksi Tencent dengan 93% akurasi *SQL generation*, dideploy di divisi finance/advertising/cloud — referensi verifikasi SLA dan latensi Tabel 2.
 
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv: 2604.00001. DOI: [10.48550/arXiv.2604.00001](https://arxiv.org/abs/2604.00001)
-- Model dengan konteks 1M token yang memungkinkan skema database besar masuk dalam satu prompt tanpa chunking — sumber data akurasi NL2SQL DeepSeek V4 Pro (Spider 76.8% / BIRD 59.1% zero-shot) di Tabel 1.
+- Model dengan konteks 1M token yang memungkinkan skema database besar masuk dalam satu prompt tanpa chunking — sumber data akurasi NL2SQL DeepSeek V4 Pro (Spider 76,8% / BIRD 59,1% zero-shot) di Tabel 3.
 
 [7] Anthropic. (2026). *Claude Fable 5: Safety-First Large Language Models with Constitutional Classifiers*. [https://anthropic.com/research/claude-fable-5](https://anthropic.com/research/claude-fable-5)
-- Model dengan SWE-bench 95.0% yang menawarkan akurasi NL2SQL 79.1% Spider / 62.0% BIRD dengan *safety guardrails* untuk SQL yang aman — sumber data Tabel 1.
+- Model dengan SWE-bench 95,0% yang menawarkan akurasi NL2SQL 79,1% Spider / 62,0% BIRD dengan *safety guardrails* untuk SQL yang aman — sumber data Tabel 3.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 

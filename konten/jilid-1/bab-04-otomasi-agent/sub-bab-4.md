@@ -9,7 +9,7 @@
 
 Setelah membaca sub-bab ini, Anda akan mampu:
 
-- Menginstall dan mengkonfigurasi Cline dan Aider di macOS dengan dukungan model lokal
+- Menginstal dan mengonfigurasi Cline dan Aider di macOS dengan dukungan model lokal
 - Menggunakan kedua *coding agent* untuk tugas pemrograman nyata, mulai dari membuat fungsi sederhana hingga refactoring lintas file
 - Menjelaskan perbedaan filosofi kedua alat: Cline yang bersifat *agentic* multi-file versus Aider yang meniru kerja *pair-programming* berbasis git
 - Menyusun strategi *code review* otomatis dengan skrip batch yang memanfaatkan kedua agent
@@ -34,7 +34,7 @@ Perhatikan bahwa riset akademik kini menyebut era ini **Software Engineering 3.0
 
 ### Bagaimana Kemampuan Agent Diukur?
 
-Sebelum membandingkan agent dan model, Anda perlu mengenal dua tolok ukur yang akan muncul terus di sub-bab ini. **HumanEval+** adalah himpunan 164 soal pemrograman yang menuntut model menulis fungsi utuh dari deskripsi singkat; nilai **Pass@1** menunjukkan persentase soal yang benar pada percobaan pertama. **SWE-bench** jauh lebih berat: ia mengambil *issue* nyata dari repository GitHub (seperti bug report dan permintaan fitur) dan meminta agent menyelesaikannya terhadap codebase sungguhan — inilah pengukur paling dekat dengan pekerjaan harian programmer [1][4]. Tabel 2 pada seksi 2 membandingkan kedua metrik ini lintas model, dari API kelas atas hingga model 7B yang berjalan di Mac Anda.
+Sebelum membandingkan agent dan model, Anda perlu mengenal dua tolok ukur yang akan muncul terus di sub-bab ini. **HumanEval+** adalah himpunan 164 soal pemrograman yang menuntut model menulis fungsi utuh dari deskripsi singkat; nilai **Pass@1** menunjukkan persentase soal yang benar pada percobaan pertama. **SWE-bench** jauh lebih berat: ia mengambil *issue* nyata dari repository GitHub (seperti bug report dan permintaan fitur) dan meminta agent menyelesaikannya terhadap codebase sungguhan — inilah pengukur paling dekat dengan pekerjaan harian programmer [1][4]. Tabel 2 pada seksi 6 membandingkan kedua metrik ini lintas model, dari API kelas atas hingga model 7B yang berjalan di Mac Anda.
 
 Perlu diingat satu hal: angka benchmark adalah foto dalam kondisi ideal. Performa nyata dipengaruhi faktor yang tidak muncul di tabel — kualitas *prompt*, ukuran repository, dan seberapa rapi struktur proyek Anda. Karena itu, sub-bab ini tidak berhenti pada angka, melainkan mengajak Anda mengukur sendiri lewat praktikum di seksi 9.
 
@@ -53,7 +53,7 @@ Berikut perbandingan empat alat bantu coding yang paling populer — dua yang me
 | **Plan Mode** | Ya (Plan → Act) | Tidak | Tidak | Tidak |
 | **Apple Silicon** | Native | Native | Native | Native |
 
-Tabel ini menunjukkan posisi unik masing-masing alat. Cline dan Aider adalah satu-satunya yang sepenuhnya open-source dan mendukung model lokal — dua alasan utama mengapa keduanya menjadi fokus buku ini. GitHub Copilot unggul dalam kenyamanan *autocomplete* tetapi tidak bisa menjalankan terminal, sementara Cursor menarik secara UI tetapi menutup sumbernya. Jika *privacy* dan kendali penuh adalah prioritas, Cline dan Aider tidak tergantikan.
+Tabel ini menunjukkan posisi unik masing-masing alat. Cline dan Aider adalah satu-satunya yang sepenuhnya open-source dan mendukung model lokal — dua alasan utama mengapa keduanya menjadi fokus buku ini. GitHub Copilot unggul dalam kenyamanan *autocomplete*, tetapi tidak bisa menjalankan terminal, sementara Cursor menarik secara UI, tetapi menutup sumbernya. Jika *privacy* dan kendali penuh adalah prioritas, Cline dan Aider tidak tergantikan.
 
 
 ---
@@ -63,7 +63,7 @@ Tabel ini menunjukkan posisi unik masing-masing alat. Cline dan Aider adalah sat
 
 ### Sejarah dan Lisensi
 
-Cline lahir dengan nama **Claude Dev**, sebuah ekstensi VS Code yang awalnya dirancang khusus untuk model Claude. Ketika popularitasnya meledak, proyek ini di-*rename* menjadi Cline dan di-*release* sebagai **open-source dengan lisensi Apache 2.0** — artinya bebas dipakai, dimodifikasi, bahkan untuk keperluan komersial. Inilah salah satu alasan mengapa Cline menjadi pilihan utama pengguna Mac yang ingin otomasi coding tanpa mengunci diri pada satu vendor.
+Cline lahir dengan nama **Claude Dev**, sebuah ekstensi VS Code yang awalnya dirancang khusus untuk model Claude. Ketika popularitasnya meledak, proyek ini diubah namanya menjadi Cline dan dirilis sebagai **open-source dengan lisensi Apache 2.0** — artinya bebas dipakai, dimodifikasi, bahkan untuk keperluan komersial. Inilah salah satu alasan mengapa Cline menjadi pilihan utama pengguna Mac yang ingin otomasi coding tanpa mengunci diri pada satu vendor.
 
 ### Kemampuan Inti
 
@@ -89,7 +89,7 @@ Arsitektur tiga lapis ini penting dipahami karena menentukan bagaimana Anda akan
 
 ### Filosofi Git-First
 
-Aider memilih filosofi yang berbeda sejak awal: ia adalah **AI pair programmer yang berbasis git**. Setiap perubahan yang dilakukan Aider dicatat dalam *commit* git terpisah dengan pesan deskriptif yang dihasilkan otomatis. Konsekuensinya menarik: seluruh riwayat kerja agent tersimpan rapi di dalam repository, bisa dibaca, di-revert, dan diaudit oleh siapa pun — transparansi total yang jarang dimiliki alat AI lain.
+Aider memilih filosofi yang berbeda sejak awal: ia adalah **AI pair programmer yang berbasis git**. Setiap perubahan yang dilakukan Aider dicatat dalam *commit* git terpisah dengan pesan deskriptif yang dihasilkan otomatis. Konsekuensinya menarik: seluruh riwayat kerja agent tersimpan rapi di dalam repository, bisa dibaca, dikembalikan (revert), dan diaudit oleh siapa pun — transparansi total yang jarang dimiliki alat AI lain.
 
 ### Fitur Utama
 
@@ -98,7 +98,7 @@ Aider memilih filosofi yang berbeda sejak awal: ia adalah **AI pair programmer y
 - **Lint fix** — Aider menjalankan linter dan memperbaiki pelanggaran gaya kode secara iteratif.
 - **Multi-file editing** — satu instruksi bisa mengubah banyak file sekaligus, misalnya "ubah fungsi `validate_email()` di `src/utils.py` dan perbarui test-nya".
 
-Aider adalah proyek open-source dengan lisensi **Apache 2.0**, ditulis dalam Python, dan diinstall dengan satu perintah `pip` — sangat cocok untuk pengguna yang sudah nyaman dengan terminal. Karena ia berjalan sepenuhnya di terminal, Aider juga ideal untuk dijalankan di sesi SSH atau di server tanpa desktop — otomasi coding tidak lagi terbatas pada mesin dengan antarmuka grafis.
+Aider adalah proyek open-source dengan lisensi **Apache 2.0**, ditulis dalam Python, dan diinstal dengan satu perintah `pip` — sangat cocok untuk pengguna yang sudah nyaman dengan terminal. Karena ia berjalan sepenuhnya di terminal, Aider juga ideal untuk dijalankan di sesi SSH atau di server tanpa desktop — otomasi coding tidak lagi terbatas pada mesin dengan antarmuka grafis.
 
 ---
 
@@ -109,7 +109,7 @@ Kedua alat ini bukan pesaing yang saling menggantikan — keduanya menjawab pert
 
 Banyak pengguna akhirnya memakai keduanya sekaligus, bergantian sesuai jenis tugas. Alur kerja yang umum: gunakan Cline untuk memahami codebase yang tidak dikenal (mode *Plan* membantu memetakan struktur tanpa risiko), lalu serahkan perubahan mekanis yang sudah jelas ke Aider agar tercatat rapi di git. Keduanya berbagi backend Ollama yang sama, sehingga berpindah alat tidak berarti mengunduh model baru — hanya mengganti antarmuka.
 
-Pilihan praktis: gunakan Cline saat Anda sendiri belum yakin "jalannya ke mana", dan gunakan Aider saat Anda sudah tahu persis apa yang harus diubah. Tabel 1 di seksi berikut akan memberi perbandingan menyeluruh, termasuk posisi Cline dan Aider terhadap GitHub Copilot dan Cursor.
+Pilihan praktis: gunakan Cline saat Anda sendiri belum yakin "jalannya ke mana", dan gunakan Aider saat Anda sudah tahu persis apa yang harus diubah. Tabel 1 pada seksi 2 memberi perbandingan menyeluruh, termasuk posisi Cline dan Aider terhadap GitHub Copilot dan Cursor.
 
 ---
 
@@ -118,11 +118,11 @@ Pilihan praktis: gunakan Cline saat Anda sendiri belum yakin "jalannya ke mana",
 
 ### Ollama sebagai Backend
 
-Cara termudah menjalankan kedua agent secara lokal adalah menggunakan **Ollama** sebagai server model. Ollama mengelola unduhan model, runtime, dan API yang kompatibel dengan OpenAI — sehingga Cline dan Aider bisa menautkannya hanya dengan mengarahkan *base URL* ke `http://localhost:11434`. Untuk coding, pilihan model yang seimbang adalah **Qwen-2.5-Coder-7B** atau **Llama-3.1-8B**; jika ingin kualitas lebih tinggi dengan kecepatan model kecil, **DeepSeek V4 Flash** (arsitektur MoE) adalah pilihan menarik — data pada Tabel 2 menunjukkan keunggulannya.
+Cara termudah menjalankan kedua agent secara lokal adalah menggunakan **Ollama** sebagai server model. Ollama mengelola unduhan model, runtime, dan API yang kompatibel dengan OpenAI — sehingga Cline dan Aider bisa menautkannya hanya dengan mengarahkan *base URL* ke `http://localhost:11434`. Untuk coding, pilihan model yang seimbang adalah **Qwen 2.5 Coder (7B)** atau **Llama 3.1 (8B)**; jika ingin kualitas lebih tinggi dengan kecepatan model kecil, **DeepSeek V4 Flash** (arsitektur MoE) adalah pilihan menarik — data pada Tabel 2 menunjukkan keunggulannya.
 
 ### Memilih Model: Pertimbangan Praktis
 
-Tabel 2 akan menunjukkan rentang kemampuan yang lebar — dari SWE-bench 38,5% untuk Llama-3.1-8B hingga 95% untuk model API kelas atas. Bagaimana memilih? Mulailah dari kebutuhan nyata, bukan dari tabel. Untuk tugas *autocomplete*-like dan edit kecil, model 7B sudah memadai dan berjalan nyaman di Mac. Untuk refactoring lintas file yang melibatkan banyak konteks, model dengan *reasoning* kuat (DeepSeek V4 Flash) memberi hasil jauh lebih baik. Dan ketika seluruh tim bergantung pada output agent, model API kelas atas mungkin layak meski berbiaya — hitung trade-off antara produktivitas dan tagihan.
+Tabel 2 akan menunjukkan rentang kemampuan yang lebar — dari SWE-bench 38,5% untuk Llama 3.1 (8B) hingga 95% untuk model API kelas atas. Bagaimana memilih? Mulailah dari kebutuhan nyata, bukan dari tabel. Untuk tugas *autocomplete*-like dan edit kecil, model 7B sudah memadai dan berjalan nyaman di Mac. Untuk refactoring lintas file yang melibatkan banyak konteks, model dengan *reasoning* kuat (DeepSeek V4 Flash) memberi hasil jauh lebih baik. Dan ketika seluruh tim bergantung pada output agent, model API kelas atas mungkin layak meski berbiaya — hitung trade-off antara produktivitas dan tagihan.
 
 Pola yang perlu dicermati: model MoE seperti DeepSeek V4 Flash menawarkan posisi unik — kualitas mendekati model besar dengan kecepatan model kecil. Inilah mengapa studi kasus di seksi 10 memilihnya untuk pekerjaan migrasi codebase yang panjang.
 
@@ -138,19 +138,19 @@ Angka *Pass@1* pada benchmark di bawah menunjukkan persentase tugas yang berhasi
 
 | Model | Cline (Pass@1) | Aider (Pass@1) | SWE-bench | Kecepatan (t/s) |
 |:---|:---:|:---:|:---:|:---:|
-| **Claude Fable 5** (API) | 96.2% | 94.8% | **95.0%** | ~40 t/s (API) |
-| **DeepSeek V4 Pro** | 89.5% | 87.2% | 82.3% | ~35 t/s |
-| **GPT-5.5** (API) | 94.1% | 92.5% | 91.2% | ~50 t/s (API) |
-| Llama-3.1-8B | 62.4% | 58.7% | 38.5% | ~45 t/s (M4 Max) |
-| Qwen-2.5-Coder-7B | 68.1% | 65.3% | 42.1% | ~52 t/s |
-| DeepSeek V4 Flash | 82.3% | 79.5% | 68.7% | ~55 t/s |
-| GPT-4o (cloud) | 87.3% | 85.1% | 76.5% | ~30 t/s (API) |
+| **Claude Fable 5** (API) | 96,2% | 94,8% | **95,0%** | ~40 t/s (API) |
+| **DeepSeek V4 Pro** | 89,5% | 87,2% | 82,3% | ~35 t/s |
+| **GPT-5.5** (API) | 94,1% | 92,5% | 91,2% | ~50 t/s (API) |
+| Llama 3.1 (8B) | 62,4% | 58,7% | 38,5% | ~45 t/s (M4 Max) |
+| Qwen 2.5 Coder (7B) | 68,1% | 65,3% | 42,1% | ~52 t/s |
+| DeepSeek V4 Flash | 82,3% | 79,5% | 68,7% | ~55 t/s |
+| GPT-4o (cloud) | 87,3% | 85,1% | 76,5% | ~30 t/s (API) |
 
-Tiga baris pertama adalah model API kelas atas dengan akurasi tertinggi, tetapi semuanya membutuhkan koneksi internet dan biaya per token. Di sisi lokal, pola yang menarik terlihat pada **DeepSeek V4 Flash**: dengan kecepatan 55 t/s yang tercepat di antara model yang bisa dijalankan di mesin pribadi, ia menembus 82% di HumanEval+ — jauh di atas model 7-8B lainnya. Berkat arsitektur MoE, ia memberikan kualitas model yang jauh lebih besar dengan kecepatan model kecil. Sementara itu, model 7B seperti Llama-3.1-8B dan Qwen-2.5-Coder-7B tetap layak untuk tugas harian ringan, meski SWE-bench-nya (38-42%) menunjukkan keterbatasannya pada tugas dunia nyata yang kompleks [1].
+Tiga baris pertama adalah model API kelas atas dengan akurasi tertinggi, tetapi semuanya membutuhkan koneksi internet dan biaya per token. Di sisi lokal, pola yang menarik terlihat pada **DeepSeek V4 Flash**: dengan kecepatan 55 t/s yang tercepat di antara model yang bisa dijalankan di mesin pribadi, ia menembus 82% di HumanEval+ — jauh di atas model 7-8B lainnya. Berkat arsitektur MoE, ia memberikan kualitas model yang jauh lebih besar dengan kecepatan model kecil. Sementara itu, model 7B seperti Llama 3.1 (8B) dan Qwen 2.5 Coder (7B) tetap layak untuk tugas harian ringan, meski SWE-bench-nya (38-42%) menunjukkan keterbatasannya pada tugas dunia nyata yang kompleks [1].
 
 ![Performa coding agent per model](../../assets/images/bab-04-otomasi-agent/sub-bab-4/performa-coding-agent.png)
 
-*Gambar 4.4-1 — Semua agent mengikuti pola yang sama: Pass@1 Cline sedikit di atas Aider, dan gap terbesar muncul di SWE-bench (95,0% Claude Fable 5 vs 38,5% Llama-3.1-8B); DeepSeek V4 Flash memimpin di antara model lokal.*
+*Gambar 4.4-1 — Semua agent mengikuti pola yang sama: Pass@1 Cline sedikit di atas Aider, dan gap terbesar muncul di SWE-bench (95,0% Claude Fable 5 vs 38,5% Llama 3.1 8B); DeepSeek V4 Flash memimpin di antara model lokal.*
 
 
 ---
@@ -175,15 +175,15 @@ Sumber daya adalah pertimbangan penting karena kedua agent berjalan bersamaan de
 
 | Agent | RAM (idle) | VRAM (7B model) | Disk | Latency First Token |
 |:---|:---:|:---:|:---:|:---:|
-| Cline + Ollama | ~120 MB | ~4.5 GB | ~500 MB | ~1.2s |
-| Aider + Ollama | ~80 MB | ~4.5 GB | ~200 MB | ~0.8s |
-| Cline + OpenAI | ~200 MB | 0 | ~100 MB | ~0.5s (network) |
+| Cline + Ollama | ~120 MB | ~4,5 GB | ~500 MB | ~1,2 s |
+| Aider + Ollama | ~80 MB | ~4,5 GB | ~200 MB | ~0,8 s |
+| Cline + OpenAI | ~200 MB | 0 | ~100 MB | ~0,5 s (network) |
 
-Pola yang patut dicatat: Aider lebih ringan di RAM idle (80 MB vs 120 MB) dan lebih cepat pada *first token* (0,8s vs 1,2s) karena tidak menampilkan antarmuka grafis yang berat seperti Cline. VRAM 4,5 GB untuk model 7B adalah biaya yang dibayarkan bersama untuk *inference* lokal — setara menjalankan satu game ringan. Konfigurasi cloud (Cline + OpenAI) membebaskan VRAM tetapi menukarnya dengan latensi jaringan dan biaya per permintaan. Pilihan antara ketiganya adalah pilihan antara privasi, biaya, dan kecepatan.
+Pola yang patut dicatat: Aider lebih ringan di RAM idle (80 MB vs 120 MB) dan lebih cepat pada *first token* (0,8 s vs 1,2 s) karena tidak menampilkan antarmuka grafis yang berat seperti Cline. VRAM 4,5 GB untuk model 7B adalah biaya yang dibayarkan bersama untuk *inference* lokal — setara menjalankan satu game ringan. Konfigurasi cloud (Cline + OpenAI) membebaskan VRAM tetapi menukarnya dengan latensi jaringan dan biaya per permintaan. Pilihan antara ketiganya adalah pilihan antara privasi, biaya, dan kecepatan.
 
 ![Sumber daya yang dipakai tiap konfigurasi agent](../../assets/images/bab-04-otomasi-agent/sub-bab-4/sumber-daya-agent.png)
 
-*Gambar 4.4-2 — Aider paling ringan di RAM idle (80 MB) dan tercepat di first token (0,8s), sementara Cline + OpenAI paling ringan di sumber daya lokal (0 VRAM) tetapi menambahkan ketergantungan jaringan dan biaya per permintaan.*
+*Gambar 4.4-2 — Aider paling ringan di RAM idle (80 MB) dan tercepat di first token (0,8 s), sementara Cline + OpenAI paling ringan di sumber daya lokal (0 VRAM), tetapi menambahkan ketergantungan jaringan dan biaya per permintaan.*
 
 ---
 
@@ -218,7 +218,7 @@ Bandingkan dengan diagram alur kerja manusia: programmer senior yang menyerahkan
 
 ---
 
-## 9. Tutorial / Hands-On
+## 9. Praktikum / Hands-On
 
 
 ### Langkah 1: Setup Cline dengan Ollama Lokal di Mac
@@ -252,11 +252,11 @@ cline run "Buat fungsi Python untuk menghitung Fibonacci, simpan di fib.py"
 
 Setelah langkah kelima, perhatikan alurnya: Cline akan menampilkan rencananya lebih dulu (Plan), menulis file, lalu meminta persetujuan Anda atas *diff* sebelum menyimpan (Act). Jika belum pernah melihat siklus agent bekerja, ini adalah pengalaman pertama yang paling baik karena tugasnya kecil dan hasilnya langsung terlihat.
 
-**Verifikasi:** buka `fib.py` dan jalankan `python3 fib.py` — jika angka Fibonacci ke-10 tercetak dengan benar (`55`), instalasi Anda berfungsi penuh. Jika hasilnya tidak sesuai, periksa dua hal paling umum: model `llama3.1:8b` harus sudah ter-*pull* (jalankan `ollama list` untuk memastikan), dan *base URL* di pengaturan Cline harus persis `http://localhost:11434`. Model 7B umumnya cukup andal untuk tugas seukuran ini, tetapi jangan ragu mengganti ke Qwen-2.5-Coder-7B jika ingin membandingkan kualitas output keduanya.
+**Verifikasi:** buka `fib.py` dan jalankan `python3 fib.py` — jika angka Fibonacci ke-10 tercetak dengan benar (`55`), instalasi Anda berfungsi penuh. Jika hasilnya tidak sesuai, periksa dua hal paling umum: model `llama3.1:8b` harus sudah diunduh (jalankan `ollama list` untuk memastikan), dan *base URL* di pengaturan Cline harus persis `http://localhost:11434`. Model 7B umumnya cukup andal untuk tugas seukuran ini, tetapi jangan ragu mengganti ke Qwen 2.5 Coder (7B) jika ingin membandingkan kualitas output keduanya.
 
 ### Langkah 2: Setup Aider untuk Refactoring
 
-Aider diinstall melalui Python, lalu dikonfigurasi untuk memakai Ollama sebagai backend.
+Aider diinstal melalui Python, lalu dikonfigurasi untuk memakai Ollama sebagai backend.
 
 ```bash
 # 1. Install Aider
@@ -329,15 +329,15 @@ Skrip ini bisa disambungkan ke *git hook* atau pipeline CI sederhana: setiap kal
 ## 10. Studi Kasus: Refactoring Legacy Codebase dengan Aider
 
 
-**Skenario:** Sebuah startup e-commerce memiliki codebase Django berukuran 50.000 baris dengan akumulasi *technical debt* selama empat tahun. Teknologi di dalamnya sudah tertinggal: *function-based views* (FBV) yang panjang dan tidak teruji, tanpa type hints, dan duplikasi logika di mana-mana. Tim memutuskan migrasi bertahap dari FBV ke *class-based views* (CBV) di 20 file modul inti — pekerjaan yang sebelumnya diperkirakan memakan **delapan jam kerja manual** karena setiap file harus dibaca, di-refactor, dan diuji satu per satu.
+**Skenario:** Sebuah startup e-commerce memiliki codebase Django berukuran 50.000 baris dengan akumulasi *technical debt* selama empat tahun. Teknologi di dalamnya sudah tertinggal: *function-based views* (FBV) yang panjang dan tidak teruji, tanpa type hints, dan duplikasi logika di mana-mana. Tim memutuskan migrasi bertahap dari FBV ke *class-based views* (CBV) di 20 file modul inti — pekerjaan yang sebelumnya diperkirakan memakan **delapan jam kerja manual** karena setiap file harus dibaca, diubah, dan diuji satu per satu.
 
 **Analisis pilihan:** Tugas ini termasuk kategori yang paling cocok untuk Aider: ruang lingkup jelas (FBV → CBV), perubahan terkonsentrasi di file yang dikenal, dan setiap langkah harus terdokumentasi — tepat untuk model *auto-commit*-nya. Cline kurang ideal di sini karena mode Plan-nya justru menambah satu lapis persetujuan yang memperlambat alur refactoring mekanis. Perbandingan keduanya ini persis pola yang dijelaskan pada seksi 5: pilih alat berdasarkan jenis tugas, bukan berdasarkan popularitas.
 
-**Solusi:** Tim mengkonfigurasi Aider dengan **DeepSeek V4 Flash** sebagai model dan `--auto-commits` aktif, lalu menjalankan 5 *prompt* bertahap — satu prompt per modul, masing-masing menangani 3-5 file. Setiap prompt spesifik: "Refactor `views.py` modul order ke CBV, pertahankan nama URL dan behavior, tambahkan `LoginRequiredMixin`".
+**Solusi:** Tim mengkonfigurasi Aider dengan **DeepSeek V4 Flash** sebagai model dan `--auto-commits` aktif, lalu menjalankan lima *prompt* bertahap — satu prompt per modul, masing-masing menangani tiga-lima file. Setiap prompt spesifik: "Refactor `views.py` modul order ke CBV, pertahankan nama URL dan behavior, tambahkan `LoginRequiredMixin`".
 
-**Hasil:** Migrasi selesai dalam **35 menit** — dibanding estimasi 8 jam manual, kecepatannya sekitar 13 kali lipat. Seluruh **100% test passing** tanpa regresi. Menariknya, tim mencatat bahwa DeepSeek V4 Flash bekerja dua kali lebih cepat dari Qwen-2.5-Coder-7B pada tugas multi-file berkat arsitektur MoE-nya, dan kualitas outputnya cukup konsisten sehingga *commit* yang perlu direvisi kurang dari 10%.
+**Hasil:** Migrasi selesai dalam **35 menit** — dibanding estimasi 8 jam manual, kecepatannya sekitar 13 kali lipat. Seluruh **100% test passing** tanpa regresi. Menariknya, tim mencatat bahwa DeepSeek V4 Flash bekerja dua kali lebih cepat dari Qwen 2.5 Coder (7B) pada tugas multi-file berkat arsitektur MoE-nya, dan kualitas outputnya cukup konsisten sehingga *commit* yang perlu direvisi kurang dari 10%.
 
-**Pelajaran:** Pertama, agent bekerja optimal dengan *prompt* yang spesifik per modul — prompt umum seperti "refactor seluruh codebase" akan menghasilkan kekacauan. Kedua, model MoE seperti DeepSeek V4 Flash unggul untuk *multi-file editing* karena ia menyeimbangkan kualitas dan kecepatan dengan baik. Ketiga, *auto-commit* Aider menjadi aset: ketika satu hasil kurang memuaskan, tim cukup melihat pesan *commit* untuk menemukan dan me-revert perubahan spesifik tanpa menyentuh yang lain.
+**Pelajaran:** Pertama, agent bekerja optimal dengan *prompt* yang spesifik per modul — prompt umum seperti "refactor seluruh codebase" akan menghasilkan kekacauan. Kedua, model MoE seperti DeepSeek V4 Flash unggul untuk *multi-file editing* karena ia menyeimbangkan kualitas dan kecepatan dengan baik. Ketiga, *auto-commit* Aider menjadi aset: ketika satu hasil kurang memuaskan, tim cukup melihat pesan *commit* untuk menemukan dan mengembalikan (revert) perubahan spesifik tanpa menyentuh yang lain.
 
 ---
 
@@ -355,7 +355,7 @@ Skrip ini bisa disambungkan ke *git hook* atau pipeline CI sederhana: setiap kal
 [3] Kim, S., Moon, S., Tabrizi, R., Lee, N., Mahoney, M.W., Keutzer, K., & Gholami, A. (2024). *An LLM Compiler for Parallel Function Calling*. International Conference on Machine Learning (ICML). DOI: [10.48550/arXiv.2312.04511](https://arxiv.org/abs/2312.04511)
 - Paralelisasi *function call* untuk mengurangi latensi coding agent.
 
-[4] Gu, Z., Solar-Lezama, A., Sen, K., Jain, N., Shetty, M., Ellis, K., Li, W.-D., Yang, D., Shao, Y., & Li, Z. (2025). *Challenges and Paths Towards AI for Software Engineering*. International Conference on Machine Learning (ICML).
+[4] Gu, Z., Solar-Lezama, A., Sen, K., Jain, N., Shetty, M., Ellis, K., Li, W.-D., Yang, D., Shao, Y., & Li, Z. (2025). *Challenges and Paths Towards AI for Software Engineering*. International Conference on Machine Learning (ICML). ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 - Peta tantangan penerapan AI untuk software engineering — dari *code generation* hingga debugging.
 
 [5] Watanabe, M., Li, H., Kashiwa, Y., Reid, B., Iida, H., & Hassan, A.E. (2025). *On the Use of Agentic Coding: An Empirical Study of Pull Requests on GitHub*. ACM Transactions on Software Engineering and Methodology. DOI: [10.1145/3718650](https://doi.org/10.1145/3718650)

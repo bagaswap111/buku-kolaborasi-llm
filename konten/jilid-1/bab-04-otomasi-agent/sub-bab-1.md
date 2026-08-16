@@ -30,7 +30,7 @@ Keterbatasannya nyata: chatbot tidak bisa membuka file untuk Anda, tidak bisa me
 
 Sekarang bayangkan yang sebaliknya: Anda memberi tahu komputer sebuah **intensi** — "rapikan folder unduhan sesuai jenis file" — dan komputer mengurai tugas itu sendiri: melihat isi folder (*observasi*), menyusun rencana penyortiran (*reasoning*), memindahkan file (*action*), memeriksa hasilnya (*observasi lagi*), lalu mengulang siklus sampai selesai. Inilah pola **agent aktif**: *observasi → reasoning → action → observasi*, berputar dalam satu lingkaran yang oleh para peneliti disebut *agent loop* [4].
 
-Perbedaan ini bukan sekadar teknis — ia filosofis. Chatbot menjawab pertanyaan; agen menyelesaikan pekerjaan. Chatbot menulis resep masakan; agen pergi ke dapur, mengambil bahan, memasak, dan menyajikan. Seperti analogi yang dipakai di guideline: satu adalah *mesin ketik*, satu lagi *robot*. Keduanya sama-sama "pintar", tetapi hanya satu yang bisa bertindak di dunia nyata. Survei komprehensif Acharya et al. (2025) menegaskan bahwa pergeseran dari model pasif ke agen otonom adalah salah satu arah paling fundamental riset AI saat ini [1].
+Perbedaan ini bukan sekadar teknis — ia filosofis. Chatbot menjawab pertanyaan; agen menyelesaikan pekerjaan. Chatbot menulis resep masakan; agen pergi ke dapur, mengambil bahan, memasak, dan menyajikan. Seperti analogi yang dipakai di *guideline* (panduan): satu adalah *mesin ketik*, satu lagi *robot*. Keduanya sama-sama "pintar", tetapi hanya satu yang bisa bertindak di dunia nyata. Survei komprehensif Acharya et al. (2025) menegaskan bahwa pergeseran dari model pasif ke agen otonom adalah salah satu arah paling fundamental riset AI saat ini [1].
 
 Implikasi perubahan ini menjangkau cara kerja kita sehari-hari. Jika sebelumnya produktivitas digital dibatasi oleh seberapa cepat jari Anda mengetik atau seberapa hafal Anda pada menu aplikasi, kini dibatasi oleh seberapa jelas Anda merumuskan keinginan. Tugas-tugas repetitif — merapikan folder, mengganti nama ratusan file, mengompilasi laporan dari data mentah — bukan lagi pekerjaan yang "menunggu programmer menulis skrip", melainkan pekerjaan yang bisa didelegasikan dalam satu kalimat. Inilah yang dimaksud para peneliti ketika menyebut agen sebagai *paradigma baru interaksi manusia-komputer* [3]: bukan antarmuka yang lebih pintar, tetapi *pembagian kerja* yang baru antara manusia dan mesin.
 
@@ -50,7 +50,7 @@ Berikut peta perbedaan paling esensial antara dua paradigma yang menentukan cara
 | **Use Case** | Tanya jawab | Otomasi workflow kompleks |
 | **Keamanan** | Rendah (hanya teks) | Tinggi (perlu sandbox) |
 
-Setelah membaca baris per baris, pola yang terlihat bukanlah "chatbot yang ditingkatkan", melainkan dua kelas sistem yang berbeda secara fundamental. Dimensi yang paling menentukan adalah *Loop* dan *Control*: chatbot berhenti setelah satu jawaban karena manusia yang memegang semua kendali, sedangkan agen terus berputar pada *Think → Act → Observe* karena kendali dieksekusi oleh sistem. Konsekuensinya, *keamanan* berbanding terbalik dengan kenyamanan — semakin aktif sistem, semakin besar tanggung jawab yang Anda pikul. Pilihan "chatbot atau agen" karena itu bukan pilihan teknis semata, melainkan pilihan tentang seberapa besar kendali yang ingin Anda serahkan.
+Setelah membaca baris per baris, pola yang terlihat bukanlah "chatbot yang ditingkatkan", melainkan dua kelas sistem yang berbeda secara fundamental. Dimensi yang paling menentukan adalah *Loop* dan *Kontrol*: chatbot berhenti setelah satu jawaban karena manusia yang memegang semua kendali, sedangkan agen terus berputar pada *Think → Act → Observe* karena kendali dieksekusi oleh sistem. Konsekuensinya, *keamanan* berbanding terbalik dengan kenyamanan — semakin aktif sistem, semakin besar tanggung jawab yang Anda pikul. Pilihan "chatbot atau agen" karena itu bukan pilihan teknis semata, melainkan pilihan tentang seberapa besar kendali yang ingin Anda serahkan.
 
 
 ### Gambar 1: Agent Loop — Siklus Observe-Think-Act
@@ -89,7 +89,7 @@ Perlu digarisbawahi: OpenClaw bukanlah model AI. Ia tidak dilatih, tidak mengelu
 
 ### Tiga Prinsip Desain
 
-Filosofi OpenClaw bertumpu pada tiga pilar desain. Pertama, **human-in-the-loop autonomy** — agen boleh otonom, tetapi keputusan berisiko tetap melewati persetujuan manusia. Kedua, **tool-first** — kemampuan agen diukur dari seberapa banyak tool (alat) yang bisa ia kendalikan, bukan dari panjang percakapan. Ketiga, **local-first** — seluruh pipeline, dari model hingga penyimpanan, berjalan di mesin sendiri demi privasi dan kedaulatan data.
+Filosofi OpenClaw bertumpu pada tiga pilar desain. Pertama, **human-in-the-loop autonomy** — agen boleh otonom, tetapi keputusan berisiko tetap melewati persetujuan manusia. Kedua, **tool-first** — kemampuan agen diukur dari seberapa banyak tool (alat) yang bisa ia kendalikan, bukan dari panjang percakapan. Ketiga, **local-first** — seluruh *pipeline* (alur kerja), dari model hingga penyimpanan, berjalan di mesin sendiri demi privasi dan kedaulatan data.
 
 Prinsip pertama inilah yang membedakan OpenClaw dari eksperimen agen "liar" yang berjalan tanpa pengawasan. Konsep *human-in-the-loop* ini bukan hal baru dalam literatur: Cheng et al. (2024) mengkategorikan agen cerdas berdasarkan tingkat otonominya dan menempatkan kolaborasi manusia-agen sebagai kelas penting dari sistem agentic [5]. Dengan *approval gates*, OpenClaw mengkomersialkan konsep itu menjadi fitur sehari-hari.
 
@@ -97,7 +97,7 @@ Sebagai ilustrasi berlawanan, bayangkan agen tanpa *approval gate* yang diminta 
 
 ### Ekosistem
 
-OpenClaw tidak hidup sendiri. Ia hadir dalam empat bentuk yang saling melengkapi: **CLI** untuk pengguna terminal (paling fleksibel, paling ringan), **ekstensi VS Code** untuk developer yang bekerja dengan kode, **SDK** (misalnya Python) untuk membangun agen kustom, dan **Kanban multi-agent** untuk memvisualisasikan beberapa agen yang bekerja paralel pada tugas berbeda — semacam papan trello tempat setiap kartu dipegang oleh agen yang berbeda. Empat antarmuka ini berbagi satu *engine* yang sama, sehingga tugas yang sama bisa dijalankan dari mana saja.
+OpenClaw tidak hidup sendiri. Ia hadir dalam empat bentuk yang saling melengkapi: **CLI** untuk pengguna terminal (paling fleksibel, paling ringan), **ekstensi VS Code** untuk developer yang bekerja dengan kode, **SDK** (misalnya Python) untuk membangun agen kustom, dan **Kanban multi-agent** untuk memvisualisasikan beberapa agen yang bekerja paralel pada tugas berbeda — semacam papan Trello tempat setiap kartu dipegang oleh agen yang berbeda. Empat antarmuka ini berbagi satu *engine* yang sama, sehingga tugas yang sama bisa dijalankan dari mana saja.
 
 Pilih antarmuka berdasarkan konteks kerja Anda, bukan berdasarkan mode. Pengguna yang sering bekerja di terminal akan betah di CLI karena ia bisa dipanggil dari dalam skrip dan *cron job* — otomasi yang mengotomasi otomasi. Pengembang yang menulis kode sepanjang hari lebih produktif dengan ekstensi VS Code karena konteks kode langsung tersedia bagi agen. Tim yang mengawasi banyak tugas paralel mendapat manfaat dari Kanban: setiap kartu adalah satu agen, setiap kolom adalah tahap pengerjaan, dan status terlihat sekilas tanpa membuka log. Semua pintu masuk ini menuju *engine* yang sama, sehingga menguasai satu berarti menguasai semuanya — inilah keputusan desain yang membuat OpenClaw mudah diadopsi bertahap.
 
@@ -128,7 +128,7 @@ Tiga lapisan terlihat jelas. Lapisan atas adalah antarmuka yang beragam — CLI 
 
 ### Pilar 1: Tool Use (Function Calling)
 
-Pilar pertama adalah kemampuan agen memanggil alat: API sistem operasi, *file system*, *browser*, dan *terminal*. Inilah yang mengubah LLM dari orator menjadi pekerja. Alih-alih menulis teks "silahkan jalankan perintah berikut", agen memproduksi *structured call* — nama fungsi dan argumen yang siap dieksekusi. Teknik ini dibahas mendalam di Bab 4.2, tetapi intinya: *tool use* adalah tangan dari agen, sementara penalaran adalah otaknya.
+Pilar pertama adalah kemampuan agen memanggil alat: API sistem operasi, *file system*, *browser*, dan *terminal*. Inilah yang mengubah LLM dari orator menjadi pekerja. Alih-alih menulis teks "silakan jalankan perintah berikut", agen memproduksi *structured call* — nama fungsi dan argumen yang siap dieksekusi. Teknik ini dibahas mendalam di Bab 4.2, tetapi intinya: *tool use* adalah tangan dari agen, sementara penalaran adalah otaknya.
 
 ### Pilar 2: Planning & Reasoning (Perencanaan dan Penalaran)
 
@@ -136,7 +136,7 @@ Pilar kedua adalah kemampuan menyusun rencana dan menalarnya langkah demi langka
 
 ### Pilar 3: Memory (Memori)
 
-Pilar ketiga adalah memori. Agent yang baik tidak boleh lupa: konteks jangka pendek disimpan dalam *prompt window* model (ingatan kerja), sementara pengetahuan jangka panjang disimpan di luar — sebagai file, database, atau hasil *retrieval* (RAG). Memori inilah yang membuat agen "konsisten" di sepanjang sesi panjang, menyinambungkan pekerjaan dari langkah pertama hingga terakhir, dan belajar dari kesalahan di langkah sebelumnya.
+Pilar ketiga adalah memori. Agent yang baik tidak boleh lupa: konteks jangka pendek disimpan dalam *prompt window* model (ingatan kerja), sementara pengetahuan jangka panjang disimpan di luar — sebagai file, database, atau hasil *retrieval* (RAG). Memori inilah yang membuat agen "konsisten" di sepanjang sesi panjang, menyambungkan pekerjaan dari langkah pertama hingga terakhir, dan belajar dari kesalahan di langkah sebelumnya.
 
 ### Pilar 4: Autonomy (Otonomi)
 
@@ -151,7 +151,7 @@ Empat pilar ini tidak bekerja sendiri-sendiri — ia saling menguatkan seperti k
 
 Setelah memahami empat pilar, kita bisa memetakan perbedaan *chatbot* dan *agent* secara tegas. Chatbot bekerja dalam satu putaran (*single-turn*): pertanyaan masuk, jawaban keluar, selesai. Ia *stateless* — tidak mengingat apa-apa antar putaran — dan tidak memiliki akses ke alat apa pun. Agent bekerja dalam banyak putaran (*multi-turn*): ia mengamati, berpikir, bertindak, mengamati lagi, dan mengulang sampai tuntas. Ia *stateful* — konteks terus diperbarui di setiap langkah — dan punya akses ke *file system*, API, *shell*, dan *browser*.
 
-Contoh nyata yang mudah dikenali: ChatGPT adalah *passive LLM* — mumpuni dalam percakapan, tetapi buntu ketika diminta "tolong backup folder saya". OpenClaw atau Cline adalah *active agent* — dengan satu instruksi, mereka menyusun rencana, menjalankan perintah, dan melaporkan hasil. Perbandingan lengkapnya dapat Anda lihat pada **Tabel 1** di seksi tabel nanti; poin terpentingnya adalah kontrol bergeser dari manusia yang mengoperasikan ke manusia yang *mengawasi*.
+Contoh nyata yang mudah dikenali: ChatGPT adalah *passive LLM* — mumpuni dalam percakapan, tetapi buntu ketika diminta "tolong backup folder saya". OpenClaw atau Cline adalah *active agent* — dengan satu instruksi, mereka menyusun rencana, menjalankan perintah, dan melaporkan hasil. Perbandingan lengkapnya dapat Anda lihat pada **Tabel 1** di seksi 2; poin terpentingnya adalah kontrol bergeser dari manusia yang mengoperasikan ke manusia yang *mengawasi*.
 
 Perlu kejujuran di sini: kedua paradigma tetap punya tempatnya masing-masing di tahun 2026. Chatbot masih yang terbaik untuk menjawab pertanyaan cepat, menulis draf, dan mengoreksi teks — tugas yang satu putaran dan tidak menyentuh sistem Anda. Agen baru unggul ketika tugasnya *multi-step*, menyentuh banyak *tool*, dan berulang. Kesalahan umum yang dilakukan pengguna baru adalah memaksakan semua interaksi menjadi sesi agen; pemborosan yang sama seperti membawa robot ke meja untuk menanyakan "jam berapa sekarang". Kuncinya adalah *memilih alat sesuai tugas* — dan buku ini ditulis agar Anda bisa membedakan keduanya dengan cepat.
 
@@ -187,18 +187,22 @@ Alasan ketiga adalah **biaya**: tanpa API, tidak ada biaya per *token*. Setelah 
 
 ### Kematangan Model Lokal
 
-Argumen klasik penentang agen lokal adalah "model lokal kualitasnya kalah". Argumen itu semakin usang di 2026. **DeepSeek V4 Pro** (lisensi MIT, *open-weight*) dan **DeepSeek V4 Flash** (284 miliar parameter, 13 miliar aktif — bisa berjalan di workstation dua GPU kelas RTX 6000) membawa kualitas mendekati *frontier* cloud ke mesin sendiri. **Mistral Large 3** (675 miliar parameter, Apache 2.0) menawarkan alternatif Eropa yang permisif untuk penggunaan komersial. Dan bila tugas membutuhkan akurasi tertinggi — misalnya *reasoning* hukum atau medis — agen lokal tetap bisa memanggil **Claude Fable 5** via API sebagai "penasihat ahli eksternal", termasuk kualitas *SWE-bench* 95% yang menjadi standar industri 2026. Kombinasi ini menjadikan agent lokal bukan sekadar mumpuni, tetapi sering kali pilihan yang lebih rasional.
+Argumen klasik penentang agen lokal adalah "model lokal kualitasnya kalah". Argumen itu semakin usang di 2026. **DeepSeek V4 Pro** (*open-weight*) dan **DeepSeek V4 Flash** (284 miliar parameter, 13 miliar aktif, lisensi MIT — bisa berjalan di workstation dua GPU kelas RTX 6000) membawa kualitas mendekati *frontier* cloud ke mesin sendiri.
+
+**Mistral Large 3** (675 miliar parameter, Apache 2.0) menawarkan alternatif Eropa yang permisif untuk penggunaan komersial. Dan bila tugas membutuhkan akurasi tertinggi — misalnya *reasoning* hukum atau medis — agen lokal tetap bisa memanggil **Claude Fable 5** via API sebagai "penasihat ahli eksternal", termasuk kualitas *SWE-bench* 95% [Sumber?] yang menjadi standar industri 2026.
+
+Kombinasi ini menjadikan agent lokal bukan sekadar mumpuni, tetapi sering kali pilihan yang lebih rasional.
 
 Bahkan arsitektur paling pragmatis sekalipun — *hybrid* — berakar pada fondasi lokal: model lokal menangani 80% tugas rutin dengan biaya nol dan privasi penuh, sementara API *frontier* dipanggil hanya untuk tugas yang benar-benar membutuhkan akurasi maksimal. Dengan strategi ini, tagihan API bulanan bisa ditekan hingga sebagian kecil dari biaya penggunaan cloud penuh, tanpa mengorbankan kualitas pada titik-titik kritis. Inilah pola yang akan Anda lihat berulang kali di buku ini: *local-first, cloud-on-demand*.
 
 ---
 
-## 7. Tantangan & Risiko: Kekuatan yang Perlu Sangkur
+## 7. Tantangan & Risiko: Kekuatan yang Perlu Sekering
 
 
 Kekuatan agen adalah juga bahayanya. Setiap pilar yang membuat agen berguna — akses *shell*, otonomi, memori — adalah permukaan serangan baru. Risiko pertama: **keamanan**. Agen dengan akses *shell* bisa menghapus data, menimpa file penting, atau menjalankan perintah yang merusak sistem. Kesalahan satu argumen dalam satu panggilan tool bisa berarti hilangnya folder yang berisi tahunan pekerjaan. Risiko kedua: **halusinasi yang berbahaya**. Jika agen salah menalar, ia bisa mengeksekusi perintah yang salah — dan karena ia "percaya diri", kesalahan ini bisa berlangsung beberapa langkah sebelum terdeteksi [1].
 
-Solusinya berlapis, seperti *sangkur* (pengaman) pada peralatan listrik. Pertama, **sandboxing Docker**: jalankan agen di kontainer yang terisolasi sehingga kerusakan tidak menjalar ke sistem utama. Kedua, **approval gates**: perintah berisiko (menghapus, menimpa, mengirim data keluar) menunggu persetujuan manusia. Ketiga, **permission system**: setiap tool memiliki izin granular — agent boleh membaca, tetapi tidak boleh menulis; boleh mengakses satu folder, tetapi tidak seluruh disk. Filosofi OpenClaw merangkumnya dalam satu aturan sederhana: **delegasikan tugas, tetapi jangan pernah mengirimkan kedaulatan**. Bab 4.8 buku ini akan membahas keamanan sandbox secara menyeluruh.
+Solusinya berlapis, seperti *sekering* (pengaman arus) pada peralatan listrik. Pertama, **sandboxing Docker**: jalankan agen di kontainer yang terisolasi sehingga kerusakan tidak menjalar ke sistem utama. Kedua, **approval gates**: perintah berisiko (menghapus, menimpa, mengirim data keluar) menunggu persetujuan manusia. Ketiga, **permission system**: setiap tool memiliki izin granular — agent boleh membaca, tetapi tidak boleh menulis; boleh mengakses satu folder, tetapi tidak seluruh disk. Filosofi OpenClaw merangkumnya dalam satu aturan sederhana: **delegasikan tugas, tetapi jangan pernah mengirimkan kedaulatan**. Bab 4.8 buku ini akan membahas keamanan sandbox secara menyeluruh.
 
 Dalam praktiknya, keamanan agen adalah *manajemen risiko*, bukan *penghapusan risiko*. Mustahil membuat agen yang serba bisa dan serba aman sekaligus; yang bisa diatur adalah *peluang dan dampak* kecelakaan. Analisis risiko sederhana berbunyi seperti ini: tool apa yang paling berbahaya? (jawabannya *shell* dan *database*), kapan ia paling sering salah? (saat instruksi ambigu), dan berapa besar kerugian jika salah? (sebanding dengan apa yang bisa disentuh agen). Dari tiga jawaban itu Anda bisa menyusun kebijakan: batasi tool berbahaya dengan sandbox, minta konfirmasi untuk instruksi ambigu, dan sempitkan akses agen ke folder kerja saja. Kebiasaan ini — berpikir seperti *insurer* sebelum berpikir seperti *programmer* — membedakan pengguna agen yang bertahan lama dari yang berhenti setelah satu kecelakaan.
 
@@ -213,7 +217,9 @@ Sejarah komputasi personal adalah sejarah pergeseran pusat kendali — dari keyb
 | **2010s** | Cloud/SaaS | Browser → Server | Google Docs, ChatGPT |
 | **2020s** | Agentic AI | Natural Language → Action | OpenClaw, Cline |
 
-Membaca tabel ini secara diagonal, pola yang konsisten adalah *penurunan hambatan*: setiap era baru memindahkan lebih banyak pengetahuan teknis dari manusia ke mesin. Di era command line, Anda harus hafal sintaks; di era GUI, Anda cukup mengenali ikon; di era cloud, Anda cukup mengetik alamat; di era agentic, Anda cukup *mengatakan apa yang Anda inginkan*. Perhatikan juga arahnya: komputasi personal berputar dari *lokal* (1980s) ke *terpusat* (2010s) dan kembali ke *lokal* (2020s) — kali ini dengan mesin yang mengerti maksud manusia. Inilah alasan mengapa agen lokal, bukan chatbot cloud, dipandang sebagai puncak evolusi ini.
+Membaca tabel ini secara diagonal, pola yang konsisten adalah *penurunan hambatan*: setiap era baru memindahkan lebih banyak pengetahuan teknis dari manusia ke mesin. Di era command line, Anda harus hafal sintaks; di era GUI, Anda cukup mengenali ikon; di era cloud, Anda cukup mengetik alamat; di era agentic, Anda cukup *mengatakan apa yang Anda inginkan*.
+
+Perhatikan juga arahnya: komputasi personal berputar dari *lokal* (1980s) ke *terpusat* (2010s) dan kembali ke *lokal* (2020s) — kali ini dengan mesin yang mengerti maksud manusia. Inilah alasan mengapa agen lokal, bukan chatbot cloud, dipandang sebagai puncak evolusi ini.
 
 ---
 
@@ -259,10 +265,11 @@ Untuk memahami mekanika di balik CLI, mari kita bangun simulasi *agent loop* ter
 ```python
 # simple_agent.py — simulasi agent loop filosofi OpenClaw
 import json
+import ollama
 
 class SimpleAgent:
-    def __init__(self, llm):
-        self.llm = llm
+    def __init__(self, llm="llama3.1:8b"):
+        self.model = llm
         self.memory = []
         self.tools = {
             "create_file": self.create_file,
@@ -281,8 +288,19 @@ class SimpleAgent:
     def think(self, task):
         prompt = f"""Task: {task}
 Memory: {self.memory}
-Pilih tool dan argumen yang tepat."""
-        return self.llm(prompt)
+Pilih tool yang tersedia: create_file (args: path, content) atau list_dir (args: path).
+Kembalikan JSON: {{"tool": "...", "args": {{...}}}}"""
+        resp = ollama.chat(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.0},
+        )
+        raw = resp["message"]["content"]
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {"tool": "create_file",
+                    "args": {"path": "hello.txt", "content": "Hello World"}}
 
     def act(self, decision):
         tool_name = decision["tool"]
@@ -301,14 +319,14 @@ Pilih tool dan argumen yang tepat."""
             print(f"[Agent] {decision['tool']} → {result}")
         print("[Agent] Task selesai!")
 
-# Contoh use case
+# Contoh use case — pastikan Ollama berjalan dan model tersedia
 agent = SimpleAgent(llm="llama3.1:8b")
 agent.run("Buat file hello.txt dan isi dengan 'Hello World'")
 ```
 
-Perhatikan tiga elemen kunci yang mencerminkan empat pilar: (1) `memory` — daftar langkah yang sudah dijalankan, membuat agen *stateful* (pilar memory); (2) `think` → `act` — siklus *reasoning* lalu *action* (pilar planning + tool use); (3) `while not self.is_done` — putaran otonom yang berhenti hanya ketika kriteria selesai terpenuhi (pilar autonomy). Dalam produksi, `think` diganti panggilan nyata ke Ollama dengan *tool definitions* — persis seperti yang akan Anda pelajari di Bab 4.2.
+Perhatikan tiga elemen kunci yang mencerminkan empat pilar: (1) `memory` — daftar langkah yang sudah dijalankan, membuat agen *stateful* (pilar memory); (2) `think` → `act` — siklus *reasoning* lalu *action* (pilar planning + tool use); (3) `while not self.is_done` — putaran otonom yang berhenti hanya ketika kriteria selesai terpenuhi (pilar autonomy). Dalam produksi, `think` menggunakan *tool definitions* resmi Ollama sehingga model benar-benar memilih dari daftar tool — persis seperti yang akan Anda pelajari di Bab 4.2.
 
-Untuk menguji simulasi ini dengan mesin nyata, ganti `self.llm` dengan fungsi yang memanggil Ollama, lalu jalankan:
+Untuk menguji simulasi ini, pastikan Ollama berjalan (`ollama serve`) dan model `llama3.1:8b` sudah diunduh, lalu jalankan:
 
 ```bash
 # Jalankan simulasi agent loop

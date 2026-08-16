@@ -31,7 +31,7 @@ Komponen inti Dify meliputi: **Workflow Builder** (DAG visual untuk pipeline mul
 
 Kekuatan lain Dify adalah dukungan multi-modelnya: lebih dari **50 provider** yang mencakup OpenAI (GPT-5.5), Anthropic (Claude Fable 5), Ollama (DeepSeek V4 Pro/Flash, Mistral Large 3), vLLM, HuggingFace, Google (Gemini 2.5 Pro), serta semua API yang kompatibel dengan format OpenAI. Ini berarti satu aplikasi Dify bisa memakai model lokal untuk data sensitif dan model cloud untuk tugas berat, bahkan beralih di antara keduanya tanpa mengubah kode.
 
-Model-model 2026 sangat relevan untuk Dify. **DeepSeek V4 series** dengan 1M context cocok untuk RAG dengan dokumen panjang — kontrak, kebijakan, laporan keuangan — karena satu dokumen utuh bisa masuk dalam satu prompt tanpa chunking agresif. **Mistral Large 3** (granular MoE multimodal) menangani dokumen yang mengandung gambar dan tabel. **Qwen3.7-Max** yang *agent-centric* dengan 1M context menjadi pilihan untuk aplikasi agent dengan tool calling dan percakapan panjang. Kombinasi ini membuat Dify menjadi tempat paling praktis untuk "menguji dulu, men-deploy kemudian" berbagai model.
+Model-model 2026 sangat relevan untuk Dify. **DeepSeek V4 series** dengan 1M context cocok untuk RAG dengan dokumen panjang — kontrak, kebijakan, laporan keuangan — karena satu dokumen utuh bisa masuk dalam satu prompt tanpa chunking agresif. **Mistral Large 3** (granular MoE multimodal) menangani dokumen yang mengandung gambar dan tabel. **Qwen3.7-Max** yang *agent-centric* dengan 1M context menjadi pilihan untuk aplikasi agent dengan tool calling dan percakapan panjang. Kombinasi ini membuat Dify menjadi tempat paling praktis untuk "menguji dulu, mendeploy kemudian" berbagai model.
 
 ### Tabel 1: Perbandingan Platform LLM App Builder
 
@@ -111,9 +111,6 @@ Gambar ini memperlihatkan aliran permintaan dari tiga titik masuk — Web App, R
 
 ---
 
-
----
-
 ## 4. Komponen Aplikasi Dify
 
 
@@ -143,7 +140,7 @@ Pemetaan model ke kasus penggunaan HR dan Finance — perhatikan kolom terakhir 
 | **Gemini 2.5 Pro** | — | 1M | Thinking mode, multimodal | Laporan multimodal, analisis tren |
 | **Ministral 3 (8B)** | 8B | 128K | Edge-friendly, Cascade Distillation | Chatbot ringan di perangkat terbatas |
 
-Dua model lokal dari DeepSeek menutupi sebagian besar kebutuhan HR/Finance tanpa biaya per query. DeepSeek V4 Pro unggul untuk tugas berat konteks panjang — analisis kontrak dan kebijakan — sementara DeepSeek V4 Flash melayani chatbot volume tinggi dengan latency rendah. Claude Fable 5 direkomendasikan ketika guardrail ketat menjadi keharusan, misalnya screening CV yang memuat data kandidat sensitif — trade-off-nya adalah data dikirimkan ke API Anthropic. Mistral Large 3 menawarkan kemampuan unik: membaca laporan keuangan yang mengandung grafik dan tabel ber-OCR. Ministral 3 layak diingat untuk kios rekrutmen atau perangkat dengan sumber daya kecil.
+Dua model lokal dari DeepSeek menutupi sebagian besar kebutuhan HR/Finance tanpa biaya per *query*. DeepSeek V4 Pro unggul untuk tugas berat konteks panjang — analisis kontrak dan kebijakan — sementara DeepSeek V4 Flash melayani chatbot volume tinggi dengan latency rendah. Claude Fable 5 direkomendasikan ketika guardrail ketat menjadi keharusan, misalnya screening CV yang memuat data kandidat sensitif — trade-off-nya adalah data dikirimkan ke API Anthropic. Mistral Large 3 menawarkan kemampuan unik: membaca laporan keuangan yang mengandung grafik dan tabel ber-OCR. Ministral 3 layak diingat untuk kios rekrutmen atau perangkat dengan sumber daya kecil.
 
 
 ### Tabel 3: Fitur Enterprise Dify untuk HR dan Finance
@@ -163,23 +160,20 @@ Analisis tabel ini menunjukkan simetri yang menarik antara HR dan Finance. Kedua
 
 ### Tabel 4: Perbandingan Performa Retrieval Dify
 
-Data evaluasi RAG Dify v0.10 pada dataset internal menunjukkan efek penambahan hybrid search dan rerank.
+Data evaluasi RAG Dify v0.10 pada dataset internal menunjukkan efek penambahan hybrid search dan *rerank*.
 
 | Metrik | Vector Only ($k=5$) | Hybrid + Rerank | Improvement |
 |:---|:---:|:---:|:---:|
-| **Recall@5** | 0.82 | 0.94 | +14.6% |
-| **MRR@10** | 0.76 | 0.91 | +19.7% |
-| **Precision@3** | 0.71 | 0.88 | +23.9% |
-| **Latency (ms)** | 45 | 185 | +311% (trade-off) |
+| **Recall@5** | 0,82 | 0,94 | +14,6% |
+| **MRR@10** | 0,76 | 0,91 | +19,7% |
+| **Precision@3** | 0,71 | 0,88 | +23,9% |
+| **Latency (ms)** | 45 | 185 | +311% (*trade-off*) |
 
 ![Skor Recall@5, MRR@10, dan Precision@3 untuk Vector Only versus Hybrid + Rerank](../../assets/images/bab-09-integrasi/sub-bab-2/performa-retrieval-dify.png)
 
 *Gambar 9.2-1 — Penambahan hybrid search dan rerank menaikkan seluruh metrik kualitas retrieval (Precision@3 +23,9%), tetapi latency melonjak dari 45 ms ke 185 ms — terapkan mode hybrid hanya pada tugas yang mengutamakan akurasi seperti screening CV.*
 
-Tabel ini adalah pelajaran klasik dalam RAG: kualitas dan kecepatan sering bertolak belakang. Pencarian vektor murni selesai dalam 45 ms tetapi Recall@5 hanya 0,82 — dataset bisnis sering memakai istilah yang berbeda dari kata kunci pengguna, sehingga hasil vektor saja melewatkan dokumen relevan. Dengan menambahkan pencarian keyword dan model rerank, Recall@5 naik ke 0,94 (+14,6%) dan Precision@3 melonjak 23,9% — jawaban yang lebih tepat dalam setiap batch. Harganya: latency naik menjadi 185 ms (+311%). Keputusan yang bijak adalah menerapkan mode *hybrid + rerank* untuk tugas yang mengutamakan akurasi (screening CV, analisis kontrak) dan *vector only* untuk chatbot FAQ volume tinggi. Catatan: data ini dari evaluasi Dify v0.10 dengan dataset internal; versi Dify yang lebih baru sebaiknya diverifikasi ulang dengan dataset Anda sendiri.
-
----
-
+Tabel ini adalah pelajaran klasik dalam RAG: kualitas dan kecepatan sering bertolak belakang. Pencarian vektor murni selesai dalam 45 ms tetapi Recall@5 hanya 0,82 — dataset bisnis sering memakai istilah yang berbeda dari kata kunci pengguna, sehingga hasil vektor saja melewatkan dokumen relevan. Dengan menambahkan pencarian keyword dan model *rerank*, Recall@5 naik ke 0,94 (+14,6%) dan Precision@3 melonjak 23,9% — jawaban yang lebih tepat dalam setiap batch. Harganya: latency naik menjadi 185 ms (+311%). Keputusan yang bijak adalah menerapkan mode *hybrid + rerank* untuk tugas yang mengutamakan akurasi (screening CV, analisis kontrak) dan *vector only* untuk chatbot FAQ volume tinggi. Catatan: data ini dari evaluasi Dify v0.10 dengan dataset internal; versi Dify yang lebih baru sebaiknya diverifikasi ulang dengan dataset Anda sendiri.
 
 ---
 
@@ -190,7 +184,7 @@ Kualitas jawaban aplikasi AI sangat bergantung pada kualitas *knowledge base*-ny
 
 Strategi *chunking* dapat disesuaikan: **fixed-size** (ukuran tetap), **paragraph-based** (berdasarkan paragraf), atau *custom separator*. Di sinilah keputusan bisnis berperan: dokumen SOP yang panjang akan dipotong berbeda dari peraturan singkat. Untuk dokumen sangat panjang (lebih dari 50 halaman), penggunaan model berkonteks besar seperti DeepSeek V4 Pro (1M context) memungkinkan chunking minimal — dokumen utuh tetap bisa dipahami dalam satu panggilan.
 
-Teknik *indexing* Dify menggunakan pendekatan **hybrid**: pencarian *keyword* (BM25) dikombinasikan dengan pencarian *vector* (semantic), lalu hasil gabungannya di-*rerank* menggunakan model Rerank khusus. Kombinasi ini secara signifikan mengungguli pencarian vektor murni (lihat Tabel 4 nanti), meskipun dengan trade-off latency. Terakhir, Dify menyediakan manajemen kualitas: *annotation* (menandai jawaban baik/buruk), *feedback loop* dari pengguna, dan metrik evaluasi — sehingga *knowledge base* bukan artefak statis, melainkan sistem yang terus membaik.
+Teknik *indexing* Dify menggunakan pendekatan **hybrid**: pencarian *keyword* (BM25) dikombinasikan dengan pencarian *vector* (semantic), lalu hasil gabungannya direrank menggunakan model *rerank* khusus. Kombinasi ini secara signifikan mengungguli pencarian vektor murni (lihat Tabel 4), meskipun dengan *trade-off* latency. Terakhir, Dify menyediakan manajemen kualitas: *annotation* (menandai jawaban baik/buruk), *feedback loop* dari pengguna, dan metrik evaluasi — sehingga *knowledge base* bukan artefak statis, melainkan sistem yang terus membaik.
 
 ---
 
@@ -199,7 +193,7 @@ Teknik *indexing* Dify menggunakan pendekatan **hybrid**: pencarian *keyword* (B
 
 Bagian yang sering diabaikan tetapi justru krusial adalah *Prompt IDE*: editor visual tempat Anda menyusun prompt dengan **variable, context dari knowledge base, dan few-shot examples** tanpa harus paham sintaks. Prompt bisa memuat variabel dinamis seperti `{{kandidat_nama}}` atau `{{jumlah}}` yang diisi saat runtime.
 
-Dari sisi operasi, **LLMOps Dashboard** menampilkan log setiap percakapan: *latency*, pemakaian token, dan **biaya per pengguna/sesi** — informasi yang langsung menjawab pertanyaan manajemen "pakah aplikasi ini benar-benar menghemat?". Dify juga mendukung **A/B testing** antar model atau konfigurasi prompt: dua versi diuji pada trafik riil, lalu Anda memilih pemenangnya berdasarkan data, bukan intuisi.
+Dari sisi operasi, **LLMOps Dashboard** menampilkan log setiap percakapan: *latency*, pemakaian token, dan **biaya per pengguna/sesi** — informasi yang langsung menjawab pertanyaan manajemen "apakah aplikasi ini benar-benar menghemat?". Dify juga mendukung **A/B testing** antar model atau konfigurasi prompt: dua versi diuji pada trafik riil, lalu Anda memilih pemenangnya berdasarkan data, bukan intuisi.
 
 Siklus pengembangan di Dify mengikuti putaran *continuous improvement* yang ketat: annotate log (nilai jawaban mana yang buruk) → perbaiki prompt → deploy versi baru → ukur kembali. Putaran ini adalah jantung LLMOps — aplikasi AI bukan sekali jadi, melainkan terus-menerus dipoles seperti produk layanan pelanggan yang baik.
 
@@ -208,7 +202,7 @@ Siklus pengembangan di Dify mengikuti putaran *continuous improvement* yang keta
 ## 7. Deployment dan Skalabilitas
 
 
-Dify fleksibel dalam cara penggelaran. Untuk **self-hosted**, cara termudah adalah *Docker Compose* — satu perintah dan seluruh stack (backend, frontend, Postgres, Redis, sandbox) berjalan. Untuk perusahaan besar, **Kubernetes** menyediakan hal yang sama dalam skala orkestrasi penuh dengan *autoscaling*. Alternatif tanpa instalasi adalah **Dify Cloud**, yang menawarkan *trial* gratis sebanyak 200 panggilan GPT-4 — cukup untuk mengevaluasi sebelum berkomitmen.
+Dify fleksibel dalam cara penggelaran. Untuk **self-hosted**, cara termudah adalah *Docker Compose* — satu perintah dan seluruh stack (backend, frontend, Postgres, Redis, sandbox) berjalan. Untuk perusahaan besar, **Kubernetes** menyediakan hal yang sama dalam skala orkestrasi penuh dengan *autoscaling*. Alternatif tanpa instalasi adalah **Dify Cloud**, yang menawarkan *trial* gratis sebanyak 200 panggilan GPT-5.5 — cukup untuk mengevaluasi sebelum berkomitmen.
 
 Satu detail arsitektur yang patut diapresiasi: **sandbox policy**. Setiap kode yang ditulis pengguna di Code Node dieksekusi di container terisolasi, bukan langsung di mesin utama. Ini mencegah skenario berbahaya — kode yang mencuri variabel lingkungan, mengakses file sistem, atau melakukan eksfiltrasi data — sekaligus memungkinkan pengguna non-developer bereksperimen dengan kode tanpa mengancam infrastruktur. Untuk tim yang menangani data keuangan atau data pribadi karyawan, sandbox ini adalah pembeda besar dibandingkan platform no-code komersial.
 
@@ -217,7 +211,7 @@ Satu detail arsitektur yang patut diapresiasi: **sandbox policy**. Setiap kode y
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup Dify Self-hosted dengan Docker
+### Langkah 1: Setup Dify Self-hosted dengan Docker
 
 Mulai dengan mengkloning repository Dify dan menjalankan stack Docker-nya. Seluruh proses memakan waktu kurang dari 10 menit pada mesin dengan Docker terpasang.
 
@@ -256,9 +250,9 @@ docker compose up -d
 
 Perhatikan `host.docker.internal` pada URL Ollama: karena Dify berjalan di dalam Docker di mesin yang sama dengan Ollama, gunakan host khusus ini agar container Dify dapat menjangkau port 11434 di host. Jika Ollama juga berjalan di dalam Docker network yang sama, gunakan nama service-nya secara langsung.
 
-### Tutorial B: Bangun Chatbot HR — Screening Kandidat
+### Langkah 2: Bangun Chatbot HR — Screening Kandidat
 
-Tujuan kita: chatbot yang menjawab pertanyaan kandidat berdasarkan *Job Description* dan SOP HR, dapat di-embed ke website karir.
+Tujuan kita: chatbot yang menjawab pertanyaan kandidat berdasarkan *Job Description* dan SOP HR, dapat diembed ke website karir.
 
 1. **Buat Knowledge Base:** Upload file PDF berisi deskripsi pekerjaan (Job Description) dan SOP HR ke menu *Knowledge*.
 2. **Chunking Setting:** Pilih chunking tipe `paragraph` dengan overlap 200 karakter. Untuk dokumen panjang (>50 halaman), gunakan model konteks besar seperti **DeepSeek V4 Pro** (1M context) agar chunking bisa lebih minimal — potongan yang lebih utuh berarti konteks yang lebih terjaga.
@@ -278,7 +272,7 @@ Jika ditanya tentang status lamaran, minta nomor registrasi.
 5. **Konfigurasi Memori:** Atur 10 putaran percakapan untuk konteks wawancara yang berkelanjutan.
 6. **Publish ke Web Widget:** Dapatkan *embed code* dan tempel ke website karir perusahaan — kandidat mulai bertanya tanpa perlu login atau referensi teknis.
 
-### Tutorial C: Workflow Finance — Approval Request
+### Langkah 3: Workflow Finance — Approval Request
 
 Sekarang kita bangun workflow yang menangani pengajuan anggaran, lengkap dengan validasi kebijakan dan alur persetujuan.
 
@@ -333,7 +327,7 @@ Hasil yang didokumentasikan:
 - **Skor kepuasan kandidat: 4,5/5** — kandidat merasa prosesnya cepat dan informatif, tanggapan chatbot selalu dalam hitungan detik
 - **Biaya: Rp 0 untuk software** (open source), **Rp 1,2 juta/bulan untuk server** — dibandingkan mengontrak vendor rekrutmen AI yang bisa memakan puluhan juta per bulan
 
-Pelajaran studi kasus ini: Dify menurunkan hambatan masuk bagi organisasi tanpa tim AI khusus. Kunci keberhasilannya bukan membuat model — Qwen-2.5-14B adalah model generasi 2024 — tetapi orkestrasi: knowledge base yang rapi, prompt yang dirancang bersama staf HR, dan loop umpan balik di mana *annotation* jawaban salah digunakan untuk memperbaiki prompt. Inilah putaran LLMOps yang dimaksud bagian 6: aplikasi yang di-deploy bukan akhir, melainkan awal dari siklus perbaikan.
+Pelajaran studi kasus ini: Dify menurunkan hambatan masuk bagi organisasi tanpa tim AI khusus. Kunci keberhasilannya bukan membuat model — Qwen-2.5-14B adalah model generasi 2024 — tetapi orkestrasi: knowledge base yang rapi, prompt yang dirancang bersama staf HR, dan loop umpan balik di mana *annotation* jawaban salah digunakan untuk memperbaiki prompt. Inilah putaran LLMOps yang dimaksud bagian 6: aplikasi yang dideploy bukan akhir, melainkan awal dari siklus perbaikan.
 
 ---
 
