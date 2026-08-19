@@ -1,13 +1,13 @@
 # Bab 5.9: Monitoring Latency — Time to First Token (TTFT) Skala Grup
 
-> Seorang kapten kapal tidak bertanya "apakah kita berlayar?" — ia bertanya "berapa knot sekarang, berapa arus di depan, dan kapan kita harus membelok?" Analogi yang sama berlaku untuk inference LLM di skala produksi: pertanyaan yang tepat bukan "apakah sistem berjalan?" melainkan "berapa milidetik hingga token pertama, berapa milidetik antar token, dan kapan alarm berbunyi sebelum pengguna merasakan lambatnya?" Bab ini membahas metrik-metrik kunci serving LLM, kerangka SLO yang realistis, tumpukan monitoring dengan Prometheus dan Grafana, serta seni memecahkan masalah latency sebelum menjadi insiden. Pada akhirnya, tujuan bab ini sederhana: menjadikan kelambatan sebagai angka yang terukur, bukan keluhan yang terlambat.
+> Seorang kapten kapal tidak bertanya "apakah kita berlayar?" — ia bertanya "berapa knot sekarang, berapa arus di depan, dan kapan kita harus membelok?" Analogi yang sama berlaku untuk inference LLM di skala produksi: pertanyaan yang tepat bukan "apakah sistem berjalan?" melainkan "berapa milidetik hingga token pertama, berapa milidetik antar token, dan kapan alarm berbunyi sebelum pengguna merasakan lambatnya?" Sub-bab ini membahas metrik-metrik kunci serving LLM, kerangka SLO yang realistis, tumpukan monitoring dengan Prometheus dan Grafana, serta seni memecahkan masalah latency sebelum menjadi insiden. Pada akhirnya, tujuan sub-bab ini sederhana: menjadikan kelambatan sebagai angka yang terukur, bukan keluhan yang terlambat.
 
 ---
 
 ## 1. Tujuan Sub-Bab
 
 
-Setelah membaca bab ini, Anda akan mampu:
+Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan metrik kunci LLM serving: TTFT, TPOT, ITL, E2E Latency, dan throughput
 - Menyusun Service Level Objectives (SLO) yang realistis untuk berbagai use case — dari chatbot real-time hingga batch processing
@@ -32,7 +32,7 @@ Perlu ditegaskan sejak awal bahwa TTFT bukanlah angka tunggal yang stabil — ia
 
 Setelah token pertama, kecepatan generasi diukur dengan **TPOT (*Time Per Output Token*)** — rata-rata waktu yang dibutuhkan model untuk menghasilkan satu token — dan **ITL (*Inter-Token Latency*)**, jeda antar token individual yang menggambarkan kelancaran streaming: ITL yang stabil dan rendah berarti teks mengalir mulus tanpa tersendat-sendat. Dua metrik ini berhubungan erat dengan *memory bandwidth* GPU: karena bobot model harus dibaca ulang setiap langkah decode, TPOT rendah hanya bisa dicapai dengan bandwidth memori yang besar. Terakhir, **E2E Latency** adalah jumlah seluruhnya — dari request masuk hingga respons lengkap — yang merupakan hasil kali TTFT dan TPOT dikali jumlah output token. Dan di belakang semua itu, **throughput** (token per detik atau request per detik) menjadi metrik kapasitas yang menentukan seberapa banyak pengguna dapat dilayani sekaligus.
 
-Persepsi pengguna terhadap kualitas streaming ternyata lebih dekat ke ITL daripada ke TPOT. Dua sistem dengan TPOT rata-rata 15 ms yang sama bisa terasa sangat berbeda: satu dengan ITL yang stabil (semua token tiba dengan jeda seragam) terasa mulus, satu lagi dengan ITL yang berombak (kadang 5 ms, kadang 40 ms) terasa pincang — karenanya, metrik ITL biasanya dipantau dengan persentil ekor sendiri (P95/P99) sebagai indikator "jank" atau guncangan. Bagian Monitoring (Tutorial A) menunjukkan bagaimana mengisolasi kedua metrik ini dari histogram yang sama. Kebiasaan yang baik sejak awal: pantau ITL P99 dan TPOT P50 berdampingan — pasangan ini adalah paket lengkap untuk menilai pengalaman streaming.
+Persepsi pengguna terhadap kualitas streaming ternyata lebih dekat ke ITL daripada ke TPOT. Dua sistem dengan TPOT rata-rata 15 ms yang sama bisa terasa sangat berbeda: satu dengan ITL yang stabil (semua token tiba dengan jeda seragam) terasa mulus, satu lagi dengan ITL yang berombak (kadang 5 ms, kadang 40 ms) terasa pincang — karenanya, metrik ITL biasanya dipantau dengan persentil ekor sendiri (P95/P99) sebagai indikator "jank" atau guncangan. Bagian Monitoring (Langkah 1) menunjukkan bagaimana mengisolasi kedua metrik ini dari histogram yang sama. Kebiasaan yang baik sejak awal: pantau ITL P99 dan TPOT P50 berdampingan — pasangan ini adalah paket lengkap untuk menilai pengalaman streaming.
 
 ### Gambar 1: Anatomi Latency LLM Request
 
@@ -49,35 +49,35 @@ graph LR
 
 Gambar ini adalah peta pembedahan E2E: dari kiri ke kanan, setiap panah adalah ruas yang bisa diukur terpisah. Ketika ada insiden latency, Anda tidak perlu menebak — cukup cek ruas mana yang membengkak: antrean (queue time), prefill (TTFT minus queue), atau generasi (TPOT/ITL). Tanpa peta ini, "sistem lambat" hanyalah frase; dengannya, ia menjadi daftar tersangka yang terukur.
 
-Ada satu detail penting yang tidak terlihat di diagram: titik pengukuran TTFT di sisi klien *tidak persis sama* dengan di sisi server. vLLM mengukur TTFT dari saat request diterima engine hingga token pertama keluar — angka yang bersih dari jaringan. Namun pengguna Anda mengukur dari saat tombol kirim ditekan — termasuk waktu perjalanan ke server, antrean di load balancer, dan perjalanan kembali. Perbedaan keduanya bisa puluhan hingga ratusan milidetik pada koneksi lintas benua. Karena itu, praktik terbaiknya adalah memantau *keduanya*: TTFT internal (vLLM) untuk diagnosis teknis, dan TTFT end-to-end (lewat synthetic probe seperti pada Tutorial B) untuk validasi SLO dari sudut pandang pengguna. SLO yang ditetapkan pada Tabel A merujuk pada pengalaman pengguna — pastikan metrik yang Anda pantau memang mengukurnya.
+Ada satu detail penting yang tidak terlihat di diagram: titik pengukuran TTFT di sisi klien *tidak persis sama* dengan di sisi server. vLLM mengukur TTFT dari saat request diterima engine hingga token pertama keluar — angka yang bersih dari jaringan. Namun pengguna Anda mengukur dari saat tombol kirim ditekan — termasuk waktu perjalanan ke server, antrean di load balancer, dan perjalanan kembali. Perbedaan keduanya bisa puluhan hingga ratusan milidetik pada koneksi lintas benua. Karena itu, praktik terbaiknya adalah memantau *keduanya*: TTFT internal (vLLM) untuk diagnosis teknis, dan TTFT end-to-end (lewat synthetic probe seperti pada Langkah 2) untuk validasi SLO dari sudut pandang pengguna. SLO yang ditetapkan pada Tabel 1 merujuk pada pengalaman pengguna — pastikan metrik yang Anda pantau memang mengukurnya.
 
 
 ---
 
-## 3. SLO Framework: Janji yang Bisa Diukur
+## 3. Kerangka SLO: Janji yang Bisa Diukur
 
 
-### Threshold yang Menjadi Kontrak
+### Ambang yang Menjadi Kontrak
 
-SLO mengubah perasaan subjektif ("sepertinya lambat") menjadi kontrak yang terukur. Untuk LLM serving, praktik terbaik [1][5] menetapkan target berlapis: **P50 TTFT < 200 ms, P95 < 500 ms, P99 < 2 detik**; **P50 TPOT < 15 ms, P95 < 30 ms**; dan **error rate < 0,1%** (timeout dan 5xx). Angka-angka ini bukan plafon — batch processing boleh lebih longgar, voice assistant harus lebih ketat (lihat Tabel A) — tetapi menjadi *bahasa bersama* antara tim engineering dan manajemen: bila P99 TTFT menembus 2 detik selama lima menit, alarm berbunyi, bukan perdebatan.
+SLO mengubah perasaan subjektif ("sepertinya lambat") menjadi kontrak yang terukur. Untuk LLM serving, praktik terbaik [1][5] menetapkan target berlapis: **P50 TTFT < 200 ms, P95 < 500 ms, P99 < 2 detik**; **P50 TPOT < 15 ms, P95 < 30 ms**; dan **error rate < 0,1%** (timeout dan 5xx). Angka-angka ini bukan plafon — batch processing boleh lebih longgar, voice assistant harus lebih ketat (lihat Tabel 1), tetapi menjadi *bahasa bersama* antara tim engineering dan manajemen: bila P99 TTFT menembus 2 detik selama lima menit, alarm berbunyi, bukan perdebatan.
 
-### Goodput dan Multi-Percentile
+### Goodput dan Multi-Persentil
 
-Mengapa harus membicarakan tiga persentil sekaligus, bukannya satu rata-rata? Karena rata-rata berbohong: median 180 ms yang tampak sehat bisa menyembunyikan ekor 10% pengguna yang menunggu 3 detik. Monitoring multi-percentile — median (P50), ekor tengah (P95), dan ekor paling ujung (P99) — menceritakan pengalaman pengguna sesungguhnya: P50 adalah perasaan pengguna biasa, P99 adalah kesabaran pengguna yang paling tidak beruntung. Dari situ lahir konsep **SLO-based goodput**: persentase request yang berhasil memenuhi *semua* threshold SLO sekaligus. Sebuah request yang selesai dalam 3 detik dengan TTFT 2,5 detik dihitung sebagai *bad work* meski tidak error — karena pengguna sudah merasakan kelambatan.
+Mengapa harus membicarakan tiga persentil sekaligus, bukannya satu rata-rata? Karena rata-rata berbohong: median 180 ms yang tampak sehat bisa menyembunyikan ekor 10% pengguna yang menunggu 3 detik. Monitoring multi-persentil — median (P50), ekor tengah (P95), dan ekor paling ujung (P99) — menceritakan pengalaman pengguna sesungguhnya: P50 adalah perasaan pengguna biasa, P99 adalah kesabaran pengguna yang paling tidak beruntung. Dari situ lahir konsep **SLO-based goodput**: persentase request yang berhasil memenuhi *semua* threshold SLO sekaligus. Sebuah request yang selesai dalam 3 detik dengan TTFT 2,5 detik dihitung sebagai *bad work* meski tidak error — karena pengguna sudah merasakan kelambatan.
 
-Perluasan penting dari konsep goodput adalah **menghitung setiap request terhadap SLO yang bersangkutan, bukan satu SLO global**. Request yang datang dari endpoint batch (misalnya `/v1/embeddings`) seharusnya dinilai terhadap SLO batch (TTFT < 5s), bukan SLO interaktif — angka 2 detik di Tabel A untuk batch adalah bukti bahwa penilaian tunggal akan membanjiri dashboard dengan false alarm. Implementasinya di Prometheus: label `endpoint` atau `model_name` pada metrik menjadi pemisah dimensi penilaian, dan setiap aturan alert menargetkan satu kombinasi label — pola yang terlihat pada semua contoh query di bagian praktikum. Menilai semua traffic dengan satu penggaris adalah kesalahan desain monitoring yang paling umum kedua setelah melupakan per-tenant metrics.
+Perluasan penting dari konsep goodput adalah **menghitung setiap request terhadap SLO yang bersangkutan, bukan satu SLO global**. Request yang datang dari endpoint batch (misalnya `/v1/embeddings`) seharusnya dinilai terhadap SLO batch (TTFT < 5s), bukan SLO interaktif — angka 2 detik di Tabel 1 untuk batch adalah bukti bahwa penilaian tunggal akan membanjiri dashboard dengan false alarm. Implementasinya di Prometheus: label `endpoint` atau `model_name` pada metrik menjadi pemisah dimensi penilaian, dan setiap aturan alert menargetkan satu kombinasi label — pola yang terlihat pada semua contoh query di bagian praktikum. Menilai semua traffic dengan satu penggaris adalah kesalahan desain monitoring yang paling umum kedua setelah melupakan per-tenant metrics.
 
-### Tabel A: SLO Matrix untuk Berbagai Use Case
+### Tabel 1: Matriks SLO untuk Berbagai Use Case
 
 Matriks SLO yang berbeda per use case — perhatikan bagaimana persyaratan berlaku untuk satu domain tidak berarti untuk domain lain.
 
 | Use Case | TTFT P50 | TTFT P99 | TPOT P50 | E2E P95 | Availability |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| Chatbot real-time | < 200ms | < 1s | < 15ms | < 5s | 99.9% |
-| AI Coding Assistant | < 300ms | < 1.5s | < 20ms | < 8s | 99.5% |
-| Batch Processing | < 5s | < 30s | < 50ms | < 5m | 99.0% |
-| Voice Assistant | < 100ms | < 500ms | < 10ms | < 2s | 99.95% |
-| RAG Pipeline | < 500ms | < 2s | < 25ms | < 10s | 99.5% |
+| Chatbot real-time | < 200ms | < 1s | < 15ms | < 5s | 99,9% |
+| AI Coding Assistant | < 300ms | < 1,5s | < 20ms | < 8s | 99,5% |
+| Batch Processing | < 5s | < 30s | < 50ms | < 5m | 99,0% |
+| Voice Assistant | < 100ms | < 500ms | < 10ms | < 2s | 99,95% |
+| RAG Pipeline | < 500ms | < 2s | < 25ms | < 10s | 99,5% |
 
 Ada hierarki halus di tabel ini. *Availability* menurun ketika TTFT dilonggarkan — batch processing hanya menuntut 99,0% availability karena retry jauh lebih murah daripada antrean interaktif. Sebaliknya, voice assistant menuntut kombinasi paling ketat (TTFT P50 100 ms, TPOT 10 ms, availability 99,95%) karena keterlambatan 300 ms dalam percakapan suara langsung terdengar tidak wajar. Ketika dua use case berbagi infrastruktur, SLO termahal yang menang — dan perbedaan harga inilah yang memberitahu Anda mengapa voice assistant sebaiknya mendapat dedicated resource.
 
@@ -106,8 +106,6 @@ Contoh konkret kapan burn rate memicu peringatan: misalkan SLO P99 TTFT < 2 deti
 ---
 
 
----
-
 ## 4. Tumpukan Monitoring: Prometheus, Grafana, dan Sahabatnya
 
 
@@ -115,24 +113,24 @@ Setiap engine inference modern berbicara bahasa Prometheus secara gratis. **vLLM
 
 Tiga dashboard yang layak dibangun sejak awal menutup hampir semua kasus insiden harian. **Dashboard operasional** — panel TTFT/TPOT histogram, request rate, dan queue depth per model — adalah ruang triase pertama setiap kali alarm berbunyi. **Dashboard GPU** — utilisasi, suhu, VRAM terpakai, dan KV cache — menjawab pertanyaan "apakah hardware yang bermasalah, bukan software". **Dashboard per-tenant** — TTFT dan jatah resource per API key — menyingkap ketidakadilan yang tidak terlihat pada agregat (bahan studi kasus di akhir bab). Ketiganya dibangun dari metrik yang sama hanya dengan memutar label `model_name` atau menambahkan label tenant di layer proxy. Jangan menunda membangun dashboard ketiga menunggu "sistem besar dulu" — metrik per-tenant jauh lebih murah dibangun sejak awal daripada ditambalkan belakangan pada sistem yang sudah hidup.
 
-### Tabel B: Metrik Prometheus — vLLM Key Metrics
+### Tabel 2: Metrik Prometheus — Metrik Kunci vLLM
 
 Kamus metrik yang diekspos vLLM di endpoint `/metrics` — masing-masing siap di-*scrape* Prometheus beserta labelnya.
 
-| Metric Name | Type | Labels | Description |
+| Nama Metrik | Tipe | Label | Deskripsi |
 |:---|:---:|:---|:---|
-| `vllm:time_to_first_token_seconds` | Histogram | model_name, pod | TTFT distribution |
-| `vllm:inter_token_latency_seconds` | Histogram | model_name | Per-token latency |
-| `vllm:request_prompt_tokens` | Histogram | model_name | Input token count |
-| `vllm:request_generation_tokens` | Histogram | model_name | Output token count |
-| `vllm:num_requests_running` | Gauge | model_name | Active requests |
-| `vllm:num_requests_waiting` | Gauge | model_name | Queued requests |
-| `vllm:gpu_cache_usage_perc` | Gauge | model_name | KV-cache utilisation |
-| `vllm:avg_gpu_utilization` | Gauge | model_name, pod | GPU compute util |
+| `vllm:time_to_first_token_seconds` | Histogram | model_name, pod | Distribusi TTFT |
+| `vllm:inter_token_latency_seconds` | Histogram | model_name | Latensi per token |
+| `vllm:request_prompt_tokens` | Histogram | model_name | Jumlah token input |
+| `vllm:request_generation_tokens` | Histogram | model_name | Jumlah token output |
+| `vllm:num_requests_running` | Gauge | model_name | Request aktif |
+| `vllm:num_requests_waiting` | Gauge | model_name | Request dalam antrean |
+| `vllm:gpu_cache_usage_perc` | Gauge | model_name | Pemanfaatan KV-cache |
+| `vllm:avg_gpu_utilization` | Gauge | model_name, pod | Utilisasi komputasi GPU |
 
 Tiga hal patut diperhatikan. Pertama, metrik histogram (TTFT, ITL) adalah bahan baku untuk menghitung persentil dengan `histogram_quantile` — inilah yang menggerakkan seluruh SLO kita. Kedua, pasangan `num_requests_running` dan `num_requests_waiting` membentuk sinyal kapasitas yang sangat jujur: waiting yang terus bertambah berarti replica kewalahan. Ketiga, perhatikan label `model_name` pada hampir semua metrik — ini fondasi untuk pemantauan per-tenant yang akan menyelamatkan Anda di studi kasus bab ini.
 
-Satu catatan metodologis tentang metrik histogram yang penting dipahami sebelum menurunkan SLO: **kualitas persentil bergantung pada kualitas bucket**. Bucket default metrik vLLM memberi resolusi yang terbatas pada rentang di bawah 100 ms; jika SLO Anda menuntut presisi di bawah sana (seperti voice assistant pada Tabel A), pertimbangkan untuk memperkaya bucket atau menggabungkan dengan probe khusus yang menggunakan bucket eksponensial. Demikian pula, jangan membandingkan persentil dari dua sistem yang dihitung dengan bucket berbeda — perbandingan P99 hanya adil bila granularitas histogramnya sebanding. Ini detail teknis yang jarang dibahas, tetapi sering menjadi sumber "misteri" ketika dua dashboard menunjukkan angka yang berbeda untuk metrik yang sama.
+Satu catatan metodologis tentang metrik histogram yang penting dipahami sebelum menurunkan SLO: **kualitas persentil bergantung pada kualitas bucket**. Bucket default metrik vLLM memberi resolusi yang terbatas pada rentang di bawah 100 ms; jika SLO Anda menuntut presisi di bawah sana (seperti voice assistant pada Tabel 1), pertimbangkan untuk memperkaya bucket atau menggabungkan dengan probe khusus yang menggunakan bucket eksponensial. Demikian pula, jangan membandingkan persentil dari dua sistem yang dihitung dengan bucket berbeda — perbandingan P99 hanya adil bila granularitas histogramnya sebanding. Ini detail teknis yang jarang dibahas, tetapi sering menjadi sumber "misteri" ketika dua dashboard menunjukkan angka yang berbeda untuk metrik yang sama.
 
 
 ---
@@ -156,33 +154,31 @@ Ketika total waktu membengkak, pisahkan dulu kontributornya. Jika **output gener
 
 Ketika alarm berbunyi, waktu adalah satu-satunya sumber daya yang tidak bisa dibeli. Protokol triase berikut mengubah kepanikan menjadi prosedur — kerjakan berurutan dan hentikan di langkah yang menemukan akar masalah. **Langkah 1 — konfirmasi bentuk:** periksa dashboard — apakah yang membengkak TTFT, TPOT, atau keduanya? Ini menentukan cabang diagnosis selanjutnya. **Langkah 2 — cek queue:** lihat `vllm:num_requests_waiting`. Antrean menumpuk berarti masalah kapasitas (replica kurang) atau monopoli tenant — periksa per-tenant. **Langkah 3 — cek resource:** lihat `vllm:gpu_cache_usage_perc` dan `avg_gpu_utilization`. Cache mendekati penuh berarti KV cache thrashing; utilisasi GPU rendah dengan latency tinggi berarti prefill atau jaringan. **Langkah 4 — cek model input:** periksa distribusi `vllm:request_prompt_tokens` — lonjakan prompt panjang menjelaskan TTFT naik tanpa perubahan kapasitas. **Langkah 5 — tindakan:** terapkan perbaikan paling murah yang didukung bukti (rate limit, batas prompt, scale out), lalu amati dashboard selama 5-10 menit sebelum menyimpulkan. Disiplin ini memastikan insiden diselesaikan dengan data, bukan tebakan — dan dokumentasinya menjadi materi *post-mortem* yang berharga.
 
-### Tabel C: Reference Latency Numbers (H100, 8x)
+### Tabel 3: Acuan Angka Latency (8x H100)
 
 Acuan angka latency yang diukur pada 8x H100 — jadikan tabel ini kertas ukur sebelum menyimpulkan sistem Anda "lambat".
 
-| Model | Prompt Length | Output Tokens | TTFT (ms) | TPOT (ms/tok) | E2E (s) | Throughput (tok/s) |
+| Model | Panjang Prompt | Token Output | TTFT (ms) | TPOT (ms/tok) | E2E (s) | Throughput (tok/s) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| Llama-3.1-8B | 512 | 128 | 95 | 8.5 | 1.2 | 107 |
-| Llama-3.1-8B | 8192 | 1024 | 1,100 | 15.8 | 17.3 | 59 |
-| DeepSeek V4 Pro (49B aktif) | 512 | 128 | 145 | 12.2 | 1.7 | 78 |
-| DeepSeek V4 Pro (49B aktif) | 8192 | 1024 | 680 | 18.5 | 20.1 | 51 |
-| Mistral Large 3 (41B aktif) | 512 | 128 | 132 | 11.8 | 1.6 | 83 |
-| Mistral Large 3 (41B aktif) | 8192 | 1024 | 720 | 19.2 | 20.8 | 49 |
-| Ministral 3 8B | 512 | 128 | 78 | 7.1 | 1.0 | 128 |
-| Gemini 2.5 Pro (via API) | 512 | 128 | 210 | 15.0 | 2.1 | 62 |
+| Llama 3.1 (8B) | 512 | 128 | 95 | 8,5 | 1,2 | 107 |
+| Llama 3.1 (8B) | 8192 | 1024 | 1.100 | 15,8 | 17,3 | 59 |
+| DeepSeek V4 Pro (49B aktif) | 512 | 128 | 145 | 12,2 | 1,7 | 78 |
+| DeepSeek V4 Pro (49B aktif) | 8192 | 1024 | 680 | 18,5 | 20,1 | 51 |
+| Mistral Large 3 (41B aktif) | 512 | 128 | 132 | 11,8 | 1,6 | 83 |
+| Mistral Large 3 (41B aktif) | 8192 | 1024 | 720 | 19,2 | 20,8 | 49 |
+| Ministral 3 8B | 512 | 128 | 78 | 7,1 | 1,0 | 128 |
+| Gemini 2.5 Pro (via API) | 512 | 128 | 210 | 15,0 | 2,1 | 62 |
 
-![Memperpanjang prompt dari 512 ke 8.192 token melipatgandakan TTFT: Llama-3.1-8B dari 95 ms ke 1.100 ms, sementara DeepSeek V4 Pro hanya naik ke 680 ms berkat KV-cache yang hemat](../../assets/images/bab-05-inference/sub-bab-9/ttft-vs-panjang-prompt.png)
+![Memperpanjang prompt dari 512 ke 8.192 token melipatgandakan TTFT: Llama 3.1 (8B) dari 95 ms ke 1.100 ms, sementara DeepSeek V4 Pro hanya naik ke 680 ms berkat KV-cache yang hemat](../../assets/images/bab-05-inference/sub-bab-9/ttft-vs-panjang-prompt.png)
 
-*Gambar 5.9-1 — Panjang prompt adalah musuh TTFT (Llama-3.1-8B melonjak >10x); pada konteks 8K, DeepSeek V4 Pro justru mengungguli model kecil karena efisiensi KV-cache mengalahkan ukuran model.*
+*Gambar 5.9-1 — Panjang prompt adalah musuh TTFT (Llama 3.1 (8B) melonjak >10x); pada konteks 8K, DeepSeek V4 Pro justru mengungguli model kecil karena efisiensi KV-cache mengalahkan ukuran model.*
 
-Tabel ini mengajarkan dua pelajaran. Pertama, **panjang prompt adalah musuh TTFT**: melanjutkan Llama-3.1-8B dari prompt 512 ke 8.192 token menaikkan TTFT lebih dari 10x lipat (95 → 1.100 ms). Kedua, efisiensi KV cache nyata terlihat pada DeepSeek V4 Pro: dengan 8.192 token konteks, TTFT-nya hanya 680 ms — bandingkan estimasi 6+ detik pada DeepSeek V3.2 untuk panjang yang sama, karena KV cache V4 Pro hanya 10% ukuran V3.2. Ini menjelaskan mengapa penyedia API dapat menjual konteks panjang dengan harga yang masuk akal — strukturnya memang murah.
+Tabel ini mengajarkan dua pelajaran. Pertama, **panjang prompt adalah musuh TTFT**: melanjutkan Llama 3.1 (8B) dari prompt 512 ke 8.192 token menaikkan TTFT lebih dari 10x lipat (95 → 1.100 ms). Kedua, efisiensi KV cache nyata terlihat pada DeepSeek V4 Pro: dengan 8.192 token konteks, TTFT-nya hanya 680 ms — bandingkan estimasi 6+ detik pada DeepSeek V3.2 untuk panjang yang sama, karena KV cache V4 Pro hanya 10% ukuran V3.2. Ini menjelaskan mengapa penyedia API dapat menjual konteks panjang dengan harga yang masuk akal — strukturnya memang murah.
 
-Ada satu pola lagi yang tidak boleh terlewat: **jarak antara model kecil dan model besar menyempit saat konteks memanjang**. Pada prompt 512 token, Llama-3.1-8B unggul jauh dalam TTFT (95 ms vs 145 ms DeepSeek V4 Pro). Namun pada 8K token, DeepSeek V4 Pro justru lebih cepat (680 ms vs 1.100 ms) meskipun parameter aktifnya 6x lebih besar — karena efisiensi KV cache mengalahkan ukuran model. Implikasinya praktis: jika mayoritas trafik Anda ber-*konteks panjang*, memilih model dengan arsitektur KV cache efisien lebih berdampak pada latency daripada memilih model kecil. Ketika membandingkan angka sistem Anda sendiri dengan Tabel C, ingat juga bahwa angka ini diukur pada 8x H100 — pada GPU yang lebih lemah, skala perbedaannya tetap (proporsional), tetapi absolutnya bisa jauh berbeda. Gunakan tabel ini sebagai *sanity check*, bukan kitab suci.
-
----
-
+Ada satu pola lagi yang tidak boleh terlewat: **jarak antara model kecil dan model besar menyempit saat konteks memanjang**. Pada prompt 512 token, Llama 3.1 (8B) unggul jauh dalam TTFT (95 ms vs 145 ms DeepSeek V4 Pro). Namun pada 8K token, DeepSeek V4 Pro justru lebih cepat (680 ms vs 1.100 ms) meskipun parameter aktifnya 6x lebih besar — karena efisiensi KV cache mengalahkan ukuran model. Implikasinya praktis: jika mayoritas trafik Anda ber-*konteks panjang*, memilih model dengan arsitektur KV cache efisien lebih berdampak pada latency daripada memilih model kecil. Ketika membandingkan angka sistem Anda sendiri dengan Tabel 3, ingat juga bahwa angka ini diukur pada 8x H100 — pada GPU yang lebih lemah, skala perbedaannya tetap (proporsional), tetapi absolutnya bisa jauh berbeda. Gunakan tabel ini sebagai *sanity check*, bukan kitab suci.
 
 ---
+
 
 ## 6. Capacity Planning: Meramal dari Riwayat
 
@@ -191,7 +187,7 @@ Monitoring bukan hanya lensa untuk masa kini — ia juga bola kristal untuk masa
 
 ### Dari Metrik Menuju Anggaran: Tiga Formula Kunci
 
-Tiga perhitungan sederhana mengubah data mentah menjadi keputusan anggaran. Pertama, **GPU hours per hari**: kalikan jumlah total token yang dilayani dengan perkiraan throughput per GPU — hasilnya memberitahu berapa GPU yang harus selalu menyala, dan berapa yang cukup di-*spin up* saat puncak. Kedua, **cost per token**: bagi biaya total infrastruktur (GPU + listrik + jaringan) dengan jumlah token yang berhasil dilayani — ini angka yang paling jujur untuk mengevaluasi optimasi: jika speculative decoding menaikkan throughput 2,8x, cost per token turun drastis meski perangkat kerasnya sama. Ketiga, **error budget**: kalikan SLO availability dengan jumlah request per bulan — misalnya availability 99,9% dari 10 juta request berarti Anda hanya boleh gagal 10.000 request; setiap insiden mengurangi sisa anggaran, dan *burn rate* menentukan seberapa cepat peringatan harus berbunyi. Ketiga formula ini menghubungkan layer metrik (Tabel B) dengan layer keputusan bisnis — dan menjadikan monitoring sebagai alat negosiasi anggaran, bukan sekadar papan skor.
+Tiga perhitungan sederhana mengubah data mentah menjadi keputusan anggaran. Pertama, **GPU hours per hari**: kalikan jumlah total token yang dilayani dengan perkiraan throughput per GPU — hasilnya memberitahu berapa GPU yang harus selalu menyala, dan berapa yang cukup di-*spin up* saat puncak. Kedua, **cost per token**: bagi biaya total infrastruktur (GPU + listrik + jaringan) dengan jumlah token yang berhasil dilayani — ini angka yang paling jujur untuk mengevaluasi optimasi: jika speculative decoding menaikkan throughput 2,8x, cost per token turun drastis meski perangkat kerasnya sama. Ketiga, **error budget**: kalikan SLO availability dengan jumlah request per bulan — misalnya availability 99,9% dari 10 juta request berarti Anda hanya boleh gagal 10.000 request; setiap insiden mengurangi sisa anggaran, dan *burn rate* menentukan seberapa cepat peringatan harus berbunyi. Ketiga formula ini menghubungkan layer metrik (Tabel 2) dengan layer keputusan bisnis — dan menjadikan monitoring sebagai alat negosiasi anggaran, bukan sekadar papan skor.
 
 Semua keputusan di bagian ini — SLO, alert, scaling, anggaran — hanya bermakna bila data yang mendasarinya dipercaya semua pihak. Karena itu, tutup setiap diskusi kapasitas dengan pertanyaan yang sama: *metrik mana yang menjadi bukti, dan siapa yang bertanggung jawab memastikannya akurat?* Jawaban yang baik biasanya bermuara pada satu komitmen teknis: semua metrik kunci dicatat, diberi label yang konsisten, dan diarsipkan lebih lama dari masa mengeluh pengguna. Data yang hilang sama buruknya dengan data yang bohong.
 
@@ -218,7 +214,7 @@ scrape_configs:
 ```
 
 ```bash
-# Run Prometheus + Grafana
+# Menjalankan Prometheus + Grafana
 docker compose up -d prometheus grafana
 
 # Query contoh:
@@ -271,7 +267,7 @@ input("Monitoring running...")
 
 Perhatikan trik `max_tokens: 1` — dengan meminta hanya satu token, `ttft` yang diukur adalah TTFT murni tanpa kebisingan generasi. Histogram dengan buckets eksponensial (0,01 hingga 5,0 detik) sengaja memusatkan resolusi pada rentang SLO interaktif, tempat deteksi perubahan paling penting.
 
-**Refleksi desain script di atas** membantu memahami pola pikir *synthetic probe* secara umum. Script ini mengukur sistem dari luar (black-box) — berbeda dari metrik internal vLLM yang melihat ke dalam engine. Keduanya saling melengkapi: metrik internal akurat tetapi mungkin tidak mewakili apa yang dirasakan pengguna (yang melewati jaringan, gateway, dan antrean aplikasi); probe eksternal mengukur pengalaman nyata tetapi menambah beban sintetis dan tidak dapat membedakan komponen mana yang lambat. Di produksi, jalankan keduanya: metrik internal (`:8000/metrics`) untuk pembedahan akar masalah, probe eksternal (script di atas) untuk validasi SLO dari sudut pandang pengguna — termasuk rute yang melewati load balancer dari Bab 5.8. Perhatikan bahwa probe dengan `max_tokens: 1` hanya mengukur TTFT dan jaringan; untuk memantau TPOT, ubah `max_tokens` menjadi 50-100 dan bagi total waktu dengan jumlah token yang diterima — persis seperti pengukuran yang dilakukan vendor model pada Tabel C.
+**Refleksi desain script di atas** membantu memahami pola pikir *synthetic probe* secara umum. Script ini mengukur sistem dari luar (black-box) — berbeda dari metrik internal vLLM yang melihat ke dalam engine. Keduanya saling melengkapi: metrik internal akurat tetapi mungkin tidak mewakili apa yang dirasakan pengguna (yang melewati jaringan, gateway, dan antrean aplikasi); probe eksternal mengukur pengalaman nyata tetapi menambah beban sintetis dan tidak dapat membedakan komponen mana yang lambat. Di produksi, jalankan keduanya: metrik internal (`:8000/metrics`) untuk pembedahan akar masalah, probe eksternal (script di atas) untuk validasi SLO dari sudut pandang pengguna — termasuk rute yang melewati load balancer dari Bab 5.8. Perhatikan bahwa probe dengan `max_tokens: 1` hanya mengukur TTFT dan jaringan; untuk memantau TPOT, ubah `max_tokens` menjadi 50-100 dan bagi total waktu dengan jumlah token yang diterima — persis seperti pengukuran yang dilakukan vendor model pada Tabel 3.
 
 ### Langkah 3: Alert Rules untuk P99 TTFT
 
@@ -315,7 +311,7 @@ groups:
 
 Tiga aturan ini membentuk piramida peringatan dini. `KVCacheNearFull` (warning, 1 menit) memberitahu Anda lebih awal bahwa memori sedang penuh; `QueueGrowing` (warning, 2 menit) menunjukkan tekanan sudah merambat ke antrean; `HighTTFT` (critical, 5 menit) adalah bukti pengalaman pengguna sudah rusak. Klausa `for: 5m` mencegah alert palsu dari lonjakan sesaat — hanya degradasi yang bertahan yang dihukum. Template `{{ $labels.model_name }}` membuat setiap alert informatif saat dikirim ke Slack.
 
-Dua disiplin operasional melengkapi alert rules ini. Pertama, **jalankan piket triase segera setelah alert**: SLO-*based* monitoring hanya berarti jika ada pemilik yang jelas untuk setiap peringatan — tentukan on-call engineer dan runbook (protokol triase pada sub-bab di atas) sebelum insiden terjadi, bukan saat alarm berbunyi. Kedua, **audit false positive secara berkala**: alert yang sering berbunyi tanpa aksi akan diabaikan orang — kematian bisu sebuah alerting system. Jika `QueueGrowing` sering trigger padahal sistem sehat, naikkan ambangnya; sebaliknya, jika P99 TTFT memburuk tanpa alert, periksa kembali durasi `for` dan cakupan bucket histogram. Alerting yang baik adalah sistem yang *jarang* berbunyi tetapi selalu benar ketika berbunyi.
+Dua disiplin operasional melengkapi alert rules ini. Pertama, **jalankan piket triase segera setelah alert**: SLO-*based* monitoring hanya berarti jika ada pemilik yang jelas untuk setiap peringatan — tentukan on-call engineer dan runbook (protokol triase pada sub-bab di atas) sebelum insiden terjadi, bukan saat alarm berbunyi. Kedua, **audit false positive secara berkala**: alert yang sering berbunyi tanpa aksi akan diabaikan orang — kematian bisu sebuah alerting system. Jika `QueueGrowing` sering memicu alert padahal sistem sehat, naikkan ambangnya; sebaliknya, jika P99 TTFT memburuk tanpa alert, periksa kembali durasi `for` dan cakupan bucket histogram. Alerting yang baik adalah sistem yang *jarang* berbunyi tetapi selalu benar ketika berbunyi.
 
 ---
 
@@ -334,7 +330,7 @@ Dua disiplin operasional melengkapi alert rules ini. Pertama, **jalankan piket t
 
 **Monitoring baru.** Dashboard ditambah pemantauan **per-tenant TTFT** dan alert khusus: jika satu tenant memonopoli lebih dari 50% GPU cache, alarm berbunyi. Pelajaran yang dipetik — *monitoring tanpa per-tenant metrics adalah blind spot dalam multi-tenant serving*: sistem dapat terlihat sehat secara agregat sementara satu pengguna korban kelaparan (starvation) di balik yang lain. Metrik agregat menyembunyikan ketidakadilan; metrik per-tenant menyingkapkannya.
 
-**Post-mortem dalam satu halaman.** Dokumentasi insiden menyimpulkan tiga hal yang bisa ditiru tim lain. Pertama, *deteksi yang baik adalah deteksi yang lebih cepat dari keluhan*: alarm HighTTFT berbunyi 4 menit sebelum laporan pengguna masuk — investasi pada alert berbasis SLO (Tutorial C) terbukti membayar sendiri pada insiden pertama. Kedua, *perbaikan sementara yang baik selalu disertai batas waktu*: rate limit 8K dan batas prompt panjang dipasang sebagai solusi jangka pendek, dengan jadwal tinjauan dua minggu — bukan sebagai peraturan permanen yang tak pernah dievaluasi. Ketiga, *setiap blind spot yang ditemukan harus menghasilkan metrik baru*: insiden ini melahirkan dua metrik baru (per-tenant TTFT dan per-tenant cache share) yang kemudian menyingkap dua insiden minor berikutnya lebih awal. Insiden yang didokumentasikan dengan disiplin seperti ini berubah dari "hari buruk" menjadi investasi pengetahuan kolektif.
+**Post-mortem dalam satu halaman.** Dokumentasi insiden menyimpulkan tiga hal yang bisa ditiru tim lain. Pertama, *deteksi yang baik adalah deteksi yang lebih cepat dari keluhan*: alarm HighTTFT berbunyi 4 menit sebelum laporan pengguna masuk — investasi pada alert berbasis SLO (Langkah 3) terbukti membayar sendiri pada insiden pertama. Kedua, *perbaikan sementara yang baik selalu disertai batas waktu*: rate limit per API key dan batas prompt 8K dipasang sebagai solusi jangka pendek, dengan jadwal tinjauan dua minggu — bukan sebagai peraturan permanen yang tak pernah dievaluasi. Ketiga, *setiap blind spot yang ditemukan harus menghasilkan metrik baru*: insiden ini melahirkan dua metrik baru (per-tenant TTFT dan per-tenant cache share) yang kemudian menyingkap dua insiden minor berikutnya lebih awal. Insiden yang didokumentasikan dengan disiplin seperti ini berubah dari "hari buruk" menjadi investasi pengetahuan kolektif.
 
 ---
 
@@ -365,6 +361,6 @@ Dua disiplin operasional melengkapi alert rules ini. Pertama, **jalankan piket t
 
 [10] Google SRE. *Service Level Objectives*. [https://sre.google](https://sre.google)
 
-[9] Prometheus. *Documentation*. [https://prometheus.io/docs](https://prometheus.io/docs)
+[11] Prometheus. *Documentation*. [https://prometheus.io/docs](https://prometheus.io/docs)
 
-[10] vLLM. *Metrics Official Documentation*. [https://docs.vllm.ai](https://docs.vllm.ai)
+[12] vLLM. *Metrics Official Documentation*. [https://docs.vllm.ai](https://docs.vllm.ai)

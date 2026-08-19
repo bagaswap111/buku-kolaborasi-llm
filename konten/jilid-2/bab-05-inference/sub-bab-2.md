@@ -1,6 +1,6 @@
 # Bab 5.2: TGI
 
-> Jika vLLM adalah mesin balap yang fokus pada kecepatan murni, **TGI** adalah mobil dinas lengkap: selain cepat, ia membawa perangkat keselamatan, *radio streaming* untuk berbicara token demi token, serta pintu belakang yang otomatis memuat model dari gudang Hugging Face. Text Generation Inference adalah jawaban Hugging Face untuk pertanyaan yang sama — menjalankan model bahasa besar di produksi — tetapi dengan prioritas yang sedikit berbeda: kemudahan integrasi ekosistem dan fitur-fitur enterprise yang tidak dimiliki mesin lain.
+> Jika vLLM adalah mesin balap yang fokus pada kecepatan murni, **TGI** adalah mobil dinas lengkap: selain cepat, ia membawa perangkat keselamatan, *radio streaming* untuk berbicara token demi token, serta pintu belakang yang otomatis memuat model dari gudang Hugging Face. Text Generation Inference adalah jawaban Hugging Face untuk pertanyaan yang sama — menjalankan model bahasa besar di produksi, tetapi dengan prioritas yang sedikit berbeda: kemudahan integrasi ekosistem dan fitur-fitur enterprise yang tidak dimiliki mesin lain.
 
 ---
 
@@ -44,7 +44,7 @@ Perlu dipahami bahwa *sharding* TGI tidak membagi request per pengguna — setia
 
 ### 3.3 Integrasi dengan Hugging Face Hub
 
-Fitur yang paling membedakan TGI adalah integrasi native dengan **Hugging Face Hub**. Cukup berikan `--model-id meta-llama/Meta-Llama-3.1-8B-Instruct`, dan TGI akan otomatis mengunduh bobot, menyimpannya di *cache* lokal (volume `/data`), lalu memuatnya — termasuk tokenizer dan *configuration file*. Untuk model *gated* seperti keluarga Llama, token akses disalurkan lewat variabel lingkungan `HUGGING_FACE_HUB_TOKEN`. Bobot didukung dalam format **safetensors** yang aman dan cepat dimuat, dan seluruh mekanisme *caching* menghindari unduhan berulang saat Anda *restart* container.
+Fitur yang paling membedakan TGI adalah integrasi native dengan **Hugging Face Hub**. Cukup berikan `--model-id meta-llama/Meta-Llama 3.1 (8B)`, dan TGI akan otomatis mengunduh bobot, menyimpannya di *cache* lokal (volume `/data`), lalu memuatnya — termasuk tokenizer dan *configuration file*. Untuk model *gated* seperti keluarga Llama, token akses disalurkan lewat variabel lingkungan `HUGGING_FACE_HUB_TOKEN`. Bobot didukung dalam format **safetensors** yang aman dan cepat dimuat, dan seluruh mekanisme *caching* menghindari unduhan berulang saat Anda *restart* container.
 
 ### 3.4 Dukungan Kuantisasi
 
@@ -56,18 +56,18 @@ Untuk menilai dampak kuantisasi secara kuantitatif, perhatikan *throughput*, TTF
 
 | Konfigurasi | Throughput (req/s) | TTFT P50 (ms) | Latency P50 (ms) |
 |:---|:---:|:---:|:---:|
-| TGI default (Llama-3.1-8B, no quant) | 28.5 | 185 | 1250 |
-| TGI + AWQ 4-bit | 45.2 | 142 | 890 |
-| TGI + FP8 | 52.1 | 128 | 760 |
-| TGI + Mistral Large 3 (FP8, 4xA100) | 22.4 | 210 | 1,450 |
-| TGI + Ministral 3 8B (AWQ) | 58.7 | 112 | 680 |
-| vLLM (comparison, Llama-3.1-8B) | 45.3 | 195 | 1120 |
+| TGI default (Llama 3.1 (8B), no quant) | 28,5 | 185 | 1250 |
+| TGI + AWQ 4-bit | 45,2 | 142 | 890 |
+| TGI + FP8 | 52,1 | 128 | 760 |
+| TGI + Mistral Large 3 (FP8, 4xA100) | 22,4 | 210 | 1450 |
+| TGI + Ministral 3 8B (AWQ) | 58,7 | 112 | 680 |
+| vLLM (comparison, Llama 3.1 (8B)) | 45,3 | 195 | 1120 |
 
 ![Kuantisasi menaikkan throughput TGI dari 28,5 req/s (no quant) menjadi 52,1 req/s (FP8), dengan latensi P50 turun dari 1250 ms ke 760 ms](../../assets/images/bab-05-inference/sub-bab-2/throughput-dan-latensi-tgi.png)
 
 *Gambar 5.2-1 — Kuantisasi bukan hanya mengecilkan model: bobot yang lebih kecil memangkas beban memory bandwidth, sehingga throughput naik ~1,8x dan latensi turun ~40% tanpa mengganti GPU.*
 
-Tiga baris pertama menunjukkan pola yang sangat instruktif: kuantisasi bukan hanya mengecilkan *footprint* model, tetapi juga menaikkan *throughput* — dari 28,5 req/s (tanpa kuantisasi) menjadi 52,1 req/s (FP8) — karena pesos yang lebih kecil mengurangi beban *memory bandwidth* yang memang menjadi *bottleneck* *decode*. Bandingkan juga dengan vLLM pada model sama: vLLM unggul pada konfigurasi standar (45,3 vs 28,5 req/s), menegaskan bahwa vLLM memang lebih agresif dalam *throughput* murni. Sementara itu, **Ministral 3 8B** (seri edge-optimized Mistral, Apache 2.0) menunjukkan performa terbaik di tabel — 58,7 req/s dengan TTFT 112 ms — menjadikannya pilihan menarik untuk TGI di *home server* dan *edge*. **Mistral Large 3** (675B/41B aktif) yang mendukung FP8 dan NVFP4 secara native tetap layak untuk beban bertonase besar di empat A100 [7][8].
+Tiga baris pertama menunjukkan pola yang sangat instruktif: kuantisasi bukan hanya mengecilkan *footprint* model, tetapi juga menaikkan *throughput* — dari 28,5 req/s (tanpa kuantisasi) menjadi 52,1 req/s (FP8) — karena bobot yang lebih kecil mengurangi beban *memory bandwidth* yang memang menjadi *bottleneck* *decode*. Bandingkan juga dengan vLLM pada model sama: vLLM unggul pada konfigurasi standar (45,3 vs 28,5 req/s), menegaskan bahwa vLLM memang lebih agresif dalam *throughput* murni. Sementara itu, **Ministral 3 8B** (seri edge-optimized Mistral, Apache 2.0) menunjukkan performa terbaik di tabel — 58,7 req/s dengan TTFT 112 ms — menjadikannya pilihan menarik untuk TGI di *home server* dan *edge*. **Mistral Large 3** (675B/41B aktif) yang mendukung FP8 dan NVFP4 secara native tetap layak untuk beban bertonase besar di empat A100 [7][8].
 
 
 ### Gambar 1: Arsitektur TGI
@@ -90,8 +90,6 @@ Diagram ini merangkum perjalanan sebuah *request* di TGI. Klien mengirim teks; *
 ---
 
 
----
-
 ## 4. Fitur Unggulan TGI
 
 
@@ -105,7 +103,7 @@ Salah satu fitur TGI yang paling jarang dimiliki mesin lain adalah **watermarkin
 
 ### 4.3 Safety Checker
 
-TGI menyediakan **safety checker** terintegrasi yang memfilter konten berbahaya dari input maupun output — termasuk teks mengandung kekerasan, ujaran kebencian, atau konten seksual eksplisit. Berbeda dengan model *guardrail* yang berjalan terpisah, *safety checker* TGI berada dalam alur generasi sehingga keputusan *block* terjadi sebelum teks sampai ke pengguna. Ini bukan jaminan sempurna — model *guardrail* selalu memiliki *false positive* dan *false negative* — tetapi memberikan lapisan pertama yang penting untuk produk dengan pengguna di bawah umur atau domain publik.
+TGI menyediakan **safety checker** terintegrasi yang memfilter konten berbahaya dari input maupun output — termasuk teks mengandung kekerasan, ujaran kebencian, atau konten seksual eksplisit. Berbeda dengan model *guardrail* yang berjalan terpisah, *safety checker* TGI berada dalam alur generasi sehingga keputusan *block* terjadi sebelum teks sampai ke pengguna. Ini bukan jaminan sempurna — model *guardrail* selalu memiliki *false positive* dan *false negative*, tetapi memberikan lapisan pertama yang penting untuk produk dengan pengguna di bawah umur atau domain publik.
 
 ### 4.4 Grammar-Guided Generation
 
@@ -154,12 +152,10 @@ Sebagian besar konfigurasi produksi TGI dilakukan lewat *environment variables* 
 | `HUGGING_FACE_HUB_TOKEN` | - | Token akses model gated |
 | `QUANTIZE` | - | bitsandbytes, gptq, awq |
 
-Dua pasang limit di baris atas bekerja serupa "BKPB di jalan tol": `MAX_BATCH_PREFILL_TOKENS` membatasi berapa banyak token *prefill* yang boleh diproses dalam satu iterasi, mencegah satu *request* raksasa menguasai GPU, sementara `MAX_BATCH_TOTAL_TOKENS` membatasi total beban satu batch agar tidak melebihi kapasitas VRAM. Aturan penyetelannya sederhana: naikkan kedua nilai jika model dan VRAM Anda besar dan trafik didominasi *prompt* panjang; turunkan jika Anda lebih mementingkan latensi stabil untuk percakapan pendek.
+Dua pasang limit di baris atas bekerja serupa batas kecepatan di jalan tol: `MAX_BATCH_PREFILL_TOKENS` membatasi berapa banyak token *prefill* yang boleh diproses dalam satu iterasi, mencegah satu *request* raksasa menguasai GPU, sementara `MAX_BATCH_TOTAL_TOKENS` membatasi total beban satu batch agar tidak melebihi kapasitas VRAM. Aturan penyetelannya sederhana: naikkan kedua nilai jika model dan VRAM Anda besar dan trafik didominasi *prompt* panjang; turunkan jika Anda lebih mementingkan latensi stabil untuk percakapan pendek.
 
 ---
 
-
----
 
 ## 6. Deployment Patterns
 
@@ -175,15 +171,15 @@ Dua praktik keamanan patut diperhatikan di pola mana pun. Pertama, jangan pernah
 ## 7. Praktikum / Hands-On
 
 
-### Langkah 1: Deploy TGI dengan Docker — Llama-3.1-8B
+### Langkah 1: Deploy TGI dengan Docker — Llama 3.1 (8B)
 
 Mulai dari model kecil yang mudah diprediksi pada satu GPU.
 
 ```bash
-# Pull TGI image
+# Menarik image TGI
 docker pull ghcr.io/huggingface/text-generation-inference:2.3.1
 
-# Run TGI server — Llama-3.1-8B
+# Menjalankan server TGI — Llama-3.1-8B
 docker run --gpus all -p 8080:80 \
     -e HF_TOKEN=$HF_TOKEN \
     -v $HOME/.cache/huggingface:/data \
@@ -213,7 +209,7 @@ Endpoint `/health` mengembalikan 503 selama model masih dimuat; setelah 200, ser
 Untuk model MoE 675B, gunakan 4 GPU dengan *tensor parallelism* via `--num-shard 4` dan kuantisasi FP8 native:
 
 ```bash
-# Run TGI server — Mistral Large 3 (4 shard, FP8)
+# Menjalankan server TGI — Mistral Large 3 (4 shard, FP8)
 docker run --gpus all -p 8080:80 \
     -e HF_TOKEN=$HF_TOKEN \
     -v $HOME/.cache/huggingface:/data \
@@ -232,7 +228,7 @@ Perhatikan `--max-total-tokens 16384` — untuk model dengan konteks 256K, Anda 
 Untuk server rumahan atau *edge* dengan VRAM terbatas, model edge-optimized dengan AWQ 4-bit adalah kombinasi ideal:
 
 ```bash
-# Run TGI server — Ministral 3 8B (edge-optimized)
+# Menjalankan server TGI — Ministral 3 8B (edge-optimized)
 docker run --gpus all -p 8080:80 \
     -e HF_TOKEN=$HF_TOKEN \
     -v $HOME/.cache/huggingface:/data \
@@ -272,7 +268,7 @@ for chunk in response.iter_lines():
     if chunk:
         print(chunk.decode("utf-8"), end="", flush=True)
 
-# Chat completion
+# Chat completion — minta respons dari model
 response = requests.post(
     f"{API_URL}/v1/chat/completions",
     json={
@@ -294,10 +290,10 @@ Perhatikan `stream=True`: token mengalir lewat SSE dan dicetak segera — inilah
 TGI mengekspos metrik Prometheus di `/metrics`:
 
 ```bash
-# TGI exposes Prometheus metrics
+# TGI mengekspos metrik Prometheus
 curl http://localhost:8080/metrics
 
-# Key metrics:
+# Metrik penting:
 # tgi_request_count
 # tgi_request_duration_seconds
 # tgi_request_generated_tokens
@@ -326,7 +322,7 @@ EOF
 
 **Analisis pilihan.** Tim sempat mencoba vLLM, tetapi dua kebutuhan inti menyulitkan: *safety checker* tidak tersedia built-in, dan kompatibilitas API OpenAI yang terlalu banyak *endpoint* justru tidak relevan untuk kebutuhan sederhana mereka. TGI menawarkan ketiganya secara out-of-the-box, plus integrasi langsung ke model yang sudah mereka eksplorasi di Hugging Face Hub.
 
-**Solusi.** Mereka men-deploy TGI dengan Llama-3.1-8B dalam Docker Compose berdampingan dua *replica* di belakang Nginx *load balancer*. *Safety checker* diaktifkan dengan *default policy*, *watermarking* dinyalakan untuk mendeteksi jawaban yang disalin siswa dari model, dan klien web memakai *endpoint*/generate dengan *streaming*. Setiap *replica* dimonitor lewat Grafana: *request rate*, TTFT, dan *queue depth* per *shard*.
+**Solusi.** Mereka men-deploy TGI dengan Llama 3.1 (8B) dalam Docker Compose berdampingan dua *replica* di belakang Nginx *load balancer*. *Safety checker* diaktifkan dengan *default policy*, *watermarking* dinyalakan untuk mendeteksi jawaban yang disalin siswa dari model, dan klien web memakai *endpoint*/generate dengan *streaming*. Setiap *replica* dimonitor lewat Grafana: *request rate*, TTFT, dan *queue depth* per *shard*.
 
 **Hasil.** **95% request dilayani di bawah 1,5 detik TTFT** — memenuhi janji di bawah 2 detik. *Safety filter* memblokir 3% request yang dianggap tidak pantas *sebelum* teks mencapai siswa, dan *watermarking* membantu pendidik mengidentifikasi pekerjaan rumah yang dibuat model. Ketika trafik sesi sore melonjak, *queue depth* terpantau naik lebih dulu di Grafana, memberi waktu bagi tim untuk menambah *replica* sebelum siswa mengeluh.
 

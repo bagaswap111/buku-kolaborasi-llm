@@ -1,13 +1,13 @@
 # Bab 5.8: API Load Balancing — Distribusi Request ke Beberapa GPU
 
-> Sebuah restoran dengan satu koki hanya bisa melayani satu meja dalam satu waktu — lewati satu jam sibuk, dan antrean memanjang di luar pintu. Solusinya bukan menjejalkan koki ekstra ke meja yang sama, melainkan membangun dapur yang bisa membagi pesanan ke banyak koki secara adil. Bab ini membahas bagaimana trafik LLM didistribusikan ke banyak GPU: strategi load balancing dari round-robin hingga power-of-two choices, konfigurasi NGINX dan LiteLLM sebagai proxy, hingga teknik mutakhir *prefill-decode disaggregation* ala Splitwise yang memisahkan tahap prefill dan decode ke hardware yang berbeda. Setiap pilihan membawa harga tersendiri — tujuan bab ini adalah membuat Anda memilih dengan mata terbuka, bukan dengan lempar koin.
+> Sebuah restoran dengan satu koki hanya bisa melayani satu meja dalam satu waktu — lewati satu jam sibuk, dan antrean memanjang di luar pintu. Solusinya bukan menjejalkan koki ekstra ke meja yang sama, melainkan membangun dapur yang bisa membagi pesanan ke banyak koki secara adil. Sub-bab ini membahas bagaimana trafik LLM didistribusikan ke banyak GPU: strategi load balancing dari round-robin hingga power-of-two choices, konfigurasi NGINX dan LiteLLM sebagai proxy, hingga teknik mutakhir *prefill-decode disaggregation* ala Splitwise yang memisahkan tahap prefill dan decode ke hardware yang berbeda. Setiap pilihan membawa harga tersendiri — tujuan sub-bab ini adalah membuat Anda memilih dengan mata terbuka, bukan dengan lempar koin.
 
 ---
 
 ## 1. Tujuan Sub-Bab
 
 
-Setelah membaca bab ini, Anda akan mampu:
+Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan mengapa satu GPU atau satu instance vLLM memiliki kapasitas terbatas dan kapan horizontal scaling diperlukan
 - Membandingkan strategi load balancing: round-robin, least-connections, consistent hashing, dan power-of-two choices
@@ -57,17 +57,17 @@ Strategi yang terbukti matematis unggul untuk beban LLM: pilih dua replica secar
 
 Keputusan strategi sebaiknya tidak dibuat di ruang kosong — ia harus mengikuti bentuk trafik Anda. Jika trafik didominasi **percakapan singkat yang berulang** (chatbot layanan pelanggan dengan jumlah pengguna terbatas), consistent hashing memberikan keunggulan ganda: session affinity menstabilkan pengalaman dan prefix caching bekerja maksimal karena prompt berulang. Jika trafik adalah **batch besar dengan durasi sangat bervariasi** (pemrosesan dokumen, embedding massal), least-connections atau power-of-two choices lebih tepat — di sini durasi request tidak bisa diprediksi, jadi penyeimbangan beban berdasarkan beban aktual lebih berharga daripada kesetiaan sesi. Jika Anda menjalankan **MoE besar seperti Mistral Large 3 atau DeepSeek V4 Pro** dengan banyak node, prioritaskan session affinity: expert weights yang dimuat ulang saat request berpindah node adalah biaya tersembunyi yang cukup besar. Dan jika trafik Anda masih kecil dan tumbuh cepat, jangan terlalu khawatir memilih — power-of-two choices adalah pilihan aman universal yang tidak akan menyesatkan Anda di tahap mana pun.
 
-### Tabel A: Perbandingan Strategi Load Balancing
+### Tabel 1: Perbandingan Strategi Load Balancing
 
 Rangkuman karakter tiap strategi — perhatikan bagaimana "kecerdasan" dan "kesetiaan sesi" saling bertukar posisi pada sumbu yang berbeda.
 
 | Strategi | Distribusi | Session Affinity | Complexity | LLM Suitability |
 |:---|:---:|:---:|:---:|:---:|
-| Round-robin | Merata | Tidak | Rendah | Buruk (ignore GPU load) |
+| Round-robin | Merata | Tidak | Rendah | Buruk (mengabaikan beban GPU) |
 | Least-connections | Adaptif | Tidak | Rendah | Baik |
 | Consistent Hashing | Bergantung hash | Ya (cache reuse) | Sedang | Sangat Baik |
 | Power-of-two choices | Hampir merata | Tidak | Rendah | Optimal |
-| Weighted Round-robin | Berdasarkan weight | Tidak | Rendah | Baik (jika weight sesuai) |
+| Weighted Round-robin | Berdasarkan bobot | Tidak | Rendah | Baik (jika bobot sesuai) |
 | Random | Random | Tidak | Sangat Rendah | Cukup |
 
 Tidak ada strategi yang menang di semua dimensi. Untuk beban yang homogen dengan sebagian besar request pendek, least-connections sudah memadai. Untuk beban yang sangat heterogen dengan proporsi request streaming besar, consistent hashing memberi keunggulan tambahan berupa cache reuse. Untuk produksi modern yang menginginkan keseimbangan terbaik tanpa kerumitan, *power-of-two choices* adalah pilihan paling bijak — dan bila replica Anda memiliki kapasitas berbeda (GPU campuran), weighted round-robin dengan bobot proporsional kapasitas adalah pilihan terhormat.
@@ -91,7 +91,7 @@ flowchart LR
     LB --> MET[Metrics Exporter]
 ```
 
-Perhatikan dua jalur keluar dari load balancer: jalur utama menuju replica, dan jalur pendamping menuju *health check* serta *metrics exporter*. Jalur pendamping inilah yang membuat sistem bisa sembuh sendiri — replica yang gagal health check dikeluarkan dari rotasi secara otomatis, dan metrik metrik yang diekspor menjadi bahan bakar auto-scaling yang akan kita konfigurasi di bagian praktikum.
+Perhatikan dua jalur keluar dari load balancer: jalur utama menuju replica, dan jalur pendamping menuju *health check* serta *metrics exporter*. Jalur pendamping inilah yang membuat sistem bisa sembuh sendiri — replica yang gagal health check dikeluarkan dari rotasi secara otomatis, dan metrik yang diekspor menjadi bahan bakar auto-scaling yang akan kita konfigurasi di bagian praktikum.
 
 
 ---
@@ -103,13 +103,13 @@ Tidak semua load balancer diciptakan sama — pilihannya bergantung pada kedalam
 
 Sebuah cara praktis memilih di antara keempatnya: mulailah dari *bentuk kebutuhan*, bukan dari *nama produk*. Jika tantangan Anda hanya "satu model, banyak GPU, trafik besar" — NGINX/HAProxy atau Ingress Controller sudah memadai dan paling murah perawatannya. Jika Anda harus menawarkan "banyak model, banyak backend campuran (lokal + cloud), dengan kuota per pelanggan" — LiteLLM hampir pasti pilihan yang tepat, karena fitur cost tracking dan rate limiting per key sudah built-in. Jika Anda hidup di ekosistem Ray — misalnya pipeline RAG dan inference berjalan di Ray cluster — integrasi Ray Serve menghilangkan satu lapisan infrastruktur yang harus dijaga. Dan ketika beban Anda tumbuh melewati puluhan replica dengan upgrade yang sering, Kubernetes Ingress memberi satu bahasa operasional yang sama untuk seluruh perusahaan — meskipun dengan kompleksitas yang tidak bisa diabaikan.
 
-### Tabel B: Benchmark Load Balancer — 4x vLLM Instance (7B, A100)
+### Tabel 2: Benchmark Load Balancer — 4x vLLM Instance (7B, A100)
 
 Perbandingan kinerja pengukuran nyata di atas empat replica vLLM dengan base model 7B di GPU A100 — perhatikan bagaimana strategi yang berbeda mengubah profil latency ekor.
 
 | Konfigurasi | Throughput (req/s) | P50 Latency (ms) | P99 Latency (ms) | GPU Utilization Rata |
 |:---|:---:|:---:|:---:|:---:|
-| No LB (random) | 168 | 220 | 1,200 | 65% |
+| No LB (random) | 168 | 220 | 1.200 | 65% |
 | Round-robin | 172 | 215 | 850 | 68% |
 | Least-connections | 180 | 195 | 520 | 72% |
 | Consistent Hashing | 178 | 185 | 480 | 71% |
@@ -142,20 +142,20 @@ Splitwise [1] mematahkan kompromi tersebut dengan *phase disaggregation*: pisahk
 
 Disaggregation bukan jawaban universal — ada tiga kondisi di mana ia justru merugikan. Pertama, *beban yang didominasi prefill pendek*: jika mayoritas request Anda berupa prompt pendek dengan output singkat (chat mikro, klasifikasi), proporsi waktu prefill terhadap decode terlalu kecil sehingga keuntungan pemisahan minimal, sementara biaya transfer state tetap harus dibayar. Kedua, *infrastruktur tanpa fast interconnect*: disaggregation di atas jaringan Ethernet biasa mengubah transfer KV cache menjadi bottleneck baru — seperti disebut di Gambar 2, tanpa InfiniBand, "disaggregation" berubah menjadi sumber latency. Ketiga, *skala kecil*: pada klaster 2-8 GPU, Anda seringkali tidak punya cukup mesin untuk membuat dua pool yang efisien, dan fleksibilitas satu pool monolitik justru lebih berharga. Aturan praktisnya: evaluasi Splitwise ketika utang komputasi (prefill) dan utang bandwidth (decode) Anda sudah cukup besar untuk hidup terpisah — di bawah ambang itu, perbaiki fase yang lemah di pool tunggal dulu.
 
-### Tabel C: Splitwise — Perbandingan Konfigurasi Cluster
+### Tabel 3: Splitwise — Perbandingan Konfigurasi Cluster
 
 Berapa banyak komposisi prompt/token machine yang membayar tunai per data — diukur relatif terhadap baseline homogen [1].
 
 | Konfigurasi | Prompt Machine | Token Machine | Throughput | Cost | Power |
 |:---|:---|:---|:---:|:---:|:---:|
-| Baseline (homogen A100) | 8x A100 | 8x A100 | 1.0x | 1.0x | 1.0x |
-| Splitwise-AA (homogen) | 4x A100 (prompt) | 12x A100 (token) | 1.4x | 0.8x | 0.85x |
-| Splitwise-HH (H100) | 4x H100 (prompt) | 12x H100 (token) | 2.35x | 1.2x | 1.1x |
-| Splitwise-Hetero | 2x H100 (prompt) | 6x A100 (token) | 1.8x | 0.7x | 0.65x |
+| Baseline (homogen A100) | 8x A100 | 8x A100 | 1,0x | 1,0x | 1,0x |
+| Splitwise-AA (homogen) | 4x A100 (prompt) | 12x A100 (token) | 1,4x | 0,8x | 0,85x |
+| Splitwise-HH (H100) | 4x H100 (prompt) | 12x H100 (token) | 2,35x | 1,2x | 1,1x |
+| Splitwise-Hetero | 2x H100 (prompt) | 6x A100 (token) | 1,8x | 0,7x | 0,65x |
 
-Bahkan tanpa mengganti hardware — hanya menata ulang rasio prompt:token machine (Splitwise-AA) — throughput naik 1,4x dengan biaya justru turun 20%. Config heterogen adalah primadona ekonomi: kedua H100 untuk prefill cepat, enam A100 untuk decode murah, menghasilkan 1,8x throughput dengan biaya 0,7x dan power 0,65x. Tabel ini menegaskan prinsip fundamental inferensi LLM: beli komputasi untuk prefill, sewa bandwidth untuk decode — jangan beli keduanya dalam satu kartu demi kompak.
+Bahkan tanpa mengganti hardware — hanya menata ulang rasio prompt:token machine (Splitwise-AA) — throughput naik 1,4x dengan biaya justru turun 20%. Konfigurasi heterogen adalah primadona ekonomi: kedua H100 untuk prefill cepat, enam A100 untuk decode murah, menghasilkan 1,8x throughput dengan biaya 0,7x dan power 0,65x. Tabel ini menegaskan prinsip fundamental inferensi LLM: beli komputasi untuk prefill, sewa bandwidth untuk decode — jangan beli keduanya dalam satu kartu demi kompak.
 
-Interpretasi yang lebih hati-hati juga diperlukan di sini. Rasio prompt:token machine 4:12 mencerminkan realitas beban: karena setiap request melewati prefill hanya sekali tetapi decode berulang ratusan kali, token machine hampir selalu perlu jatah GPU lebih banyak. Namun rasio yang tepat bergantung pada profil prompt Anda — platform dengan prompt sangat pendek (chat singkat) bisa berjalan optimal di rasio 2:14, sementara platform RAG dengan prompt panjang lebih cocok di 6:10. Angka di Tabel C juga mengasumsikan interkoneksi berkecepatan tinggi yang memadai; di atas jaringan 100 GbE biasa, biaya transfer state bisa menggerus keuntungan — verifikasi *bandwidth* NVLink/InfiniBand Anda sebelum menyalin konfigurasi ini. Terakhir, pertimbangkan mode kegagalan: disaggregation memperkenalkan dua pool yang bisa gagal secara independen — rencanakan *fallback* ke mode monolitik saat salah satu pool down.
+Interpretasi yang lebih hati-hati juga diperlukan di sini. Rasio prompt:token machine 4:12 mencerminkan realitas beban: karena setiap request melewati prefill hanya sekali tetapi decode berulang ratusan kali, token machine hampir selalu perlu jatah GPU lebih banyak. Namun rasio yang tepat bergantung pada profil prompt Anda — platform dengan prompt sangat pendek (chat singkat) bisa berjalan optimal di rasio 2:14, sementara platform RAG dengan prompt panjang lebih cocok di 6:10. Angka di Tabel 3 juga mengasumsikan interkoneksi berkecepatan tinggi yang memadai; di atas jaringan 100 GbE biasa, biaya transfer state bisa menggerus keuntungan — verifikasi *bandwidth* NVLink/InfiniBand Anda sebelum menyalin konfigurasi ini. Terakhir, pertimbangkan mode kegagalan: disaggregation memperkenalkan dua pool yang bisa gagal secara independen — rencanakan *fallback* ke mode monolitik saat salah satu pool down.
 
 ---
 
@@ -180,8 +180,6 @@ Penting juga memahami *kenapa* transfer ini murah secara prinsip: yang dipindahk
 
 ---
 
-
----
 
 ## 6. Rate Limiting dan QoS
 
@@ -267,7 +265,7 @@ litellm_settings:
 ```
 
 ```bash
-# Start LiteLLM
+# Menjalankan LiteLLM
 litellm --config config.yaml --port 4000 --num_workers 4
 
 # Akses via LiteLLM
@@ -323,7 +321,7 @@ Logika scaling-nya sederhana namun tepat: ketika KV cache GPU terisi lebih dari 
 ## 8. Studi Kasus: SaaS AI — 1.000 Request/detik di 16 GPU
 
 
-**Latar belakang.** Sebuah platform SaaS AI menyediakan asisten berbasis Llama-3.1-70B untuk ratusan klien korporat. Pada jam sibuk, trafik mencapai **1.000 request/detik**, dan keluhan pelanggan meningkat: timeout, jawaban macet, dan pengalaman yang tidak konsisten.
+**Latar belakang.** Sebuah platform SaaS AI menyediakan asisten berbasis Llama 3.1 (70B) untuk ratusan klien korporat. Pada jam sibuk, trafik mencapai **1.000 request/detik**, dan keluhan pelanggan meningkat: timeout, jawaban macet, dan pengalaman yang tidak konsisten.
 
 **Diagnosis.** Infrastruktur awal berupa dua node, masing-masing 8x H100 (total 16 GPU), di mana setiap node menjalankan vLLM dengan tensor parallelism 8. Tanpa load balancer, trafik masuk acak ke salah satu node — dan alam tidak pernah adil: satu node bisa tenggelam dalam request batch pelanggan tertentu sementara node lain menganggur. Efeknya terukur: P99 latency 4,2 detik, jauh di atas SLO.
 
@@ -335,7 +333,7 @@ Logika scaling-nya sederhana namun tepat: ketika KV cache GPU terisi lebih dari 
 
 **Biaya yang tidak terlihat dalam cerita ini.** Sebelum menyalin pola arsitektur ini, tim SaaS mencatat tiga biaya yang sering disembunyikan angka keberhasilan. Pertama, *waktu engineering*: dua minggu kerja untuk migrasi NGINX → LiteLLM → Splitwise, termasuk penulisan ulang mekanisme retry karena sumber error berubah lapisan. Kedua, *downtime migrasi*: cutover dilakukan dua kali — sekali dengan traffic shadow (duplikasi live ke infrastruktur baru untuk validasi), sekali dengan cutover penuh — sehingga klien tidak pernah merasakan degradasi. Ketiga, *biaya monitoring*: arsitektur baru menuntut dashboard baru (per-pool health, per-phase latency) yang perawatannya berkelanjutan. Pelajaran yang lebih dalam: setiap lapisan yang Anda tambahkan (load balancer, proxy, disaggregation) menambah titik kegagalan dan biaya operasional; nilai akhirnya harus dihitung sebagai *net*, bukan angka throughput semata.
 
-**Perhitungan ROI singkat.** Sebelum iterasi, 16 GPU H100 berjalan 24/7 dengan utilisasi rata-rata 65% (lihat Tabel B tanpa LB). Setelah tiga iterasi — least-connections, rate limiting, dan Splitwise hetero — utilisasi naik ke 85%, P99 turun dari 4,2 s ke 1,8 s, dan biaya per request turun sekitar 40% (dengan asumsi sewa H100 dua kali lipat A100, komposisi 4+12 mengurangi biaya per jam sekitar 25%, ditambah throughput naik). Waktu balik modal seluruh migrasi: kurang dari dua bulan. Angka-angka ini bukan prediksi universal — komponen terbesarnya (harga GPU regional) sangat berfluktuasi — tetapi pola perhitungannya bisa direplikasi: hitung delta utilisasi, delta throughput, dan delta harga sewa per GPU, lalu kombinasikan. Disiplin ROI seperti inilah yang membuat proposal arsitektur Anda didengar manajemen, bukan sekadar dibaca.
+**Perhitungan ROI singkat.** Sebelum iterasi, 16 GPU H100 berjalan 24/7 dengan utilisasi rata-rata 65% (lihat Tabel 2 tanpa LB). Setelah tiga iterasi — least-connections, rate limiting, dan Splitwise hetero — utilisasi naik ke 85%, P99 turun dari 4,2 s ke 1,8 s, dan biaya per request turun sekitar 40% (dengan asumsi sewa H100 dua kali lipat A100, komposisi 4+12 mengurangi biaya per jam sekitar 25%, ditambah throughput naik). Waktu balik modal seluruh migrasi: kurang dari dua bulan. Angka-angka ini bukan prediksi universal — komponen terbesarnya (harga GPU regional) sangat berfluktuasi, tetapi pola perhitungannya bisa direplikasi: hitung delta utilisasi, delta throughput, dan delta harga sewa per GPU, lalu kombinasikan. Disiplin ROI seperti inilah yang membuat proposal arsitektur Anda didengar manajemen, bukan sekadar dibaca.
 
 **Batas yang jujur dari hasil ini.** Keberhasilan studi kasus tidak berarti semua SaaS AI harus meniru persis urutan tiga iterasi tersebut. NGINX dipilih karena tim sudah familier; tim lain dengan kendala multi-vendor akan mulai dari LiteLLM. Splitwise baru menguntungkan setelah beban melewati ambang tertentu — pada trafik di bawah 100 req/s, kompleksitas dan biaya monitoring dua pool justru merugikan. Keputusan terbaik selalu kontekstual: gunakan studi kasus ini sebagai *urutan berpikir* (ukur → distribusikan → kendalikan → disagregasi), bukan sebagai resep yang harus ditelan bulat-bulat. Yang universal hanyalah prinsipnya: ukur dulu ketimpangan, perbaiki di lapisan termurah, dan naikkan kompleksitas hanya ketika datanya mendukung.
 

@@ -1,7 +1,7 @@
 # Bab 2.2: VRAM Bandwidth
 
 > Ada sebuah mitos yang tersebar luas di komunitas LLM lokal: "yang penting VRAM-nya
-> besar." Benar — tetapi hanya separuh cerita. Separuh lainnya adalah seberapa *cepat*
+> besar." Benar, tetapi hanya separuh cerita. Separuh lainnya adalah seberapa *cepat*
 > memori itu bisa dihanyutkan ke dalam prosesor. Sebuah model tidak menunggu ruang;
 > ia menunggu *aliran*. Bab ini akan membongkar anatomi memory bandwidth: mengapa ia
 > adalah raja sesungguhnya dari kecepatan inferensi, mengapa RTX 4060 bisa lebih lambat
@@ -99,7 +99,7 @@ semuanya *memory-bound*.
 ### Mengapa Long Context Membuat Semuanya Lebih Parah
 
 KV cache — memori yang menyimpan perhatian model terhadap token-token sebelumnya —
-tumbuh linear terhadap panjang konteks. Setiap token baru harus "memperhatikan" semua
+tumbuh linier terhadap panjang konteks. Setiap token baru harus "memperhatikan" semua
 token sebelumnya, dan membaca KV cache itu dari VRAM ikut memakan bandwidth. Semakin
 panjang percakapan, semakin besar KV cache, semakin sedikit bandwidth yang tersisa
 untuk bobot model — dan semakin lambat decode. Penelitian **MAPLE (Kim et al., 2025)**
@@ -124,8 +124,8 @@ transfer per siklus. Bus-width menentukan *berapa lebar gerbang*, clock menentuk
 *berapa sering gerbang terbuka*, dan tipe memori menentukan *berapa banyak barang yang
 lewat setiap kali gerbang terbuka*.
 
-Memori GPU modern terbagi dalam tiga kasta. **GDDR6** (dengan pin mentransfer ~16 Gbps)
-dan **GDDR6X** (19-21 Gbps) menghuni GPU konsumen. Di atas keduanya bertengger **HBM**
+Memori GPU modern terbagi dalam tiga kasta. **GDDR6** (dengan pin mentransfer 16-20 Gbps)
+dan **GDDR6X** (19-23 Gbps) menghuni GPU konsumen. Di atas keduanya bertengger **HBM**
 (*High Bandwidth Memory*) — HBM2e dengan ~2,0 Gbps per pin di GPU *datacenter* generasi
 A100, dan **HBM3** dengan ~6,4 Gbps per pin di H100 dan MI300X. HBM memenangkan bukan
 karena satu pinnya lebih cepat dari GDDR6X — melainkan karena menumpuk ribuan pin dalam
@@ -203,12 +203,12 @@ Sekarang terapkan **kuantisasi**: model 7B yang sama dalam Q4_K_M menyusut menja
 dengan proporsi yang sama. Inilah mengapa komunitas lokal menyebut kuantisasi sebagai
 "mesin waktu": kartu yang tadi hanya mampu 30 token/detik bisa melompat ke 110
 token/detik tanpa mengganti satu komponen pun. Semakin besar model, semakin dramatis
-efeknya — Llama-3.1-70B FP16 (140 GB) membutuhkan bandwidth minimum ~160 GB/s hanya
+efeknya — Llama 3.1 (70B) FP16 (140 GB) membutuhkan bandwidth minimum ~160 GB/s hanya
 untuk berjalan pelan 4 token/detik, sementara versi Q4 (40 GB) membuka pintu untuk GPU
 kelas 3090 yang "hanya" 936 GB/s. Ukuran model menentukan kelas GPU Anda; bandwidth
 menentukan siapa di kelas mana.
 
-### Tabel 2: Scaling Tokens/s vs Bandwidth (Llama-3-8B Q4_K_M)
+### Tabel 2: Scaling Tokens/s vs Bandwidth (Llama 3 (8B) Q4_K_M)
 
 Berikut hasil pengukuran `llama-bench` untuk model yang sama di lima GPU — bukti empiris
 bahwa bandwidth adalah prediktor utama kecepatan.
@@ -221,12 +221,12 @@ bahwa bandwidth adalah prediktor utama kecepatan.
 | RTX 4090 | 1008 | ~110 t/s | ~71% | 9,2 GB/s per t/s |
 | RTX 3090 | 936 | ~85 t/s | ~72% | 11,0 GB/s per t/s |
 
-Catatan: Scaling hampir linear — bandwidth adalah prediktor utama tokens/s untuk model
+Catatan: Scaling hampir linier — bandwidth adalah prediktor utama tokens/s untuk model
 yang muat di VRAM.
 
-![Hasil llama-bench untuk Llama-3-8B Q4_K_M di lima GPU: garis hampir lurus dari RTX 4060 (272 GB/s, ~30 t/s) hingga RTX 4090 (1.008 GB/s, ~110 t/s), dengan RTX 3090 sedikit menyimpang dari garis tersebut.](../../assets/images/bab-02-hardware/sub-bab-2/scaling-tokens-vs-bandwidth.png)
+![Hasil llama-bench untuk Llama 3 (8B) Q4_K_M di lima GPU: garis hampir lurus dari RTX 4060 (272 GB/s, ~30 t/s) hingga RTX 4090 (1.008 GB/s, ~110 t/s), dengan RTX 3090 sedikit menyimpang dari garis tersebut.](../../assets/images/bab-02-hardware/sub-bab-2/scaling-tokens-vs-bandwidth.png)
 
-*Gambar 2.2-1 — Dua kali bandwidth berarti hampir dua kali token/detik: garis scaling mendekati linear sempurna dari 272 hingga 1.008 GB/s; RTX 3090 (85 t/s dari 936 GB/s) sedikit di bawah garis karena memori GDDR6X generasi pertamanya kurang efisien per gigabyte aliran.*
+*Gambar 2.2-1 — Dua kali bandwidth berarti hampir dua kali token/detik: garis scaling mendekati linier sempurna dari 272 hingga 1.008 GB/s; RTX 3090 (85 t/s dari 936 GB/s) sedikit di bawah garis karena memori GDDR6X generasi pertamanya kurang efisien per gigabyte aliran.*
 
 Empat baris pertama menunjukkan keteraturan yang nyaris membosankan: setiap kenaikan
 bandwidth ~230 GB/s menambah ~25 t/s, dan kolom "bandwidth per token/s" hampir konstan
@@ -237,7 +237,7 @@ Baris terakhir, RTX 3090, sedikit menyimpang (11,0 GB/s per t/s) — generasi me
 GDDR6X pertama yang lebih lambat dan skema *page* yang berbeda membuatnya kurang
 efisien per gigabyte aliran. Pelajaran operasional: *jangan membeli "kartu tercepat",
 belilah kartu dengan karakteristik yang Anda pahami* — dan dengan angka utilization ini,
-kita bisa menurunkan rumus simulasi di bagian Hands-On.
+kita bisa menurunkan rumus simulasi di bagian Praktikum.
 
 
 ### Tabel 3: Bandwidth yang Dibutuhkan per Model dan Kuantisasi
@@ -247,18 +247,18 @@ untuk model ini?* Baca dari kiri ke kanan sesuai target kecepatan Anda.
 
 | Model | Ukuran (FP16) | Ukuran (Q4_K_M) | Bandwidth Min (4 t/s) | Bandwidth Ideal (20 t/s) | Bandwidth Ideal (100 t/s) |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| Llama-3.2-3B | 6 GB | 1,8 GB | 7 GB/s | 36 GB/s | 180 GB/s |
-| Llama-3.1-8B | 16 GB | 4,5 GB | 18 GB/s | 90 GB/s | 450 GB/s |
-| Qwen-2.5-14B | 28 GB | 8,0 GB | 32 GB/s | 160 GB/s | 800 GB/s |
-| Llama-3.1-70B | 140 GB | 40 GB | 160 GB/s | 800 GB/s | `-` |
-| Llama-3.1-405B | 810 GB | 230 GB | 920 GB/s | `-` | `-` |
+| Llama 3.2 (3B) | 6 GB | 1,8 GB | 7 GB/s | 36 GB/s | 180 GB/s |
+| Llama 3.1 (8B) | 16 GB | 4,5 GB | 18 GB/s | 90 GB/s | 450 GB/s |
+| Qwen 2.5 (14B) | 28 GB | 8,0 GB | 32 GB/s | 160 GB/s | 800 GB/s |
+| Llama 3.1 (70B) | 140 GB | 40 GB | 160 GB/s | 800 GB/s | `-` |
+| Llama 3.1 (405B) | 810 GB | 230 GB | 920 GB/s | `-` | `-` |
 | DeepSeek V4 Flash (284B) | 560 GB | 160 GB | 640 GB/s | `-` | `-` |
 | Mistral Large 3 (675B) | 1,35 TB | 380 GB | 1,5 TB/s | `-` | `-` |
 
 Perhatikan pola yang menyakitkan sekaligus membebaskan ini. Model kecil *bisa dijalankan
-di mana saja*: Llama-3.2-3B hanya menuntut 180 GB/s untuk mencapai 100 t/s — kartu
+di mana saja*: Llama 3.2 (3B) hanya menuntut 180 GB/s untuk mencapai 100 t/s — kartu
 seharga Rp 5 jt pun sanggup. Namun saat ukuran model berlipat, angka di kolom *minimum*
-ikut membengkak: **Llama-3.1-405B butuh setidaknya 920 GB/s hanya untuk berjalan 4
+ikut membengkak: **Llama 3.1 (405B) butuh setidaknya 920 GB/s hanya untuk berjalan 4
 token/detik** — satu-satunya cara adalah kartu kelas H100/MI300X atau membagi-bagi
 model ke banyak GPU. Dan di dasar tabel: **Mistral Large 3 menuntut 1,5 TB/s**,
 sementara GPU konsumen tercepat sekalipun hanya ~1 TB/s. Tiga baris terakhir menjawab
@@ -299,11 +299,11 @@ bahkan bisa bergeser lebih tinggi — Q6/Q8 justru menjadi pilihan bijak.
 
 
 Para penguji independen sudah memotret hubungan ini dengan kamera *llama-bench*. Untuk
-model **Llama-3-8B Q4_K_M** (4,5 GB), deret GPU berikut menunjukkan pola yang hampir
+model **Llama 3 (8B) Q4_K_M** (4,5 GB), deret GPU berikut menunjukkan pola yang hampir
 menakutkan keteraturannya: **RTX 4060** (272 GB/s) menghasilkan ~30 t/s; **RTX 4070**
 (504 GB/s) ~55 t/s; **RTX 4080 Super** (736 GB/s) ~80 t/s; **RTX 4090** (1.008 GB/s)
 ~110 t/s. Perhatikan intervalnya: setiap kenaikan bandwidth sekitar 230-270 GB/s
-menambah sekitar 25-30 t/s. **Scaling hampir linear — dua kali bandwidth berarti
+menambah sekitar 25-30 t/s. **Scaling hampir linier — dua kali bandwidth berarti
 sekitar dua kali token/detik** untuk model yang muat di VRAM.
 
 Interpretasi sederhananya: jika Anda sedang mempertimbangkan dua kartu yang VRAM-nya
@@ -366,10 +366,10 @@ baru relevan jika model Anda cukup besar hingga *prefill* (pemrosesan prompt) me
 
 ---
 
-## 9. Tutorial / Hands-On
+## 9. Praktikum / Hands-On
 
 
-### Tutorial 1: Cek Memory Bandwidth GPU Anda Sendiri
+### Langkah 1: Cek Memory Bandwidth GPU Anda Sendiri
 
 Jangan percaya iklan — ukur mesin Anda:
 
@@ -392,7 +392,7 @@ Jika perhitungan tangan Anda menyimpang dari spesifikasi resmi lebih dari 5%,
 kemungkinan besar clock yang dilaporkan adalah *boost* bukan *base* — gunakan clock
 aktual saat GPU bekerja di bawah *load* untuk hasil yang akurat.
 
-### Tutorial 2: Benchmark Bandwidth Efektif dengan llama.cpp
+### Langkah 2: Benchmark Bandwidth Efektif dengan llama.cpp
 
 Untuk mengukur *utilization* nyata, jalankan model yang muat penuh di VRAM:
 
@@ -411,7 +411,7 @@ KV cache, *sampling*, dan overhead sistem. Jika utilization Anda di bawah 40%, p
 apakah sebagian layer masih berjalan di CPU — gejala klasik *offload* yang tidak
 tuntas.
 
-### Tutorial 3: Simulasi Dampak Bandwidth dengan Python
+### Langkah 3: Simulasi Dampak Bandwidth dengan Python
 
 Rumus sederhana ini memungkinkan Anda membandingkan GPU tanpa memiliki semuanya:
 
@@ -441,7 +441,7 @@ for name, bw in gpus.items():
 Jalankan skrip ini sebelum membeli GPU apa pun. Output-nya akan memperlihatkan pola
 yang mengubah cara Anda berpikir tentang kartu: kecepatan token hampir sepenuhnya
 ditentukan oleh dua angka input — bandwidth dan ukuran model. Ganti `model_gb` dengan
-40 (Llama-3.1-70B Q4) dan lihat bagaimana semua kartu konsumen merosot ke kisaran
+40 (Llama 3.1 (70B) Q4) dan lihat bagaimana semua kartu konsumen merosot ke kisaran
 6-15 t/s: bukan kartunya yang lemah, melainkan *alirannya*.
 
 ---
@@ -449,16 +449,16 @@ ditentukan oleh dua angka input — bandwidth dan ukuran model. Ganti `model_gb`
 ## 10. Studi Kasus: Upgrade dari RTX 4060 ke RTX 4090
 
 
-**Latar.** Bayangkan seorang *machine learning enthusiast* di Bandung yang membeli
-RTX 4060 (8 GB, 272 GB/s) untuk menjalankan Llama-3.1-8B. Setiap prompt terasa berat:
+**Latar.** Bayangkan seorang penggemar *machine learning* di Bandung yang membeli
+RTX 4060 (8 GB, 272 GB/s) untuk menjalankan Llama 3.1 (8B). Setiap prompt terasa berat:
 respons mengalir sekitar ~30 token/detik — cukup untuk membaca, tetapi menggelitik
 ketika model diminta menulis kode atau melakukan *reasoning* panjang. VRAM-nya masih
 cukup (model Q4 hanya 4,5 GB), GPU-nya tidak panas, suhu normal, tidak ada yang tampak
 salah. Namun setiap generasi 500 token memakan hampir 20 detik — dan inilah gejala
 paling khas dari *bottleneck* yang tak terlihat: **bandwidth rendah**.
 
-**Analisis.** Dengan berbekal tabel bandwidth, teka-tekinya terbongkar: RTX 4060
-menggunakan *bus hanya 128-bit* — lebar jalur paling sempit — sehingga meskipun
+**Analisis.** Dengan berbekal tabel bandwidth, teka-tekinya terbongkar: RTX 4060 hanya
+menggunakan bus 128-bit — lebar jalur paling sempit — sehingga meskipun
 VRAM-nya cukup dan prosesornya modern, aliran datanya cuma 272 GB/s. Rumusnya: 4,5 GB
 × 1,3 overhead × 30 t/s ≈ 175 GB/s efektif — bus sudah berjalan 65% dan tetap terasa
 lambat. Model 8B di kartu ini *selamanya* akan berjalan ~30 t/s, apa pun yang dicoba.
@@ -467,11 +467,11 @@ dua komoditas yang berbeda.
 
 **Mengambil keputusan.** Si peneliti mempertimbangkan tiga jalan: RTX 4090 baru
 (1.008 GB/s, ~Rp 30 jt), RTX 3090 *second* (936 GB/s, ~Rp 12 jt), atau bertahan.
-Upgrade ke 4090 menjanjikan ~110 t/s — 3,7x bandwidth, 3,7x kecepatan — tetapi
+Upgrade ke 4090 menjanjikan ~110 t/s — 3,7x bandwidth, 3,7x kecepatan, tetapi
 biayanya 6x lipat (Rp 5 jt → Rp 30 jt): inilah **diminishing returns** klasik.
 Sedangkan RTX 3090 *used* menawarkan 936 GB/s (~3,4x performa) dengan biaya hanya
 2,4x — matematika yang jauh lebih bersahabat. Untuk menguji keputusan, ia menjalankan
-simulasi dari Tutorial 3: untuk Llama-3.1-8B, 3090 memproyeksikan ~88 t/s vs 4090
+simulasi dari Langkah 3: untuk Llama 3.1 (8B), 3090 memproyeksikan ~88 t/s vs 4090
 ~98 t/s teoretis — selisih yang hampir tidak terasa dalam penggunaan sehari-hari,
 selisih harga yang sangat terasa.
 
@@ -513,7 +513,7 @@ kebutuhan bandwidth di seksi 5.
 Systems*. Workshop on Hot Topics in System Infrastructure (HotInfra).
 DOI: [10.48550/arXiv.2407.12345](https://5surim.github.io/papers/hotinfra2024_llm_perf.pdf) —
 studi dampak *die-to-die bandwidth* terhadap inferensi LLM; menjelaskan mengapa
-bandwidth interkoneksi (NVLink, PCIe) krusial di sistem multi-GPU.
+bandwidth interkoneksi (NVLink, PCIe) krusial di sistem multi-GPU. ⚠️ ID placeholder — ganti dengan ID asli sebelum rilis.
 
 [5] Kim, S., et al. (2025). *MAPLE: Memory-Aware Predict and Load for Efficient LLM
 Inference*. International Conference on Learning Representations (ICLR).
@@ -523,7 +523,7 @@ manajemen bandwidth pada konteks panjang.
 
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Hybrid CSA/HCA Mixture-of-Experts Language
 Model*. arXiv preprint: 2604.09980. DOI: [10.48550/arXiv.2604.09980](https://arxiv.org/abs/2604.09980) —
-kebutuhan bandwidth model 284B dan 1,6T untuk konteks 1 juta token.
+kebutuhan bandwidth model 284B dan 1,6T untuk konteks 1 juta token. ⚠️ verifikasi sebelum rilis (ID arXiv 2026).
 
 [7] Mistral AI. (2025). *Mistral Large 3: Granular MoE with Multimodal Capabilities*.
 arXiv preprint: 2512.01820. DOI: [10.48550/arXiv.2512.01820](https://arxiv.org/abs/2512.01820) —

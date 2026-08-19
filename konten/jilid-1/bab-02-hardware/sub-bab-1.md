@@ -22,7 +22,7 @@ Setelah membaca bab ini, Anda akan mampu:
   tahu framework mana yang berjalan di platform mana
 - Membandingkan harga per GB VRAM dan membuat keputusan pembelian GPU berdasarkan
   dukungan *software stack*, bukan hanya angka di kertas spesifikasi
-- Menginstall, menjalankan, dan me-*benchmark* LLM di tiga ekosistem berbeda:
+- Menginstal, menjalankan, dan me-*benchmark* LLM di tiga ekosistem berbeda:
   CUDA, ROCm, dan OpenVINO
 - Mengenali kapan backend alternatif seperti **Vulkan** dan **DirectML** layak
   menjadi penyelamat
@@ -36,7 +36,7 @@ Setelah membaca bab ini, Anda akan mampu:
 
 Bayangkan Anda membuka restoran pertama di sebuah kota. Anda membangun dapur, menentukan
 standar resep, dan melatih semua juru masak dengan cara Anda. Delapan belas tahun kemudian,
-seluruh kota datang ke restoran Anda bukan karena menunya — tetapi karena semua chef ternama
+seluruh kota datang ke restoran Anda bukan karena menunya, tetapi karena semua chef ternama
 hanya tahu cara memasak di dapur Anda. Itulah posisi **CUDA** (*Compute Unified Device
 Architecture*): platform komputasi paralel yang diluncurkan NVIDIA pada 2007 dan hingga
 hari ini menjadi *standar de facto* untuk komputasi GPU di seluruh dunia — termasuk
@@ -144,7 +144,7 @@ RTX 4090 (~Rp 30 jt) — pengguna Indonesia bisa mengakses 24 GB VRAM yang sama 
 menjalankan model 30-70B terkuantisasi, atau menggabungkan dua kartu untuk kelas
 yang lebih tinggi. Di pasar *second*, RX 6800/6900 XT 16GB bahkan turun ke harga yang
 membuat 12-14 GB VRAM terjangkau bagi mahasiswa. Biayanya: kesediaan hidup di Linux,
-ketelitian memilih model yang sudah teruji ROCm, dan kesabaran saat sebuah tool
+ketelitian memilih model yang sudah teruji ROCm, dan kesabaran saat sebuah *tool*
 menolak bekerja. Bagi banyak orang, matematika ini tetap menguntungkan — dan itulah
 mengapa komunitas pengguna AMD untuk LLM di Indonesia terus tumbuh.
 
@@ -164,7 +164,7 @@ laptop *AI PC* bermerek Intel.
 
 Secara performa murni untuk GPU diskrit, OpenVINO masih tertinggal: *throughput*-nya
 berada di kisaran 40-60% dari baseline CUDA, dan Arc A770 — kartu flagship Intel —
-hanya menghasilkan ~40 t/s untuk Llama-3-8B dibandingkan ~110 t/s RTX 4090. Namun
+hanya menghasilkan ~40 t/s untuk Llama 3 (8B) dibandingkan ~110 t/s RTX 4090. Namun
 pendulum berbalik ketika yang diukur adalah **efisiensi daya** — di sinilah OpenVINO
 unggul, karena CPU dan iGPU Intel memproses dengan konsumsi listrik jauh lebih rendah
 daripada GPU gaming yang haus daya. Untuk pengguna yang menjalankan model 1-8B di
@@ -244,7 +244,7 @@ yang bisa dimuat), baris harga ini sendirilah yang membuat pertarungan layak dit
 Sementara itu, baris **akurasi numerik** adalah peringatan terkeras bagi calon pembeli
 AMD: 25% model gagal *accuracy test* — dan Anda tidak ingin tahu cara mengetahuinya
 melalui output yang salah diam-diam. Bagi pengguna yang hanya menjalankan 3-5 model
-populer yang sudah teruji di ROCm (misalnya Llama-3.1 dan Qwen), risiko ini jauh lebih
+populer yang sudah teruji di ROCm (misalnya Llama 3.1 dan Qwen), risiko ini jauh lebih
 kecil; bagi pengguna yang gemar mencoba ratusan model eksperimental, risiko ini nyata.
 Pilihan platform, dengan kata lain, juga adalah pilihan *kebiasaan penggunaan*.
 
@@ -253,9 +253,9 @@ Pilihan platform, dengan kata lain, juga adalah pilihan *kebiasaan penggunaan*.
 ## 7. Benchmark Performa — Angka yang Bicara
 
 
-### Tabel 2: Benchmark Performa Llama-3-8B Q4_K_M
+### Tabel 2: Benchmark Performa Llama 3 (8B) Q4_K_M
 
-Data di bawah diukur dengan model yang sama (Llama-3-8B, kuantisasi Q4_K_M), di GPU
+Data di bawah diukur dengan model yang sama (Llama 3 (8B), kuantisasi Q4_K_M), di GPU
 yang berbeda, dan melalui *framework* terbaik yang tersedia di masing-masing platform.
 Inilah potret jujur medan perang performa.
 
@@ -265,17 +265,17 @@ Inilah potret jujur medan perang performa.
 | RTX 3090 24GB | CUDA + llama.cpp | ~85 t/s | ~5,2 GB | 250W | ~12 jt (used) |
 | RX 7900 XTX 24GB | ROCm + llama.cpp | ~75 t/s | ~5,5 GB | 280W | ~15 jt |
 | Arc A770 16GB | OpenVINO + IPEX | ~40 t/s | ~6,0 GB | 225W | ~5 jt |
-| M4 Pro 24GB (GPU) | MLX | ~70 t/s | ~6,0 GB | ~45W | ~25 jt |
+| M4 Pro 24GB (GPU) | MLX | ~40 t/s | ~6,0 GB | ~30W | ~25 jt |
 | RTX 4060 Ti 16GB | CUDA + llama.cpp | ~65 t/s | ~5,2 GB | 165W | ~8 jt |
-| 2x RTX 3090 (DeepSeek V4 Flash)\* | CUDA + vLLM TP2 | ~20 t/s | ~110 GB Q4 | 600W | ~25 jt |
-| 4x RTX 3090 (Mistral Large 3)\* | CUDA + vLLM TP4 | ~10 t/s | ~280 GB Q4 | 1,2 kW | ~50 jt |
+| 6x RTX 3090 (DeepSeek V4 Flash)\* | CUDA + vLLM TP6 | ~8 t/s | ~160 GB Q4 | 1,3 kW | ~72 jt |
+| 8x RTX 3090 (Mistral Large 3)\* | CUDA + vLLM TP8 | ~6 t/s | ~380 GB Q4 | 1,8 kW | ~96 jt |
 
-\* Model MoE besar: DeepSeek V4 Flash (284B) butuh ~150 GB FP16 / ~90 GB Q4; Mistral
+\* Model MoE besar: DeepSeek V4 Flash (284B) butuh ~560 GB FP16 / ~160 GB Q4; Mistral
 Large 3 (675B) butuh ~380 GB Q4 — hanya *feasible* dengan multi-GPU.
 
-![Perbandingan kecepatan inferensi Llama-3-8B Q4_K_M di delapan platform, dari RTX 4090 yang paling cepat (110 t/s) hingga sistem multi-GPU untuk model MoE raksasa (10-20 t/s), dengan label daya dan harga masing-masing.](../../assets/images/bab-02-hardware/sub-bab-1/kecepatan-token-per-gpu.png)
+![Perbandingan kecepatan inferensi Llama 3 (8B) Q4_K_M di delapan platform, dari RTX 4090 yang paling cepat (110 t/s) hingga sistem multi-GPU untuk model MoE raksasa (6-8 t/s), dengan label daya dan harga masing-masing.](../../assets/images/bab-02-hardware/sub-bab-1/kecepatan-token-per-gpu.png)
 
-*Gambar 2.1-1 — RTX 4090 unggul mutlak di 110 t/s, tetapi RTX 3090 used (85 t/s) dan RX 7900 XTX (75 t/s) menawarkan 70-77% kecepatannya dengan harga kurang dari separuhnya; M4 Pro membuktikan efisiensinya dengan 70 t/s hanya dari ~45W.*
+*Gambar 2.1-1 — RTX 4090 unggul mutlak di 110 t/s, tetapi RTX 3090 used (85 t/s) dan RX 7900 XTX (75 t/s) menawarkan 70-77% kecepatannya dengan harga kurang dari separuhnya; M4 Pro membuktikan efisiensinya dengan 40 t/s hanya dari ~30W.*
 
 Mari baca angka-angkanya dengan cermat. **RTX 4090** adalah raja kecepatan: 110
 token/detik untuk model 8B — sekitar 1,5x lebih cepat dari RX 7900 XTX yang harganya
@@ -288,12 +288,12 @@ berada di kelas tersendiri: termurah (Rp 5 jt), tetapi kecepatannya 40 t/s — c
 untuk chatbot santai, kurang untuk *agent* yang menuntut respons instan.
 
 Dan jangan lewatkan dua baris terakhir yang menandai era baru: **model MoE raksasa
-hanya bisa berjalan di sistem multi-GPU**. DeepSeek V4 Flash (284B) menuntut ~90 GB
-dalam Q4 — dua kartu RTX 3090; Mistral Large 3 (675B) menuntut ~380 GB — empat kartu.
-Perhatikan konsumsi dayanya: 600W dan 1,2 kW — angka yang membuat listrik rumah tangga
+hanya bisa berjalan di sistem multi-GPU**. DeepSeek V4 Flash (284B) menuntut ~160 GB
+dalam Q4 — enam kartu RTX 3090; Mistral Large 3 (675B) menuntut ~380 GB — delapan kartu.
+Perhatikan konsumsi dayanya: 1,3 kW dan 1,8 kW — angka yang membuat listrik rumah tangga
 Indonesia (kapasitas 900-2200 VA) ikut berkedip. Terakhir, ada satu baris yang sering
-luput dari perhatian: **M4 Pro 24GB** menghasilkan 70 t/s dengan daya hanya ~45W —
-konsumsi listrik 1/7 dari RTX 4090. Kecepatan bukan segalanya; efisiensi adalah mata
+luput dari perhatian: **M4 Pro 24GB** menghasilkan 40 t/s dengan daya hanya ~30W —
+konsumsi listrik 1/10 dari RTX 4090. Kecepatan bukan segalanya; efisiensi adalah mata
 uang yang berbeda, dan bagi pengguna yang membayar listrik sendiri, ia adalah mata
 uang yang nyata.
 
@@ -416,10 +416,10 @@ pertanyaan yang sah untuk diajukan.
 
 ---
 
-## 11. Tutorial / Hands-On
+## 11. Praktikum / Hands-On
 
 
-### Tutorial 1: Benchmark GPU Anda dengan llama.cpp
+### Langkah 1: Benchmark GPU Anda dengan llama.cpp
 
 Satu-satunya cara mengetahui performa GPU Anda yang sebenarnya adalah mengukurnya
 sendiri. Mulailah dengan *backend* CUDA di mesin NVIDIA:
@@ -446,7 +446,7 @@ Bandingkan hasil kolom `tokens/s` Anda dengan Tabel 2 di bab ini — jika berada
 lebih lambat, kecil kemungkinan karena CPU; kemungkinan besar *offload* ke GPU tidak
 sempurna atau model kuantisasi yang diunduh berbeda.
 
-### Tutorial 2: Setup vLLM di AMD ROCm
+### Langkah 2: Setup vLLM di AMD ROCm
 
 Jika Anda pemilik GPU AMD dengan Linux, jalur server *production-grade* sudah terbuka
 lebar lewat ROCm:
@@ -474,7 +474,7 @@ Jika respons kembali dengan teks lanjutan dari "Saya adalah", server ROCm Anda b
 Selamat: Anda baru saja bergabung dengan komunitas yang semakin ramai — pengguna AMD
 yang tidak lagi bergantung pada NVIDIA untuk layanan LLM.
 
-### Tutorial 3: Jalankan LLM via OpenVINO di Intel Arc
+### Langkah 3: Jalankan LLM via OpenVINO di Intel Arc
 
 Bagi pemilik Intel Arc A770 atau laptop *AI PC*, jalur OpenVINO paling cepat dijangkau
 lewat Python:
@@ -502,7 +502,7 @@ outputs = model.generate(**inputs, max_new_tokens=50)
 print(tokenizer.decode(outputs[0]))
 ```
 
-Perhatikan bahwa tidak ada satupun baris kode yang menyebut vendor — inilah kekuatan
+Perhatikan bahwa tidak ada satu pun baris kode yang menyebut vendor — inilah kekuatan
 OpenVINO sebagai lapisan abstraksi. Model yang sama akan berjalan di iGPU, Arc, atau
 bahkan NPU dengan perubahan konfigurasi minimum.
 
@@ -516,7 +516,7 @@ bahkan NPU dengan perubahan konfigurasi minimum.
 sementara RX 7900 XTX baru dijual hanya ~Rp 15 jt dengan VRAM yang sama (24 GB),
 bandwidth sedikit lebih tinggi (960 GB/s vs 936 GB/s), dan kartu Anda bisa dijual dengan
 harga yang hampir menutup biayanya. Migrasi terdengar menggiurkan. Anda membeli 7900
-XTX, memasangnya, dan menginstall Linux — karena ROCm di Linux adalah jalur yang stabil.
+XTX, memasangnya, dan menginstal Linux — karena ROCm di Linux adalah jalur yang stabil.
 
 **Tantangan.** Seminggu kemudian, realita mengetuk pintu. **ExLlamaV2 tidak tersedia**
 untuk ROCm — eksperimental dan tidak disarankan untuk kerja harian. **TRT-LLM juga
@@ -564,7 +564,7 @@ benchmark 8+ LLM di 7 platform hardware termasuk AMD MI300X dan NVIDIA H100.
 Instinct GPUs: A Comprehensive Benchmark and Deployment Study*. arXiv preprint.
 DOI: [10.48550/arXiv.2603.10031](https://arxiv.org/abs/2603.10031) — evaluasi 4 model
 frontier di klaster 8-GPU MI325X; paper akademik pertama yang me-*benchmark* model
-1-triliun parameter di GPU AMD.
+1-triliun parameter di GPU AMD. ⚠️ verifikasi sebelum rilis (ID arXiv 2026).
 
 [3] Li, Z., et al. (2024). *Large Language Model Inference Acceleration: A Comprehensive
 Hardware Perspective*. arXiv preprint. DOI: [10.48550/arXiv.2410.04466](https://arxiv.org/abs/2410.04466) —
@@ -574,7 +574,7 @@ dan PIM; kerangka teoretis *bottleneck* bandwidth memori di semua platform.
 [4] Tunguz, B. (2025). *State of PyTorch Hardware Acceleration 2025*. arXiv preprint.
 DOI: [10.48550/arXiv.2505.12345](https://arxiv.org/abs/2505.12345) — analisis komparatif
 CUDA vs ROCm vs XLA vs Apple Silicon: kematangan *compiler*, dukungan FP8, dan *stack*
-terdistribusi.
+terdistribusi. ⚠️ ID placeholder — ganti dengan ID asli sebelum rilis.
 
 [5] Chen, K., et al. (2025). *AMD vs NVIDIA Inference Benchmark: Who Wins? Performance
 & Cost Per Million Tokens*. SemiAnalysis. DOI: [10.5281/zenodo.15482391](https://newsletter.semianalysis.com/p/amd-vs-nvidia-inference-benchmark-who-wins-performance-cost-per-million-tokens) —
@@ -583,7 +583,7 @@ temuan kritis: 25% model gagal *accuracy test* di ROCm dan kurangnya *CI coverag
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Hybrid CSA/HCA Mixture-of-Experts Language
 Model*. arXiv preprint. DOI: [10.48550/arXiv.2604.09980](https://arxiv.org/abs/2604.09980) —
 model 284B dan 1,6T; studi kasus ekstrem untuk inferensi multi-GPU dan kompatibilitas
-framework.
+framework. ⚠️ verifikasi sebelum rilis (ID arXiv 2026).
 
 [7] Mistral AI. (2025). *Mistral Large 3: Granular MoE with Multimodal Capabilities*.
 arXiv preprint. DOI: [10.48550/arXiv.2512.01820](https://arxiv.org/abs/2512.01820) —

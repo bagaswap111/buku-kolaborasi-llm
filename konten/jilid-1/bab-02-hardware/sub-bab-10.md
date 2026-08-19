@@ -67,7 +67,7 @@ Kekurangannya sama tegasnya: konsumsi daya tinggi yang menerjemahkan langsung ke
 
 Di kutub yang berlawanan berdiri ekosistem Apple. Keunggulan utamanya adalah **unified memory** — hingga **192GB** di Mac Studio — yang berarti model 70B+ bisa dimuat sepenuhnya tanpa *offloading* yang menyiksa. Tambahkan kebisuan total (tidak ada fan GPU), konsumsi daya rendah, dan *form factor* sekecil kotak makan siang, dan Anda mendapatkan mesin yang bisa dinyalakan 24/7 tanpa mengganggu siapa pun — termasuk tetangga kos Anda.
 
-Kekurangannya adalah **harga premium per unit performa**: untuk kecepatan *inference* per detik, Mac Studio kalah dengan PC GPU sekelasnya, dan *memory*-nya terbatas di 192GB — model yang lebih besar dari itu (misalnya Mistral Large 3 yang 675B) tidak mungkin. Tidak ada *upgrade* sama sekali: apa yang Anda beli adalah apa yang Anda miliki selamanya. Cocok untuk pengguna yang prioritasnya **model besar (70B+)**, bukan kecepatan maksimal, dan yang menempatkan ketenangan serta efisiensi daya di atas segalanya. Penelitian Liu dkk. (2025) bahkan menunjukkan bahwa *cluster* Mac Studio bisa menjadi alternatif rasional untuk model MoE besar, dengan analisis biaya yang bersaing dengan mesin DGX kelas server [3].
+Kekurangannya adalah **harga premium per unit performa**: untuk kecepatan *inference* per detik, Mac Studio kalah dengan PC GPU sekelasnya, dan *memory*-nya terbatas di 192GB — model yang lebih besar dari itu (misalnya Mistral Large 3 yang 675B) tidak mungkin. Tidak ada *upgrade* sama sekali: apa yang Anda beli adalah apa yang Anda miliki selamanya. Cocok untuk pengguna yang prioritasnya **model besar (70B+)**, bukan kecepatan maksimal, dan yang menempatkan ketenangan serta efisiensi daya di atas segalanya. Penelitian Chen dkk. (2025) bahkan menunjukkan bahwa *cluster* Mac Studio bisa menjadi alternatif rasional untuk model MoE besar, dengan analisis biaya yang bersaing dengan mesin DGX kelas server [3].
 
 ### Tabel 2: PC Rakitan vs Mac Studio vs Laptop
 
@@ -80,13 +80,13 @@ Untuk pembaca yang bingung membandingkan tiga dunia berbeda, tabel berikut menya
 | **Model 70B** | ~16 t/s (Q3) | ~8 t/s (Q3) | Tidak muat |
 | **Max VRAM/Memory** | 24 GB | 48 GB | 8 GB |
 | **Konsumsi Daya** | ~350W (load) | ~60W (load) | ~150W (load) |
-| **Biaya Listrik/thn** | ~Rp 2.3 jt | ~Rp 400 rb | ~Rp 1 jt |
+| **Biaya Listrik/thn** | ~Rp 1,6 jt | ~Rp 280 rb | ~Rp 700 rb |
 | **Upgradeability** | Tinggi | Rendah (tidak bisa) | Rendah (RAM/GPU solder) |
 | **Kebisingan** | Sedang | Silent | Sedang-tinggi |
 | **Portabilitas** | Tidak | Mini (bisa dibawa) | Ya |
 | **Software Support** | Semua framework | MLX, llama.cpp, Ollama | Terbatas (VRAM kecil) |
 
-Tiga wawasan dari perbandingan ini. Pertama, PC rakitan unggul telak di kecepatan — 85 t/s untuk 7B dan 16 t/s untuk 70B — tetapi harus "membayar" Rp 2,3 juta listrik per tahun dan kebisingan yang mengiringi. Kedua, Mac Mini M4 Pro adalah studi kasus kontradiksi yang menarik: *unified memory*-nya 48GB (dua kali VRAM RTX 3090), tetapi kecepatannya hanya 40 t/s untuk 7B — dan untuk 70B hanya 8 t/s, karena *memory bandwidth*-nya lebih rendah daripada GDDR6X RTX 3090. Dengan kata lain, **Mac unggul di kapasitas, PC unggul di kecepatan** — dan laptop berada di posisi tersulit: tidak bisa memuat 70B sama sekali karena 8GB yang terbatas. Ketiga, untuk pekerjaan 24/7 yang mementingkan ketenangan dan listrik, Mac Mini menang telak — konsumsi 60W vs 350W berarti dalam 3 tahun menghemat ~Rp 5,7 juta hanya dari listrik [3][4][5].
+Tiga wawasan dari perbandingan ini. Pertama, PC rakitan unggul telak di kecepatan — 85 t/s untuk 7B dan 16 t/s untuk 70B, tetapi harus "membayar" Rp 1,6 juta listrik per tahun dan kebisingan yang mengiringi. Kedua, Mac Mini M4 Pro adalah studi kasus kontradiksi yang menarik: *unified memory*-nya 48GB (dua kali VRAM RTX 3090), tetapi kecepatannya hanya 40 t/s untuk 7B — dan untuk 70B hanya 8 t/s, karena *memory bandwidth*-nya lebih rendah daripada GDDR6X RTX 3090. Dengan kata lain, **Mac unggul di kapasitas, PC unggul di kecepatan** — dan laptop berada di posisi tersulit: tidak bisa memuat 70B sama sekali karena 8GB yang terbatas. Ketiga, untuk pekerjaan 24/7 yang mementingkan ketenangan dan listrik, Mac Mini menang telak — konsumsi 60W vs 350W berarti dalam 3 tahun menghemat ~Rp 4 juta hanya dari listrik [3][4][5].
 
 
 ---
@@ -105,7 +105,7 @@ Namun, mari jujur soal keterbatasannya. GPU laptop adalah versi yang sudah "dice
 
 ### Total Cost of Ownership
 
-Harga stiker hardware hanyalah permulaan. **TCO** (Total Cost of Ownership) menjumlahkan biaya hardware + biaya listrik selama 3 tahun + biaya pemeliharaan (*upgrade*, *repaste*, penggantian fan). Untuk konteks Indonesia, tarif listrik PLN per kWh (tarif reguler 2026, sekitar Rp 1.600/kWh) menjadi komponen yang tidak bisa diabaikan: PC RTX 3090 yang menyala 8 jam sehari bisa menyedot sekitar Rp 2,3 juta per tahun, sementara Mac Mini yang senyap hanya sekitar Rp 400 ribu.
+Harga stiker hardware hanyalah permulaan. **TCO** (Total Cost of Ownership) menjumlahkan biaya hardware + biaya listrik selama 3 tahun + biaya pemeliharaan (*upgrade*, *repaste*, penggantian fan). Untuk konteks Indonesia, tarif listrik PLN per kWh (tarif reguler 2026, sekitar Rp 1.600/kWh) menjadi komponen yang tidak bisa diabaikan: PC RTX 3090 yang menyala 8 jam sehari bisa menyedot sekitar Rp 1,6 juta per tahun, sementara Mac Mini yang senyap hanya sekitar Rp 280 ribu.
 
 ### Break-Even dengan Cloud
 
@@ -132,9 +132,9 @@ Akhirnya, pertanyaan paling mendasar: berapa sebenarnya biaya setiap juta token 
 
 ![Perbandingan biaya per juta token dua belas platform lokal dan cloud pada skala logaritmik, dengan platform lokal berwarna hijau](../../assets/images/bab-02-hardware/sub-bab-10/biaya-per-juta-token-lokal-vs-cloud.png)
 
-*Gambar 2.10-2 — Inferensi lokal 40-140x lebih murah per token daripada API frontier: RTX 3090 used Rp 520 melawan GPT-4o Rp 77.000, dan bahkan DeepSeek API termurah (Rp 2.100) masih 4x lebih mahal.*
+*Gambar 2.10-2 — Inferensi lokal hingga ~480x lebih murah per token daripada API frontier: RTX 3090 used Rp 520 melawan GPT-4o Rp 77.000, dan bahkan DeepSeek API termurah (Rp 2.100) masih 4x lebih mahal.*
 
-Angka-angka ini menceritakan dua cerita. Cerita pertama: **inferensi lokal 40–140 kali lebih murah per token daripada API frontier** — RTX 3090 *used* memproses satu juta token dengan biaya setara Rp 520, sementara GPT-4o meminta Rp 77.000. Bahkan DeepSeek API yang termurah di dunia cloud (Rp 2.100) masih 4x lebih mahal dari RTX 3090 lokal. Cerita kedua, yang sering terlewat: **lokal lebih murah hanya jika volume pemakaian cukup besar** — Rp 12 juta hardware RTX 3090 yang hanya dipakai 10.000 token per hari membutuhkan lebih dari 6 tahun untuk balik modal, sementara pengguna 500.000 token/hari mencapai *break-even* dalam 8 bulan. Untuk pengguna hybrid, strategi optimal ada di tengah: jalankan tugas rutin bervolume besar di lokal, simpan API cloud untuk tugas frontier sesekali yang butuh kualitas GPT-5.5 atau Claude Fable 5. Data efisiensi per platform pada tabel ini diverifikasi dengan studi pengukuran energi 32.500 titik data dari Liu dkk. (2025) [4].
+Angka-angka ini menceritakan dua cerita. Cerita pertama: **inferensi lokal 4–480 kali lebih murah per token daripada API frontier** — RTX 3090 *used* memproses satu juta token dengan biaya setara Rp 520, sementara GPT-4o meminta Rp 77.000. Bahkan DeepSeek API yang termurah di dunia cloud (Rp 2.100) masih 4x lebih mahal dari RTX 3090 lokal. Cerita kedua, yang sering terlewat: **lokal lebih murah hanya jika volume pemakaian cukup besar** — Rp 12 juta hardware RTX 3090 yang hanya dipakai 10.000 token per hari membutuhkan lebih dari 6 tahun untuk balik modal, sementara pengguna 500.000 token/hari mencapai *break-even* dalam 8 bulan. Untuk pengguna hybrid, strategi optimal ada di tengah: jalankan tugas rutin bervolume besar di lokal, simpan API cloud untuk tugas frontier sesekali yang butuh kualitas GPT-5.5 atau Claude Fable 5. Data efisiensi per platform pada tabel ini diverifikasi dengan studi pengukuran energi 32.500 titik data dari Caravaca dkk. (2025) [4].
 
 ---
 
@@ -227,7 +227,7 @@ for name, hw, watt, hours in configs:
           f"{result['electricity_3yr']:>12,.0f} {result['total_tco']:>14,.0f}")
 ```
 
-Jalankan skrip ini dan perhatikan dua baris yang paling kontras: PC 2x RTX 3090 (TCO ~Rp 43 juta) dan Mac Studio M2 Ultra (TCO ~Rp 76 juta) memiliki *capability* model yang sebanding (keduanya sanggup 70B+), tetapi selisihnya hampir Rp 33 juta dalam 3 tahun — itulah "biaya kemewahan" ketenangan dan *form factor* Apple. Sebaliknya, laptop RTX 4060 yang tampak murah (Rp 18 juta) ternyata TCO 3 tahunnya ~Rp 22 juta — hampir menyentuh harga PC RTX 3090 (Rp 12 juta + listrik = ~Rp 19 juta) dengan performa yang kalah kelas. Angka-angka ini mengubah percakapan "berapa harga laptopnya?" menjadi "berapa biayanya selama tiga tahun?" — pertanyaan yang jauh lebih jujur [1][4][5].
+Jalankan skrip ini dan perhatikan dua baris yang paling kontras: PC 2x RTX 3090 (TCO ~Rp 34 juta) dan Mac Studio M2 Ultra (TCO ~Rp 77 juta) memiliki *capability* model yang sebanding (keduanya sanggup 70B+), tetapi selisihnya lebih dari Rp 40 juta dalam 3 tahun — itulah "biaya kemewahan" ketenangan dan *form factor* Apple. Sebaliknya, laptop RTX 4060 yang tampak murah (Rp 18 juta) ternyata TCO 3 tahunnya ~Rp 20 juta — hampir menyentuh harga PC RTX 3090 (Rp 12 juta + listrik = ~Rp 17 juta) dengan performa yang kalah kelas. Angka-angka ini mengubah percakapan "berapa harga laptopnya?" menjadi "berapa biayanya selama tiga tahun?" — pertanyaan yang jauh lebih jujur [1][4][5].
 
 ### Tutorial 2: Menghitung Break-even Point vs Cloud API
 
@@ -237,7 +237,7 @@ Setelah TCO diketahui, hitung kapan investasi lokal melunasi dirinya dibandingka
 # breakeven.py — kapan lokal lebih murah dari cloud?
 HW_COST = 12_000_000  # RTX 3090 used
 TOKENS_PER_DAY = 500_000  # 500K token/hari (heavy user)
-CLOUD_COST_PER_1M = 77_000  # OpenAI GPT-4o
+CLOUD_COST_PER_1M = 130_000  # OpenAI GPT-4o — harga efektif per 1M token (campuran input+output beban coding)
 
 # Biaya per token lokal (amortisasi 3 tahun + listrik)
 from tco_calculator import calculate_tco
@@ -315,15 +315,15 @@ Kesalahan paling umum yang dicegah checklist ini: membeli motherboard yang slot 
 
 **Skenario.** Seorang *developer* web — sebut saja Raka — sudah jenuh membayar langganan ChatGPT sebesar US$20 per bulan dan ingin beralih ke LLM lokal untuk *coding assistant* dan RAG dokumen internal. Budget-nya sekali bayar: **Rp 30 juta**, tanpa biaya bulanan. Tiga opsi masuk meja:
 
-- **Opsi A — PC Rakitan:** Ryzen 7 7800X3D + RTX 3090 *used* 24GB + 64GB DDR5 + 2TB NVMe Gen 4 = **~Rp 25 juta**. Performa 85 t/s untuk model 7B, 16 t/s untuk 70B Q3, dan *upgrade path* ke 2x GPU di masa depan. Biaya listrik ~Rp 230 ribu per bulan (8 jam/hari).
-- **Opsi B — Mac Mini M4 Pro 48GB:** **Rp 32 juta** — sudah *over budget* Rp 2 juta. Performa 40 t/s untuk 7B, dan tidak bisa menjalankan 70B dengan nyaman (memori cukup, tetapi *bandwidth* rendah). Listrik hanya ~Rp 40 ribu per bulan, dan mesinnya *silent*.
+- **Opsi A — PC Rakitan:** Ryzen 7 7800X3D + RTX 3090 *used* 24GB + 64GB DDR5 + 2TB NVMe Gen 4 = **~Rp 25 juta**. Performa 85 t/s untuk model 7B, 16 t/s untuk 70B Q3, dan *upgrade path* ke 2x GPU di masa depan. Biaya listrik ~Rp 134 ribu per bulan (8 jam/hari).
+- **Opsi B — Mac Mini M4 Pro 48GB:** **Rp 32 juta** — sudah *over budget* Rp 2 juta. Performa 40 t/s untuk 7B, dan tidak bisa menjalankan 70B dengan nyaman (memori cukup, tetapi *bandwidth* rendah). Listrik hanya ~Rp 23 ribu per bulan, dan mesinnya *silent*.
 - **Opsi C — Laptop Lenovo Legion RTX 4060 8GB:** **Rp 22 juta**. Performa 35 t/s untuk 7B Q4, tidak bisa 70B, tetapi portabel untuk dibawa ke kampus dan kantor.
 
-**Analisis.** Menjalankan kalkulator TCO dari Tutorial 1 mengubah gambaran. Opsi A: TCO 3 tahun ~Rp 33 juta (listrik 8 jam/hari). Opsi B: ~Rp 33,4 juta — ternyata *hampir identik* dengan Opsi A, karena listrik Mac yang murah mengkompensasi harga awal yang lebih tinggi. Opsi C: ~Rp 25,6 juta — termurah, tetapi dengan kapabilitas paling kecil. Namun TCO saja tidak cukup: Raka butuh *coding assistant* interaktif yang responsif dan RAG atas dokumen-dokumennya. Di sini Opsi A unggul tegas dengan 85 t/s (2x Mac, 2,4x laptop) dan satu-satunya yang bisa menjalankan 70B.
+**Analisis.** Menjalankan kalkulator TCO dari Tutorial 1 mengubah gambaran. Opsi A: TCO 3 tahun ~Rp 30 juta (listrik 8 jam/hari). Opsi B: ~Rp 33 juta — ternyata *hampir sebanding* dengan Opsi A, karena listrik Mac yang murah mengkompensasi harga awal yang lebih tinggi. Opsi C: ~Rp 24 juta — termurah, tetapi dengan kapabilitas paling kecil. Namun TCO saja tidak cukup: Raka butuh *coding assistant* interaktif yang responsif dan RAG atas dokumen-dokumennya. Di sini Opsi A unggul tegas dengan 85 t/s (2x Mac, 2,4x laptop) dan satu-satunya yang bisa menjalankan 70B.
 
 **Keputusan.** Raka memilih **Opsi A**. Alasan utamanya: budget pas, performa terbaik per rupiah, dan *upgrade path* ke 2x GPU untuk 70B — membeli GPU kedua Rp 12 juta di tahun kedua lebih murah daripada lompat ke Mac Studio. Sisa Rp 5 juta digunakan untuk **UPS + *fan upgrade*** — pelajaran dari Sub-bab 2.8: GPU yang sehat secara termal menjaga performa yang sudah dibayar mahal.
 
-**Hasil.** Menghitung dengan Tutorial 2: dibandingkan langganan ChatGPT (US$20/bulan ≈ Rp 320 ribu/bulan), biaya lokal per bulan hanya ~Rp 230 ribu — menghemat Rp 90 ribu/bulan, atau ~Rp 3,2 juta dalam 3 tahun. Angka itu terlihat kecil, tetapi cerita sebenarnya berbeda: untuk pemakaian 500.000 token/hari yang sedang bertumbuh (makin banyak kode dan dokumen yang diproses), *break-even* terjadi dalam 4–6 bulan — lebih cepat dari perkiraan 8 bulan untuk *heavy user* biasa, dan setelah itu seluruh inferensi adalah "gratis". Ditambah kebebasan tanpa batas *rate limit* dan data yang tidak pernah meninggalkan mesin.
+**Hasil.** Menghitung dengan Tutorial 2: dibandingkan langganan ChatGPT (US$20/bulan ≈ Rp 320 ribu/bulan), biaya listrik lokal per bulan hanya ~Rp 134 ribu — menghemat ~Rp 186 ribu/bulan, atau ~Rp 6,7 juta dalam 3 tahun. Angka itu terlihat kecil, tetapi cerita sebenarnya berbeda: untuk pemakaian 500.000 token/hari yang sedang bertumbuh (makin banyak kode dan dokumen yang diproses), *break-even* terhadap API cloud menyusut drastis — pada volume jutaan token per hari, balik modal terjadi dalam 4–6 bulan, lebih cepat daripada ~8 bulan untuk *heavy user* biasa dengan hardware yang lebih murah — dan setelah itu seluruh inferensi adalah "gratis". Ditambah kebebasan tanpa batas *rate limit* dan data yang tidak pernah meninggalkan mesin.
 
 **Catatan 2026.** Dunia berubah cepat. Model frontier baru — **DeepSeek V4 Flash** (284B, MIT license) dan **Mistral Large 3** (675B, Apache 2.0) — membuka akses ke kualitas level GPT-5 secara lokal, tetapi harganya mahal: butuh 6–8 GPU atau Mac Studio 192GB, investasi Rp 70–100 juta. Untuk pengguna dengan budget Rp 30 juta seperti Raka, kabar baiknya adalah model 7B–14B Q4_K_M saat ini sudah mencapai performa level **GPT-4o-mini** — cukup untuk 90% kebutuhan sehari-hari [11][12]. Strategi bertahap adalah jawabannya: mulai dari yang mampu dibeli hari ini, dan biarkan kebutuhan yang menentukan kapan *upgrade* berikutnya layak dilakukan.
 
@@ -334,16 +334,16 @@ Kesalahan paling umum yang dicegah checklist ini: membeli motherboard yang slot 
 
 ### Paper Jurnal/Konferensi
 
-[1] Stojkovic, J., et al. (2025). *Energy Considerations of Large Language Model Inference and Efficiency Optimizations*. ACL. DOI: [10.18653/v1/2025.acl-long.1563](https://doi.org/10.18653/v1/2025.acl-long.1563)
+[1] Fernandez, J., et al. (2025). *Energy Considerations of Large Language Model Inference and Efficiency Optimizations*. ACL. DOI: [10.18653/v1/2025.acl-long.1563](https://doi.org/10.18653/v1/2025.acl-long.1563)
 - Optimasi energi dapat mengurangi 73% konsumsi daya — relevan untuk kalkulasi TCO dan rekomendasi pada Seksi 6.
 
-[2] Qu, Z., et al. (2024). *A Review on Edge Large Language Models: Design, Execution, and Applications*. arXiv: 2410.11845. DOI: [10.48550/arXiv.2410.11845](https://arxiv.org/abs/2410.11845)
+[2] Zheng, Y., et al. (2024). *A Review on Edge Large Language Models: Design, Execution, and Applications*. arXiv: 2410.11845. DOI: [10.48550/arXiv.2410.11845](https://arxiv.org/abs/2410.11845)
 - Survey komprehensif deployment LLM di *edge* — klasifikasi kebutuhan hardware per ukuran model. Data Tabel 1 tentang model maksimum per konfigurasi merujuk survey ini.
 
-[3] Liu, C., et al. (2025). *Towards Building Private LLMs: Exploring Multi-Node Expert Parallelism on Apple Silicon for Mixture-of-Experts Large Language Model*. arXiv: 2506.23635. DOI: [10.48550/arXiv.2506.23635](https://arxiv.org/abs/2506.23635)
+[3] Chen, M.-C., et al. (2025). *Towards Building Private LLMs: Exploring Multi-Node Expert Parallelism on Apple Silicon for Mixture-of-Experts Large Language Model*. arXiv: 2506.23635. DOI: [10.48550/arXiv.2506.23635](https://arxiv.org/abs/2506.23635)
 - *Cluster* Mac Studio untuk model MoE — analisis biaya vs DGX. Data Tabel 2 (Mac vs PC) diverifikasi dengan perbandingan biaya paper ini.
 
-[4] Liu, Y., et al. (2025). *From Prompts to Power: Measuring the Energy Footprint of LLM Inference*. arXiv: 2511.05597. DOI: [10.48550/arXiv.2511.05597](https://arxiv.org/abs/2511.05597)
+[4] Caravaca, F., et al. (2025). *From Prompts to Power: Measuring the Energy Footprint of LLM Inference*. arXiv: 2511.05597. DOI: [10.48550/arXiv.2511.05597](https://arxiv.org/abs/2511.05597)
 - 32.500 pengukuran energi — 21 konfigurasi GPU, 155 model. Data efisiensi per platform di Tabel 3 diverifikasi dengan paper ini.
 
 [5] Lu, Z., et al. (2025). *Demystifying Small Language Models for Edge Deployment*. ACL. DOI: [10.18653/v1/2025.acl-long.718](https://doi.org/10.18653/v1/2025.acl-long.718)

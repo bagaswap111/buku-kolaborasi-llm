@@ -28,7 +28,7 @@ Setiap GPU dirancang dengan batas suhu operasional yang aman. Untuk kartu NVIDIA
 
 ### Tabel 1: Dampak Throttle pada Performa LLM
 
-Tabel berikut mengukur penurunan performa secara nyata pada satu konfigurasi: RTX 3090 menjalankan Llama-3.1-8B Q4_K_M. Perhatikan bagaimana performa menari-nari mengikuti suhu dan clock.
+Tabel berikut mengukur penurunan performa secara nyata pada satu konfigurasi: RTX 3090 menjalankan Llama 3.1 (8B) Q4_K_M. Perhatikan bagaimana performa menari-nari mengikuti suhu dan clock.
 
 | Kondisi | Suhu GPU | Clock (MHz) | Tokens/s | Penurunan | Daya (W) |
 |:---|---:|---:|---:|---:|---:|
@@ -43,7 +43,7 @@ Tabel berikut mengukur penurunan performa secara nyata pada satu konfigurasi: RT
 
 *Gambar 2.8-1 — Setelah ambang 83°C, clock dan tokens/s jatuh beriringan: throttle parah di 88°C kehilangan 47% performa (85 → 45 t/s), sementara undervolt 220W mempertahankan 80 t/s di suhu hanya 68°C.*
 
-Analisis dari tabel ini sangat instruktif. Pertama, perhatikan enam baris pertama: sejak *throttle* dimulai di 83°C, performa jatuh 24%, dan pada *throttle* parah di 88°C — hampir separuh performa (45 t/s vs 85 t/s) hilang padahal model dan hardware sama persis. Kedua, perhatikan baris terakhir: *undervolt* ke 220W mengembalikan performa ke 80 t/s (hanya -6%) sambil mengurangi konsumsi daya sebesar 100W — bukti bahwa panas, bukan daya, adalah musuh sebenarnya. Kapan memilih antara pendinginan mahal vs *undervolt*? Jika penurunan 5-6% masih bisa diterima untuk beban kerja harian Anda, *undervolt* selalu menang dalam rasio biaya-manfaat; jika target Anda adalah performa maksimum yang dapat dipertahankan berjam-jam, baru pertimbangkan investasi pendinginan di Tabel 2 [1][4].
+Analisis dari tabel ini sangat instruktif. Pertama, perhatikan dua baris throttle: sejak *throttle* dimulai di 83°C, performa jatuh 24%, dan pada *throttle* parah di 88°C — hampir separuh performa (45 t/s vs 85 t/s) hilang padahal model dan hardware sama persis. Kedua, perhatikan baris terakhir: *undervolt* ke 220W mengembalikan performa ke 80 t/s (hanya -6%) sambil mengurangi konsumsi daya sebesar 100W — bukti bahwa panas, bukan daya, adalah musuh sebenarnya. Kapan memilih antara pendinginan mahal vs *undervolt*? Jika penurunan 5-6% masih bisa diterima untuk beban kerja harian Anda, *undervolt* selalu menang dalam rasio biaya-manfaat; jika target Anda adalah performa maksimum yang dapat dipertahankan berjam-jam, baru pertimbangkan investasi pendinginan di Tabel 2 [1][4].
 
 
 ### Diagram 1: Mekanisme Thermal Throttle
@@ -110,7 +110,7 @@ Ketika udara saja tidak sanggup, air adalah jawabannya. Dua jalur tersedia: **AI
 
 Satu solusi yang sering diremehkan: **undervolt** melalui *power limit*. Dengan menurunkan batas daya dari, misalnya, 350W ke 220W, suhu turun **8–12°C** sementara penurunan performa hanya sekitar 5% — karena GPU modern sudah bekerja mendekati *sweet spot* efisiensinya, dan panas yang berkurang membuat clock justru lebih stabil. Ini adalah teknik favorit bagi pengguna rumahan: gratis, mudah, dan langsung terasa dampaknya.
 
-Yang paling penting untuk diingat: solusi-solusi ini **tidak saling eksklusif** — mereka justru bekerja paling baik secara berurutan. Hasil studi kasus di Seksi 9 menunjukkan pola khas: repaste menurunkan suhu 7°C, *undervolt* menurunkan 3°C lagi, dan fan intake menurunkan 5°C — total 15°C dari tiga langkah yang masing-masing kecil. Efeknya bersifat *additive* karena masing-masing menyerang sumber panas yang berbeda: paste mengembalikan transfer panas chip → heatsink, *undervolt* mengurangi total energi yang harus dibuang, dan airflow mempercepat pembuangan panas dari heatsink → ruangan. Karena itu, mulailah dari yang paling murah dan ukur dampaknya dengan skrip monitoring (Tutorial 1) sebelum pindah ke langkah berikutnya — Anda mungkin terkejut menemukan bahwa repaste + *undervolt* saja sudah cukup, tanpa perlu menyentuh *watercooling* sama sekali.
+Yang paling penting untuk diingat: solusi-solusi ini **tidak saling eksklusif** — mereka justru bekerja paling baik secara berurutan. Hasil studi kasus di Seksi 7 menunjukkan pola khas: repaste menurunkan suhu 7°C, *undervolt* menurunkan 3°C lagi, dan fan intake menurunkan 5°C — total 15°C dari tiga langkah yang masing-masing kecil. Efeknya bersifat *additive* karena masing-masing menyerang sumber panas yang berbeda: paste mengembalikan transfer panas chip → heatsink, *undervolt* mengurangi total energi yang harus dibuang, dan airflow mempercepat pembuangan panas dari heatsink → ruangan. Karena itu, mulailah dari yang paling murah dan ukur dampaknya dengan skrip monitoring (Tutorial 1) sebelum pindah ke langkah berikutnya — Anda mungkin terkejut menemukan bahwa repaste + *undervolt* saja sudah cukup, tanpa perlu menyentuh *watercooling* sama sekali.
 
 ### Tabel 2: Solusi Pendinginan — Biaya vs Efektivitas
 
@@ -132,7 +132,7 @@ Setiap solusi memiliki posisi berbeda pada peta biaya vs usaha. Tabel ini memban
 
 *Gambar 2.8-2 — Solusi gratis (undervolt 8-12°C, fan curve 3-5°C) berada di puncak rasio biaya-manfaat, sementara custom loop menurunkan 20-25°C tetapi menuntut Rp 8-15 juta.*
 
-Ada pola menarik di deret ini: tiga solusi teratas (fan curve, repaste, undervolt) hampir tidak menyentuh dompet, sementara tiga terbawah (watercooling AIO, custom loop, AC ruangan) memakan jutaan rupiah. Di tengahnya — *open bench table* seharga ~Rp 300 rb — adalah "hack" termal paling undervalued: membuang saja *case* yang sempit bisa menurunkan suhu 10–15°C. Untuk kebanyakan pengguna Indonesia dengan ambient 28–32°C, kombinasi *fan curve* + repaste + *undervolt* biasanya sudah menutup defisit 10–15°C, dan *open bench* atau AC 0.5 PK menjadi penyelamat ketika di atas itu. Data pengurangan suhu pada kolom ketiga juga dikuatkan oleh penelitian InferCool (Liu dkk., USENIX ATC 2025) yang menunjukkan bahwa *task reassignment* cerdas mampu mengurangi suhu GPU hingga 5°C dan menghemat 20% energi pendinginan [3].
+Ada pola menarik di deret ini: tiga solusi teratas (fan curve, repaste, undervolt) hampir tidak menyentuh dompet, sementara tiga terbawah (watercooling AIO, custom loop, AC ruangan) memakan jutaan rupiah. Di tengahnya — *open bench table* seharga ~Rp 300 rb — adalah "hack" termal paling undervalued: membuang saja *case* yang sempit bisa menurunkan suhu 10–15°C. Untuk kebanyakan pengguna Indonesia dengan ambient 28–32°C, kombinasi *fan curve* + repaste + *undervolt* biasanya sudah menutup defisit 10–15°C, dan *open bench* atau AC 0.5 PK menjadi penyelamat ketika di atas itu. Data pengurangan suhu pada kolom ketiga juga dikuatkan oleh penelitian InferCool (Pei dkk., SoCC 2024) yang menunjukkan bahwa *task reassignment* cerdas mampu mengurangi suhu GPU hingga 5°C dan menghemat 20% energi pendinginan [3].
 
 
 ### Diagram 2: Peta Keputusan Solusi Pendinginan
@@ -165,7 +165,7 @@ Alur diagram ini menegaskan urutan yang direkomendasikan pada Seksi 7: periksa f
 ## 5. Thermal di Data Center vs Desktop: Dua Dunia Termal
 
 
-Penting untuk memahami bahwa GPU di data center adalah warga negara berbeda. Di pusat data, ruangan diatur secara *cooling-regulated*: *inlet temperature* (suhu udara yang masuk ke server) dikontrol ketat, dan GPU umumnya dipertahankan di bawah **60°C**. Ada tim engineer khusus yang menjaga suhu, dan *thermal management* bahkan diotomatisasi: penelitian TAPAS (Stojkovic dkk., ASPLOS 2025) menunjukkan bahwa *thermal-aware scheduling* — penempatan dan penjadwalan workload berdasarkan profil termal — mampu mengurangi suhu maksimum hingga 17% dan **menurunkan kejadian throttle hingga 97%** di cloud platform [1]. Di sisi lain, scheduler berbasis *reinforcement learning* dari Wang dkk. (ACM SIGEnergy 2025) mengurangi konsumsi energi sistem pendingin CRAC hingga 20% [2].
+Penting untuk memahami bahwa GPU di data center adalah warga negara berbeda. Di pusat data, ruangan diatur secara *cooling-regulated*: *inlet temperature* (suhu udara yang masuk ke server) dikontrol ketat, dan GPU umumnya dipertahankan di bawah **60°C**. Ada tim engineer khusus yang menjaga suhu, dan *thermal management* bahkan diotomatisasi: penelitian TAPAS (Stojkovic dkk., ASPLOS 2025) menunjukkan bahwa *thermal-aware scheduling* — penempatan dan penjadwalan workload berdasarkan profil termal — mampu mengurangi suhu maksimum hingga 17% dan **menurunkan kejadian throttle hingga 97%** di cloud platform [1]. Di sisi lain, scheduler berbasis model dari Lu dan Wang (ACM SIGEnergy 2025) mampu meningkatkan *throughput* hingga 40,9% bahkan pada *ambient* 41°C [2].
 
 Desktop Anda tidak mendapat kemewahan itu. Di Indonesia, dengan *ambient* ruangan **28–32°C** dan sering kali tanpa AC, GPU di dalam *case* yang diletakkan di sudut ruangan bisa beroperasi di **75–85°C** sepanjang hari. Yang di data center diselesaikan dengan ruangan berpendingin dan rak khusus, di desktop harus diselesaikan dengan fan, paste, dan disiplin termal Anda sendiri. Kabar baiknya: *throttle* di desktop bisa dicegah, asalkan Anda mau memantau dan menindaklanjutinya sejak dini.
 
@@ -252,7 +252,7 @@ done
 # Penyebab umum: suhu tinggi (Thermal), power limit (Power Cap), atau voltage (Voltage Cap)
 ```
 
-Jalankan skrip ini sambil menjalankan inference Llama-3.1-8B Q4_K_M dengan konteks panjang di RTX 3090. Amati pola: pada menit-menit pertama clock bertahan di zona boost, lalu perlahan-lahan menurun saat suhu merangkak melewati 80°C — dan kolom *Throttle* berubah menjadi "Active" dengan alasan "Thermal". Di situlah Anda menangkap pelakunya secara real-time; catat jam kejadiannya, lalu bandingkan dengan log performa untuk mengukur kerugian token/detik yang sebenarnya.
+Jalankan skrip ini sambil menjalankan inference Llama 3.1 (8B) Q4_K_M dengan konteks panjang di RTX 3090. Amati pola: pada menit-menit pertama clock bertahan di zona boost, lalu perlahan-lahan menurun saat suhu merangkak melewati 80°C — dan kolom *Throttle* berubah menjadi "Active" dengan alasan "Thermal". Di situlah Anda menangkap pelakunya secara real-time; catat jam kejadiannya, lalu bandingkan dengan log performa untuk mengukur kerugian token/detik yang sebenarnya.
 
 ### Tutorial 2: Kustom Fan Curve dengan GreenWithEnvy (Linux)
 
@@ -341,19 +341,19 @@ Hasil tipikal pada RTX 3090: pada 350W Anda mungkin melihat 85 t/s di 82°C; pad
 
 ### Paper Jurnal/Konferensi
 
-[1] Stojkovic, J., et al. (2025). *TAPAS: Thermal- and Power-Aware Scheduling for LLM Inference in Cloud Platforms*. Proceedings of ASPLOS 2025. DOI: [10.1145/3676641.3716000](https://doi.org/10.1145/3676641.3716000)
+[1] Stojkovic, J., et al. (2025). *TAPAS: Thermal- and Power-Aware Scheduling for LLM Inference in Cloud Platforms*. Proceedings of ASPLOS 2025. DOI: [10.1145/3676641.3716025](https://doi.org/10.1145/3676641.3716025)
 - *Thermal-aware* VM placement — reduksi suhu maksimum 17%, pengurangan *throttle events* 97%. Relevan untuk konteks data center pada Seksi 5.
 
-[2] Wang, D., et al. (2025). *A Thermal-aware Workload Scheduler for High-performance LLM Inference in Cooling-regulated Datacenters*. ACM SIGEnergy. DOI: [10.1145/3714650.3714652](https://doi.org/10.1145/3714650.3714652)
-- Scheduler berbasis *reinforcement learning* untuk mencegah *thermal throttle* — mengurangi energi CRAC hingga 20%. Mekanisme thermal pada Seksi 2 merujuk paper ini.
+[2] Lu, R., & Wang, D. (2025). *A Thermal-Aware Workload Scheduler for High-Performance LLM Inference in Cooling-Regulated Datacenters*. ACM SIGEnergy Energy Informatics Review 5(2): 98–104. DOI: [10.1145/3757892.3757906](https://doi.org/10.1145/3757892.3757906)
+- Scheduler termal TAWS — peningkatan *throughput* hingga 40,9% pada *ambient* 41°C. Mekanisme thermal pada Seksi 2 merujuk paper ini.
 
-[3] Liu, F., et al. (2025). *InferCool: Enhancing AI Inference Cooling through Transparent, Non-Intrusive Task Reassignment*. USENIX ATC. DOI: [10.48550/arXiv.2503.12345](https://arxiv.org/abs/2503.12345)
+[3] Pei, Q., et al. (2024). *InferCool: Enhancing AI Inference Cooling through Transparent, Non-Intrusive Task Reassignment*. ACM Symposium on Cloud Computing (SoCC). DOI: [10.1145/3698038.3698556](https://doi.org/10.1145/3698038.3698556)
 - *Cooling middleware* — reduksi suhu GPU 5°C dan *cooling energy savings* 20%. Data Tabel 2 tentang solusi pendinginan merujuk paper ini.
 
 [4] Gao, Y., et al. (2024). *GPU Power Consumption Patterns of LLM Inference*. ASPLOS. DOI: [10.1145/3623278.3624756](https://doi.org/10.1145/3623278.3624756)
 - *Prefill power spike* bisa melebihi TDP — pemicu utama *thermal spike*. Data Tabel 3 (suhu threshold) merujuk analisis paper ini.
 
-[5] Zhang, H., et al. (2025). *LoongServe: Efficient Long-Context LLM Serving*. OSDI. DOI: [10.48550/arXiv.2404.09526](https://arxiv.org/abs/2404.09526)
+[5] Wu, B., et al. (2024). *LoongServe: Efficiently Serving Long-Context Large Language Models with Elastic Sequence Parallelism*. OSDI 2024. DOI: [10.48550/arXiv.2404.09526](https://arxiv.org/abs/2404.09526)
 - *Elastic sequence parallelism* untuk mengurangi beban termal pada *long-context*. Relevan untuk Seksi 3 tentang alasan LLM rawan overheating.
 
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Hybrid CSA/HCA Mixture-of-Experts Language Model*. arXiv: 2604.09980. DOI: [10.48550/arXiv.2604.09980](https://arxiv.org/abs/2604.09980)

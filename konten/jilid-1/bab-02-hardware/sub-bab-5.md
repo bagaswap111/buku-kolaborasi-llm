@@ -26,7 +26,7 @@ GPU dan CPU bekerja dengan filsafat yang berlawanan. GPU mendekati operasi matri
 
 Namun perlu keadilan bagi CPU: ia tidak dirancang untuk pekerjaan ini sejak awal. Arsitektur CPU berakar pada *latency* — mengeksekusi satu aliran instruksi secepat mungkin sambil mengubah-ubah tugas secara acak, dari *spreadsheet* ke *browser* ke email — sementara GPU lahir untuk *throughput*: menyelesaikan jutaan operasi seragam. Ketika kita memaksa CPU menjalankan LLM, kita pada dasarnya meminta seorang *polymath* berdiri di jalur produksi pabrik. Ia bisa melakukannya, tetapi bukan itu keahliannya — dan perbedaan keahlian inilah yang menjelaskan angka-angka token/s yang akan Anda lihat sepanjang bab ini.
 
-Namun CPU menyimpan kartu truf yang justru tidak dimiliki kebanyakan GPU: **akses ke RAM raksasa**. GPU diikat oleh VRAM-nya sendiri (8-24 GB untuk kelas konsumen), sementara CPU bisa menjangkau 64 hingga 512 GB DDR5 melalui motherboard. Artinya, model yang mustahil dimuat ke VRAM — seperti Qwen-2.5-14B dalam presisi penuh atau bahkan model 70B terkuantisasi — masih bisa dijalankan sepenuhnya di RAM. Inilah alasan kedua: CPU tidak bisa lari kencang, tetapi ia bisa membawa barang yang jauh lebih berat.
+Namun CPU menyimpan kartu truf yang justru tidak dimiliki kebanyakan GPU: **akses ke RAM raksasa**. GPU diikat oleh VRAM-nya sendiri (8-24 GB untuk kelas konsumen), sementara CPU bisa menjangkau 64 hingga 512 GB DDR5 melalui motherboard. Artinya, model yang mustahil dimuat ke VRAM — seperti Qwen 2.5 (14B) dalam presisi penuh atau bahkan model 70B terkuantisasi — masih bisa dijalankan sepenuhnya di RAM. Inilah alasan kedua: CPU tidak bisa lari kencang, tetapi ia bisa membawa barang yang jauh lebih berat.
 
 ### Angka Realitas: Lambat, Tapi Feasible
 
@@ -50,7 +50,7 @@ Tabel berikut merangkum tujuh platform perwakilan — dari CPU konsumen hingga w
 | **Intel Xeon 4th Gen** | Sapphire Rapids | AVX-512 | AMX | DDR5-4800 2TB | ~200 GB/s (quad) | 32C/64T | ~15 jt | ~15 t/s |
 | **Intel Xeon 5th Gen** | Emerald Rapids | AVX-512 | AMX | DDR5-5600 2TB | ~250 GB/s (quad) | 48C/96T | ~25 jt | ~20 t/s |
 | **AMD Threadripper 7980X** | Zen 4 | AVX-512 | - | DDR5-5200 512GB | ~170 GB/s (quad) | 64C/128T | ~45 jt | ~12 t/s |
-| **Apple M4 Pro** | ARM | NEON | AMX | LPDDR5-6400 48GB | ~270 GB/s | 14C | ~25 jt (system) | ~30 t/s |
+| **Apple M4 Pro** | ARM | NEON | AMX | LPDDR5-6400 48GB | ~270 GB/s | 14C | ~25 jt (system) | ~40 t/s |
 
 Baca tabel ini dengan dua poros. Poros pertama: **AMX adalah pembeda utama** — Xeon 4th Gen mencapai 15 t/s meskipun bandwidth-nya (~200 GB/s) hanya sedikit di atas Threadripper (~170 GB/s), justru karena keberadaan unit matriks AMX. Poros kedua: **bandwidth memori mengalahkan jumlah core** — Ryzen 9 7950X (16 core, 83 GB/s) kalah dari i7-14700K (20 core, 90 GB/s) dan jauh dari M4 Pro yang hanya 14 core tetapi menikmati ~270 GB/s serta unit matriks andal berkat LPDDR5-6400. Perhatikan juga nilai per rupiah: Xeon 4th Gen bekas server sekitar Rp 15 juta memberikan 15 t/s — *value* terbaik tabel untuk pengguna serius. Apple M4 Pro, meskipun tercatat sebagai "system" Rp 25 juta, mengalahkan semua CPU x86 dalam token/s — topik yang akan kembali dibahas di Bab 2.7 dari sudut efisiensi energi.
 
@@ -68,7 +68,7 @@ Kunci membuat CPU "tidak sepenuhnya lambat" adalah **instruksi vektor**. AVX-512
 
 AVX-512 hadir sejak Skylake-X dan matang di generasi Ice Lake hingga Sapphire Rapids. Ada keluarga kecil di dalamnya yang khusus untuk *inference*: **VNNI** (*Vector Neural Network Instructions*) memperkenalkan *fused multiply-add* untuk INT8 — perkalian dan penjumlahan dalam satu instruksi untuk data 8-bit. Karena *inference* yang terkuantisasi bekerja pada INT8, VNNI secara praktis melipatgandakan kecepatan pemrosesan bilangan bulat [3]. Di CPU modern, memastikan optimasi VNNI aktif adalah "menginjak pedal gas" pertama Anda.
 
-Satu detail penting yang sering membuat orang bingung: **keberadaan AVX-512 di CPU tidak otomatis berarti framework menggunakannya**. Runtime seperti llama.cpp melakukan *dispatch* saat startup — memeriksa set instruksi yang didukung prosesor, lalu memilih kernel yang sesuai (jadi ada kernel AVX2, kernel AVX-512, hingga kernel AMX yang terpisah). Jika build Anda dikompilasi tanpa dukungan AVX-512, CPU yang sehebat apa pun akan tetap berjalan dengan kernel AVX2 yang lebih lambat. Inilah alasan langkah verifikasi `--verbose` di praktikum seksi 8 tidak boleh dilewati: memastikan kode yang benar-benar berjalan adalah kode yang sesuai dengan petunjuk saya — bukan sekadar keyakinan bahwa CPU "mendukungnya".
+Satu detail penting yang sering membuat orang bingung: **keberadaan AVX-512 di CPU tidak otomatis berarti framework menggunakannya**. Runtime seperti llama.cpp melakukan *dispatch* saat startup — memeriksa set instruksi yang didukung prosesor, lalu memilih kernel yang sesuai (jadi ada kernel AVX2, kernel AVX-512, hingga kernel AMX yang terpisah). Jika build Anda dikompilasi tanpa dukungan AVX-512, CPU yang sehebat apa pun akan tetap berjalan dengan kernel AVX2 yang lebih lambat. Inilah alasan langkah verifikasi `--verbose` di praktikum seksi 8 tidak boleh dilewati: memastikan kode yang benar-benar berjalan adalah kode yang sesuai dengan konfigurasi build Anda — bukan sekadar keyakinan bahwa CPU "mendukungnya".
 
 ### AMX: Alat Berat Khusus Matriks
 
@@ -108,7 +108,7 @@ Saat membandingkan angka-angka ini, perhatikan juga bahwa *bandwidth* yang dikut
 
 ### llama.cpp: Sang Universal
 
-Saat berbicara CPU-only, nama pertama yang muncul adalah **llama.cpp** — framework yang membawa LLM ke perangkat tanpa GPU. Ia mendukung *backend* CPU dengan AVX2, AVX-512, dan AMX, memanfaatkan *BLAS* (OpenBLAS atau MKL), serta membaca model melalui *mmap* langsung dari disk. Semua format GGUF populer jalan di sini, dari Llama-3.1-8B hingga model MoE seperti DeepSeek V4 Flash — meskipun kecepatannya untuk model raksasa akan kita bahas dengan jujur di studi kasus. [8]
+Saat berbicara CPU-only, nama pertama yang muncul adalah **llama.cpp** — framework yang membawa LLM ke perangkat tanpa GPU. Ia mendukung *backend* CPU dengan AVX2, AVX-512, dan AMX, memanfaatkan *BLAS* (OpenBLAS atau MKL), serta membaca model melalui *mmap* langsung dari disk. Semua format GGUF populer jalan di sini, dari Llama 3.1 (8B) hingga model MoE seperti DeepSeek V4 Flash — meskipun kecepatannya untuk model raksasa akan kita bahas dengan jujur di studi kasus. [8]
 
 ### IPEX dan xFasterTransformer: Rute Intel
 
@@ -126,15 +126,15 @@ Lantas, framework mana yang harus Anda pilih? Jawabannya tergantung pada satu pe
 
 ### Tabel 2: Pengaruh Kuantisasi pada CPU Inference
 
-Tabel ini mengukur efek kuantisasi pada Llama-3.1-8B yang dijalankan di Xeon 4th Gen — model yang sama, hanya presisinya yang berubah.
+Tabel ini mengukur efek kuantisasi pada Llama 3.1 (8B) yang dijalankan di Xeon 4th Gen — model yang sama, hanya presisinya yang berubah.
 
 | Kuantisasi | Ukuran Model | Tokens/s | Perplexity Loss |
 |:---|---:|---:|---:|
 | **FP32** | 32 GB | ~4 t/s | 0 (baseline) |
-| **FP16** | 16 GB | ~7 t/s | ~0.01 |
-| **INT8 (W8A16)** | 8 GB | ~12 t/s | ~0.05 |
-| **INT4 (W4A16)** | 4 GB | ~18 t/s | ~0.2 |
-| **INT4 (W4A16 + AMX)** | 4 GB | ~25 t/s | ~0.2 |
+| **FP16** | 16 GB | ~7 t/s | ~0,01 |
+| **INT8 (W8A16)** | 8 GB | ~12 t/s | ~0,05 |
+| **INT4 (W4A16)** | 4 GB | ~18 t/s | ~0,2 |
+| **INT4 (W4A16 + AMX)** | 4 GB | ~25 t/s | ~0,2 |
 
 Tabel ini adalah argumen paling kuat untuk kuantisasi. Dari FP32 ke INT4, *throughput* naik 4,5x (4 → 18 t/s) sementara *perplexity loss* hanya ~0,2 — penurunan kualitas yang hampir tak terasa secara subjektif [1]. Mengaktifkan AMX di atasnya menaikkan lagi ke 25 t/s. Di sisi lain: ukuran model menyusut drastis dari 32 GB ke 4 GB, berarti model yang tadinya butuh 32 GB kini muat di RAM yang lebih kecil — data lengkap yang saling menguatkan. Perlu ditegaskan bahwa *perplexity loss* adalah metrik kualitas global; pada tugas percakapan sehari-hari, perbedaan 0,2 poin praktis tidak terdengar, dan inilah mengapa INT4 menjadi *default* hampir semua pengguna CPU-only.
 
@@ -146,7 +146,7 @@ Perhatikan pola yang lebih halus di balik angka: setiap langkah kuantisasi membe
 ## 6. Benchmark CPU Inference per Generasi
 
 
-Pola antar generasi dapat dibaca dari data benchmark [1][4]: Skylake (generasi AVX-512 awal) menjadi dasar, Ice Lake memperbaiki eksekusi vektor dan menambah VNNI, Sapphire Rapids menambahkan AMX dengan lonjakan ~8x pada *matmul*, dan Emerald Rapids memoles segalanya dengan lebih banyak core serta bandwidth DDR5-5600 quad channel. Kuantisasi adalah pengali penting di semua generasi: teknik *INT4 weight-only* dapat meningkatkan *throughput* **3-4x** dibanding FP32** tanpa penurunan kualitas yang berarti [1].
+Pola antar generasi dapat dibaca dari data benchmark [1][4]: Skylake (generasi AVX-512 awal) menjadi dasar, Ice Lake memperbaiki eksekusi vektor dan menambah VNNI, Sapphire Rapids menambahkan AMX dengan lonjakan ~8x pada *matmul*, dan Emerald Rapids memoles segalanya dengan lebih banyak core serta bandwidth DDR5-5600 quad channel. Kuantisasi adalah pengali penting di semua generasi: teknik *INT4 weight-only* dapat meningkatkan *throughput* **3-4x** dibanding FP32 tanpa penurunan kualitas yang berarti [1].
 
 Membaca laju antar generasi tidak ubahnya membaca tangga: Skylake adalah anak tangga pertama, Ice Lake anak tangga kedua yang meyakinkan, Sapphire Rapids justru lompatan besar (AMX mengubah cara matriks dikalikan, bukan sekadar lebih cepat), dan Emerald Rapids adalah pijakan terhalus sejauh ini. Yang menarik, lompatan ini tidak selalu bergantung pada *clock* — generasi baru Xeon bahkan sering ber-*clock* lebih rendah demi efisiensi — melainkan pada kemampuan mengeksekusi lebih banyak operasi per siklus dan menyuplai lebih banyak data per detik. Inilah alasan mengapa membeli CPU "tahun lalu" untuk inferensi bisa terasa seperti membeli jalan tol yang belum jadi: spesifikasi inti hampir sama, tetapi akselerator dan *bandwidth* yang berbeda membuat perbedaan besar pada token/s.
 
@@ -161,17 +161,17 @@ Perhatikan bagaimana angka-angka ini bercerita tentang *efisiensi per core*. i7-
 ## 7. Panduan Memilih CPU untuk Inference
 
 
-Jika Anda berencana membangun mesin CPU-only untuk LLM, urutkan prioritas berikut. **Pertama**, dukungan AMX — utamakan Intel Sapphire Rapids (Xeon 4th Gen) ke atas; inilah pembeda 2-3x di kelas mainstream-to-workstation. **Kedua**, jumlah core di kisaran **16-32 core** — ini adalah *sweet spot*; melampauinya tidak menambah banyak jika bandwidth RAM sudah jenuh, seperti yang ditunjukkan tabel scaling. **Ketiga**, RAM DDR5 **dual atau quad channel** dengan minimal **64 GB** untuk model 7-14B — dan ingat, bandwidth lebih penting daripada kapasitas untuk kecepatan token. **Alternatif** bagi yang menyukai AMD: **Threadripper** menawarkan banyak *PCIe lanes* dan dukungan *quad channel* DDR5, meskipun tanpa AMX; M4 Pro dari Apple adalah kasus spesial yang akan kita bandingkan di tabel — ARM dengan bandwidth luar biasa (~270 GB/s) yang mencapai sekitar 30 t/s untuk 7B Q4 [1].
+Jika Anda berencana membangun mesin CPU-only untuk LLM, urutkan prioritas berikut. **Pertama**, dukungan AMX — utamakan Intel Sapphire Rapids (Xeon 4th Gen) ke atas; inilah pembeda 2-3x di kelas mainstream-to-workstation. **Kedua**, jumlah core di kisaran **16-32 core** — ini adalah *sweet spot*; melampauinya tidak menambah banyak jika bandwidth RAM sudah jenuh, seperti yang ditunjukkan tabel scaling. **Ketiga**, RAM DDR5 **dual atau quad channel** dengan minimal **64 GB** untuk model 7-14B — dan ingat, bandwidth lebih penting daripada kapasitas untuk kecepatan token. **Alternatif** bagi yang menyukai AMD: **Threadripper** menawarkan banyak *PCIe lanes* dan dukungan *quad channel* DDR5, meskipun tanpa AMX; M4 Pro dari Apple adalah kasus spesial yang akan kita bandingkan di tabel — ARM dengan bandwidth luar biasa (~270 GB/s) yang mencapai sekitar 40 t/s untuk 7B Q4 [1].
 
-Terakhir, satu pertimbangan yang sering dilupakan: **profil beban Anda menentukan kategori CPU yang tepat**. Server yang menjalankan satu model untuk banyak pengguna akan lebih diuntungkan oleh Xeon dengan AMX walau mahal— karena *throughput* agregatlah yang dijual. Laptop atau desktop pribadi yang hanya membutuhkan satu percakapan pada satu waktu cukup ditopang i7 kelas menengah dengan AVX-512 — tidak perlu *workstation* yang boros. Keputusan ini pun berinteraksi dengan Bab 2.7: konsumsi daya CPU yang lebih kecil (misalnya 150W berbanding 350W GPU) berarti biaya listrik bulanan yang jauh lebih ringan, membuat CPU inference makin menarik untuk server yang menyala terus-menerus.
+Terakhir, satu pertimbangan yang sering dilupakan: **profil beban Anda menentukan kategori CPU yang tepat**. Server yang menjalankan satu model untuk banyak pengguna akan lebih diuntungkan oleh Xeon dengan AMX walau mahal — karena *throughput* agregatlah yang dijual. Laptop atau desktop pribadi yang hanya membutuhkan satu percakapan pada satu waktu cukup ditopang i7 kelas menengah dengan AVX-512 — tidak perlu *workstation* yang boros. Keputusan ini pun berinteraksi dengan Bab 2.7: konsumsi daya CPU yang lebih kecil (misalnya 150W berbanding 350W GPU) berarti biaya listrik bulanan yang jauh lebih ringan, membuat CPU inference makin menarik untuk server yang menyala terus-menerus.
 
-Bagi pengguna laptop — dan ini mungkin mayoritas pembaca — ada satu kabar penenang: hampir semua laptop modern dengan CPU Intel 12th Gen ke atas atau AMD Zen 4 mendukung AVX-512 atau setidaknya AVX2 yang memadai untuk menjalankan model 3-8B di atas RAM 16-32 GB. Kecepatannya mungkin 3-6 t/s — cukup untuk *drafting*, ringkasan, dan percakapan santai di sela perjalanan. Jika laptop Anda Apple Silicon, bab ini tetap berlaku untuk memahami inti teknologinya, tetapi angka token/s Anda akan jauh lebih baik daripada tabel x86 — M4 Pro bahkan menembus 30 t/s untuk 7B Q4 [1], dengan *bandwidth* LPDDR5 yang luar biasa sebagai rahasianya.
+Bagi pengguna laptop — dan ini mungkin mayoritas pembaca — ada satu kabar penenang: hampir semua laptop modern dengan CPU Intel 12th Gen ke atas atau AMD Zen 4 mendukung AVX-512 atau setidaknya AVX2 yang memadai untuk menjalankan model 3-8B di atas RAM 16-32 GB. Kecepatannya mungkin 3-6 t/s — cukup untuk *drafting*, ringkasan, dan percakapan santai di sela perjalanan. Jika laptop Anda Apple Silicon, bab ini tetap berlaku untuk memahami inti teknologinya, tetapi angka token/s Anda akan jauh lebih baik daripada tabel x86 — M4 Pro bahkan menembus 40 t/s untuk 7B Q4 [1], dengan *bandwidth* LPDDR5 yang luar biasa sebagai rahasianya.
 
 Satu saran belanja penutup yang sangat relevan untuk pembaca di Indonesia: pasar **Xeon refurbished** dari server bekas merupakan celah harga yang menarik — server bekas lengkap dengan Xeon 4th Gen dan RAM besar sering ditemukan di kisaran Rp 15 juta, jauh di bawah harga komponen barunya. Sebelum membeli, pastikan tiga hal: prosesor benar-benar generasi Sapphire Rapids (bukan versi lama dengan nama mirip), jumlah modul RAM memastikan semua *channel* terisi, dan *BIOS* mendukung fitur yang dibutuhkan. Server bekas adalah jalan pintas penghematan yang sah — selama Anda membeli dengan mata terbuka, bukan sekadar mengejar label "Xeon".
 
 ### Tabel 3: Scaling Core Count vs Tokens/s
 
-Terakhir, tabel ini memperlihatkan apa yang terjadi ketika Xeon 4th Gen menjalankan Llama-3.1-8B INT4 dengan jumlah core yang berbeda-beda.
+Terakhir, tabel ini memperlihatkan apa yang terjadi ketika Xeon 4th Gen menjalankan Llama 3.1 (8B) INT4 dengan jumlah core yang berbeda-beda.
 
 | Core Count | Tokens/s | BW Utilization | Scaling Efficiency |
 |:---:|---:|---:|---:|
@@ -181,7 +181,7 @@ Terakhir, tabel ini memperlihatkan apa yang terjadi ketika Xeon 4th Gen menjalan
 | 32 | 25 t/s | 88% | 56% |
 | 48 | 27 t/s | 92% | 40% |
 
-![Kurva scaling core count pada Xeon 4th Gen untuk Llama-3.1-8B INT4: token/detik naik cepat di awal (4→8 core) lalu mendatar, sementara utilisasi bandwidth naik menuju jenuh 92% di 48 core.](../../assets/images/bab-02-hardware/sub-bab-5/scaling-core-tokens.png)
+![Kurva scaling core count pada Xeon 4th Gen untuk Llama 3.1 (8B) INT4: token/detik naik cepat di awal (4→8 core) lalu mendatar, sementara utilisasi bandwidth naik menuju jenuh 92% di 48 core.](../../assets/images/bab-02-hardware/sub-bab-5/scaling-core-tokens.png)
 
 *Gambar 2.5-1 — Diminishing returns terlihat jelas: dari 32 ke 48 core hanya bertambah 2 t/s (25→27 t/s) karena RAM sudah jenuh mensuplai data (utilisasi bandwidth 92%); menambah core di atas 32 lebih baik diganti RAM yang lebih cepat.*
 
@@ -251,7 +251,7 @@ huggingface-cli download bartowski/Meta-Llama-3.1-8B-Instruct-GGUF \
 ./build/bin/llama-bench --verbose 2>&1 | grep -i "avx\|amx\|f16c\|sse"
 ```
 
-Pada langkah 6, perintah `grep` membuka "kartu identitas" build Anda: jika muncul `AVX512` dan CPU Anda Xeon 4th Gen ke atas, Anda sudah berada di jalur tercepat. Bandingkan output `-ngl 0` (semua di CPU) dengan tabel benchmark seksi 2 — Llama-3.1-8B Q4_K_M di i7-14700K seharusnya mendekati ~6 t/s, dan di Xeon dengan AMX mendekati ~15-20 t/s. Jika angka Anda jauh lebih rendah, cek suhu CPU dan *throttling* sebelum menyalahkan skrip.
+Pada langkah 6, perintah `grep` membuka "kartu identitas" build Anda: jika muncul `AVX512` dan CPU Anda Xeon 4th Gen ke atas, Anda sudah berada di jalur tercepat. Bandingkan output `-ngl 0` (semua di CPU) dengan tabel benchmark seksi 2 — Llama 3.1 (8B) Q4_K_M di i7-14700K seharusnya mendekati ~6 t/s, dan di Xeon dengan AMX mendekati ~15-20 t/s. Jika angka Anda jauh lebih rendah, cek suhu CPU dan *throttling* sebelum menyalahkan skrip.
 
 Dua pilihan konfigurasi perlu dipahami sebelum menjalankan baris di atas. Pertama, `-ngl 0` menandakan *zero GPU layers* — semua lapisan dijalankan di CPU; jika nanti Anda menambahkan GPU, ganti dengan `-ngl 99` agar seluruh lapisan berpindah ke GPU dan pengukuran menjadi ukuran GPU, bukan CPU. Kedua, `llama-bench` membedakan *prompt processing* (prefill) dan *generation* (decode) dalam outputnya; pada CPU, angka yang paling relevan untuk pengalaman interaktif adalah *generation* — karena itulah denyut percakapan Anda. Jangan bingung bila bilangan prompt/s jauh lebih tinggi: itu mengukur fase prefill yang bersifat *batch*, bukan kecepatan token bergulir yang Anda rasakan.
 
@@ -263,7 +263,7 @@ Bagi yang tinggal di ekosistem Hugging Face, berikut jalur optimasi modern: IPEX
 # cpu_llm_inference.py - inferensi CPU dengan IPEX
 import torch
 import intel_extension_for_pytorch as ipex
-from transformers import AutoTokenizer, AutoConfig
+from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM
 
 model_id = "Intel/neural-chat-7b-v3-1"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -317,23 +317,23 @@ Perlu dicatat bahwa STREAM mengukur *raw bandwidth*, bukan *end-to-end* inferens
 ## 9. Studi Kasus: Server Inferensi CPU-only untuk Kantor Kecil
 
 
-**Skenario.** Sebuah startup di Bandung ingin membangun *coding assistant* internal berbasis LLM untuk 15 orang developer, tetapi anggaran mereka hanya cukup untuk satu investasi hardware. GPU kelas atas seperti RTX 4090 berada di luar jangkauan (sekitar Rp 35 juta untuk satu PC lengkap), dan kebutuhan utama adalah model Qwen-2.5-14B yang baik untuk konteks kode berbahasa campuran.
+**Skenario.** Sebuah startup di Bandung ingin membangun *coding assistant* internal berbasis LLM untuk 15 orang developer, tetapi anggaran mereka hanya cukup untuk satu investasi hardware. GPU kelas atas seperti RTX 4090 berada di luar jangkauan (sekitar Rp 35 juta untuk satu PC lengkap), dan kebutuhan utama adalah model Qwen 2.5 (14B) yang baik untuk konteks kode berbahasa campuran.
 
-**Keputusan hardware.** Mereka memilih server *refurbished* dengan **Intel Xeon 4th Gen (Sapphire Rapids) 16-core**, **128 GB DDR5 quad channel**, sekitar Rp 15 juta. Nilai kunci pilihan ini: AMX hadir bahkan pada Xeon 16-core, dan *quad channel* DDR5 memberikan pasokan bandwidth yang dibutuhkan dim *memory-bound* workload — pelajaran dari Tabel 3 yang mereka terapkan sejak awal dengan tidak menghabiskan anggaran untuk CPU banyak core.
+**Keputusan hardware.** Mereka memilih server *refurbished* dengan **Intel Xeon 4th Gen (Sapphire Rapids) 32-core**, **128 GB DDR5 quad channel**, sekitar Rp 15 juta. Nilai kunci pilihan ini: AMX hadir bahkan pada Xeon 32-core, dan *quad channel* DDR5 memberikan pasokan bandwidth yang dibutuhkan dim *memory-bound* workload — pelajaran dari Tabel 3 yang mereka terapkan sejak awal dengan tidak menghabiskan anggaran untuk CPU banyak core.
 
-Mengapa bukan i7-14700K yang lebih murah (sekitar Rp 5 juta untuk CPU-nya saja)? Jawabannya ada di Tabel 1: i7 hanya mendukung dua *channel* DDR5 (~90 GB/s), sementara Xeon workstation memberi empat *channel* sekaligus AMX. Dengan *bandwidth* yang hampir dua kali lipat dan unit matriks khusus, Xeon 16-core menghasilkan token/s yang mirip dengan i7 20-core — tetapi dengan ruang tambahan yang sangat berharga: hingga 2 TB RAM untuk ekspansi di masa depan, dan *ECC* untuk stabilitas server. Kehilangan *single-thread performance* memang nyata, tetapi tidak relevan bagi beban kerja yang murni *throughput* — keputusan yang kembali menegaskan urutan prioritas bab ini: AMX, *bandwidth*, lalu core.
+Mengapa bukan i7-14700K yang lebih murah (sekitar Rp 5 juta untuk CPU-nya saja)? Jawabannya ada di Tabel 1: i7 hanya mendukung dua *channel* DDR5 (~90 GB/s), sementara Xeon workstation memberi empat *channel* sekaligus AMX. Dengan *bandwidth* yang hampir dua kali lipat dan unit matriks khusus, Xeon 32-core menghasilkan token/s yang mirip dengan i7 20-core, tetapi dengan ruang tambahan yang sangat berharga: hingga 2 TB RAM untuk ekspansi di masa depan, dan *ECC* untuk stabilitas server. Kehilangan *single-thread performance* memang nyata, tetapi tidak relevan bagi beban kerja yang murni *throughput* — keputusan yang kembali menegaskan urutan prioritas bab ini: AMX, *bandwidth*, lalu core.
 
-**Konfigurasi dan performa.** Dengan llama.cpp CPU-only — INT4 quantization, AVX-512 + AMX aktif — server mencapai **sekitar 12 t/s untuk Qwen-2.5-14B**: cukup untuk *single-user real-time* dan nyaman bagi dua-tiga developer yang bergantian. Konsumsi dayanya **~150W** dalam beban penuh, berbanding ~350W untuk PC GPU setara — angka yang akan membuktikan nilainya di Bab 2.7. Biaya listrik tahunannya jauh lebih rendah, dan di ruang server kecil, beban termal 150W juga jauh lebih mudah ditangani tanpa pendinginan khusus.
+**Konfigurasi dan performa.** Dengan llama.cpp CPU-only — INT4 quantization, AVX-512 + AMX aktif — server mencapai **sekitar 12 t/s untuk Qwen 2.5 (14B)**: cukup untuk *single-user real-time* dan nyaman bagi dua-tiga developer yang bergantian. Konsumsi dayanya **~150W** dalam beban penuh, berbanding ~350W untuk PC GPU setara — angka yang akan membuktikan nilainya di Bab 2.7. Biaya listrik tahunannya jauh lebih rendah, dan di ruang server kecil, beban termal 150W juga jauh lebih mudah ditangani tanpa pendinginan khusus.
 
-Seting *software* mereka juga mengikuti pelajaran bab ini: model dimuat dalam Q4_K_M (INT4), `-t` dibatasi 16 *thread* sesuai core fisik, dan *power management* OS dibiarkan default *balanced* — karena memaksa *performance mode* tidak menambah apa-apa pada workload yang sudah *memory-bound*. Perbedaan halus namun penting: dengan `--tensor-split` seperti di Bab 2.6 tidak diperlukan di sini (satu CPU), tetapi RAM *quad channel* dimanfaatkan penuh dengan memastikan keempat *stick* terpasang pada slot yang benar — pemeriksaan 5 menit yang seringkali dilupakan orang, dan bisa diamati lewat STREAM seperti praktikum seksi 8.
+Seting *software* mereka juga mengikuti pelajaran bab ini: model dimuat dalam Q4_K_M (INT4), `-t` dibatasi 32 *thread* sesuai core fisik, dan *power management* OS dibiarkan default *balanced* — karena memaksa *performance mode* tidak menambah apa-apa pada workload yang sudah *memory-bound*. Perbedaan halus namun penting: dengan `--tensor-split` seperti di Bab 2.6 tidak diperlukan di sini (satu CPU), tetapi RAM *quad channel* dimanfaatkan penuh dengan memastikan keempat *stick* terpasang pada slot yang benar — pemeriksaan 5 menit yang seringkali dilupakan orang, dan bisa diamati lewat STREAM seperti praktikum seksi 8.
 
 **Hasil dan keterbatasan.** Dalam tiga bulan pertama, server ini stabil melayani *code completion*, ringkasan PR, dan Q&A internal. Akan tetapi, tim dengan cepat menemukan batasnya: model di atas 70B — apalagi MoE raksasa seperti DeepSeek V4 Flash (284B) atau Mistral Large 3 (675B) — berada jauh di luar kemampuannya. Model-model itu membutuhkan bandwidth di atas 500 GB/s yang hanya dimiliki GPU dengan HBM atau Apple Silicon dengan *unified memory*; di CPU Xeon sekelas ini, kecepatannya jatuh di bawah 5 t/s yang tidak lagi dapat dipakai interaktif.
 
-Untuk mengatasinya, mereka menerapkan kebijakan berlapis yang kini menjadi pola umum kantor kecil: server CPU-only menangani 80% permintaan harian (Q&A, ringkasan, draf), sementara permintaan yang menuntut model kelas atas — *agentic coding* kompleks, analisis kode besar — dirutekan ke API eksternal dengan *budget* kuota bulanan. Komposisi ini menjaga data internal tetap berada di server sendiri, sementara biaya cloud yang tersisa berada di kisaran harga API komersial — angka pembanding yang akan kita bedah lebih dalam di Bab 2.7, di mana biaya API untuk pemakaian 8 jam per hari berada di sekitar Rp 1,5 juta per bulan (lihat Tabel 2 Bab 2.7). Dengan kata lain: CPU melayani rutinitas, cloud hanya untuk puncak, dan anggaran tetap utuh.
+Untuk mengatasinya, mereka menerapkan kebijakan berlapis yang kini menjadi pola umum kantor kecil: server CPU-only menangani 80% permintaan harian (Q&A, ringkasan, draf), sementara permintaan yang menuntut model kelas atas — *agentic coding* kompleks, analisis kode besar — dirutekan ke API eksternal dengan *budget* kuota bulanan. Komposisi ini menjaga data internal tetap berada di server sendiri, sementara biaya cloud yang tersisa berada di kisaran harga API komersial — angka pembanding yang akan kita bedah lebih dalam di Bab 2.7, di mana biaya API untuk pemakaian 8 jam per hari berada di sekitar Rp 1,5 juta per bulan (lihat Tabel 1 Bab 2.7). Dengan kata lain: CPU melayani rutinitas, cloud hanya untuk puncak, dan anggaran tetap utuh.
 
 **Pelajaran.** CPU-only adalah solusi yang layak dan jujur untuk model **≤14B** di kantor kecil — responsif, murah, dan hemat energi. Untuk model lebih besar, GPU tetap diperlukan; tetapi dengan ceruk yang jujur ini, banyak organisasi kecil bisa menikmati LLM lokal tanpa membayar harga sebuah mobil. Keputusan mereka ditutup dengan prinsip sederhana: biarkan CPU melakukan yang bisa dilakukan CPU dengan baik, dan simpan anggaran GPU untuk masalah yang benar-benar membutuhkannya — sebuah prinsip pembagian tugas yang akan kita temui kembali dalam bentuk yang lebih rumit di bab eGPU & Multi-GPU.
 
-**Pelajaran terakhir.** Kisah startup ini bukan kisah tentang hardware, melainkan tentang **memetakan kebutuhan dengan jujur**. Mereka tidak bertanya "GPU mana yang terbaik?" — pertanyaan yang memaksa jawaban mahal — melainkan "model berapa yang benar-benar kami butuhkan, dan seberapa cepat?" Jawabannya — Qwen-2.5-14B, ≤14B, interaktif — mengarahkan mereka ke Xeon CPU-only dengan sendirinya. Jika kebutuhan mereka adalah *agentic coding* 70B untuk seluruh tim, jawaban hardware-nya akan berbeda. Peta yang tepat menghemat uang; peta yang salah menghabiskan dua kali lipat.
+**Pelajaran terakhir.** Kisah startup ini bukan kisah tentang hardware, melainkan tentang **memetakan kebutuhan dengan jujur**. Mereka tidak bertanya "GPU mana yang terbaik?" — pertanyaan yang memaksa jawaban mahal — melainkan "model berapa yang benar-benar kami butuhkan, dan seberapa cepat?" Jawabannya — Qwen 2.5 (14B), ≤14B, interaktif — mengarahkan mereka ke Xeon CPU-only dengan sendirinya. Jika kebutuhan mereka adalah *agentic coding* 70B untuk seluruh tim, jawaban hardware-nya akan berbeda. Peta yang tepat menghemat uang; peta yang salah menghabiskan dua kali lipat.
 
 Yang juga tidak kalah penting: mereka menjadwalkan pekerjaan *batch* di luar jam kantor. Pada pukul 02.00, server 150W yang "pelan" adalah sahabat terbaik anggaran — biaya listrik sama, tetapi tugas berat selesai tanpa mengganggu siapa pun. Dengan pola *off-hour batch* ini, server CPU-only bukan sekadar solusi "darurat tanpa GPU", melainkan bagian sah dari arsitektur layanan — dan pembahasan rinci tentang biaya listriknya akan dibuka penuh di Bab 2.7, Power Consumption, bab penutup seri hardware ini.
 
@@ -346,11 +346,11 @@ Yang juga tidak kalah penting: mereka menjadwalkan pekerjaan *batch* di luar jam
 
 [1] Wang, H., et al. (2024). *Efficient LLM Inference on CPUs*. Conference on Machine Learning and Systems (MLSys). DOI: [10.48550/arXiv.2311.00502](https://arxiv.org/abs/2311.00502)
 
-[2] Na, S., Jeong, G., Ahn, B.H., Jezghani, A., Young, J., Hughes, C.J., Krishna, T., & Kim, H. (2025). *FlexInfer: Flexible LLM Inference with CPU Computations*. Proceedings of Machine Learning and Systems (MLSys). DOI: [10.48550/arXiv.2412.12345](https://proceedings.mlsys.org/paper_files/paper/2025/file/698cfaf72a208aef2e78bcac55b74328-Paper-Conference.pdf)
+[2] Na, S., Jeong, G., Ahn, B.H., Jezghani, A., Young, J., Hughes, C.J., Krishna, T., & Kim, H. (2025). *FlexInfer: Flexible LLM Inference with CPU Computations*. Proceedings of Machine Learning and Systems (MLSys). DOI: [10.48550/arXiv.2412.12345](https://proceedings.mlsys.org/paper_files/paper/2025/file/698cfaf72a208aef2e78bcac55b74328-Paper-Conference.pdf) ⚠️ ID placeholder — ganti dengan ID asli sebelum rilis.
 
 [3] Zhang, W., et al. (2024). *Inference Performance Optimization for Large Language Models on CPUs*. arXiv:2407.07304. DOI: [10.48550/arXiv.2407.07304](https://arxiv.org/abs/2407.07304)
 
-[4] Na, S., et al. (2024). *LLM Inference Characterization on Latest CPUs*. IEEE International Symposium on Workload Characterization (IISWC). DOI: [10.48550/arXiv.2407.07304](https://seonjinna.github.io/assets/pdf/iiswc24_CPULLM.pdf)
+[4] Na, S., et al. (2024). *LLM Inference Characterization on Latest CPUs*. IEEE International Symposium on Workload Characterization (IISWC). [PDF](https://seonjinna.github.io/assets/pdf/iiswc24_CPULLM.pdf)
 
 [5] Li, Z., et al. (2025). *Sandwich: A Hardware-Centric CPU-Based LLM Serving Engine*. European Conference on Computer Systems (EuroSys). DOI: [10.48550/arXiv.2507.18454](https://arxiv.org/abs/2507.18454)
 

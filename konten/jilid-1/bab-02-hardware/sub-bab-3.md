@@ -135,7 +135,7 @@ Hardware tanpa *software* hanyalah logam; Apple menutup celah itu dengan **MLX**
 *framework* *array* yang dibangun khusus untuk Apple Silicon — dan hasilnya mengesankan.
 Pengukuran independen menunjukkan **MLX 21-87% lebih cepat daripada llama.cpp (backend
 Metal)** di M4 Max untuk beban kerja LLM yang sama. Di lapisan server, **vllm-mlx**
-menghadirkan *continuous batching*: model Qwen3-0.6B melaju hingga **525 t/s**, dengan
+menghadirkan *continuous batching*: model Qwen 3 (0,6B) melaju hingga **525 t/s**, dengan
 *aggregate throughput* **4,3x** lebih tinggi ketika 16 request dilayani bersamaan.
 Untuk pengguna tunggal, **M4 Max 128GB + MLX setara RTX 3090** untuk model yang muat
 di Unified Memory — menyamai kartu yang di PC harus dipasang ke motherboard dengan
@@ -168,30 +168,30 @@ Anda memilih konfigurasi memori berdasarkan model terbesar yang ingin dijalankan
 pengguna PC yang selalu memburu kuantisasi paling agresif untuk memuatkan lebih banyak
 model — di Mac, model besar memakai kapasitas, dan kapasitas menentukan semuanya.
 
-### Tabel 2: Benchmark LLM Inference — Apple Silicon vs NVIDIA
+### Tabel 1: Benchmark LLM Inference — Apple Silicon vs NVIDIA
 
 Inilah medan perang yang sesungguhnya: model yang sama, perangkat yang berbeda, angka
 token/detik yang jujur dari pengukuran independen.
 
 | Model | Device | Framework | Tokens/s | Biaya |
 |:---|---:|:---|---:|---:|
-| Llama-3.1-8B Q4_K_M | M4 Max 128GB | MLX | ~73 t/s | ~Rp 55 jt |
-| Llama-3.1-8B Q4_K_M | M2 Ultra 192GB | MLX | ~85 t/s | ~Rp 75 jt |
-| Llama-3.1-8B Q4_K_M | RTX 4090 24GB | llama.cpp CUDA | ~110 t/s | ~Rp 30 jt |
-| Llama-3.1-8B Q4_K_M | RTX 3090 24GB | llama.cpp CUDA | ~85 t/s | ~Rp 12 jt |
-| Qwen-2.5-14B Q4_K_M | M4 Pro 48GB | MLX | ~40 t/s | ~Rp 32 jt |
-| Qwen-2.5-14B Q4_K_M | RTX 4090 24GB | llama.cpp CUDA | ~65 t/s | ~Rp 30 jt |
-| Llama-3.1-70B Q3_K_M | M2 Ultra 192GB | MLX | ~15 t/s | ~Rp 75 jt |
-| Llama-3.1-70B Q3_K_M | 2x RTX 3090 | vLLM TP2 | ~22 t/s | ~Rp 24 jt |
-| Llama-3.1-405B Q3_K_M | M2 Ultra 192GB | MLX | ~3 t/s | ~Rp 75 jt |
-| Llama-3.1-405B Q3_K_M | 4x RTX 3090 | vLLM TP4 | ~5 t/s | ~Rp 48 jt |
+| Llama 3.1 (8B) Q4_K_M | M4 Max 128GB | MLX | ~73 t/s | ~Rp 55 jt |
+| Llama 3.1 (8B) Q4_K_M | M2 Ultra 192GB | MLX | ~85 t/s | ~Rp 75 jt |
+| Llama 3.1 (8B) Q4_K_M | RTX 4090 24GB | llama.cpp CUDA | ~110 t/s | ~Rp 30 jt |
+| Llama 3.1 (8B) Q4_K_M | RTX 3090 24GB | llama.cpp CUDA | ~85 t/s | ~Rp 12 jt |
+| Qwen 2.5 (14B) Q4_K_M | M4 Pro 48GB | MLX | ~40 t/s | ~Rp 32 jt |
+| Qwen 2.5 (14B) Q4_K_M | RTX 4090 24GB | llama.cpp CUDA | ~65 t/s | ~Rp 30 jt |
+| Llama 3.1 (70B) Q3_K_M | M2 Ultra 192GB | MLX | ~15 t/s | ~Rp 75 jt |
+| Llama 3.1 (70B) Q3_K_M | 2x RTX 3090 | vLLM TP2 | ~22 t/s | ~Rp 24 jt |
+| Llama 3.1 (405B) Q3_K_M | M2 Ultra 192GB | MLX | ~3 t/s | ~Rp 75 jt |
+| Llama 3.1 (405B) Q3_K_M | 4x RTX 3090 | vLLM TP4 | ~5 t/s | ~Rp 48 jt |
 | DeepSeek V4 Flash Q4_K_M | M2 Ultra 192GB | MLX | ~6 t/s | ~Rp 75 jt |
 | Mistral Large 3 Q3_K_M | M2 Ultra 192GB | MLX | ~4 t/s | ~Rp 75 jt |
 
 Bacaan pertama: **semakin kecil model, semakin telak kemenangan NVIDIA** — untuk
-Llama-3.1-8B, RTX 3090 used (Rp 12 jt) menyamai M2 Ultra (Rp 75 jt) pada ~85 t/s,
+Llama 3.1 (8B), RTX 3090 used (Rp 12 jt) menyamai M2 Ultra (Rp 75 jt) pada ~85 t/s,
 dengan harga seperenamnya. Bacaan kedua, dan ini yang lebih penting: perhatikan dua
-baris *model besar*. Untuk Llama-3.1-70B, M2 Ultra berjalan 15 t/s ***tanpa***
+baris *model besar*. Untuk Llama 3.1 (70B), M2 Ultra berjalan 15 t/s ***tanpa***
 multi-GPU — sementara PC berbiaya Rp 24 jt membutuhkan dua kartu dan menghasilkan
 22 t/s. Untuk 405B, keduanya sama-sama lambat (~3 vs ~5 t/s), tetapi M2 Ultra
 melakukannya *dalam satu mesin senyap*. Dan baris-baris terakhir menceritakan masa
@@ -221,14 +221,14 @@ bisa menjalankannya; di M2 Ultra dengan kuantisasi agresif (Q3_K_M) kecepatannya
 
 **Model MoE raksasa.** DeepSeek V4 Flash (284B, 13B aktif) dan Mistral Large 3
 (675B, 41B aktif) membuka babak baru: **Apple Silicon 192GB bisa menjalankan
-keduanya** — V4 Flash dalam Q4_K_M (~150 GB) dan Mistral Large 3 dengan kuantisasi
+keduanya** — V4 Flash dalam Q4_K_M (~160 GB) dan Mistral Large 3 dengan kuantisasi
 agresif — berkat sifat *sparse* MoE yang hanya mengaktifkan sebagian kecil *expert*
 per token dan *offload* yang cerdas. Kecepatannya terbatas — sekitar **3-8 t/s** —
 karena bandwidth Unified Memory lebih rendah daripada sistem multi-GPU, tetapi bagi
 banyak pekerjaan analitik dan percakapan panjang, 6 t/s yang tenang dan senyap lebih
 berharga daripada 20 t/s yang menggetarkan ruangan.
 
-### Tabel 1: Spesifikasi Apple Silicon M-series vs NVIDIA
+### Tabel 2: Spesifikasi Apple Silicon M-series vs NVIDIA
 
 Berikut peta arsitektur lengkap kedua kubu — perhatikan dengan saksama baris *memory
 max* dan *bandwidth*, dua angka yang menentukan segalanya.
@@ -239,7 +239,7 @@ max* dan *bandwidth*, dua angka yang menentukan segalanya.
 | **Bandwidth** | ~400 GB/s | ~800 GB/s | ~400 GB/s | ~270 GB/s | ~500 GB/s | 1008 GB/s | 936 GB/s |
 | **GPU Cores** | 32 | 76 | 40 | 20 | 40 | 16384 CUDA | 10496 CUDA |
 | **FP16 TFLOPS** | ~10 | ~27 | ~14 | ~8 | ~18 | 82,6 | 35,6 |
-| **Daya (load)** | ~60W | ~120W | ~70W | ~45W | ~90W | ~350W | ~350W |
+| **Daya (load)** | ~60W | ~90W | ~70W | ~30W | ~45W | ~300W | ~250W |
 | **Harga Mulai** | ~Rp 40 jt | ~Rp 70 jt | ~Rp 45 jt | ~Rp 25 jt | ~Rp 55 jt | ~Rp 30 jt | ~Rp 12 jt |
 | **Form Factor** | Laptop | Desktop | Laptop | Mini PC | Laptop | Desktop | Desktop |
 
@@ -249,7 +249,7 @@ hanya ~800 GB/s melawan 1.008 GB/s. Di baris *FP16 TFLOPS*, NVIDIA membalik kead
 82,6 TFLOPS RTX 4090 hampir tiga kali M2 Ultra (~27) — untuk beban *compute-bound*,
 NVIDIA akan menyapu lantai; untuk beban *memory-bound* yang mendominasi inferensi LLM,
 kedua kubu berbagi medan dengan cara berbeda. Perhatikan juga *Daya (load)*: M4 Pro
-hanya ~45W vs ~350W RTX 4090 — hampir 8x lebih hemat. Setiap Watt yang Anda hemat
+hanya ~30W vs ~300W RTX 4090 — hampir 10x lebih hemat. Setiap Watt yang Anda hemat
 adalah rupiah yang tersisa di rekening listrik bulanan, dan desibel yang tidak pernah
 mengganggu sesi kerja malam.
 
@@ -331,10 +331,10 @@ sisanya adalah pajak atas performa murni.
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial 1: Setup MLX untuk LLM Inference di Mac
+### Langkah 1: Setup MLX untuk LLM Inference di Mac
 
 ```bash
 # 1. Install MLX (framework Apple untuk machine learning di Apple Silicon)
@@ -349,7 +349,7 @@ mlx_lm.generate \
     --temp 0.7
 
 # 3. Benchmark kecepatan dengan flag --benchmark
-#    Bandingkan angka tokens/s dengan Tabel 2 bab ini
+#    Bandingkan angka tokens/s dengan Tabel 1 bab ini
 mlx_lm.generate \
     --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
     --prompt "Saya adalah" --max-tokens 256 \
@@ -360,7 +360,7 @@ Jika model berjalan dan Anda melihat angka ~70 t/s di M4 Max, selamat: Anda baru
 menjalankan LLM lebih cepat daripada kebanyakan pemilik PC di luar sana — tanpa satu
 pun logam berputar selain kipas yang nyaris tak terdengar.
 
-### Tutorial 2: Jalankan Ollama dengan GPU Full Offload di Mac
+### Langkah 2: Jalankan Ollama dengan GPU Full Offload di Mac
 
 ```bash
 # 1. Install Ollama
@@ -383,7 +383,7 @@ akselerasi GPU dan rasakan model melambat hingga sepersepuluh kecepatannya. Itul
 bukti nyata bahwa inferensi LLM di Mac bukanlah soal CPU — melainkan soal memori dan
 GPU yang menyatu.
 
-### Tutorial 3: Cek Memory Bandwidth Mac dengan STREAM Benchmark
+### Langkah 3: Cek Memory Bandwidth Mac dengan STREAM Benchmark
 
 ```bash
 # 1. Klon STREAM — benchmark klasik untuk bandwidth memori
@@ -415,12 +415,12 @@ berbahasa Indonesia yang membutuhkan pemahaman konteks sangat panjang. Anggaran 
 model yang di PC membutuhkan minimal dua kartu — ditambah beberapa model 7B-14B untuk
 tugas harian yang responsif. Ada dua jalan di depan mata.
 
-**Opsi A — Mac Studio M2 Ultra 192GB (~Rp 75 jt).** Menjalankan Llama-3.1-70B FP16
-*penuh* dalam diam, konsumsi daya 120W, tanpa suara kipas, tanpa UPS raksasa, muat di
+**Opsi A — Mac Studio M2 Ultra 192GB (~Rp 75 jt).** Menjalankan Llama 3.1 (70B) FP16
+*penuh* dalam diam, konsumsi daya 90W, tanpa suara kipas, tanpa UPS raksasa, muat di
 atas meja kerja. Kecepatan: ~15 t/s untuk 70B — cukup untuk analisis dokumen yang
 memang bekerja dalam batch, kurang untuk percakapan real-time.
 
-**Opsi B — PC dengan 2x RTX 3090 (~Rp 30 jt) + Ryzen 9 + 64GB RAM.** Total sistem
+**Opsi B — PC dengan 2x RTX 3090 (~Rp 24 jt) + Ryzen 9 + 64GB RAM.** Total sistem
 sekitar Rp 30-35 jt, menyisakan puluhan juta untuk storage NVMe dan monitor. Dua kartu
 3090 menghasilkan ~22 t/s untuk 70B (TP2, vLLM) dan ~85 t/s untuk model 8B — jauh
 lebih cepat untuk beban kerja harian, ditambah akses penuh ke ExLlamaV2 dan TRT-LLM.
@@ -431,7 +431,7 @@ multi-GPU menuntut sinkronisasi yang membatasi *workflow*.
 *pola kerja*. Tugas utamanya — analisis dokumen hukum dalam batch semalaman — hanya
 membutuhkan satu model besar yang stabil; tugas sekunder (chatbot ringan) menuntut
 kecepatan. Opsi A unggul di beban utama (kapasitas 192GB tanpa kompromi) dengan daya
-sepertiga PC, sementara Opsi B unggul di beban sekunder dengan *headroom* ekspansi.
+sepertujuh PC, sementara Opsi B unggul di beban sekunder dengan *headroom* ekspansi.
 Akhirnya dipilih **Mac Studio**: keandalan tunggal untuk model 70B FP16, *silent*,
 dan biaya listrik bulanan yang nyaris nol. Sebagai penutup, sang developer menyimpan
 dana sisa untuk satu RTX 4060 di mesin kantor — kombinasi "Mac untuk model besar, PC
@@ -458,7 +458,7 @@ Characterization of Large Language Model Inference on Apple Silicon*. Proceeding
 the ACM on Measurement and Analysis of Computing Systems.
 DOI: [10.1145/3771563](https://dl.acm.org/doi/10.1145/3771563) — studi komprehensif
 pertama Apple Silicon (M2 Ultra, M2 Max, M4 Pro) vs NVIDIA (RTX A6000 tunggal & ganda);
-sumber verifikasi data Tabel 2.
+sumber verifikasi data Tabel 1.
 
 [2] Li, C., et al. (2025). *Profiling Large Language Model Inference on Apple Silicon:
 A Quantization Perspective*. arXiv preprint: 2508.08531.
@@ -469,12 +469,12 @@ dequantisasi.
 [3] Barrios, W., et al. (2025). *Native LLM and MLLM Inference at Scale on Apple
 Silicon*. arXiv preprint: 2601.19139. DOI: [10.48550/arXiv.2601.19139](https://arxiv.org/abs/2601.19139) —
 framework vllm-mlx: throughput 21-87% lebih tinggi dari llama.cpp di M4 Max,
-*continuous batching* 4,3x; sumber data seksi 4.
+*continuous batching* 4,3x; sumber data seksi 4. ⚠️ verifikasi sebelum rilis (ID arXiv 2026).
 
 [4] Hou, X., et al. (2025). *Benchmarking Apple Silicon M-Series for HPC: CPU, GPU,
 and Unified Memory*. arXiv preprint: 2502.05317. DOI: [10.48550/arXiv.2502.05317](https://arxiv.org/abs/2502.05317) —
 STREAM benchmark M1-M4: bandwidth CPU ~103 GB/s, GPU ~100 GB/s; verifikasi bandwidth
-M-series di Tabel 1.
+M-series di Tabel 2.
 
 [5] Nguyen, K., et al. (2025). *Production-Grade Local LLM Inference on Apple Silicon:
 A Comparative Study of MLX, MLC-LLM, Ollama, llama.cpp, and PyTorch MPS*. arXiv

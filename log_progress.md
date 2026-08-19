@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-08-19
+
+### ~15:00 WIB — Penyelesaian Pass Terminologi Bab 2 (Sisa) + Bab 5 (Inference) Lengkap
+
+Melanjutkan pass konsistensi terminologi/format yang berjalan (working tree bab-02 + jilid-2 bab-05). Skrip deterministik fence-aware (hanya baris di luar blok kode), backup di `/var/folders/.../opencode/backup-1908`.
+
+### jilid-2/bab-05-inference (10 file, 98 baris diubah)
+- **Tabel A/B/C → Tabel 1/2/3** di sub-bab-7/8/9/10 (header + semua referensi prosa) — urutan kemunculan sudah A,B,C berurutan sehingga pemetaan 1:1 aman; tidak ada duplikat header
+- **"— tetapi" → ", tetapi"** (13 instance, PUEBI: kata sambung kontrastif didahului koma)
+- **Nama model dinormalkan di prosa/header/alt-text tabel** (blok kode & HF ID tidak disentuh): `Llama-3.1-8B` → `Llama 3.1 (8B)`, `Llama-3.1-70B` → `Llama 3.1 (70B)`, `Llama-3.1-405B` → `Llama 3.1 (405B)`, `Llama-3.2-3B` → `Llama 3.2 (3B)`, `Llama-3-8B` → `Llama 3 (8B)`, `Qwen-2.5-32B` → `Qwen 2.5 (32B)`, `Mistral-7B` → `Mistral 7B`, `Llama-3.1-8B-Instruct` → `Llama 3.1 (8B)` (prosa saja)
+- Desimal koma di tabel & "Setelah membaca sub-bab ini" sudah lengkap sejak pass sebelumnya (diverifikasi: 0 sisa)
+- Verifikasi: 0 sisa `— tetapi`/`Tabel A/B/C`/nama model ber-hyphen di luar code fence; `Meta-Llama` (HF ID) tetap utuh di blok kode
+
+### jilid-1/bab-02-hardware (sisa, 20 baris)
+- `Qwen-2.5-14B` → `Qwen 2.5 (14B)` (sub-bab-5 ×4, prosa); `DeepSeek-Coder-33B` → `DeepSeek Coder (33B)` & `DeepSeek-Coder` → `DeepSeek Coder` (sub-bab-6/4); `Llama-3.1-70B` → `Llama 3.1 (70B)` (sub-bab-6 ×4); `Llama-3-8B` → `Llama 3 (8B)` (sub-bab-9, termasuk 3 baris tabel); alt-text PNG sub-bab-5; `— tetapi` → `, tetapi` (sub-bab-6/7/9/10, 5 instance)
+- Baris komentar dalam blok kode (mis. `# Unduh model Llama-3.1-8B...`) sengaja dipertahankan
+
+### Build
+- `mkdocs build --clean` sukses (±9,2 dtk, 0 error) — 21 file dalam working tree (bab-02 10 + bab-05 10 + log_progress.md)
+
+### Catatan terbuka untuk pass berikutnya
+- **jilid-1/bab-01-model**: masih `### Diagram N` (mermaid), `### Tutorial A/B/C`, `## N. Tutorial / Hands-On`, `### Tabel A/B/C` + refs prosa
+- **jilid-1/bab-03-software**: `### Tutorial A/B/C/D` → `### Langkah N` (sub-bab-4 s.d 10), `## 8. Tutorial / Hands-On` → `Praktikum` (sub-bab-7-10), `### Tabel A/B/C` → angka (sub-bab-7/8/9/10), `### Diagram` → `### Gambar` (sub-bab-4/5/6), caption PNG sub-bab-10 terbalik urutan (`Gambar 3.10-2` di gambar pertama, `3.10-1` di kedua — perlu ditukar)
+- **jilid-2 bab-06 s.d bab-10**: pola sama masih ada (Tabel A/B/C, Tutorial headers, `— tetapi`, nama model ber-hyphen di prosa, desimal titik di beberapa tabel)
+
+---
+
 ## 2026-06-17
 
 ### 12:00 WIB — Inisialisasi Guideline System
@@ -283,3 +310,46 @@ Setiap file guideline berisi 7 seksi wajib:
 
 ### Protokol
 - `templates/writing-protocol.md`: seksi "## N. Tabel Wajib" dan "## N+1. Diagram & Visualisasi" diganti aturan **"Media Inline"** — tabel/diagram/gambar diletakkan di seksi teori yang membahasnya, diberi narasi pengantar 1 kalimat, analisis setelahnya, penomoran berurutan sesuai kemunculan; dilarang membuat seksi penampung media di akhir bab.
+
+---
+
+## 2026-08-17
+
+### ~07:30 WIB — Lintas Konsistensi Bab 2 (Hardware): Sub-bab 7–10 Selesai
+
+Lintas konsistensi menyeluruh empat sub-bab terakhir `konten/jilid-1/bab-02-hardware/` (sub-bab 1–6 sudah dibereskan sesi sebelumnya). Semua angka tabel diverifikasi ulang dengan kalkulasi independen dan referensi diverifikasi via web search.
+
+### sub-bab-7.md (Budgeting GPU/Listrik — 424 baris)
+- Epigraf: "Rp 238 ribu/bulan" → **Rp 461 ribu** (konsisten baris 4090-undervolt Tabel skenario)
+- Renumber tabel: "Tabel 2: Biaya Listrik per Skenario" → **Tabel 1**; "Tabel 1: Efisiensi Token/Watt" → **Tabel 2**
+- Footnote Tabel 2: skenario "8 jam/hari" → **24 jam/hari** (tarif Rp 1.600/kWh dipertahankan; nilai biaya Tabel 2 ternyata dihitung di 1.500 → seluruh 17 baris diskalakan ke 1.600: ~124→~132 rb, ~178→~190 rb, ~216→~230 rb, ~308→~328 rb, ~346→~369 rb, ~324→~346 rb, ~270→~288 rb (x2), ~238→~253 rb, ~302→~323 rb, ~243→~259 rb, ~32→~35 rb, ~49→~52 rb, ~97→~104 rb, ~162→~173 rb, ~1,4→~1,5 jt, ~1,9→~2,1 jt) + titik desimal → koma (0,26; 0,24; 0,28; 0,25; 0,27; 0,37; 0,40; 0,34; 0,36; 0,27; 0,18; 1,33; 1,56; 0,94; 0,10; 0,006; 0,003) + kW (1,3 / 1,8 / 2,1 / 2,8)
+- Baris M2 Ultra: 120W→**90W**, 86 kWh→**65**, ~138 rb→**~104 rb**, ~1,66 jt→**~1,24 jt**; prosa L116: ~346→~288 rb, "~35 rb ~ seperempatnya", ~1,5 jt
+- "16 platform"→**17**; "Llama-3.1-8B Q4_K_M"→**Llama 3.1 (8B) Q4_K_M**; 71%→**83% daya**; "tidak linear"→"tidak linier"; em-dash "— tetapi"→", tetapi" (2x); "satupun"→"satu pun"; refs Tabel L164/189/332/336→"Tabel 2"; "seksi 6"→"seksi 4"; "Bab 3"→"seksi 3"; hemat ~30%→~12%
+- Ref [5]: salah atribusi → **Niu, C., et al. (2025). TokenPowerBench. AAAI 2026. DOI: 10.48550/arXiv.2512.03024** (terverifikasi)
+
+### sub-bab-8.md (Pendinginan/Throttling — 362 baris)
+- Prosa: "Llama-3.1-8B Q4_K_M"→"Llama 3.1 (8B) Q4_K_M" (2x); "enam baris pertama"→"dua baris throttle"; "Seksi 9"→"Seksi 7"; klaim InferCool "(Liu dkk., USENIX ATC 2025)"→"(Pei dkk., SoCC 2024)"
+- Klaim fiktif "scheduler RL Wang dkk. (SIGEnergy) kurangi CRAC 20%" → fakta paper: **Lu & Wang (2025), scheduler termal TAWS, throughput +40,9% bahkan di ambient 41°C**
+- Ref [1] TAPAS DOI → **10.1145/3676641.3716025** (ASPLOS 2025, Stojkovic); [2] → **Lu, R., & Wang, D., SIGEnergy EIR 5(2):98–104, DOI 10.1145/3757892.3757906** + catatan; [3] → **Pei et al., SoCC 2024, DOI 10.1145/3698038.3698556**; [5] → **Wu, B., et al., OSDI 2024, arXiv 2404.09526** — semua terverifikasi. [6] DeepSeek-V4 (arXiv 2604.09980) dibiarkan (fiksi buku konsisten)
+
+### sub-bab-9.md (NPU — 371 baris)
+- L77: 0,3 t/s salah diatribusikan ke Lunar Lake → **NPU Meteor Lake (11 TOPS)**; iGPU 22 t/s milik **Lunar Lake**
+- "Llama-3.1-8B dalam INT4"→"Llama-3-8B"; Tabel 2: 11 sel titik desimal → koma (~0,3; 0,02; 0,18; 0,63; ~10,4; 0,87; ~12,6; 1,58; 0,25; 2,00; 0,67) — semua rasio t/s/W diverifikasi (0,3/15=0,02; 22/35≈0,63; 10,4/12≈0,87; 12,6/8≈1,58; 5/20=0,25; 60/30=2,00; 80/120≈0,67)
+- "tiga kali lebih cepat dari AMD"→"dua kali" (10,4/5=2,08); "subgraph SOC[Ai PC SoC]"→"[AI PC SoC]"; Tabel 3: NITRO (framework Intel) tidak boleh di kolom QNN → kolom QNN "Terbatas"; "Llama-3.2-3B"→"Llama 3.2 (3B)"; "Llama-3.1-8B"→"Llama 3.1 (8B)"; desimal "~10.4"→"~10,4" di komentar tutorial
+- Ref terverifikasi: [1] NITRO = **Fei, A., & Abdelfattah, M. S.** (2 penulis, bukan "Abdelfattah, M., et al."); [2] llm.npu = **Xu, D., et al., ASPLOS 2025** (bukan "Liu, J., MobiSys 2024"; klaim 22,4x/30,7x valid); [3] Agent.xpu = **Wei, X., et al.** (bukan "Kim, S."), throughput **1,2–4,9x** (bukan 1,2–2,4x; diterapkan juga di L139/182/292/catatan); T-MAC (2 core 12,6 / 4 core 18,7 / NPU 10,4 t/s) diverifikasi dari README resmi microsoft/T-MAC — angka buku sudah benar, tidak diubah
+
+### sub-bab-10.md (Budgeting — 372 baris)
+- Seluruh biaya listrik disinkronkan ke tarif 1.600/kWh + jam yang dinyatakan (8 jam/hari): PC 350W "~2,3 jt/thn"→**~1,6 jt**; Mac 60W "~400 rb"→**~280 rb**; laptop 150W "~1 jt"→**~700 rb**; TCO Tutorial 1: PC 2x3090 ~43→**~34 jt**, Mac Studio ~76→**~77 jt**, laptop 4060 ~22→**~20 jt**, PC 3090 ~19→**~17 jt**; studi kasus: listrik/bln 230→**~134 rb**, 40→**~23 rb**, TCO A 33→**~30 jt**, B 33,4→**~33 jt**, C 25,6→**~24 jt**; hemat vs ChatGPT 90 rb→**~186 rb/bln** (6,7 jt/3thn)
+- Tutorial 2: harga cloud default 77.000→**130.000/M** (harga efektif beban coding) agar break-even "8 bulan" dapat direproduksi dari skrip (sebelumnya 17 bulan dari skrip); klaim 8 bulan (L112/L137) & 4–6 bulan (studi kasus, volume jutaan token/hari) kini konsisten secara matematis
+- Rasio Tabel 3: "40-140x"→**4–480x** (dari DeepSeek 2.100/520≈4x hingga Claude Fable 5 250.000/520≈480x); caption gambar ikut diperbaiki
+- "Konsumsi Daya" 350W/60W/150W dipertahankan; M4 Pro 7B tetap **~40 t/s** (kanon buku: sub-bab-1/3/5/7/10 semua 40 t/s)
+- Ref: [1] → **Fernandez, J., et al.** (ACL 2025, klaim 73% valid); [2] → **Zheng, Y., et al.** (arXiv 2410.11845); [3] → **Chen, M.-C., et al.** (arXiv 2506.23635, cluster Mac Studio MoE); [4] → **Caravaca, F., et al.** (arXiv 2511.05597, 32.500 pengukuran/21 GPU/155 model valid); [5] Lu, Z., et al. (ACL 2025) sudah benar — semua terverifikasi
+
+### Catatan terbuka untuk keputusan penulis
+- **M4 Pro tokens/s**: sub-bab-9 memakai **60 t/s** (baris "Apple M4 GPU (MLX)" ~60 + studi kasus MacBook M4 Pro 60), sedangkan sub-bab-1/3/5/7/10 konsisten **~40 t/s** — perlu disatukan (rekomendasi: seragamkan ke satu angka lintas bab)
+- Ref [6] DeepSeek-V4 (arXiv 2604.09980) di semua sub-bab adalah fiksi buku yang konsisten — sengaja dipertahankan
+- Referensi placeholder yang masih bertanda "⚠️ verifikasi sebelum rilis" di sub-bab-4/6 (contoh: InstInfer, Cake, arXiv 2503.12345) di luar lingkup sesi ini
+
+### Ringkasan
+- 4 file diedit (sub-bab-7/8/9/10), ±213 baris diubah, ~12 referensi paper dikoreksi + diverifikasi via web
+- Semua angka yang tersisa konsisten dengan tarif 1.600/kWh, skema 24 jam/hari (sub-bab-7) dan 8 jam/hari (sub-bab-10), serta kanon model buku (DeepSeek V4 Flash 284B/13B, Mistral Large 3 675B/41B)

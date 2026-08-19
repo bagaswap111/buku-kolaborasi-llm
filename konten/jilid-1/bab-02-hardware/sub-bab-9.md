@@ -74,7 +74,7 @@ graph LR
     C --> D["NPU Generasi Berikutnya<br/>Lebih dari 100 TOPS"]
 ```
 
-Bacaan garis waktu ini luar biasa: dalam tiga tahun, TOPS NPU tumbuh hampir 10 kali lipat — dari 11 di Meteor Lake menjadi prediksi 100+ di Panther Lake. Bandingkan dengan *hukum Moore* klasik yang menggandakan transistor setiap dua tahun; NPU melaju jauh lebih cepat karena dimulai dari titik nol persaingan. Namun — dan ini penekanan yang perlu diulang — sejarah Tabel 2 mengajarkan bahwa TOPS bukan segalanya: Intel NPU 48 TOPS (Lunar Lake) menjalankan Llama-3-8B hanya pada 0,3 t/s dengan NITRO/OpenVINO, sementara iGPU-nya sendiri mencapai 22 t/s. Setiap titik pada garis waktu ini menaikkan *kapasitas teoretis*, tetapi *software stack* yang menentukan seberapa banyak kapasitas itu bisa dinikmati. Garis waktu ini pula yang menjadi dasar prediksi Seksi 7: pada 2026–2028, kombinasi NPU 100+ TOPS dengan iGPU yang matang akan cukup untuk menjalankan SLM 3B–8B secara nyaman di laptop [1][4][5].
+Bacaan garis waktu ini luar biasa: dalam tiga tahun, TOPS NPU tumbuh hampir 10 kali lipat — dari 11 di Meteor Lake menjadi prediksi 100+ di Panther Lake. Bandingkan dengan *hukum Moore* klasik yang menggandakan transistor setiap dua tahun; NPU melaju jauh lebih cepat karena dimulai dari titik nol persaingan. Namun — dan ini penekanan yang perlu diulang — sejarah Tabel 2 mengajarkan bahwa TOPS bukan segalanya: NPU Meteor Lake dengan 11 TOPS menjalankan Llama 3 (8B) hanya pada 0,3 t/s dengan NITRO/OpenVINO, sementara iGPU di chip penerusnya (Lunar Lake) mencapai 22 t/s. Setiap titik pada garis waktu ini menaikkan *kapasitas teoretis*, tetapi *software stack* yang menentukan seberapa banyak kapasitas itu bisa dinikmati. Garis waktu ini pula yang menjadi dasar prediksi Seksi 7: pada 2026–2028, kombinasi NPU 100+ TOPS dengan iGPU yang matang akan cukup untuk menjalankan SLM 3B–8B secara nyaman di laptop [1][4][5].
 
 ---
 
@@ -86,7 +86,7 @@ Bacaan garis waktu ini luar biasa: dalam tiga tahun, TOPS NPU tumbuh hampir 10 k
 
 ### Harapan: TOPS Tinggi, Inferensi Kencang?
 
-Ketika pemasaran berbicara tentang "AI PC dengan NPU 45 TOPS", naluri pertama pembeli adalah membayangkan laptop yang bisa menjalankan semua model AI dengan lincah. Realitanya jauh lebih berwarna. NPU memang bisa menjalankan LLM — misalnya Llama-3.1-8B dalam INT4 — tetapi kecepatannya mengecewakan: sekitar **3,5 detik per token** pada NPU Intel. Sebagai perbandingan, GPU laptop *integrated* Intel Arc pada chip yang sama mencapai sekitar **20 token/detik** — artinya GPU sekitar **66 kali lebih cepat** daripada NPU untuk tugas LLM [1].
+Ketika pemasaran berbicara tentang "AI PC dengan NPU 45 TOPS", naluri pertama pembeli adalah membayangkan laptop yang bisa menjalankan semua model AI dengan lincah. Realitanya jauh lebih berwarna. NPU memang bisa menjalankan LLM — misalnya Llama 3 (8B) dalam INT4, tetapi kecepatannya mengecewakan: sekitar **3,5 detik per token** pada NPU Intel. Sebagai perbandingan, GPU laptop *integrated* Intel Arc pada chip yang sama mencapai sekitar **20 token/detik** — artinya GPU sekitar **66 kali lebih cepat** daripada NPU untuk tugas LLM [1].
 
 Mengapa bisa terjadi jurang selebar itu? Karena LLM *decoding* bergantung pada dua hal yang tidak dikuasai NPU: *memory bandwidth* (NPU berbagi bandwidth dengan CPU dan iGPU lewat *shared memory*, dan aksesnya dibatasi) dan fleksibilitas operasi (NPU dioptimalkan untuk operasi matriks padat berpresisi rendah, sementara *decoding* token melibatkan banyak operasi non-matriks). TOPS mengukur kecepatan komputasi teoretis; inferensi LLM nyaris selalu dikekang bandwidth — metrik yang tidak pernah dicantumkan di brosur [4].
 
@@ -94,8 +94,8 @@ Mengapa bisa terjadi jurang selebar itu? Karena LLM *decoding* bergantung pada d
 
 Namun, cerita NPU tidak berhenti di angka dasar yang menyedihkan itu. Riset akademik terus mengikis kekurangan NPU dengan cara-cara cerdas:
 
-- **NITRO** (Abdelfattah dkk., 2024) adalah framework inferensi LLM di NPU Intel pertama yang mencapai **10x speedup** dibandingkan OpenVINO vanilla, dengan memetakan ulang operasi agar sesuai dengan pola *systolic array* [1].
-- **llm.npu** (Liu dkk., MobiSys 2024) mengusulkan arsitektur *hybrid NPU-CPU-GPU* dengan *prompt chunking* dan deteksi *outlier* — mencapai **22,4x speedup prefill** dan **penghematan energi 30,7x** dibandingkan baseline [2].
+- **NITRO** (Fei & Abdelfattah, 2024) adalah framework inferensi LLM di NPU Intel pertama yang mencapai **10x speedup** dibandingkan OpenVINO vanilla, dengan memetakan ulang operasi agar sesuai dengan pola *systolic array* [1].
+- **llm.npu** (Xu dkk., ASPLOS 2025) mengusulkan arsitektur *hybrid NPU-CPU-GPU* dengan *prompt chunking* dan deteksi *outlier* — mencapai **22,4x speedup prefill** dan **penghematan energi 30,7x** dibandingkan baseline [2].
 - **T-MAC** (Wei dkk., EuroSys 2025) bahkan membalik narasi: dengan *table lookup* untuk inferensi low-bit, **CPU Snapdragon X Elite mencapai 12,6 token/detik** — mengalahkan NPU-nya sendiri yang hanya 10,4 t/s. Dalam kasus ini, NPU dikalahkan oleh CPU yang "seharusnya" lebih lambat [4].
 
 Angka-angka ini mengajarkan satu pelajaran penting: untuk LLM, arsitektur dan *software stack* sama menentukan dengan spesifikasi mentah. NPU dengan TOPS tinggi tetapi ekosistem perangkat lunak yang kaku bisa kalah dari CPU yang dimanfaatkan dengan cerdas.
@@ -115,20 +115,20 @@ Tabel berikut menjawab pertanyaan yang paling sering diajukan: seberapa cepat ma
 
 | Device | Framework | Model | Tokens/s | Daya | TOPS | Efisiensi (t/s/W) |
 |:---|---:|---:|---:|---:|---:|---:|
-| **Intel NPU (Meteor Lake)** | NITRO/OpenVINO | Llama-3-8B INT4 | ~0.3 t/s | 15W (NPU) | 11 | 0.02 |
-| **Intel NPU + CPU hybrid** | Agent.xpu | Llama-3-8B W8A16 | ~5 t/s | 28W (total) | 11 | 0.18 |
-| **Intel Arc iGPU (Lunar Lake)** | OpenVINO | Llama-3-8B INT4 | ~22 t/s | 35W (iGPU) | 67 (GPU) | 0.63 |
-| **Snapdragon X Elite NPU** | QNN | Llama-2-7B INT4 | ~10.4 t/s | 12W (NPU) | 45 | 0.87 |
-| **Snapdragon CPU (T-MAC)** | T-MAC (2 core) | Llama-2-7B W4 | ~12.6 t/s | 8W (CPU) | - | 1.58 |
-| **AMD Ryzen AI NPU** | Vitis AI | Llama-3-8B INT4 | ~5 t/s | 20W (NPU) | 50 | 0.25 |
-| **Apple M4 GPU (MLX)** | MLX | Llama-3.1-8B 4bit | ~60 t/s | ~30W (GPU) | - | 2.00 |
-| **RTX 4090 Laptop** | CUDA/llama.cpp | Llama-3.1-8B Q4 | ~80 t/s | ~120W (GPU) | - | 0.67 |
+| **Intel NPU (Meteor Lake)** | NITRO/OpenVINO | Llama 3 (8B) INT4 | ~0,3 t/s | 15W (NPU) | 11 | 0,02 |
+| **Intel NPU + CPU hybrid** | Agent.xpu | Llama 3 (8B) W8A16 | ~5 t/s | 28W (total) | 11 | 0,18 |
+| **Intel Arc iGPU (Lunar Lake)** | OpenVINO | Llama 3 (8B) INT4 | ~22 t/s | 35W (iGPU) | 67 (GPU) | 0,63 |
+| **Snapdragon X Elite NPU** | QNN | Llama-2-7B INT4 | ~10,4 t/s | 12W (NPU) | 45 | 0,87 |
+| **Snapdragon CPU (T-MAC)** | T-MAC (2 core) | Llama-2-7B W4 | ~12,6 t/s | 8W (CPU) | - | 1,58 |
+| **AMD Ryzen AI NPU** | Vitis AI | Llama 3 (8B) INT4 | ~5 t/s | 20W (NPU) | 50 | 0,25 |
+| **Apple M4 GPU (MLX)** | MLX | Llama 3.1 (8B) 4bit | ~60 t/s | ~30W (GPU) | - | 2,00 |
+| **RTX 4090 Laptop** | CUDA/llama.cpp | Llama 3.1 (8B) Q4 | ~80 t/s | ~120W (GPU) | - | 0,67 |
 
 ![Efisiensi token per watt delapan perangkat NPU, iGPU, dan GPU laptop pada skala logaritmik](../../assets/images/bab-02-hardware/sub-bab-9/efisiensi-inference-npu-vs-gpu.png)
 
 *Gambar 2.9-2 — Untuk LLM, iGPU/GPU mengungguli NPU: NPU Intel hanya 0,02 t/s/W menjalankan 0,3 t/s, sementara M4 GPU mencapai 2,00 t/s/W dengan 60 t/s — dan CPU T-MAC (1,58) bahkan mengalahkan NPU di chip yang sama.*
 
-Pembacaan tabel ini penuh kejutan. Perhatikan bahwa NPU dengan TOPS tertinggi (AMD 50 TOPS) justru tidak menghasilkan tokens/s tertinggi — Snapdragon X Elite (45 TOPS) menjalankan Llama-2-7B di 10,4 t/s, tiga kali lebih cepat dari AMD. Perhatikan pula baris T-MAC: CPU dengan 8W mengalahkan NPU yang sama-sama ada di dalam chip Snapdragon — bukti bahwa *software* bisa menang melawan *hardware* yang dirancang khusus. Sementara itu, Apple M4 GPU dengan MLX mencapai efisiensi 2,00 t/s/W — tertinggi di tabel — dan RTX 4090 laptop tetap raja kecepatan mentah (80 t/s) dengan konsekuensi daya 120W. Kesimpulan praktisnya: jika Anda ingin menjalankan LLM 7–8B di laptop, targetkan *iGPU* atau *GPU* — NPU adalah pendamping efisien, bukan pelari utama [1][2][3][4][5].
+Pembacaan tabel ini penuh kejutan. Perhatikan bahwa NPU dengan TOPS tertinggi (AMD 50 TOPS) justru tidak menghasilkan tokens/s tertinggi — Snapdragon X Elite (45 TOPS) menjalankan Llama-2-7B di 10,4 t/s, dua kali lebih cepat dari AMD. Perhatikan pula baris T-MAC: CPU dengan 8W mengalahkan NPU yang sama-sama ada di dalam chip Snapdragon — bukti bahwa *software* bisa menang melawan *hardware* yang dirancang khusus. Sementara itu, Apple M4 GPU dengan MLX mencapai efisiensi 2,00 t/s/W — tertinggi di tabel — dan RTX 4090 laptop tetap raja kecepatan mentah (80 t/s) dengan konsekuensi daya 120W. Kesimpulan praktisnya: jika Anda ingin menjalankan LLM 7–8B di laptop, targetkan *iGPU* atau *GPU* — NPU adalah pendamping efisien, bukan pelari utama [1][2][3][4][5].
 
 
 ---
@@ -136,7 +136,7 @@ Pembacaan tabel ini penuh kejutan. Perhatikan bahwa NPU dengan TOPS tertinggi (A
 ## 5. Arsitektur Heterogen: CPU + GPU + NPU
 
 
-Kesimpulan dari penelitian di atas mengarah ke satu arah: masa depan AI PC bukan "NPU menggantikan segalanya", melainkan **heterogeneous computing** — ketiga unit komputasi (CPU, iGPU, NPU) bekerja sama, masing-masing mengerjakan tugas yang paling cocok. Penelitian **Agent.xpu** (Kim dkk., 2025) menunjukkan konsep ini dalam praktik: scheduler cerdas membagi *workload agentic* antara iGPU dan NPU, mencapai **1,2–2,4x throughput** dibandingkan iGPU-only [3].
+Kesimpulan dari penelitian di atas mengarah ke satu arah: masa depan AI PC bukan "NPU menggantikan segalanya", melainkan **heterogeneous computing** — ketiga unit komputasi (CPU, iGPU, NPU) bekerja sama, masing-masing mengerjakan tugas yang paling cocok. Penelitian **Agent.xpu** (Wei dkk., 2025) menunjukkan konsep ini dalam praktik: scheduler cerdas membagi *workload agentic* antara iGPU dan NPU, mencapai **1,2–4,9x throughput** dibandingkan engine iGPU-only [3].
 
 Pembagian kerja yang umum: **NPU** menangani *prefill* ringan, *wake-word detection*, *background agent*, dan *continuous listening* — tugas yang berjalan terus-menerus sepanjang hari, sehingga efisiensi wattnya sangat berharga. **GPU/iGPU** menangani *LLM decoding* berat, rendering, dan *creative generation* — tugas yang membutuhkan kecepatan dan bandwidth, di mana NPU kewalahan. **CPU** menangani logika, tokenisasi, dan routing.
 
@@ -165,7 +165,7 @@ Inilah peta jalan komputasi AI di dalam sebuah SoC AI PC modern — tiga unit ko
 
 ```mermaid
 graph TD
-    subgraph SOC[Ai PC SoC]
+    subgraph SOC[AI PC SoC]
         CPU[CPU P-core dan E-core]
         NPU[NPU Systolic Array]
         IGPU[iGPU Xe-core]
@@ -179,7 +179,7 @@ graph TD
     RAM --- TASK3[Logika dan Routing: CPU]
 ```
 
-Diagram ini menunjukkan mengapa NPU tidak bisa "sendiri" menjalankan LLM: ketiga unit terhubung ke *shared memory* yang sama, sehingga *bandwidth* menjadi sumber daya yang diperebutkan. Pembagian kerja yang ideal terlihat di bagian bawah: NPU mengambil tugas yang ringan tetapi berjalan terus-menerus (*wake-word detection*, prefill ringan, background agent) yang dalam setahun menghemat puluhan watt-jam; iGPU menangani *decoding* yang berat karena butuh bandwidth penuh; dan CPU menjadi pengatur lalu lintas. Arsitektur ini pula yang menjadi dasar penelitian Agent.xpu — scheduler yang membagi prefill ke NPU dan decode ke iGPU, menghasilkan throughput 1,2–2,4x lebih tinggi dibandingkan iGPU-only [3].
+Diagram ini menunjukkan mengapa NPU tidak bisa "sendiri" menjalankan LLM: ketiga unit terhubung ke *shared memory* yang sama, sehingga *bandwidth* menjadi sumber daya yang diperebutkan. Pembagian kerja yang ideal terlihat di bagian bawah: NPU mengambil tugas yang ringan tetapi berjalan terus-menerus (*wake-word detection*, prefill ringan, background agent) yang dalam setahun menghemat puluhan watt-jam; iGPU menangani *decoding* yang berat karena butuh bandwidth penuh; dan CPU menjadi pengatur lalu lintas. Arsitektur ini pula yang menjadi dasar penelitian Agent.xpu — scheduler yang membagi prefill ke NPU dan decode ke iGPU, menghasilkan throughput 1,2–4,9x lebih tinggi dibandingkan engine iGPU-only [3].
 
 
 ---
@@ -200,7 +200,7 @@ Perbandingan empat ekosistem *software* — faktor yang sebenarnya menentukan se
 | Aspek | Intel OpenVINO | Qualcomm QNN | AMD Vitis AI | Apple CoreML |
 |:---|:---|:---|:---|:---|
 | **Model Format** | IR (Intermediate Rep) | QNN C++/C API | XIR / ONNX | .mlpackage |
-| **LLM Support** | Ya (via optimum-intel) | Terbatas (NITRO) | Eksperimental | Ya (via MLX) |
+| **LLM Support** | Ya (via optimum-intel) | Terbatas | Eksperimental | Ya (via MLX) |
 | **Kemudahan Setup** | Sedang | Sulit | Sulit | Mudah |
 | **Quantization** | INT8, INT4 | INT8 | INT8, INT4 | FP16, INT8 |
 | **Dynamic Shapes** | Terbatas | Tidak | Tidak | Ya (via ANE) |
@@ -221,7 +221,7 @@ Ke mana arah perlombaan ini? Standar **Microsoft Copilot+** (minimal 40 TOPS) te
 
 Namun, penting untuk menahan euforia. Model frontier 2026 — **DeepSeek V4 Pro** (1,6T parameter), **Mistral Large 3** (675B), GPT-5.5, dan Claude Fable 5 — sama sekali **tidak feasible di NPU**. Model sebesar itu membutuhkan GPU dengan HBM atau *unified memory* Apple Silicon dengan *bandwidth* di atas **500 GB/s**; NPU laptop dengan shared memory puluhan GB/s berada di galaksi yang berbeda [6]. Prediksi realistis: dalam 2–3 tahun, kombinasi NPU + iGPU akan cukup untuk menjalankan **SLM 3B–8B** dengan nyaman — cukup untuk asisten lokal di laptop — sementara model besar tetap menjadi wilayah GPU dan *unified memory*.
 
-Bagi calon pembeli laptop di 2026, arah ini memiliki tiga implikasi praktis. Pertama, **jangan membayar ekstra hanya demi angka TOPS**: NPU 45 vs 50 TOPS tidak akan terasa dalam penggunaan sehari-hari; yang terasa adalah kualitas *software stack*-nya — uji dulu apakah model yang Anda butuhkan (misalnya Llama-3.2-3B) berjalan di platform itu sebelum membeli. Kedua, **pastikan laptop memiliki iGPU yang kompeten**: seperti berulang kali ditunjukkan di bab ini, iGPU — bukan NPU — adalah unit yang benar-benar menjalankan LLM di laptop AI PC; tanyakan apakah iGPU-nya bisa dipakai untuk *inference* (OpenVINO GPU di Lunar Lake, misalnya, mencapai 22 t/s untuk Llama-3-8B). Ketiga, **ketahuilah umur pakai dukungan**: NPU adalah hardware yang cepat berganti generasi, tetapi *software stack* yang terus diperbarui (OpenVINO dirilis berkala, MLPerf mulai membakukan benchmark NPU) menentukan berapa lama hardware Anda tetap berguna [5][8]. Beli laptop AI PC untuk masa kini — *background AI* yang hemat daya — dan jangan berharap NPU-nya menjadi mesin LLM masa depan.
+Bagi calon pembeli laptop di 2026, arah ini memiliki tiga implikasi praktis. Pertama, **jangan membayar ekstra hanya demi angka TOPS**: NPU 45 vs 50 TOPS tidak akan terasa dalam penggunaan sehari-hari; yang terasa adalah kualitas *software stack*-nya — uji dulu apakah model yang Anda butuhkan (misalnya Llama 3.2 (3B)) berjalan di platform itu sebelum membeli. Kedua, **pastikan laptop memiliki iGPU yang kompeten**: seperti berulang kali ditunjukkan di bab ini, iGPU — bukan NPU — adalah unit yang benar-benar menjalankan LLM di laptop AI PC; tanyakan apakah iGPU-nya bisa dipakai untuk *inference* (OpenVINO GPU di Lunar Lake, misalnya, mencapai 22 t/s untuk Llama 3 (8B)). Ketiga, **ketahuilah umur pakai dukungan**: NPU adalah hardware yang cepat berganti generasi, tetapi *software stack* yang terus diperbarui (OpenVINO dirilis berkala, MLPerf mulai membakukan benchmark NPU) menentukan berapa lama hardware Anda tetap berguna [5][8]. Beli laptop AI PC untuk masa kini — *background AI* yang hemat daya — dan jangan berharap NPU-nya menjadi mesin LLM masa depan.
 
 ---
 
@@ -257,7 +257,7 @@ python nitro/run_npu.py \
     --prompt "Saya adalah asisten AI"
 ```
 
-Pengalaman yang diharapkan: pada langkah 4, NPU menghasilkan respons — tetapi dengan kecepatan yang terasa "berat", sekitar 3,5 detik per token untuk model 8B (model 3B sedikit lebih cepat). Pada langkah 5, CPU sering kali lebih cepat untuk prompt pendek karena NPU harus menyelesaikan inisialisasi pipa terlebih dahulu. Eksperimen ini mengajarkan dua hal: pertama, NPU benar-benar bisa menjalankan LLM — bukan *smoke and mirrors*; kedua, untuk penggunaan interaktif, NPU belum menawarkan pengalaman yang nyaman. Catat pula konsumsi daya keduanya dengan `powerstat` — di situlah NPU menunjukkan keunggulannya: efisiensi per watt untuk tugas yang memang ringan [1].
+Pengalaman yang diharapkan: pada langkah 4, NPU menghasilkan respons, tetapi dengan kecepatan yang terasa "berat", sekitar 3,5 detik per token untuk model 8B (model 3B sedikit lebih cepat). Pada langkah 5, CPU sering kali lebih cepat untuk prompt pendek karena NPU harus menyelesaikan inisialisasi pipa terlebih dahulu. Eksperimen ini mengajarkan dua hal: pertama, NPU benar-benar bisa menjalankan LLM — bukan *smoke and mirrors*; kedua, untuk penggunaan interaktif, NPU belum menawarkan pengalaman yang nyaman. Catat pula konsumsi daya keduanya dengan `powerstat` — di situlah NPU menunjukkan keunggulannya: efisiensi per watt untuk tugas yang memang ringan [1].
 
 ### Tutorial 2: Hybrid NPU + CPU + GPU dengan Agent.xpu
 
@@ -289,7 +289,7 @@ print(tokenizer.decode(outputs[0]))
 "
 ```
 
-Perhatikan filosofi di balik dua baris konfigurasi `prefill_device='NPU'` dan `decode_device='GPU'`: *prefill* (memproses prompt sekaligus) adalah komputasi matriks masif yang cocok untuk *systolic array* NPU, sementara *decode* (menghasilkan token satu per satu) adalah beban *bandwidth-bound* yang jauh lebih cepat di iGPU. Hasil yang diharapkan adalah throughput 1,2–2,4x lebih tinggi dibandingkan menjalankan seluruhnya di iGPU — persis seperti temuan paper Agent.xpu [3]. Jika Anda tidak memiliki Core Ultra, skrip tetap berjalan di GPU biasa, hanya tanpa partisipasi NPU.
+Perhatikan filosofi di balik dua baris konfigurasi `prefill_device='NPU'` dan `decode_device='GPU'`: *prefill* (memproses prompt sekaligus) adalah komputasi matriks masif yang cocok untuk *systolic array* NPU, sementara *decode* (menghasilkan token satu per satu) adalah beban *bandwidth-bound* yang jauh lebih cepat di iGPU. Hasil yang diharapkan adalah throughput 1,2–4,9x lebih tinggi dibandingkan menjalankan seluruhnya di iGPU — persis seperti temuan paper Agent.xpu [3]. Jika Anda tidak memiliki Core Ultra, skrip tetap berjalan di GPU biasa, hanya tanpa partisipasi NPU.
 
 ### Tutorial 3: Test T-MAC di Snapdragon X Elite
 
@@ -309,7 +309,7 @@ python tools/bench_e2e.py \
     --gen_len 1024
 
 # Output: ~18-22 t/s (Snapdragon X Elite, 4 core)
-# Bandingkan: NPU via QNN hanya ~10.4 t/s
+# Bandingkan: NPU via QNN hanya ~10,4 t/s
 ```
 
 T-MAC mengganti inti perhitungannya: alih-alih menghitung perkalian matriks (yang menjadi kekuatan NPU), ia memakai *table lookup* — mencari hasil dari tabel yang disiapkan sebelumnya — yang sangat cocok untuk CPU ARM dengan *cache* cepat. Pada Snapdragon X Elite dengan 4 core, hasilnya 18–22 token/detik untuk Llama-2-7B 4-bit, hampir dua kali NPU-nya (10,4 t/s) dengan daya yang lebih rendah (8W vs 12W). Eksperimen ini adalah pelajaran paling tajam tentang *software stack*: algoritma yang tepat bisa membuat hardware "lebih lemah" mengalahkan hardware "lebih kuat" [4].
@@ -319,7 +319,7 @@ T-MAC mengganti inti perhitungannya: alih-alih menghitung perkalian matriks (yan
 ## 9. Studi Kasus: Memilih Laptop AI PC untuk LLM Lokal
 
 
-**Skenario.** Seorang mahasiswa AI membutuhkan laptop baru dengan budget **Rp 20–25 juta** untuk menjalankan *coding assistant* lokal berbasis Llama-3.1-8B. Ia tergoda oleh kampanye "AI PC" yang mengklaim NPU 45–50 TOPS akan mempercepat semua pekerjaan AI-nya. Tiga kandidat masuk daftar:
+**Skenario.** Seorang mahasiswa AI membutuhkan laptop baru dengan budget **Rp 20–25 juta** untuk menjalankan *coding assistant* lokal berbasis Llama 3.1 (8B). Ia tergoda oleh kampanye "AI PC" yang mengklaim NPU 45–50 TOPS akan mempercepat semua pekerjaan AI-nya. Tiga kandidat masuk daftar:
 
 - **Opsi A — Intel Core Ultra 9 288V (Lunar Lake):** NPU 48 TOPS + Arc iGPU + 32GB RAM, ~Rp 25 jt.
 - **Opsi B — Snapdragon X Elite:** NPU 45 TOPS + Adreno iGPU + 32GB RAM, ~Rp 22 jt.
@@ -336,14 +336,14 @@ T-MAC mengganti inti perhitungannya: alih-alih menghitung perkalian matriks (yan
 
 ### Paper Jurnal/Konferensi
 
-[1] Abdelfattah, M., et al. (2024). *NITRO: LLM Inference on Intel Laptop NPUs*. arXiv: 2412.11053. DOI: [10.48550/arXiv.2412.11053](https://arxiv.org/abs/2412.11053)
+[1] Fei, A., & Abdelfattah, M. S. (2024). *NITRO: LLM Inference on Intel Laptop NPUs*. arXiv: 2412.11053. DOI: [10.48550/arXiv.2412.11053](https://arxiv.org/abs/2412.11053)
 - Framework inferensi NPU pertama untuk Intel Core Ultra — 10x *speedup* vs OpenVINO vanilla. Data benchmark NPU Intel di Tabel 2 merujuk paper ini.
 
-[2] Liu, J., et al. (2024). *Fast On-device LLM Inference with NPUs*. MobiSys. DOI: [10.48550/arXiv.2407.05858](https://arxiv.org/abs/2407.05858)
+[2] Xu, D., et al. (2024). *Fast On-device LLM Inference with NPUs*. ASPLOS 2025. DOI: [10.48550/arXiv.2407.05858](https://arxiv.org/abs/2407.05858)
 - Arsitektur *hybrid NPU-CPU-GPU* — 22,4x *prefill speedup* dan penghematan energi 30,7x. Arsitektur heterogen di Seksi 5 merujuk paper ini.
 
-[3] Kim, S., et al. (2025). *Agent.xpu: Efficient Scheduling of Agentic LLM Workloads on Heterogeneous SoC*. arXiv: 2506.24045. DOI: [10.48550/arXiv.2506.24045](https://arxiv.org/abs/2506.24045)
-- *Scheduler* NPU-iGPU hybrid — 1,2–2,4x *throughput* vs iGPU-only. Data Tabel 2 tentang *hybrid inference* merujuk paper ini.
+[3] Wei, X., et al. (2025). *Agent.xpu: Efficient Scheduling of Agentic LLM Workloads on Heterogeneous SoC*. arXiv: 2506.24045. DOI: [10.48550/arXiv.2506.24045](https://arxiv.org/abs/2506.24045)
+- *Scheduler* NPU-iGPU hybrid — 1,2–4,9x *throughput* vs iGPU-only. Data Tabel 2 tentang *hybrid inference* merujuk paper ini.
 
 [4] Wei, J., Cao, S., Cao, T., Ma, L., Wang, L., Zhang, Y., & Yang, M. (2025). *T-MAC: CPU Renaissance via Table Lookup for Low-Bit LLM Inference on Edge*. EuroSys. DOI: [10.48550/arXiv.2407.00088](https://arxiv.org/abs/2407.00088)
 - CPU via T-MAC mengalahkan NPU di Snapdragon X Elite (12,6 vs 10,4 t/s). Data benchmark Tabel 2 — T-MAC CPU vs NPU — diverifikasi dari paper ini.

@@ -12,7 +12,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 - Menjelaskan tiga strategi paralelisme — *tensor parallelism* (TP), *pipeline parallelism* (PP), dan *sequence parallelism* (SP) — beserta kekuatan dan keterbatasan masing-masing
 - Menyusun *Ray cluster* multi-node dan menjalankan vLLM di atasnya dengan kombinasi TP dan PP yang tepat
 - Mengidentifikasi kapan *SkyPilot* adalah pilihan yang lebih baik untuk *deploy* multi-cloud yang hemat biaya
-- Membaca dan membedah *benchmark* efisiensi *scaling* (seperti Tabel 2 pada sub-bab ini) serta memprediksi efek perubahan kombinasi TP/PP pada *throughput*
+- Membaca dan membedah *benchmark* efisiensi *scaling* (seperti Tabel 1 pada sub-bab ini) serta memprediksi efek perubahan kombinasi TP/PP pada *throughput*
 
 ---
 
@@ -21,7 +21,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ### Memory Wall: Dinding yang Tidak Bisa Dilompati
 
-Setiap GPU — sebesar apa pun — punya batas VRAM. H100 80GB adalah kartu yang sangat mahal, tetapi Llama-3.1-405B dalam FP16 saja membutuhkan **810 GB** — setara 10 buah H100 80GB sekaligus hanya untuk menyimpan bobot, belum termasuk KV-cache dan *overhead* runtime. Ini adalah apa yang disebut **memory wall**: pertumbuhan ukuran model melampaui pertumbuhan VRAM per GPU, dan tidak ada GPU tunggal di pasar yang bisa menampung model kelas 400B ke atas. Jalan keluarnya bukan menunggu GPU yang lebih besar, melainkan mengubah cara berpikir: **satu model, banyak GPU**.
+Setiap GPU — sebesar apa pun — punya batas VRAM. H100 80GB adalah kartu yang sangat mahal, tetapi Llama 3.1 (405B) dalam FP16 saja membutuhkan **810 GB** — setara 10 buah H100 80GB sekaligus hanya untuk menyimpan bobot, belum termasuk KV-cache dan *overhead* runtime. Ini adalah apa yang disebut **memory wall**: pertumbuhan ukuran model melampaui pertumbuhan VRAM per GPU, dan tidak ada GPU tunggal di pasar yang bisa menampung model kelas 400B ke atas. Jalan keluarnya bukan menunggu GPU yang lebih besar, melainkan mengubah cara berpikir: **satu model, banyak GPU**.
 
 ### Jalan Keluar: Memecah, Membagi, Menggabungkan
 
@@ -31,9 +31,9 @@ Perbedaan mendasar lain yang perlu dipahami sejak awal: *memori* terpecah, tetap
 
 Satu pengecualian penting untuk pola "dipecah": **Cloud API**. Model seperti GPT-5.5 tidak pernah dibuka untuk dijalankan sendiri — satu-satunya cara menjangkaunya adalah memanggil API. Bagi sebagian besar tim, pertanyaan nyatanya bukan "bagaimana menjalankan 405B di kluster kami?", melainkan "jalankan sendiri (butuh distributed inference) atau sewa API?" Perhitungan sederhana: jika utilisasi tinggi dan model open-weight, kluster sendiri lebih hemat; jika sporadis atau model eksklusif, API lebih masuk akal. Sub-bab ini akan membekali Anda dengan angka untuk mengambil keputusan itu dengan kepala dingin.
 
-### Tabel 2: Benchmark Distributed — Llama-3.1-405B
+### Tabel 1: Benchmark Distributed — Llama 3.1 (405B)
 
-Berikut dampak kombinasi TP/PP pada *throughput* dan efisiensi, diukur atas Llama-3.1-405B dengan H100:
+Berikut dampak kombinasi TP/PP pada *throughput* dan efisiensi, diukur atas Llama 3.1 (405B) dengan H100:
 
 | Konfigurasi | Total GPUs | TP | PP | Throughput (tok/s) | Speedup Efficiency |
 |:---|:---:|:---:|:---:|:---:|:---:|
@@ -43,7 +43,7 @@ Berikut dampak kombinasi TP/PP pada *throughput* dan efisiensi, diukur atas Llam
 | 32x H100 (4 node, Ethernet) | 32 | 4 | 8 | 11.500 | 68% |
 | 64x H100 (8 node, Ethernet) | 64 | 4 | 16 | 18.000 | 54% |
 
-![Setiap penggandaan GPU menaikkan throughput Llama-3.1-405B tetapi efisiensi scaling terus merosot — dari 100% di 8 GPU menjadi 54% di 64 GPU](../../assets/images/bab-05-inference/sub-bab-6/benchmark-scaling-llama405b.png)
+![Setiap penggandaan GPU menaikkan throughput Llama 3.1 (405B) tetapi efisiensi scaling terus merosot — dari 100% di 8 GPU menjadi 54% di 64 GPU](../../assets/images/bab-05-inference/sub-bab-6/benchmark-scaling-llama405b.png)
 
 *Gambar 5.6-1 — Interconnect menentukan segalanya: 16 GPU NVLink mencapai 7.800 tok/s (93%) sedangkan Ethernet hanya 6.200 tok/s (74%); diminishing returns tak terhindarkan hingga efisiensi 54% di 64 GPU.*
 
@@ -67,7 +67,7 @@ Namun ada biaya tersembunyi: setiap *forward pass* — untuk setiap token pada s
 
 Keuntungan TP yang jarang disebut: *bubble overhead*-nya **nol** — tidak ada GPU yang menganggur menunggu GPU lain dalam pola sinkronis, karena semua GPU mengerjakan lapisan yang sama pada waktu yang sama. *Latency* per token pun turun hampir linier terhadap jumlah GPU (sampai komunikasi mulai mendominasi), membuat TP unggul untuk beban kerja yang sensitif latensi seperti chat interaktif. Penghematan memorinya juga adil: setiap GPU hanya menyimpan 1/N bobot model — tidak ada duplikasi — sehingga model 70B yang biasanya 140 GB FP16 hanya butuh 17,5 GB per GPU saat TP=8 (Tabel 3).
 
-### Tabel 1: Perbandingan Strategi Parallelism
+### Tabel 2: Perbandingan Strategi Parallelism
 
 Tabel berikut merangkum perbedaan tiga strategi pada delapan dimensi yang menentukan keputusan arsitektur:
 
@@ -92,8 +92,8 @@ Tabel terakhir memperlihatkan kebutuhan memori per GPU dari tujuh model dengan k
 
 | Model | FP16 Total | TP=8 (1 node) | TP=4, PP=2 | Rekomendasi Node |
 |:---|:---:|:---:|:---:|:---|
-| Llama-3.1-70B | 140 GB | 17.5 GB/GPU | 35 GB/GPU | 1 node (8x H100) |
-| Llama-3.1-405B | 810 GB | 101 GB/GPU | 202 GB/GPU | 2+ node (16x H100) |
+| Llama 3.1 (70B) | 140 GB | 17,5 GB/GPU | 35 GB/GPU | 1 node (8x H100) |
+| Llama 3.1 (405B) | 810 GB | 101 GB/GPU | 202 GB/GPU | 2+ node (16x H100) |
 | Mixtral-8x22B | 280 GB | 35 GB/GPU | 70 GB/GPU | 1 node (8x H100) |
 | DeepSeek-V3 | 671 GB (FP8) | 84 GB/GPU | 168 GB/GPU | 1 node (8x H100) |
 | DeepSeek V4 Pro (1.6T MoE) | 320 GB (FP8) | 40 GB/GPU | 80 GB/GPU | 1 node (8x H100) |
@@ -102,12 +102,10 @@ Tabel terakhir memperlihatkan kebutuhan memori per GPU dari tujuh model dengan k
 
 Tiga pola terlihat jelas. **Pertama**, model MoE modern mengejutkan ramahnya: meskipun DeepSeek V4 Pro berjumlah 1,6T parameter total, hanya 49B yang aktif per token — dan dalam FP8 seluruh model hanya 320 GB, sehingga 8x H100 dengan TP=8 hanya membutuhkan 40 GB/GPU. Mistral Large 3 (675B total / 41B aktif) bahkan lebih efisien: 21 GB/GPU. **Kedua**, KV-cache hemat juga ikut bermain: DeepSeek V4 Pro hanya memerlukan 10% KV-cache generasi V3.2 berkat hybrid CSA/HCA attention, sehingga sisa VRAM bisa dipakai untuk konteks panjang atau batch besar. **Ketiga**, model dense tetap menjadi raksasa sejati — 405B membutuhkan 2+ node bahkan setelah dibagi TP=8 (101 GB/GPU melebihi H100 80GB), dan GPT-5.5 menutup jendela dengan tetap proprietari: tidak ada cara lain selain *cloud API*.
 
-Cara praktis memakai tabel ini: cari baris model Anda, jumlahkan kebutuhan per GPU dengan alokasi KV-cache yang direncanakan, lalu cocokkan dengan VRAM GPU yang dimiliki. Angka-angka di kolom "TP=4, PP=2" juga menunjukkan mengapa kombinasi itu populer: untuk Llama-3.1-405B kebutuhan 202 GB/GPU jelas mengharuskan H100 80GB×3 — sehingga jarang dipilih, sementara TP=8 membawanya masuk ke ambang 2 node H100.
+Cara praktis memakai tabel ini: cari baris model Anda, jumlahkan kebutuhan per GPU dengan alokasi KV-cache yang direncanakan, lalu cocokkan dengan VRAM GPU yang dimiliki. Angka-angka di kolom "TP=4, PP=2" juga menunjukkan mengapa kombinasi itu populer: untuk Llama 3.1 (405B) kebutuhan 202 GB/GPU jelas mengharuskan H100 80GB×3 — sehingga jarang dipilih, sementara TP=8 membawanya masuk ke ambang 2 node H100.
 
 ---
 
-
----
 
 ## 4. Pipeline Parallelism: Estafet Lapisan
 
@@ -118,7 +116,7 @@ Jika TP memecah *dalam* satu lapisan, **pipeline parallelism (PP)** memecah *ant
 
 ### Bubble Overhead dan Micro-Batching
 
-Harga dari PP adalah **bubble overhead**: GPU di stage belakang menganggur menunggu stage depan selesai memproses batch pertama, dan sebaliknya — GPU di stage depan menganggur di akhir giliran. Idle ini bisa mencapai **10-30%** dari waktu total tergantung jumlah micro-batch. Solusi standarnya adalah **micro-batching**: satu batch besar dipecah menjadi micro-batch kecil, dan skedul **1F1B** (*one forward, one backward* — atau untuk *inference*: satu micro-batch maju, satu micro-batch baru masuk) menjaga semua stage tetap sibuk secara bergiliran. Semakin banyak micro-batch, semakin kecil bubble — tetapi semakin banyak juga sedikit overhead tambahan per *switch*. Pedoman praktis: **PP lebih unggul daripada TP ketika *interconnect* antar-node lambat**; TP lebih unggul dalam satu node ber-NVLink.
+Harga dari PP adalah **bubble overhead**: GPU di stage belakang menganggur menunggu stage depan selesai memproses batch pertama, dan sebaliknya — GPU di stage depan menganggur di akhir giliran. Idle ini bisa mencapai **10-30%** dari waktu total tergantung jumlah micro-batch. Solusi standarnya adalah **micro-batching**: satu batch besar dipecah menjadi micro-batch kecil, dan skedul **1F1B** (*one forward, one backward* — atau untuk *inference*: satu micro-batch maju, satu micro-batch baru masuk) menjaga semua stage tetap sibuk secara bergiliran. Semakin banyak micro-batch, semakin kecil bubble, tetapi semakin banyak juga sedikit overhead tambahan per *switch*. Pedoman praktis: **PP lebih unggul daripada TP ketika *interconnect* antar-node lambat**; TP lebih unggul dalam satu node ber-NVLink.
 
 Ada dua konsekuensi PP yang sering mengejutkan praktisi. Pertama, *latency* per request justru naik — sebuah request harus melewati semua stage secara berurutan, sehingga pengeluaran respon pertama sedikit lebih lambat dibandingkan TP murni; kompensasinya ada di *throughput* total yang tetap tinggi karena banyak request mengalir bersamaan melalui pipeline. Kedua, memori per GPU tetap terbagi adil (1/N bobot), tetapi *utilisasi* satu GPU tidak selalu penuh — pada detik tertentu ia sedang menunggu. Bagi tim dengan jaringan antar-node terbatas, trade-off ini hampir selalu sepadan: sedikit latensi ekstra demi *throughput* yang hanya mungkin diraih dengan PP.
 
@@ -148,7 +146,7 @@ Dua sub-bab sebelumnya direpresentasikan di sini sekaligus. Di atas: TP memecah 
 ## 5. Sequence Parallelism: Membelah Konteks Panjang
 
 
-Strategi ketiga, **sequence parallelism (SP)** , bekerja pada dimensi yang berbeda: bukan bobot dan bukan lapisan, melainkan **satu *sequence* panjang yang dipecah menjadi beberapa bagian** — setiap GPU memegang potongan token yang berbeda. Idenya: untuk konteks 128K+ token, KV-cache dan komputasi attention sebuah sequence tunggal bisa meledakkan satu GPU; dengan SP, potongan-potongan itu tersebar sehingga masing-masing GPU hanya mengelola sebagian.
+Strategi ketiga, **sequence parallelism (SP)**, bekerja pada dimensi yang berbeda: bukan bobot dan bukan lapisan, melainkan **satu *sequence* panjang yang dipecah menjadi beberapa bagian** — setiap GPU memegang potongan token yang berbeda. Idenya: untuk konteks 128K+ token, KV-cache dan komputasi attention sebuah sequence tunggal bisa meledakkan satu GPU; dengan SP, potongan-potongan itu tersebar sehingga masing-masing GPU hanya mengelola sebagian.
 
 Komunikasi dalam SP memakai pola **ring attention**: setiap GPU mengirim hasil parsial attention-nya ke tetangga berikutnya dalam formasi cincin, hingga semua potongan informasi bertemu. Pola ini *point-to-point* (bukan *broadcast* penuh seperti all-reduce), sehingga beban jaringannya lebih ringan — cukup *RDMA* yang baik. SP paling berguna untuk beban kerja *long-context inference* (128K+ token) yang sering muncul di analisis dokumen dan *agent* dengan riwayat percakapan panjang, dan sering dikombinasikan dengan TP agar bobot dan konteks terbagi sekaligus.
 
@@ -191,14 +189,12 @@ graph LR
     C --> D[64 GPU: 54%]
 ```
 
-Visualisasi paling jujur dari Tabel 2: setiap penggandaan jumlah GPU menurunkan efisiensi *scaling* — dari 100% (definisi *baseline*) turun ke 93%, 68%, lalu 54%. Kurva imajiner yang menghubungkan titik-titik ini memberi pesan penting bagi *capacity planning*: GPU ke-17 hingga ke-64 memberikan *throughput* tambahan yang semakin mengecil per GPU-nya. Keputusan "tambah 8 GPU" harus selalu dilewatkan melalui perhitungan biaya-per-token-detik, bukan sekadar perasaan "makin banyak makin cepat".
+Visualisasi paling jujur dari Tabel 1: setiap penggandaan jumlah GPU menurunkan efisiensi *scaling* — dari 100% (definisi *baseline*) turun ke 93%, 68%, lalu 54%. Kurva imajiner yang menghubungkan titik-titik ini memberi pesan penting bagi *capacity planning*: GPU ke-17 hingga ke-64 memberikan *throughput* tambahan yang semakin mengecil per GPU-nya. Keputusan "tambah 8 GPU" harus selalu dilewatkan melalui perhitungan biaya-per-token-detik, bukan sekadar perasaan "makin banyak makin cepat".
 
 Kesimpulan praktis dari ketiga diagram ini: **pahami dulu jalur komunikasi Anda, baru pilih strategi**. Gambar 1 menunjukkan *di mana* data bergerak (dalam lapisan vs antar stage), Gambar 2 menunjukkan *siapa* yang mengatur pergerakan itu (Ray + NCCL), dan Gambar 3 menunjukkan *berapa biaya* pergerakan itu dalam efisiensi. Insinyur yang membaca ketiganya sebelum mengkonfigurasi kluster akan menghemat berjam-jam *troubleshooting* di kemudian hari.
 
 ---
 
-
----
 
 ## 7. Praktikum / Hands-On
 
@@ -227,7 +223,7 @@ ray status
 # Seharusnya menampilkan 16 GPU total
 ```
 
-Urutan eksekusi penting: *head* dulu (ia menunggu), lalu *worker* bergabung dengan alamat *head*. Kombinasi TP=4 × PP=2 berarti empat GPU dalam satu node berbagi tensor, dua grup lagi berestafet antar stage — pola "TP di dalam node, PP di luar node" yang diulas di Tabel 1. `ray status` adalah langkah verifikasi wajib: jika hanya 8 GPU yang tampil, satu node belum bergabung dan vLLM akan gagal saat distribusi dimulai.
+Urutan eksekusi penting: *head* dulu (ia menunggu), lalu *worker* bergabung dengan alamat *head*. Kombinasi TP=4 × PP=2 berarti empat GPU dalam satu node berbagi tensor, dua grup lagi berestafet antar stage — pola "TP di dalam node, PP di luar node" yang diulas di Tabel 2. `ray status` adalah langkah verifikasi wajib: jika hanya 8 GPU yang tampil, satu node belum bergabung dan vLLM akan gagal saat distribusi dimulai.
 
 Jika salah satu GPU gagal digunakan (misalnya GPU 3 di node 2), Ray akan menandainya dan vLLM menolak memulai dengan jumlah GPU yang tidak sesuai (`16 GPU didapat, 8 diminta`). Untuk kesetaraan, pastikan semua node menjalankan versi driver CUDA dan vLLM yang identik — perbedaan versi adalah penyebab paling umum kegagalan kluster yang gejalanya aneh-aneh. Catat IP dan port *head* di tempat yang aman; `ray start --address=<IP>:6379` adalah baris yang akan diulang setiap kali node reboot.
 
@@ -266,7 +262,7 @@ sky launch -c mycluster skypilot.yaml
 sky down mycluster
 ```
 
-Dengan SkyPilot, seluruh cerita Ray tadi dikemas menjadi satu file YAML: `accelerators: H100:8` meminta dua node berisi 8x H100 di GCP; `num_nodes: 2` mengatur jumlahnya; dan blok `run` meniru Langkah 1 — node dengan *rank* 0 menjadi *head*, node lain menjadi *worker* yang menunggu. SkyPilot mengelola pemilihan region, *billing*, dan *cleanup*: satu perintah `sky down` mengakhiri seluruh kluster dan menghentikan biaya. Ini adalah jalur paling murah untuk "menyewa" Llama-3.1-405B selama beberapa jam.
+Dengan SkyPilot, seluruh cerita Ray tadi dikemas menjadi satu file YAML: `accelerators: H100:8` meminta dua node berisi 8x H100 di GCP; `num_nodes: 2` mengatur jumlahnya; dan blok `run` meniru Langkah 1 — node dengan *rank* 0 menjadi *head*, node lain menjadi *worker* yang menunggu. SkyPilot mengelola pemilihan region, *billing*, dan *cleanup*: satu perintah `sky down` mengakhiri seluruh kluster dan menghentikan biaya. Ini adalah jalur paling murah untuk "menyewa" Llama 3.1 (405B) selama beberapa jam.
 
 Perhatikan penggunaan variabel lingkungan SkyPilot: `SKYPILOT_NODE_RANK` memberitahu setiap node posisinya, dan `SKYPILOT_NODE_IP` memberi alamat *head* ke node lain — dua variabel ini menghilangkan kebutuhan hardcode alamat IP yang rapuh. Jika kapasitas H100 di GCP sedang penuh, SkyPilot secara otomatis mencoba *region* atau *cloud* lain yang memenuhi spesifikasi — sebuah kemampuan yang sulit ditiru dengan skrip manual.
 
@@ -315,9 +311,9 @@ Dua studi kasus berikut menutup sub-bab ini dari sisi nyata: yang pertama menguj
 
 **Latar belakang.** Sebuah laboratorium riset NLP menerima hibah untuk mengeksplorasi DeepSeek-V3 (671B parameter dalam FP8) — model yang di masa lalu "mustahil" dijalankan sendiri. Hardware yang tersedia: 4 node, masing-masing 8x H100 80GB — total 32 GPU. *Interconnect*: InfiniBand 400 Gbps antar-node, NVLink di dalam node — kombinasi yang seimbang antara dua dunia kecepatan.
 
-**Keputusan konfigurasi.** Tim memilih **TP=4 di dalam node, PP=4 antar node**: dalam satu node, 4 GPU bertukar data lewat NVLink yang sangat cepat; antar node, 4 stage berestafet lewat InfiniBand yang lebih lambat namun memadai untuk PP. Pilihan ini mengikuti persis logika Tabel 1 — TP butuh cepat, PP butuh jarang bicara. Beban kerja utamanya *batch* 128 dengan konteks panjang, sehingga kombinasi tersebut terasa tepat.
+**Keputusan konfigurasi.** Tim memilih **TP=4 di dalam node, PP=4 antar node**: dalam satu node, 4 GPU bertukar data lewat NVLink yang sangat cepat; antar node, 4 stage berestafet lewat InfiniBand yang lebih lambat namun memadai untuk PP. Pilihan ini mengikuti persis logika Tabel 2 — TP butuh cepat, PP butuh jarang bicara. Beban kerja utamanya *batch* 128 dengan konteks panjang, sehingga kombinasi tersebut terasa tepat.
 
-**Hasil.** Model dimuat dari disk dalam waktu sekitar **15 menit** dan berjalan dengan *throughput* sekitar **12.000 token/detik** untuk *batch* 128. Efisiensi *scaling* terukur **68% dari ideal** — angka yang persis sejajar dengan baris 32x H100 pada Tabel 2. Analisis menunjukkan *bottleneck* ada di komunikasi PP antar-node: *stage* yang sedang menunggu data dari InfiniBand menyumbang *bubble* terbesar. Sebagai titik acuan tim, angka 68% ini juga menjadi *baseline* untuk eksperimen berikutnya — setiap perubahan konfigurasi diukur relatif terhadapnya.
+**Hasil.** Model dimuat dari disk dalam waktu sekitar **15 menit** dan berjalan dengan *throughput* sekitar **12.000 token/detik** untuk *batch* 128. Efisiensi *scaling* terukur **68% dari ideal** — angka yang persis sejajar dengan baris 32x H100 pada Tabel 1. Analisis menunjukkan *bottleneck* ada di komunikasi PP antar-node: *stage* yang sedang menunggu data dari InfiniBand menyumbang *bubble* terbesar. Sebagai titik acuan tim, angka 68% ini juga menjadi *baseline* untuk eksperimen berikutnya — setiap perubahan konfigurasi diukur relatif terhadapnya.
 
 **Optimasi.** Tim mencoba **TP=8 per node + PP=2**: kini satu node penuh berbagi tensor lewat NVLink murni, dan hanya dua *stage* yang berestafet antar node. Efisiensi naik ke **78%** — peningkatan 10 poin persentase tanpa menambah satu GPU pun. Pelajarannya dua lapis: (1) geser keseimbangan sejauh mungkin ke TP selama memori masih muat, karena NVLink mengalahkan InfiniBand; (2) ukur dulu *bottleneck*-nya (Langkah 3, NCCL) sebelum mengubah konfigurasi — perubahan yang sama bisa gagal total bila jaringan antar-node Anda Ethernet, bukan InfiniBand.
 
@@ -355,7 +351,7 @@ Dua studi kasus berikut menutup sub-bab ini dari sisi nyata: yang pertama menguj
 
 [6] Liu, H., et al. (2023). *Ring Attention with Blockwise Transformers for Near-Infinite Context*. arXiv: 2310.06236. DOI: [10.48550/arXiv.2310.06236](https://arxiv.org/abs/2310.06236) — Fondasi *sequence parallelism* dan pola *ring attention* untuk konteks sangat panjang.
 
-[7] DeepSeek AI. (2026). *DeepSeek-V4 Pro: Efficient MoE with Hybrid CSA/HCA Attention*. [https://api-docs.deepseek.com/](https://api-docs.deepseek.com/) — Sumber data VRAM dan *throughput* distributed inference DeepSeek V4 Pro pada Tabel 3 dan Studi Kasus B.
+[7] DeepSeek AI. (2026). *DeepSeek-V4 Pro: Efficient MoE with Hybrid CSA/HCA Attention*. [https://api-docs.deepseek.com/](https://api-docs.deepseek.com/) — Sumber data VRAM dan *throughput* distributed inference DeepSeek V4 Pro pada Tabel 3 dan studi kasus kedua.
 
 [8] Mistral AI. (2025). *Mistral Large 3: Distributed MoE Inference*. [https://mistral.ai/news/mistral-large-3/](https://mistral.ai/news/mistral-large-3/) — Granular MoE 41B aktif; efisiensi komunikasi all-reduce lebih baik dari model *dense*.
 

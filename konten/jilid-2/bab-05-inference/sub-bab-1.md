@@ -13,7 +13,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 - Memahami prinsip **PagedAttention**: meminjam ide *virtual memory* dari sistem operasi untuk mengelola KV-cache secara *block-level*
 - Menerangkan cara vLLM mengalokasikan dan membebaskan memori GPU secara dinamis melalui *block table* dan *KV Cache Manager*
 - Membedakan strategi *preemption* berbasis *swap* ke CPU versus *recomputation*, beserta konsekuensi latensinya
-- Mengkonfigurasi parameter inti vLLM (`--block-size`, `--max-num-seqs`, `--gpu-memory-utilization`) untuk kebutuhan produksi
+- Mengonfigurasi parameter inti vLLM (`--block-size`, `--max-num-seqs`, `--gpu-memory-utilization`) untuk kebutuhan produksi
 - Men-deploy server vLLM yang kompatibel dengan API OpenAI dan membaca metriknya
 
 ---
@@ -37,7 +37,7 @@ Akibat dua jenis fragmenasi ini, pengukuran pada paper PagedAttention menunjukka
 
 ### 2.3 Mengapa Masalah Ini Kian Akut di 2026
 
-Ada alasan mengapa topik ini baru meledak popularitasnya dalam dua tahun terakhir: *context window* model melonjak drastis. Model standar 2024 seperti Llama-3 membawa konteks 128K, sementara model frontier 2026 seperti DeepSeek V4 dan Mistral Large 3 menawarkan konteks **1 juta token** — delapan kali lipat hanya dalam dua tahun. KV-cache tumbuh linear terhadap panjang konteks, sehingga *request* dengan *prompt* panjang kini bisa memakan puluhan GB lebih banyak memori. Di sinilah humor pahit terjadi: model MoE modern seperti DeepSeek V4 Pro hanya menghitung 49 miliar parameter aktif per token — beban komputasi justru ringan dibandingkan model dense sekelas — tetapi KV-cache-nya tetap tumbuh tanpa kenal ampun. Hasilnya, *bottleneck* server modern hampir selalu **memori**, bukan *compute*.
+Ada alasan mengapa topik ini baru meledak popularitasnya dalam dua tahun terakhir: *context window* model melonjak drastis. Model standar 2024 seperti Llama 3 membawa konteks 128K, sementara model frontier 2026 seperti DeepSeek V4 dan Mistral Large 3 menawarkan konteks **1 juta token** — delapan kali lipat hanya dalam dua tahun. KV-cache tumbuh linear terhadap panjang konteks, sehingga *request* dengan *prompt* panjang kini bisa memakan puluhan GB lebih banyak memori. Di sinilah humor pahit terjadi: model MoE modern seperti DeepSeek V4 Pro hanya menghitung 49 miliar parameter aktif per token — beban komputasi justru ringan dibandingkan model dense sekelas, tetapi KV-cache-nya tetap tumbuh tanpa kenal ampun. Hasilnya, *bottleneck* server modern hampir selalu **memori**, bukan *compute*.
 
 Kabar baiknya, arsitektur model mulai membantu. DeepSeek V4 Pro dengan *hybrid CSA/HCA attention* memangkas KV-cache hingga hanya **10% dari V3.2** pada konteks 1 juta token, dan *training FLOPs*-nya hanya 27% milik V3.2 [8]. Efek gabungannya terlihat di Tabel 2 nanti: meski berparameter 1,6 triliun, DeepSeek V4 Pro justru mencapai *throughput* tertinggi di kelasnya — karena masalah memori yang menganga sudah diobati sejak arsitektur. Namun untuk model-model yang belum seefisien itu, manajemen memori yang baik tetap menjadi pembeda antara server yang melayani 4 request dan yang melayani 64 request per detik.
 
@@ -47,11 +47,11 @@ Berikut perbandingan empat sistem serving yang diukur pada model OPT-13B dengan 
 
 | Metrik | Hugging Face Transformers | FasterTransformer | Orca | vLLM (PagedAttention) |
 |:---|:---:|:---:|:---:|:---:|
-| Throughput (req/s) | 0.5 | 3.2 | 5.1 | 12.8 |
+| Throughput (req/s) | 0,5 | 3,2 | 5,1 | 12,8 |
 | Memory Waste KV-Cache | ~80% | ~60% | ~50% | ~4% |
 | Max Batch Size | 4 | 16 | 32 | 64+ |
 | Latency P50 (ms) | 850 | 320 | 280 | 195 |
-| Speedup vs HF | 1x | 6.4x | 10.2x | 25.6x |
+| Speedup vs HF | 1x | 6,4x | 10,2x | 25,6x |
 
 ![Throughput melonjak dari 0,5 req/s (HF Transformers) ke 12,8 req/s (vLLM), sementara memory waste KV-cache anjlok dari ~80% menjadi ~4%](../../assets/images/bab-05-inference/sub-bab-1/throughput-dan-memory-waste.png)
 
@@ -100,9 +100,9 @@ flowchart LR
     G --> H[Attention Computation]
 ```
 
-Diagram di atas menceritakan inti PagedAttention dalam satu gambar. Dua *logical blocks* milik satu request (token 1-16 dan 17-32) dimetakan lewat *block table* ke tiga *physical blocks* yang berjauhan di *GPU memory pool* — nomor 3, 7, dan 2 — tanpa perlu berurutan sama sekali. Semua blok itu tetap dihitung oleh kernel *attention* seolah-olah tersusun rapi. Ini adalah jawaban mengapa vLLM bisa memakai hampir seluruh VRAM tanpa takut fragmenasi: ruang kosong sekecil apa pun di mana pun lokasinya selalu dapat diisi.
+Diagram di atas menceritakan inti PagedAttention dalam satu gambar. Dua *logical blocks* milik satu request (token 1-16 dan 17-32) dipetakan lewat *block table* ke tiga *physical blocks* yang berjauhan di *GPU memory pool* — nomor 3, 7, dan 2 — tanpa perlu berurutan sama sekali. Semua blok itu tetap dihitung oleh kernel *attention* seolah-olah tersusun rapi. Ini adalah jawaban mengapa vLLM bisa memakai hampir seluruh VRAM tanpa takut fragmenasi: ruang kosong sekecil apa pun di mana pun lokasinya selalu dapat diisi.
 
-Pembaca yang familiar dengan sistem operasi pasti melihat kemiripan ini sebagai *deja vu*: diagram di atas hampir identik dengan ilustrasi *page tables* pada buku teks OS. Itu bukan kebetulan — ini adalah bukti bahwa ide-ide sistem yang sudah matang selama lima dekade bisa menemukan kehidupan kedua di era AI. Bedanya, di OS *page* dipetakan untuk melindungi program dari satu sama lain; di vLLM, *block* dipetakan agar banyak percakapan bisa *berbagi* memori GPU secara damai.
+Pembaca yang familiar dengan sistem operasi pasti melihat kemiripan ini sebagai *déjà vu*: diagram di atas hampir identik dengan ilustrasi *page tables* pada buku teks OS. Itu bukan kebetulan — ini adalah bukti bahwa ide-ide sistem yang sudah matang selama lima dekade bisa menemukan kehidupan kedua di era AI. Bedanya, di OS *page* dipetakan untuk melindungi program dari satu sama lain; di vLLM, *block* dipetakan agar banyak percakapan bisa *berbagi* memori GPU secara damai.
 
 
 ---
@@ -112,7 +112,7 @@ Pembaca yang familiar dengan sistem operasi pasti melihat kemiripan ini sebagai 
 
 ### 4.1 Scheduler: Maestro Antrean yang Tegas
 
-vLLM menjalankan *serving loop* yang terdiri dari beberapa komponen, dan yang pertama kali menari adalah **scheduler**. Scheduler menentukan request mana yang masuk ke batch pada iterasi berikutnya, berapa blok KV yang dialokasikan, dan — ketika memori GPU mulai penuh — request mana yang harus dihentikan sementara (*preempted*). Karena keputusan dibuat per iterasi kecil (bukan per *request* selesai), vLLM bisa mencampur *prefill* dan *decode* dari banyak request dalam satu langkah komputasi; inilah esensi **continuous batching** yang diwarisi dari sistem Orca [2]. Setiap request baru yang mengular tidak perlu menunggu batch lama selesai — cukup menunggu satu iterasi.
+vLLM menjalankan *serving loop* yang terdiri dari beberapa komponen, dan yang pertama kali menari adalah **scheduler**. Scheduler menentukan request mana yang masuk ke batch pada iterasi berikutnya, berapa blok KV yang dialokasikan, dan — ketika memori GPU mulai penuh — request mana yang harus dihentikan sementara (*preempted*). Karena keputusan dibuat per iterasi kecil (bukan per *request* selesai), vLLM bisa mencampur *prefill* dan *decode* dari banyak request dalam satu langkah komputasi; inilah esensi **continuous batching** yang diwarisi dari sistem Orca [2]. Setiap request baru yang datang tidak perlu menunggu batch lama selesai — cukup menunggu satu iterasi.
 
 Kebijakan *scheduling* juga menjawab pertanyaan keadilan: apakah satu request dengan konteks 100K token boleh menguasai GPU berjam-jam, sementara puluhan request pendek antre? vLLM menangani ini dengan *weighted scheduling* dan *preemption* yang adil — request raksasa boleh masuk, tetapi tidak berhak memblokir yang lain tanpa batas. Efeknya terasa dalam *stabilitas*: pengguna dengan pertanyaan pendek hampir selalu mendapat jawaban cepat, sementara *request* besar tetap selesai — hanya sedikit lebih lambat dari yang mereka inginkan.
 
@@ -132,12 +132,12 @@ Untuk melihat bagaimana performa bertambah seiring jumlah GPU, berikut *throughp
 
 | Model | 1xA100 40GB | 4xA100 40GB | 8xA100 40GB |
 |:---|:---:|:---:|:---:|
-| Llama-2-7B | 45.2 req/s | - | - |
-| Llama-2-13B | 12.8 req/s | 38.5 req/s | - |
-| Llama-2-70B | - | 4.2 req/s | 8.9 req/s |
-| Mixtral-8x7B | 8.5 req/s | 28.3 req/s | 52.1 req/s |
-| DeepSeek V4 Pro (49B aktif) | 42.1 req/s | 89.4 req/s | 168.2 req/s |
-| Mistral Large 3 (41B aktif) | 38.7 req/s | 81.2 req/s | 155.6 req/s |
+| Llama 2 (7B) | 45,2 req/s | - | - |
+| Llama 2 (13B) | 12,8 req/s | 38,5 req/s | - |
+| Llama 2 (70B) | - | 4,2 req/s | 8,9 req/s |
+| Mixtral 8x7B | 8,5 req/s | 28,3 req/s | 52,1 req/s |
+| DeepSeek V4 Pro (49B aktif) | 42,1 req/s | 89,4 req/s | 168,2 req/s |
+| Mistral Large 3 (41B aktif) | 38,7 req/s | 81,2 req/s | 155,6 req/s |
 
 Tabel ini menyimpan pelajaran menarik: model MoE seperti DeepSeek V4 Pro — meski berparameter 1,6 triliun — justru mencapai *throughput* tertinggi pada satu GPU (42,1 req/s) karena hanya 49 miliar parameter aktif per token. Berkat arsitektur *hybrid CSA/HCA*, KV-cache DeepSeek V4 Pro hanya sekitar **10% dari KV-cache V3.2** pada konteks 1 juta token, dan *training FLOPs*-nya hanya 27% dari V3.2 — bobot komputasi yang jauh lebih ringan berarti lebih banyak request yang bisa dilayani per detik [8]. Mistral Large 3 (675B total, 41B aktif) menyusul di posisi kedua dengan pola serupa [9]. Perhatikan juga efek *scaling* membawa hasil yang tidak linear sempurna: menambah GPU dari 1 ke 4 umumnya melipatgandakan *throughput*, tetapi dari 4 ke 8 *speedup*-nya mengecil — komunikasi antar-GPU mulai menjadi beban.
 
@@ -147,7 +147,7 @@ Tabel ini menyimpan pelajaran menarik: model MoE seperti DeepSeek V4 Pro — mes
 ## 5. Preemption dan Recovery
 
 
-Ketika VRAM penuh dan ada request baru yang membutuhkan blok KV, *scheduler* terpaksa memindahkan sebagian request keluar — ini disebut **preemption**. Di sinilah VLLM menawarkan dua strategi dengan *trade-off* yang jelas. Strategi pertama adalah **swap**: seluruh blok KV request dipindahkan ke RAM CPU yang lebih murah, lalu dikembalikan ke GPU begitu slot kosong. Strategi kedua adalah **recompute**: KV-cache dibuang begitu saja, dan saat request dijadwalkan ulang, token-token yang sudah dihasilkan *diproses ulang dari awal* untuk membangun kembali cache-nya — sebuah "pengorbanan" yang justru sering lebih cepat.
+Ketika VRAM penuh dan ada request baru yang membutuhkan blok KV, *scheduler* terpaksa memindahkan sebagian request keluar — ini disebut **preemption**. Di sinilah vLLM menawarkan dua strategi dengan *trade-off* yang jelas. Strategi pertama adalah **swap**: seluruh blok KV request dipindahkan ke RAM CPU yang lebih murah, lalu dikembalikan ke GPU begitu slot kosong. Strategi kedua adalah **recompute**: KV-cache dibuang begitu saja, dan saat request dijadwalkan ulang, token-token yang sudah dihasilkan *diproses ulang dari awal* untuk membangun kembali cache-nya — sebuah "pengorbanan" yang justru sering lebih cepat.
 
 Mengapa *recompute* bisa menang? Karena GPU memproses semua token secara paralel, meregenerasi KV-cache untuk, misalnya, 256 token membutuhkan satu langkah *prefill* yang mahal namun tunggal. Sementara itu, *swap* memindahkan 256 token melalui bus PCIe/NVLink yang sempit — transfer data kecil-kecil dengan latensi tinggi per blok. Untuk 256 token, vLLM mengukur bahwa *recompute* lebih cepat daripada *swap* dalam banyak skenario [1], selain tidak menempati RAM CPU sama sekali. Karena itu, rekomendasi praktisnya: jika Anda bisa mengatur `--swap-space 0` (menonaktifkan swap) dan memilih *recomputation-based recovery*, server Anda umumnya lebih responsif — dengan catatan kapasitas komputasi GPU mencukupi.
 
@@ -173,8 +173,6 @@ Secara praktis, keputusan antara *swap* dan *recompute* tidak perlu Anda tentuka
 ---
 
 
----
-
 ## 6. Dukungan Fitur vLLM
 
 
@@ -188,7 +186,9 @@ vLLM bukan sekadar *serving engine* — ia adalah ekosistem lengkap yang terus m
 
 Kombinasi fitur ini membuat vLLM menjadi pilihan *default* bagi tim yang mengutamakan *throughput* murni dan fleksibilitas model besar — sesuatu yang akan kita bandingkan dengan TGI di sub-bab 5.2 dan dengan Aphrodite di sub-bab 5.3.
 
-Dua fitur layak digarisbawahi sebelum kita melangkah ke angka-angka. **Prefix caching** adalah penghemat paling tenang: di aplikasi chat atau *agent*, hampir setiap request membawa *system prompt* dan riwayat percakapan yang identik di bagian awal. Tanpa *prefix caching*, KV-cache untuk bagian itu dihitung ulang setiap kali — sia-sia. Dengan *prefix caching*, vLLM menyimpan hash KV per blok dan melewatkan komputasi berulang; blok yang sama dipakai bersama lintas request hingga salah satu "menyimpang". Penghematannya bisa mencapai puluhan persen waktu *prefill* untuk aplikasi dengan *prompt* templat. Sementara itu, *continuous batching* yang mengantrekan request per iterasi — bukan per *request* selesai — adalah alasan mengapa vLLM tetap sibuk bahkan ketika sebagian besar request sudah selesai menulis jawaban dan hanya menunggu token terakhir.
+Dua fitur layak digarisbawahi sebelum kita melangkah ke angka-angka. **Prefix caching** adalah penghemat paling tenang: di aplikasi chat atau *agent*, hampir setiap request membawa *system prompt* dan riwayat percakapan yang identik di bagian awal. Tanpa *prefix caching*, KV-cache untuk bagian itu dihitung ulang setiap kali — sia-sia. Dengan *prefix caching*, vLLM menyimpan hash KV per blok dan melewatkan komputasi berulang; blok yang sama dipakai bersama lintas request hingga salah satu "menyimpang". Penghematannya bisa mencapai puluhan persen waktu *prefill* untuk aplikasi dengan *prompt* templat.
+
+Sementara itu, *continuous batching* yang mengantrekan request per iterasi — bukan per *request* selesai — adalah alasan mengapa vLLM tetap sibuk bahkan ketika sebagian besar request sudah selesai menulis jawaban dan hanya menunggu token terakhir.
 
 ### Tabel 3: Parameter Tuning vLLM
 
@@ -198,7 +198,7 @@ Setelah memahami arsitektur, berikut parameter yang paling sering diutak-atik sa
 |:---|:---:|:---|:---|
 | `--block-size` | 16 | Ukuran KV block per token | 16 (optimal umum) |
 | `--max-num-seqs` | 256 | Maksimum sequence per batch | 128-512 tergantung VRAM |
-| `--gpu-memory-utilization` | 0.90 | Fraksi GPU untuk KV-cache | 0.85-0.95 |
+| `--gpu-memory-utilization` | 0,90 | Fraksi GPU untuk KV-cache | 0,85-0,95 |
 | `--swap-space` | 4 | CPU memory untuk swap (GB) | 0 jika disable swap |
 | `--max-model-len` | 4096 | Maksimum panjang sequence | Sesuai model |
 
@@ -209,22 +209,20 @@ Satu kesalahpahaman umum perlu diluruskan: `--gpu-memory-utilization` bukan "per
 ---
 
 
----
-
 ## 7. Praktikum / Hands-On
 
 
 Bagian ini membawa Anda dari nol hingga server vLLM yang siap produksi — mulai dari model 8B di satu GPU hingga model MoE besar di empat GPU, plus klien Python dan pemantauan metrik. Semua perintah di bawah ini mengikuti konvensi versi vLLM 0.8.x; jika versi Anda berbeda, cek `vllm serve --help` untuk nama parameter terkini.
 
-### Langkah 1: Instalasi dan Deploy Server Llama-3.1-8B
+### Langkah 1: Instalasi dan Deploy Server Llama 3.1 (8B)
 
-Mulailah dari instalasi vLLM, lalu jalankan server OpenAI-compatible untuk Llama-3.1-8B-Instruct.
+Mulailah dari instalasi vLLM, lalu jalankan server OpenAI-compatible untuk Llama 3.1 (8B).
 
 ```bash
 # Install vLLM (butuh Python 3.9+ dan GPU NVIDIA dengan CUDA)
 pip install vllm
 
-# Start OpenAI-compatible server
+# Mulai server OpenAI-compatible
 python -m vllm.entrypoints.openai.api_server \
     --model meta-llama/Meta-Llama-3.1-8B-Instruct \
     --tensor-parallel-size 1 \
@@ -257,7 +255,7 @@ client = OpenAI(
     api_key="token-abc123",  # vLLM tidak memvalidasi api_key
 )
 
-# Chat completion
+# Chat completion — minta respons dari model
 response = client.chat.completions.create(
     model="meta-llama/Meta-Llama-3.1-8B-Instruct",
     messages=[{"role": "user", "content": "Jelaskan PagedAttention"}],
@@ -302,7 +300,7 @@ Perhatikan perbedaan semantik di antara kedua perintah di atas. Untuk DeepSeek V
 vLLM mengekspos metrik Prometheus pada endpoint `/metrics`:
 
 ```bash
-# vLLM exposes metrics endpoint
+# vLLM mengekspos endpoint metrik
 curl http://localhost:8000/metrics | grep vllm
 
 # Metric penting:
@@ -323,11 +321,11 @@ Sebagai aturan awal *alerting*, pasang tiga peringatan sejak hari pertama: (1) `
 ## 8. Studi Kasus: Startup Chatbot Melayani 1.000 Request/menit
 
 
-**Latar.** Sebuah startup AI di Jakarta mengembangkan chatbot *customer service* berbasis Llama-3.1-70B untuk e-commerce lokal. Trafik puncak mencapai 1.000 request per menit — muatan yang sebenarnya wajar untuk satu server GPU, tetapi infrastruktur mereka hampir runtuh.
+**Latar.** Sebuah startup AI di Jakarta mengembangkan chatbot *customer service* berbasis Llama 3.1 (70B) untuk e-commerce lokal. Trafik puncak mencapai 1.000 request per menit — muatan yang sebenarnya wajar untuk satu server GPU, tetapi infrastruktur mereka hampir runtuh.
 
 **Masalah.** Stack lama memakai Hugging Face Transformers dengan *batching* statis. Hasilnya menyakitkan: *latency* rata-rata 3,2 detik per respons dan *throughput* maksimal hanya **4 req/s**. Antrean menumpuk di jam promo, pengguna menutup obrolan sebelum bot menjawab, dan tim engineering menghabiskan malam untuk *restart* server.
 
-**Keputusan dan solusi.** Setelah mengaudit beban kerja, tim menyimpulkan komputasi GPU tidak habis — justru memori KV-cache yang boros. Mereka bermigrasi ke vLLM di empat GPU A100 80GB dengan `--tensor-parallel-size 4`, plus konfigurasi `--gpu-memory-utilization 0.95 --max-num-seqs 512 --block-size 16`. Langkah-langkahnya: (1) menyiapkan *image* container dengan vLLM; (2) memuat bobot Llama-3.1-70B FP16 di empat *shard*; (3) mengarahkan *load balancer* ke port 8000; (4) memasang alert Prometheus pada `vllm:gpu_cache_usage_perc` > 95%.
+**Keputusan dan solusi.** Setelah mengaudit beban kerja, tim menyimpulkan komputasi GPU tidak habis — justru memori KV-cache yang boros. Mereka bermigrasi ke vLLM di empat GPU A100 80GB dengan `--tensor-parallel-size 4`, plus konfigurasi `--gpu-memory-utilization 0.95 --max-num-seqs 512 --block-size 16`. Langkah-langkahnya: (1) menyiapkan *image* container dengan vLLM; (2) memuat bobot Llama 3.1 (70B) FP16 di empat *shard*; (3) mengarahkan *load balancer* ke port 8000; (4) memasang alert Prometheus pada `vllm:gpu_cache_usage_perc` > 95%.
 
 **Hasil.** *Throughput* melonjak ke **42 req/s** dan *time-to-first-token* (TTFT) turun ke **280 ms P50** — hampir 10x lebih cepat dari semula. Yang lebih penting, beban 1.000 request/menit kini ditangani **4 GPU**, sementara sistem lama butuh 8 GPU untuk kapasitas yang jauh lebih rendah. Tagihan cloud bulanan turun setengah, dan jam promo tidak lagi melumpuhkan layanan.
 

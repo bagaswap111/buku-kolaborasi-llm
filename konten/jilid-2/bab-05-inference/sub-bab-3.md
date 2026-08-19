@@ -21,7 +21,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ## 2. Asal Usul Aphrodite Engine
 
 
-Aphrodite Engine lahir bukan dari laboratorium riset, melainkan dari kebutuhan komunitas kreatif. **PygmalionAI** — komunitas yang mengembangkan karakter AI percakapan — bekerja sama dengan **Ruliad** untuk membuat mesin *inference* yang dioptimalkan bagi *creative writing*, *roleplay*, dan simulasi karakter. Alih-alih menulis mesin dari nol, mereka mengambil **vLLM** sebagai pondasi dan melakukan *fork*, lalu mengganti serta menambahkan komponen-komponen yang paling dibutuhkan pengguna gayanya.
+Aphrodite Engine lahir bukan dari laboratorium riset, melainkan dari kebutuhan komunitas kreatif. **PygmalionAI** — komunitas yang mengembangkan karakter AI percakapan — bekerja sama dengan **Ruliad** untuk membuat mesin *inference* yang dioptimalkan bagi *creative writing*, *roleplay*, dan simulasi karakter. Alih-alih menulis mesin dari nol, mereka mengambil **vLLM** sebagai pondasi dan melakukan *fork*, lalu mengganti serta menambahkan komponen-komponen yang paling dibutuhkan pengguna komunitasnya.
 
 Fokus pengembangan Aphrodite berorientasi pada satu kelas perangkat keras yang nyata: **kartu gaming consumer** seperti NVIDIA RTX 3090 dan RTX 4090. Tidak seperti server data center yang memakai A100/H100, kartu gaming punya VRAM 8-24 GB, *memory bandwidth* yang relatif sempit, dan — yang terpenting — harga yang terjangkau bagi individu. Segala keputusan desain Aphrodite — format kuantisasi eksotis, sampler-sampler kreatif, *UX* perintah server yang sederhana — mengalir dari kenyataan itu.
 
@@ -44,7 +44,7 @@ Mari lihat bagaimana ketiga mesin — Aphrodite, vLLM, dan Ollama — menempati 
 | **OpenAI API** | Full | Full | Parsial |
 | **Licensing** | AGPL-3.0 | Apache 2.0 | MIT |
 
-Tabel ini menunjukkan posisi berbeda ketiga mesin. **Ollama** adalah pilihan paling sederhana — *single command*, tanpa kernel-kernel lanjutan — tetapi menjadi yang paling lambat (~80 t/s) dan tidak mendukung *multi-LoRA*. **vLLM** adalah jembatan antara dua dunia: cepat (~105 t/s) dan berlisensi ramah, tetapi polos di sampler. **Aphrodite** memenangkan *throughput* (~120 t/s) dan kelengkapan kreatif, tetapi lisensi AGPL-3.0 menjadi harga yang harus dibayar untuk korporasi. Perhatikan pula baris DeepSeek V4 Flash: ketiga engine punya perlakuan berbeda terhadap MoE ringan 284B/13B aktif ini — Aphrodite dan vLLM mendukungnya penuh dengan INT4, sementara dukungan Ollama terbatas.
+Tabel ini menunjukkan posisi berbeda ketiga mesin. **Ollama** adalah pilihan paling sederhana — *single command*, tanpa kernel-kernel lanjutan, tetapi menjadi yang paling lambat (~80 t/s) dan tidak mendukung *multi-LoRA*. **vLLM** adalah jembatan antara dua dunia: cepat (~105 t/s) dan berlisensi ramah, tetapi polos di sampler. **Aphrodite** memenangkan *throughput* (~120 t/s) dan kelengkapan kreatif, tetapi lisensi AGPL-3.0 menjadi harga yang harus dibayar untuk korporasi. Perhatikan pula baris DeepSeek V4 Flash: ketiga engine punya perlakuan berbeda terhadap MoE ringan 284B/13B aktif ini — Aphrodite dan vLLM mendukungnya penuh dengan INT4, sementara dukungan Ollama terbatas.
 
 Satu lagi bacaan penting: kolom *Licensing* bukan sekadar formalitas hukum — ia menentukan siapa yang boleh membangun bisnis di atas mesin tersebut. Ollama (MIT) dan vLLM (Apache 2.0) memberikan kebebasan komersial paling besar, termasuk menutup turunan; Aphrodite (AGPL-3.0) memaksa layanan turunan yang didistribusikan membuka kode sumber. Bagi individu dan komunitas, perbedaan ini hampir tidak terasa; bagi startup yang berencana menjual layanan *inference*, konsultasi hukum sebelum memilih engine adalah langkah yang bijak — lebih murah daripada migrasi di tengah jalan.
 
@@ -58,7 +58,7 @@ Satu lagi bacaan penting: kolom *Licensing* bukan sekadar formalitas hukum — i
 
 Perbedaan paling mencolok adalah kebun binatang format *quantization* yang didukung Aphrodite: selain AWQ, GPTQ, Bitsandbytes, dan GGUF, mesin ini menambahkan **AQLM** (*Additive Quantization* untuk kompresi ekstrem hingga 2-bit [3]), **QuIP#** (kuantisasi berbasis *lattice*), **SqueezeLLM** (*dense-and-sparse* untuk model langka [4]), **Marlin** (kernel FP16xINT4 berkecepatan tinggi), rentang **FP2 hingga FP12** (presisi *floating point* fleksibel), dan **NVFP4** (format 4-bit *floating point* NVIDIA). Setiap format ditopang *custom CUDA kernels* tersendiri, dan di banyak format Aphrodite bahkan lebih cepat dari vLLM karena kernelnya ditulis khusus untuk pola akses memori kartu gaming. Konsekuensinya: pengguna kartu dengan VRAM pas-pasan punya lebih banyak jalan untuk memuat model yang tadinya mustahil.
 
-Untuk memahami setiap format, kelompokkan mereka berdasarkan strategi: **GPTQ** mengkuantisasi bobot per kolom dengan koreksi *second-order* — metode mapan yang menjadi tolok ukur semua penelitian berikutnya [6]; **AWQ** memilih bobot terpenting berdasarkan besaran aktivasi dan meninggalkannya berpresisi tinggi — favorit untuk kualitas-wajar-kecepatan-tinggi; **AQLM** memakai *additive quantization* — mendekati satu matriks bobot dengan penjumlahan beberapa kode — sehingga turun hingga 2-bit dengan degradasi yang masih masuk akal [3]; **SqueezeLLM** memisahkan bobot menjadi bagian padat (*dense*) dan langka (*sparse*), menyimpan bagian langka dengan presisi tinggi tanpa boros [4]; dan **NVFP4** adalah format 4-bit *floating point* NVIDIA yang menjadi pasangan native Mistral Large 3 [9]. Pilihan format menentukan posisi Anda di kurva yang akan terlihat di Tabel 2: semakin rendah bit, semakin kecil VRAM, semakin cepat — tetapi semakin jauh kualitas dari baseline FP16.
+Untuk memahami setiap format, kelompokkan mereka berdasarkan strategi: **GPTQ** mengkuantisasi bobot per kolom dengan koreksi *second-order* — metode mapan yang menjadi tolok ukur semua penelitian berikutnya [6]; **AWQ** memilih bobot terpenting berdasarkan besaran aktivasi dan meninggalkannya berpresisi tinggi — favorit untuk kualitas-wajar-kecepatan-tinggi; **AQLM** memakai *additive quantization* — mendekati satu matriks bobot dengan penjumlahan beberapa kode — sehingga turun hingga 2-bit dengan degradasi yang masih masuk akal [3]; **SqueezeLLM** memisahkan bobot menjadi bagian padat (*dense*) dan langka (*sparse*), menyimpan bagian langka dengan presisi tinggi tanpa boros [4]; dan **NVFP4** adalah format 4-bit *floating point* NVIDIA yang menjadi pasangan native Mistral Large 3 [9]. Pilihan format menentukan posisi Anda di kurva yang akan terlihat di Tabel 2: semakin rendah bit, semakin kecil VRAM, semakin cepat, tetapi semakin jauh kualitas dari baseline FP16.
 
 ### 3.2 Samplers Kreatif
 
@@ -77,11 +77,11 @@ Perlu kejujuran: sampler-sampler ini tidak selalu dibutuhkan. Untuk tugas fungsi
 
 Pijakan praktis lain: kualitas sampler juga bergantung pada *base model*. Model yang dilatih untuk *roleplay* — seperti Mythomax — merespons Mirostat dan DRY dengan luar biasa; model instruksi umum lebih nyaman dengan top-p standar. Rahasia komunitas adalah menyimpan *preset sampler* per model di file konfigurasi server, sehingga setiap model berjalan dengan "kepribadian" yang paling cocok — dan pengguna biasa tidak perlu memahami perbedaan teknisnya sama sekali.
 
-### 3.3 Multi-LoRA dengan Dynamic Loading
+### 3.4 Multi-LoRA dengan Dynamic Loading
 
 Aphrodite mendukung **multi-LoRA** dengan *dynamic loading*: banyak adapter kecil untuk satu *base model* dapat dimuat dan ditukar secara bergiliran tanpa menurunkan server. Ini fitur impian komunitas *roleplay* — satu base model Mistral/Llama dengan puluhan *LoRA* berbeda untuk puluhan karakter, masing-masing dengan gaya bicara sendiri, dimuat sesuai permintaan. vLLM juga memiliki *multi-LoRA*, tetapi Aphrodite menyesuaikan alur kerjanya dengan beban kerja kreatif: per karakter, per pengguna, per *persona*.
 
-### 3.4 Optimasi VRAM
+### 3.5 Optimasi VRAM
 **FP2-FP12**
 
 Salah satu inovasi paling berani Aphrodite adalah memuat model FP16 dalam rentang presisi **FP2 hingga FP12**. Jika model tidak muat dengan AWQ 4-bit dan GPU Anda hanya punya 8 GB, Aphrodite bisa menurunkan bobot ke presisi lebih rendah lagi — dengan *quantum* fleksibel, bukan kekuatan dua saja — demi *throughput* ekstrem dengan VRAM yang sangat terbatas. *Trade-off*-nya jelas: semakin rendah presisi, semakin nyata degradasi kualitas output. Ini bukan fitur untuk pekerjaan presisi, tetapi penyelamat untuk menjalankan model menengah di kartu gaming yang pas-pasan.
@@ -130,8 +130,6 @@ Perhatikan bahwa kedua lapisan ini *modular*: menambah format kuantisasi baru ha
 ---
 
 
----
-
 ## 5. Kapan Memilih Aphrodite?
 
 
@@ -150,17 +148,17 @@ Berikut *trade-off* kuantisasi terhadap VRAM, *throughput*, konteks maksimal, da
 | Quantization | VRAM | Throughput (t/s) | Max Context | Kualitas (vs FP16) |
 |:---|:---:|:---:|:---:|:---:|
 | FP16 | 14 GB | 42 | 8K | Baseline |
-| 8-bit (GPTQ) | 8 GB | 72 | 16K | ~0.3 loss |
-| 4-bit (AWQ) | 4.5 GB | 105 | 32K | ~0.8 loss |
-| 3-bit (AQLM) | 3.2 GB | 130 | 48K | ~1.5 loss |
-| FP8 (E4M3) | 7 GB | 98 | 16K | ~0.1 loss |
-| NVFP4 (Mistral Large 3) | 3.8 GB | 118 | 24K | ~0.6 loss |
+| 8-bit (GPTQ) | 8 GB | 72 | 16K | ~0,3 loss |
+| 4-bit (AWQ) | 4,5 GB | 105 | 32K | ~0,8 loss |
+| 3-bit (AQLM) | 3,2 GB | 130 | 48K | ~1,5 loss |
+| FP8 (E4M3) | 7 GB | 98 | 16K | ~0,1 loss |
+| NVFP4 (Mistral Large 3) | 3,8 GB | 118 | 24K | ~0,6 loss |
 
 ![Semakin rendah bit kuantisasi, semakin kecil VRAM (14 GB FP16 → 3,2 GB AQLM 3-bit) tetapi throughput justru naik hingga 130 t/s — dengan harga kualitas hingga ~1,5 loss](../../assets/images/bab-05-inference/sub-bab-3/tradeoff-kuantisasi-vram-throughput.png)
 
 *Gambar 5.3-1 — Trade-off kuantisasi di RTX 4090: AQLM 3-bit memenangkan throughput (130 t/s) dengan VRAM terkecil (3,2 GB), tetapi kualitas turun ~1,5 loss; AWQ 4-bit menjadi titik manis (105 t/s, ~0,8 loss).*
 
-Bacaan penting dari tabel ini: *throughput* tertinggi (130 t/s) justru diraih AQLM 3-bit, bukan FP16 — karena bobot yang lebih kecil berarti lebih sedikit data yang ditarik dari *memory bandwidth*, dan pada kartu gaming *memory bandwidth* adalah *bottleneck* utama. Namun kualitas turun ~1.5 *loss* dari baseline; untuk teks kreatif yang panjang, degradasi ini bisa terasa. Titik manis praktis adalah **AWQ 4-bit**: VRAM 4,5 GB, *throughput* 105 t/s, konteks 32K, dengan penalti kualitas yang masih terkendali (~0.8). Sementara itu **NVFP4** — format 4-bit *floating point* NVIDIA yang didukung native oleh Mistral Large 3 — menjadi opsi menarik modern: 118 t/s dengan hanya ~0.6 loss [9]. Aphrodite adalah engine pertama yang membawa NVFP4 ke kartu gaming consumer.
+Bacaan penting dari tabel ini: *throughput* tertinggi (130 t/s) justru diraih AQLM 3-bit, bukan FP16 — karena bobot yang lebih kecil berarti lebih sedikit data yang ditarik dari *memory bandwidth*, dan pada kartu gaming *memory bandwidth* adalah *bottleneck* utama. Namun kualitas turun ~1,5 *loss* dari baseline; untuk teks kreatif yang panjang, degradasi ini bisa terasa. Titik manis praktis adalah **AWQ 4-bit**: VRAM 4,5 GB, *throughput* 105 t/s, konteks 32K, dengan penalti kualitas yang masih terkendali (~0,8). Sementara itu **NVFP4** — format 4-bit *floating point* NVIDIA yang didukung native oleh Mistral Large 3 — menjadi opsi menarik modern: 118 t/s dengan hanya ~0,6 loss [9]. Aphrodite adalah engine pertama yang membawa NVFP4 ke kartu gaming consumer.
 
 Perhatikan juga kolom *Max Context*: kuantisasi yang lebih kecil secara tidak langsung membuka konteks yang lebih panjang. Ini efek domino memori — model FP16 memakai 14 GB hanya untuk bobot, menyisakan sedikit ruang KV-cache, sehingga batas konteks tersendat di 8K; sebaliknya AQLM 3-bit memakan 3,2 GB dan membiarkan konteks membengkak ke 48K. Jika kebutuhan Anda adalah percakapan panjang dengan memori karakter, pilihan format kuantisasi sama pentingnya dengan pilihan model itu sendiri. Untuk konteks setara, jumlah VRAM yang tersisa setelah bobot, dibagi kebutuhan KV-cache per token, menentukan "umur" percakapan Anda.
 
@@ -180,10 +178,10 @@ Terakhir, bagaimana Aphrodite bertahan ketika beberapa pengguna memakai model ya
 
 | Concurrent Users | Throughput (t/s) | TTFT P50 (ms) | VRAM Used |
 |:---|:---:|:---:|:---:|
-| 1 | 105 | 120 | 4.5 GB |
-| 4 | 68 | 210 | 8.2 GB |
-| 8 | 41 | 380 | 12.1 GB |
-| 16 | 22 | 720 | 18.5 GB |
+| 1 | 105 | 120 | 4,5 GB |
+| 4 | 68 | 210 | 8,2 GB |
+| 8 | 41 | 380 | 12,1 GB |
+| 16 | 22 | 720 | 18,5 GB |
 
 Pola yang terlihat sangat wajar: *throughput* per pengguna turun seiring bertambahnya pengguna (dari 105 menjadi 22 t/s), TTFT membengkak (120 → 720 ms), dan VRAM naik karena setiap percakapan membutuhkan KV-cache sendiri. Pelajaran utamanya: hingga **8 pengguna simultan**, pengalaman masih sangat layak — sekitar 41 t/s per pengguna terasa responsif untuk percakapan. Di atas itu, *throughput* per pengguna anjlok dan TTFT mendekati satu detik; saat itulah saatnya membagi beban ke GPU kedua atau menyebut "mulai dari sini Anda butuh server". Angka-angka ini juga menjelaskan mengapa komunitas *roleplay* umumnya membatasi server mereka pada 8-16 pengguna per GPU.
 
@@ -191,8 +189,6 @@ Kolom VRAM juga menjawab pertanyaan yang sering muncul: mengapa memakai dua kart
 
 ---
 
-
----
 
 ## 7. Praktikum / Hands-On
 
@@ -219,12 +215,12 @@ aphrodite --version
 python -c "import aphrodite; print(aphrodite.__version__)"
 ```
 
-Jika `aphrodite --version` merespons, langkah berikutnya tinggal menjalankan server. Untuk pengguna pertama kali, mulailah dengan model kecil yang sudah populer dan didukung luas — misalnya Llama-3.1-8B — sebelum mencoba model MoE besar; ini memisahkan masalah instalasi dari masalah konfigurasi model.
+Jika `aphrodite --version` merespons, langkah berikutnya tinggal menjalankan server. Untuk pengguna pertama kali, mulailah dengan model kecil yang sudah populer dan didukung luas — misalnya Llama 3.1 (8B) — sebelum mencoba model MoE besar; ini memisahkan masalah instalasi dari masalah konfigurasi model.
 
 ### Langkah 2: Menjalankan Server dengan AWQ
 
 ```bash
-# Run server
+# Menjalankan server
 aphrodite run meta-llama/Meta-Llama-3.1-8B-Instruct \
     --quantization awq \
     --max-model-len 8192 \
@@ -260,7 +256,7 @@ response = client.chat.completions.create(
     ],
     max_tokens=500,
     temperature=1.2,
-    # Aphrodite extra parameters
+    # Parameter ekstra Aphrodite
     extra_body={
         "mirostat_mode": 2,
         "mirostat_tau": 5.0,
@@ -290,8 +286,8 @@ aphrodite run deepseek-ai/DeepSeek-V4-Flash \
     --port 8000
 
 # Benchmark: ~85 t/s di 2x RTX 6000
-# Dibandingkan DeepSeek V3: hanya 27% training FLOPs untuk 1M konteks
-# CPU memory: minimal 64 GB untuk weight loading
+# Dibandingkan DeepSeek V3: hanya 27% training FLOPs untuk konteks 1M
+# RAM CPU: minimal 64 GB untuk pemuatan bobot
 ```
 
 Model MoE 284B ini berjalan efisien karena hanya **13 miliar parameter aktif per token** — sebagian besar *experts* tidak pernah dihitung untuk tiap token [8]. Catatan penting: `max-model-len` sengaja dibatasi ke 32K pada contoh ini; konteks 1M penuh dimungkinkan oleh arsitektur CSA/HCA DeepSeek V4, tetapi tiap token konteks memakan KV-cache, jadi mulailah kecil lalu naikkan sesuai kebutuhan. Weight loading juga membutuhkan **minimal 64 GB RAM CPU**.
@@ -301,18 +297,18 @@ Perhatikan juga perbedaan istilah kuantisasi di sini: `--quantization int4` pada
 ### Langkah 5: Kuantisasi Eksotis — AQLM dan FP8
 
 ```bash
-# AQLM (Extreme 2-bit quantization)
+# AQLM (kuantisasi 2-bit ekstrem)
 aphrodite run TheBloke/Llama-2-7B-AQLM \
     --quantization aqlm \
     --max-model-len 4096
 
-# FP8 (Native H100/RTX 4090 support)
+# FP8 (dukungan native H100/RTX 4090)
 aphrodite run meta-llama/Meta-Llama-3.1-8B-Instruct \
     --quantization fp8 \
     --kv-cache-dtype fp8
 ```
 
-AQLM 2-bit adalah contoh format yang praktis mustahil dijalankan efisien di vLLM standar [3]; dengan Aphrodite, model 7B cukup muat di 3.2 GB VRAM (Tabel 2). Baris kedua menunjukkan FP8 — pada RTX 4090, dukungan FP8 berjalan di *hardware*, dan `--kv-cache-dtype fp8` memangkas memori cache hingga separuh.
+AQLM 2-bit adalah contoh format yang praktis mustahil dijalankan efisien di vLLM standar [3]; dengan Aphrodite, model 7B cukup muat di 3,2 GB VRAM (Tabel 2). Baris kedua menunjukkan FP8 — pada RTX 4090, dukungan FP8 berjalan di *hardware*, dan `--kv-cache-dtype fp8` memangkas memori cache hingga separuh.
 
 Sebagai penutup praktikum, mari kaitkan semua perintah yang sudah Anda jalankan dengan teori di awal bab: PagedAttention memastikan KV-cache terkelola efisien (Gambar 1), *custom quant kernels* memastikan setiap format berjalan secepat mungkin (bagian 3.1), dan *sampler chain* menentukan warna akhir teks (bagian 3.2). Ketika Anda mengganti `--quantization`, pada dasarnya Anda hanya mengganti kernel yang aktif di tengah diagram — pilihan format memengaruhi memori dan kecepatan, sementara pengalaman menulis ditentukan oleh sampler di ujung alur. Memahami pembagian kerja inilah inti penguasaan Aphrodite.
 
@@ -327,7 +323,7 @@ Sebagai penutup praktikum, mari kaitkan semua perintah yang sudah Anda jalankan 
 
 **Solusi.** Server dijalankan dengan Mythomax-L2-13B (AWQ 4-bit) pada satu RTX 4090 sebagai GPU utama, GPU kedua dijadikan cadangan beban saat trafik tinggi. LoRA adapters terpisah dimuat dinamis untuk puluhan karakter — satu untuk karakter samurai, satu untuk detektif, dan seterusnya. Konfigurasi sampler dibuat konsisten: **Mirostat v2 (tau=5.0), rep_penalty=1.13, top_k=40** — sebuah *preset* yang dikenal komunitas sebagai "karakter stabil".
 
-Langkah teknis *deployment*-nya berjalan dalam empat tahap: (1) menyiapkan model AWQ dan adapter LoRA di direktori lokal; (2) menjalankan `aphrodite run` dengan `--quantization awq` dan konteks 16K; (3) menyetel *preset* sampler di klien yang digunakan angota; (4) menulis *panduan singkat* berbahasa Indonesia agar anggota baru bisa langsung mencoba. Seluruh proses memakan waktu kurang dari satu hari — jauh dari perkiraan tim yang awalnya mengira butuh proyek dua minggu.
+Langkah teknis *deployment*-nya berjalan dalam empat tahap: (1) menyiapkan model AWQ dan adapter LoRA di direktori lokal; (2) menjalankan `aphrodite run` dengan `--quantization awq` dan konteks 16K; (3) menyetel *preset* sampler di klien yang digunakan anggota; (4) menulis *panduan singkat* berbahasa Indonesia agar anggota baru bisa langsung mencoba. Seluruh proses memakan waktu kurang dari satu hari — jauh dari perkiraan tim yang awalnya mengira butuh proyek dua minggu.
 
 **Hasil.** **8 pengguna simultan berjalan stabil dengan ~45 t/s per pengguna dan TTFT di bawah 300 ms** — sesuai proyeksi Tabel 3. Perbandingan langsung dengan vLLM pada hardware yang sama mencatat hanya **~30 t/s** karena sampler terbatas dan LoRA yang tidak dinamis; lebih penting lagi, kualitas karakter — parameter yang tidak terlihat di tabel mana pun — terasa lebih hidup. Anggota komunitas tidak lagi mengeluhkan jawaban yang berulang.
 
