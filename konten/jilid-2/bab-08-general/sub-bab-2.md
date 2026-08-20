@@ -1,6 +1,6 @@
 # Bab 8.2: Hardware
 
-> Membeli GPU untuk general office bukanlah sekadar memilih kartu grafis tercepat — melainkan memecahkan teka-teki ekonomi: model mana yang harus dijalankan, berapa banyak karyawan yang dilayani secara simultan, dan berapa total biaya kepemilikan selama tiga tahun. Di bab ini kita membuka kotak spesifikasi A100, H100, dan L40S, menghitung kebutuhan VRAM dengan teliti, membandingkan arsitektur *single-node* versus *multi-node*, dan menutupnya dengan perhitungan TCO yang jujur — karena keputusan hardware yang salah akan hadir sebagai tagihan listrik dan antrean panjang selama bertahun-tahun ke depan. Setelah bab ini, bahasa "GPU 80 GB", "Q4_K_M", dan "25 GbE interconnect" tidak lagi menjadi teka-teki, melainkan alat tawar-menawar di meja pengadaan.
+> Membeli GPU untuk general office bukanlah sekadar memilih kartu grafis tercepat, melainkan memecahkan teka-teki ekonomi: model mana yang harus dijalankan, berapa banyak karyawan yang dilayani secara simultan, dan berapa total biaya kepemilikan selama tiga tahun. Di bab ini kita membuka kotak spesifikasi A100, H100, dan L40S, menghitung kebutuhan VRAM dengan teliti, membandingkan arsitektur *single-node* versus *multi-node*, dan menutupnya dengan perhitungan TCO yang jujur — karena keputusan hardware yang salah akan hadir sebagai tagihan listrik dan antrean panjang selama bertahun-tahun ke depan. Setelah bab ini, bahasa "GPU 80 GB", "Q4_K_M", dan "25 GbE interconnect" tidak lagi menjadi teka-teki, melainkan alat tawar-menawar di meja pengadaan.
 
 ---
 
@@ -29,7 +29,7 @@ Untuk skala general office 21-50 user, kebutuhan *throughput* berkisar **500-200
 
 Sebuah teknik kalkulasi cepat yang dipakai konsultan *infra*: kalikan jumlah jam kerja efektif (sekitar 6-8 jam per hari, sesuai pola beban Bab 8.1) dengan *request* per jam, lalu bagi dengan jam tersedia untuk mendapatkan *average request rate* per menit. Kantor 30 user dengan 1.000 *request* per jam di jam sibuk berarti ±17 *request* per menit — dan dengan *response* rata-rata 15 detik, jumlah *request* yang "hidup" secara bersamaan di sistem hanyalah ±4-5. Perhitungan sederhana ini langsung menjawab pertanyaan "berapa GPU yang kubutuhkan?" lebih akurat daripada menebak dari jumlah karyawan, dan menjadi titik masuk ke seksi 4 (perhitungan VRAM).
 
-Batasan *throughput* ini juga menerjemahkan menjadi bahasa teknis yang sederhana: general office tidak membutuhkan *frontier cluster* berbiaya miliaran, tetapi membutuhkan **ketepatan ukuran** (*right-sizing*). Sebuah kartu H100 yang menjalankan model FP8 mampu menghasilkan ratusan ribu token per menit — tetapi kapasitas itu sia-sia bila antrean dipersempit oleh *rate limiter* atau *context window* yang kurang. Di sisi lain, meremehkan kebutuhan berarti karyawan menatap layar "memuat" di jam sibuk — dan setiap detik menunggu adalah biaya gaji yang menguap.
+Batasan *throughput* ini juga menerjemahkan menjadi bahasa teknis yang sederhana: general office tidak membutuhkan *frontier cluster* berbiaya miliaran, tetapi membutuhkan **ketepatan ukuran** (*right-sizing*). Sebuah kartu H100 yang menjalankan model FP8 mampu menghasilkan ratusan ribu token per menit, tetapi kapasitas itu sia-sia bila antrean dipersempit oleh *rate limiter* atau *context window* yang kurang. Di sisi lain, meremehkan kebutuhan berarti karyawan menatap layar "memuat" di jam sibuk — dan setiap detik menunggu adalah biaya gaji yang menguap.
 
 Dari titik ini muncul dua arsitektur yang akan diuji sepanjang bab: **single-node multi-GPU** — satu server fisik berisi 4-8 GPU yang saling terhubung NVLink — dan **multi-node single-GPU** — dua hingga empat server, masing-masing berisi satu-dua GPU, yang diorkestrasi oleh Kubernetes. Keduanya punya pengusungnya masing-masing; seksi 5 akan mengupas kapan memilih yang mana. Sebelum melangkah lebih jauh, mari kita kenali dulu ketiga kandidat GPU-nya — karena keputusan arsitektur pada akhirnya ditentukan oleh karakter kartu yang dipilih.
 
@@ -39,7 +39,7 @@ Dari titik ini muncul dua arsitektur yang akan diuji sepanjang bab: **single-nod
 |:---|:---|:---|:---|
 | **Arsitektur** | Ampere (2020) | Hopper (2022) | Ada Lovelace (2023) |
 | **VRAM** | 80 GB HBM2e | 80 GB HBM3 | 48 GB GDDR6 |
-| **Memory Bandwidth** | 2.0 TB/s | 3.35 TB/s | 864 GB/s |
+| **Memory Bandwidth** | 2,0 TB/s | 3,35 TB/s | 864 GB/s |
 | **FP32 TFLOPS** | 312 | 989 | 568 |
 | **FP8 TFLOPS** | 624 | 1,979 | 1,138 |
 | **Interconnect** | NVLink 3 (600 GB/s) | NVLink 4 (900 GB/s) | PCIe 4.0 x16 |
@@ -99,7 +99,7 @@ Uji kedua untuk beban yang lebih ringan: model **Ministral 3 14B Q4** (±9 GB bo
 |:---|:---|:---|:---:|:---:|
 | **Budget (21-30 user)** | 2x L40S | DeepSeek V4 Flash Q4 + Qwen3.6-27B Q5_K_M | 15 | Rp 350-450jt |
 | **Standard (31-40 user)** | 2x H100 | Mistral Large 3 Q4 (Apache 2.0) + Ministral 3 14B | 25 | Rp 600-800jt |
-| **Premium (41-50 user)** | 4x H100 | DeepSeek V4 Pro Q4 + Mistral Large 3 Q8 | 35 | Rp 1.2-1.5M |
+| **Premium (41-50 user)** | 4x H100 | DeepSeek V4 Pro Q4 + Mistral Large 3 Q8 | 35 | Rp 1,2-1,5M |
 | **Cluster HA** | 3x L40S (2 active + 1 standby) | DeepSeek V4 Flash + Mistral Large 3 via vLLM | 30 | Rp 500-650jt |
 
 Tabel ini adalah peta keputusan. **Budget** menaruh DeepSeek V4 Flash kuantisasi Q4 di atas L40S — strategi MoE (284B total, 13B aktif) membuat *memory footprint* terkendali sambil menawarkan konteks 1 juta token untuk dokumen panjang; Qwen3.6-27B menangani *coding* pada L40S kedua. **Standard** menaikkan kelas ke H100 untuk Mistral Large 3 Q4 (Apache 2.0) dan Ministral 3 14B. **Premium** masuk zona 4x H100 karena DeepSeek V4 Pro Q4 (1,6T parameter) membutuhkan *tensor parallelism* antar-GPU berinterkoneksi NVLink — arsitektur yang hanya tersedia di single-node besar [10]. **Cluster HA** memilih 3x L40S dengan satu unit *standby* murni — membeli ketenangan pikiran 99,999% uptime dengan menahan satu GPU menganggur, sebuah pilihan yang masuk akal untuk kantor yang lebih takut *downtime* daripada mahal GPU. Perhatikan: *max concurrent user* di sini adalah batas nyaman dengan *KV cache* utuh, bukan batas teoritis.
@@ -109,7 +109,7 @@ Empat skenario ini juga mengajarkan pola yang lebih umum: **kualitas model dan j
 Cara membaca tabel ini sebagai *decision tree*: pertama tentukan **model kelas berat** yang wajib dijalankan (jika DeepSeek V4 Pro menjadi syarat, langsung lompat ke skenario Premium; jika Mistral Large 3 cukup, Standard; dan seterusnya). Kedua, cocokkan dengan **jumlah user nyata**, bukan jumlah karyawan — kantor 50 karyawan dengan hanya 20 yang rutin memakai AI boleh membangun di atas skenario Budget. Ketiga, beri *headroom* satu langkah bila proyeksi pertumbuhan pengguna aktif lebih dari 30% per tahun. Tabel ini juga menunjukkan bahwa *max concurrent user* tidak pernah sebanding linear dengan jumlah kartu: dari 2x L40S (15 user) ke 4x H100 (35 user), GPU berlipat dua tetapi user hanya naik 2,3x — karena model yang dijalankan ikut membesar. **Memilih model dulu, menghitung user kemudian — itulah urutan yang benar.**
 
 
-### Gambar 2: Diagram Perbandingan Performance per Dollar
+### Gambar 1: Diagram Perbandingan Performance per Dollar
 
 Perbandingan **token per detik per juta rupiah** untuk A100, H100, dan L40S berdasarkan *benchmark* dunia nyata [5] dapat dilihat pada diagram berikut. Dua kesimpulan yang diharapkan dari perbandingan ini: **L40S unggul di *cost efficiency*** — token termurah per rupiah untuk beban model kecil — sementara **H100 unggul di *raw performance*** — token terbanyak per detik mutlak. A100 duduk di tengah: bukan yang tercepat, bukan yang termurah, tetapi pembelian *second-hand* yang berharga untuk kantor dengan anggaran terbatas yang tetap ingin menjalankan model 70B.
 
@@ -137,7 +137,7 @@ Rekomendasi buku ini untuk 21-50 user: **2 node @ 1x H100 atau L40S** — bukan 
 
 Ringkas perbandingannya: **single-node membeli kecepatan, multi-node membeli ketenangan**. Kantor yang melayani klien eksternal dengan janji SLA 99,9%+ tidak punya pilihan selain multi-node — nama baik lebih mahal daripada *latency* 5 milidetik. Kantor yang beban AI-nya non-kritis (misalnya hanya asisten internal) boleh mulai dari single-node dengan catatan eksplisit: *recovery time objective* (RTO) mereka dihitung dalam satuan hari, bukan detik. Keputusan ini harus ditulis sebagai kebijakan tertulis, karena menentukan seluruh biaya *cooling*, listrik, dan *maintenance* tiga tahun ke depan.
 
-### Gambar 1: Arsitektur Multi-Node Cluster
+### Gambar 2: Arsitektur Multi-Node Cluster
 
 ```mermaid
 graph TB
@@ -201,7 +201,7 @@ GPU adalah bintang, tetapi tanpa pengiring yang tepat, bintang itu tidak akan na
 
 Sebuah catatan praktis tentang **urutan pembelian**: komponen pendukung harus dipesan lebih dulu daripada GPU — bukan sebaliknya. Alasannya logistik murni: GPU enterprise membutuhkan *power connector* khusus (8-pin EPS pada H100), server NVIDIA-Certified tertentu, dan rak dengan *airflow* depan-belakang. Kantor yang membeli GPU lebih dulu sering menemukan kekurangan ini dua bulan kemudian, saat kartu mahal sudah terlanjur menumpuk di gudang. Urutan yang benar: *(1)* periksa daya listrik ruangan dan siapkan jalur khusus, *(2)* pesan rack, UPS, dan AC, *(3)* pesan server dan storage, *(4)* baru GPU — dan gunakan masa tunggu GPU untuk menyelesaikan instalasi.
 
-Komponen-komponen ini — bukan GPU-nya — yang sering membengkakkan anggaran di lapangan. Tabel TCO pada seksi 2 memasukkan semuanya, sehingga pembaca tidak akan kaget setelah pembelian.
+Komponen-komponen ini — bukan GPU-nya — yang sering membengkakkan anggaran di lapangan. Tabel TCO pada seksi 6 memasukkan semuanya, sehingga pembaca tidak akan kaget setelah pembelian.
 
 Satu komponen terakhir yang sering luput dari daftar karena tidak berwujud: **waktu setup dan keahlian**. Memasang dua node GPU + K3s + vLLM dari nol biasanya memakan 5-10 hari kerja seorang engineer — atau 2-3 hari jika memakai *deployment guide* terstandardisasi dari vendor (NVIDIA Base Command, Dell OpenManage). Untuk general office yang tidak memiliki DevOps penuh waktu, *platform engineering* semacam ini bisa di-outsource, dengan catatan: serahkan dokumentasi konfigurasi yang menyeluruh, karena pergantian tim adalah kemungkinan nyata. Anggaran setup ±Rp 50 juta pada studi kasus Bab 8.1 adalah gambaran realistis kelas biaya ini.
 
@@ -209,12 +209,12 @@ Satu komponen terakhir yang sering luput dari daftar karena tidak berwujud: **wa
 
 | Komponen Biaya | L40S Dual Node | H100 Dual Node | A100 Quad Node |
 |:---|:---:|:---:|:---:|
-| **Hardware** | Rp 400jt | Rp 750jt | Rp 1.2M |
-| **Listrik (3 thn, Rp 1.5k/kWh)** | Rp 92jt | Rp 184jt | Rp 315jt |
+| **Hardware** | Rp 400jt | Rp 750jt | Rp 1,2M |
+| **Listrik (3 thn, Rp 1,5k/kWh)** | Rp 92jt | Rp 184jt | Rp 315jt |
 | **Cooling & Rack (3 thn)** | Rp 54jt | Rp 72jt | Rp 108jt |
 | **Maintenance (3 thn)** | Rp 60jt | Rp 90jt | Rp 120jt |
 | **Software/Lisensi** | Rp 30jt | Rp 45jt | Rp 60jt |
-| **Total TCO 3 Tahun** | **Rp 636jt** | **Rp 1.14M** | **Rp 1.8M** |
+| **Total TCO 3 Tahun** | **Rp 636jt** | **Rp 1,14M** | **Rp 1,8M** |
 
 Tabel TCO mengubah cara pandang pembelian GPU. Harga beli H100 dual node hanya sepertiga dari total TCO Rp 1,14 miliar — **dua pertiga sisanya adalah biaya hidup** (listrik, cooling, maintenance, lisensi). Perhatikan pula perbandingan mengejutkan antara H100 (700W) dan L40S (350W): selisih TDP dua kali lipat memproduksi selisih tagihan listrik dua kali lipat (Rp 184jt vs Rp 92jt) dan selisih *cooling* yang sejalan. Untuk kantor yang beroperasi di lokasi dengan tarif listrik industri tinggi, L40S bahkan lebih menarik daripada yang terlihat di harga kartu. Satu-satunya koreksi terhadap kesimpulan "pilih yang paling hemat" adalah *throughput*: jika 25 user membutuhkan H100 (Tabel 2, skenario Standard), memaksakan L40S hanya akan menghasilkan antrean — dan biaya karyawan menunggu jauh lebih mahal daripada selisih TCO [5]. Angka-angka di sini bersifat indikatif terhadap harga pasar Indonesia saat penulisan dan wajib divalidasi ulang sebelum keputusan pembelian.
 
@@ -294,9 +294,9 @@ kubectl label node node1 accelerator=nvidia-gpu
 kubectl create ns llm-inference
 ```
 
-NVIDIA Container Toolkit adalah jembatan yang membuat driver GPU "terlihat" dari dalam container — tanpa ini, pod vLLM tidak akan pernah melihat kartunya. Setelah K3s terpasang (dua baris terakhir hanya untuk node pertama; node kedua menggunakan *join token* — lihat Bab 8.3 Tutorial A), kita *menandai* node dengan *label* `accelerator=nvidia-gpu`. Label inilah kunci *nodeSelector* pada Tutorial C: scheduler K3s akan menempatkan pod inference hanya di node yang benar-benar punya GPU — mencegah *pod* kecil *greedy* mendarat sembarangan.
+NVIDIA Container Toolkit adalah jembatan yang membuat driver GPU "terlihat" dari dalam container — tanpa ini, pod vLLM tidak akan pernah melihat kartunya. Setelah K3s terpasang (dua baris terakhir hanya untuk node pertama; node kedua menggunakan *join token* — lihat Bab 8.3 Langkah 1), kita *menandai* node dengan *label* `accelerator=nvidia-gpu`. Label inilah kunci *nodeSelector* pada Langkah 3: scheduler K3s akan menempatkan pod inference hanya di node yang benar-benar punya GPU — mencegah *pod* kecil *greedy* mendarat sembarangan.
 
-Verifikasi penting setelah instalasi: jalankan `kubectl get nodes -o json | jq '.items[].status.capacity'` dan pastikan key `nvidia.com/gpu` muncul di kapasitas node. Jika tidak muncul, artinya NVIDIA Container Toolkit tidak terpasang benar atau driver tidak cocok dengan kernel — dua sumber *pain* paling umum di lapangan. Jangan melanjutkan ke Tutorial C sebelum angka ini tampil hijau, karena gejala gagalnya baru muncul di tengah beban produksi — berupa *CrashLoopBackOff* yang sulit dilacak.
+Verifikasi penting setelah instalasi: jalankan `kubectl get nodes -o json | jq '.items[].status.capacity'` dan pastikan key `nvidia.com/gpu` muncul di kapasitas node. Jika tidak muncul, artinya NVIDIA Container Toolkit tidak terpasang benar atau driver tidak cocok dengan kernel — dua sumber *pain* paling umum di lapangan. Jangan melanjutkan ke Langkah 3 sebelum angka ini tampil hijau, karena gejala gagalnya baru muncul di tengah beban produksi — berupa *CrashLoopBackOff* yang sulit dilacak.
 
 ### Langkah 3: Stress Test GPU Cluster dengan Multi-Model
 
@@ -355,7 +355,7 @@ Studi kasus berikut adalah kisah nyata pola pemilihan hardware pada kantor berbe
 
 **Keputusan hardware.** Tim IT memilih **2 node Dell PowerEdge R760xa, masing-masing dengan H100 80GB**, terhubung **25GbE**, dengan **4 TB NVMe shared storage via NFS**. Pilihan R760xa bukan kebetulan: server ini dirancang NVIDIA-Certified untuk *AI workload*, memiliki *airflow* yang cukup untuk TDP 700W H100, dan menyediakan jalur NVLink antar-GPU di dalam satu node untuk *tensor parallel* bila dibutuhkan di kemudian hari. Arsitektur dua node memberi *redundansi* GPU penuh persis seperti yang dituntut pilar Bab 8.1. *Software stack*-nya: **K3s + vLLM + LiteLLM + Qdrant + MinIO** — seluruh lapisan dibahas di Bab 8.3.
 
-**Keputusan model.** Kabar baik tahun 2026 bagi PT Solusi AI: **DeepSeek V4 Flash** (lisensi MIT; 284B total / 13B aktif) menggantikan Llama-70B yang sebelumnya dijalankan — MoE yang efisien ini menawarkan konteks 1 juta token untuk analisis dokumen panjang dengan *memory footprint* VRAM yang lebih ramping, sehingga ruang yang sama kini melayani lebih banyak user. **Mistral Large 3** (675B/41B aktif, Apache 2.0) dipegang untuk *coding assistant* dan analisis tingkat tinggi, sementara **Whisper** menangani transkrip meeting.
+**Keputusan model.** Kabar baik tahun 2026 bagi PT Solusi AI: **DeepSeek V4 Flash** (lisensi MIT; 284B total / 13B aktif) menggantikan Llama 3.1 (70B) yang sebelumnya dijalankan — MoE yang efisien ini menawarkan konteks 1 juta token untuk analisis dokumen panjang dengan *memory footprint* VRAM yang lebih ramping, sehingga ruang yang sama kini melayani lebih banyak user. **Mistral Large 3** (675B/41B aktif, Apache 2.0) dipegang untuk *coding assistant* dan analisis tingkat tinggi, sementara **Whisper** menangani transkrip meeting.
 
 **Hasil.** Hasil produksi selama 90 hari: **throughput 2.200 request/jam — peningkatan 22%** dari arsitektur sebelumnya; **TTFT P99 1,8 detik** — di bawah ambang SLA 3 detik Bab 8.1; dan **0 hari *downtime***. **TCO 3 tahun Rp 1,1 miliar**, setara ±Rp 25 juta per bulan untuk 40 user — atau **Rp 625 ribu per user per bulan**. Bandingkan dengan layanan SaaS LLM kelas enterprise yang umumnya dipatok puluhan dolar per user per bulan: untuk kebutuhan *throughput* sekelas ini, kepemilikan hardware adalah kemenangan TCO yang telak [2][4]. Pelajaran studinya: kombinasi *multi-node resilient* + model MoE efisien + *orchestrator* K3s adalah trio yang membuat general office 40 user beroperasi seketat *data center* — dengan anggaran kantor.
 
@@ -376,7 +376,7 @@ Studi kasus berikut adalah kisah nyata pola pemilihan hardware pada kantor berbe
 
 [4] Qin, R., et al. (2025). *Mooncake: Trading More Storage for Less Computation — A KVCache-centric Architecture for Serving LLM Chatbot*. Proceedings of USENIX FAST. [PDF](https://www.usenix.org/system/files/fast25-qin.pdf) — arsitektur *disaggregated prefill-decode* dengan pemanfaatan CPU/DRAM/SSD; rujukan verifikasi *throughput* Tabel 3.
 
-[5] Ohiri, E., & Berry, S. (2026). *Real-World GPU Benchmark: NVIDIA H100 vs A100 vs L40S*. CUDO Compute Blog. [https://www.cudocompute.com/blog/real-world-gpu-benchmarks](https://www.cudocompute.com/blog/real-world-gpu-benchmarks) — *benchmark* langsung token/detik dan biaya/token di dunia nyata; dasar perbandingan Tabel 1 dan TCO Tabel 3.
+[5] Ohiri, E., & Berry, S. (2026). *Real-World GPU Benchmark: NVIDIA H100 vs A100 vs L40S*. CUDO Compute Blog. [https://www.cudocompute.com/blog/real-world-gpu-benchmarks](https://www.cudocompute.com/blog/real-world-gpu-benchmarks) — *benchmark* langsung token/detik dan biaya/token di dunia nyata; dasar perbandingan Tabel 1 dan TCO Tabel 3. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 
@@ -388,6 +388,6 @@ Studi kasus berikut adalah kisah nyata pola pemilihan hardware pada kantor berbe
 
 [9] vLLM. *Official Documentation — Quantization*. [https://docs.vllm.ai](https://docs.vllm.ai)
 
-[10] DeepSeek Team. (2026). *DeepSeek-V4 Pro: 1.6 Trillion Parameter MoE for Enterprise GPUs*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model 1,6T/49B aktif berlisensi MIT yang membutuhkan 4+ GPU H100; dasar skenario Premium Tabel 2.
+[10] DeepSeek Team. (2026). *DeepSeek-V4 Pro: 1.6 Trillion Parameter MoE for Enterprise GPUs*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model 1,6T/49B aktif berlisensi MIT yang membutuhkan 4+ GPU H100; dasar skenario Premium Tabel 2. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [11] Google DeepMind. (2025). *Gemini 2.5 Pro: Google's Most Capable AI Model*. [https://blog.google/technology/google-deepmind/gemini-model-thinking-updates-march-2025](https://blog.google/technology/google-deepmind/gemini-model-thinking-updates-march-2025) — alternatif *cloud proprietary* berkonteks 1 juta token untuk kantor yang sudah berada dalam ekosistem Google Cloud.

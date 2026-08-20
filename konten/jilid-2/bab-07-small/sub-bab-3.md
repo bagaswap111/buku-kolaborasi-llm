@@ -29,7 +29,7 @@ Perbandingannya dengan alternatif membuat pilihan ini hampir otomatis: **Text Ge
 
 ### Dari Pengguna ke Tim
 
-Yang membedakan platform kolaboratif dari sekadar UI adalah **kehidupan sosial** di dalamnya. Riwayat percakapan seorang developer bukan barang pribadi — ia adalah aset tim: jawaban atas cara me-deploy layanan X jam 9 pagi menyelamatkan orang lain dari menanyakannya jam 11. Riset tentang asisten LLM multi-user bahkan menunjukkan bahwa peran ganda *intent detection* dan *response generation* bekerja lebih baik ketika antarmuka memahami konteks bersama [5]. Open WebUI mewujudkan ini lewat *workspace* dan *channel* yang akan kita bangun di Tutorial B.
+Yang membedakan platform kolaboratif dari sekadar UI adalah **kehidupan sosial** di dalamnya. Riwayat percakapan seorang developer bukan barang pribadi — ia adalah aset tim: jawaban atas cara me-deploy layanan X jam 9 pagi menyelamatkan orang lain dari menanyakannya jam 11. Riset tentang asisten LLM multi-user bahkan menunjukkan bahwa peran ganda *intent detection* dan *response generation* bekerja lebih baik ketika antarmuka memahami konteks bersama [5]. Open WebUI mewujudkan ini lewat *workspace* dan *channel* yang akan kita bangun di Langkah 2.
 
 ### Tabel 1: Perbandingan Platform Collaborative UI
 
@@ -171,7 +171,7 @@ Keamanan front-end menentukan kepercayaan: jika admin datang dan bertanya "siapa
 1. **HTTPS wajib** — akses kantor lewat sertifikat *self-signed* (LAN) atau Let's Encrypt (VPN), diterminasi di Nginx *reverse proxy* dari Bab 7.1.
 2. **Environment variables untuk *secret management*** — `WEBUI_SECRET_KEY` dan password database tidak pernah di-*hardcode* di file (lihat Template 3), dikelola lewat `.env` yang tidak masuk git.
 3. **Audit logging** — Open WebUI mencatat siapa mengakses model apa dan kapan; aktifkan sejak hari pertama, bukan setelah ada insiden.
-4. **Rate limiting per user** — membatasi *request* per menit per akun mencegah satu pengguna memonopoli GPU dan membuat 19 rekan kerjanya kelaparan (Tutorial C).
+4. **Rate limiting per user** — membatasi *request* per menit per akun mencegah satu pengguna memonopoli GPU dan membuat 19 rekan kerjanya kelaparan (Langkah 3).
 
 ### Tabel 3: Konfigurasi Environment Variable
 
@@ -194,10 +194,9 @@ Bacaan penting: `ENABLE_SIGNUP=True` saja tidak cukup — nilainya baru aman kar
 
 ---
 
-## 7. Tutorial / Hands-On
+## 7. Praktikum / Hands-On
 
-
-### Tutorial 1: Deploy Open WebUI dengan Docker Compose + PostgreSQL
+### Langkah 1: Deploy Open WebUI dengan Docker Compose + PostgreSQL
 
 Mulai dari deployment resmi yang direkomendasikan: `docker-compose.yml` dengan PostgreSQL sejak awal — bukan SQLite — karena tim 15+ akan sampai ke sana juga. Simpan file ini bersama `.env` yang berisi `WEBUI_SECRET_KEY` dan `DB_PASSWORD`.
 
@@ -260,7 +259,7 @@ networks:
 
 Perhatikan detail penting: `OPENAI_API_BASE_URL` diarahkan ke `http://vllm:8000/v1` — nama `vllm` adalah *service name* yang harus ada di network yang sama bila workstation dipisah dari server Open WebUI (gunakan alamat IP LAN bila vLLM berjalan di mesin lain, seperti `http://192.168.10.100:8000/v1`). `depends_on: db` memastikan PostgreSQL bangun lebih dulu. Setelah `docker compose up -d`, buka port 3000, dan lakukan **registrasi pengguna pertama** — ingat, pengguna pertama otomatis menjadi admin.
 
-### Tutorial 2: Setup Workspaces dan Channels
+### Langkah 2: Setup Workspaces dan Channels
 
 Platform kolaboratif dimulai dari struktur. Skrip berikut membuat *workspace* per tim dan channel umum lewat API — sehingga admin tidak perlu mengeklik UI selama 10 menit.
 
@@ -301,7 +300,7 @@ curl -X POST "$WEBUI_URL/api/channels" \
 
 Lihat bagaimana *workspace* membawa daftar *models* yang berbeda: Frontend Team mendapat model kecil cepat (ministral3:14b) untuk *completion* ringan, sementara Backend Team mendapat deepseek-v4-flash untuk *reasoning* berat. Setelah skrip ini berjalan, arsitektur kolaborasi kantor Anda sudah terbentuk di API — tinggal diisi manusia.
 
-### Tutorial 3: Setup Rate Limiting per User
+### Langkah 3: Setup Rate Limiting per User
 
 Satu pengguna yang menjalankan *script* 1.000 pertanyaan bisa melumpuhkan GPU untuk semua orang. *Middleware* berikut berjalan sebagai *sidecar container* dan membatasi *request* per pengguna.
 
@@ -342,9 +341,9 @@ Skrip ini menjaga keseimbangan keadilan: 30 *request*/menit per akun sangat long
 ## 8. Studi Kasus: PT CodeCraft — Deploy Open WebUI untuk 15 Developer
 
 
-PT CodeCraft adalah *software house* dengan 15 developer yang terbagi dalam tiga tim: Frontend (5 orang), Backend (6), DevOps (4). Masalahnya bukan kualitas AI-nya — tetapi kekacauan akses: sebagian developer memakai akun ChatGPT pribadi, sebagian memakai *crack* plugin IDE, dan pertanyaan yang sama didokumentasikan ulang oleh tiga orang berbeda. PT CodeCraft memutuskan satu platform terpusat.
+PT CodeCraft adalah *software house* dengan 15 developer yang terbagi dalam tiga tim: Frontend (5 orang), Backend (6), DevOps (4). Masalahnya bukan kualitas AI-nya, tetapi kekacauan akses: sebagian developer memakai akun ChatGPT pribadi, sebagian memakai *crack* plugin IDE, dan pertanyaan yang sama didokumentasikan ulang oleh tiga orang berbeda. PT CodeCraft memutuskan satu platform terpusat.
 
-**Deployment**: Open WebUI + PostgreSQL di VPS kantor (Intel Xeon E-2388G, 64GB RAM), sementara *backend* vLLM tinggal di *workstation* dual RTX 4090 — persis arsitektur Gambar 1. **Workspace** diatur per tim: Frontend (Ministral 3 14B + Qwen-2.5-Coder-14B), Backend (Qwen3.6-27B + DeepSeek V4 Flash), DevOps (Mixtral-8x7B). **Registrasi**: pengguna mendaftar lewat form internal, admin menyetujui, dan integrasi Google Workspace OAuth memastikan hanya email perusahaan yang masuk. **RAG**: setiap tim memiliki *knowledge base* sendiri — dokumentasi API, SOP deployment, dan *code style guide*.
+**Deployment**: Open WebUI + PostgreSQL di VPS kantor (Intel Xeon E-2388G, 64GB RAM), sementara *backend* vLLM tinggal di *workstation* dual RTX 4090 — persis arsitektur Gambar 1. **Workspace** diatur per tim: Frontend (Ministral 3 (14B) + Qwen 2.5 Coder (14B)), Backend (Qwen 3.6 (27B) + DeepSeek V4 Flash), DevOps (Mixtral 8x7B). **Registrasi**: pengguna mendaftar lewat form internal, admin menyetujui, dan integrasi Google Workspace OAuth memastikan hanya email perusahaan yang masuk. **RAG**: setiap tim memiliki *knowledge base* sendiri — dokumentasi API, SOP deployment, dan *code style guide*.
 
 **Hasilnya** diukur setelah satu kuartal: developer tidak perlu menyiapkan AI sendiri lagi — semua melakukan *prompt* di satu jendela, *history* chat tersimpan dan bisa dirujuk tim lain, dan onboarding developer baru jauh lebih cepat karena konteks produk sudah ada di *workspace*. **Biaya**: Open WebUI sendiri gratis; yang dibayar hanyalah server (Rp 20 juta) dan *maintenance* (Rp 500 ribu/bulan).
 

@@ -116,7 +116,7 @@ graph TB
     end
 ```
 
-Bacaan diagram ini seperti membandingkan tiga jenis rumah. **ChromaDB** adalah gubuk studio: satu ruangan (proses aplikasi) tempat segalanya — data, indeks, dan logika — hidup bersama; muat untuk penghuni tunggal, tetapi perluasan berarti membangun rumah baru. **Qdrant** adalah rumah layanan: aplikasi berkomunikasi lewat REST/gRPC dengan server mandiri yang mengelola *segment* dan indeks HNSW; perbaikan dan pemeliharaan bisa dilakukan tanpa menyentuh penghuni (aplikasi). **Milvus** adalah kompleks apartemen dengan pembagian tugas: *proxy* adalah resepsionis, *query node* menyiapkan unit untuk ditempati pencari, *index node* membangun tangga indeks, *data node* mengelola gudang (MinIO/S3), dan *etcd* adalah papan koordinasi umum. Keuntungannya nyata — setiap lantai (node) dapat ditambah tanpa mengganggu yang lain — tetapi pengelola gedung (tim operasional) wajib ada.
+Bacaan diagram ini seperti membandingkan tiga jenis rumah. **ChromaDB** adalah gubuk studio: satu ruangan (proses aplikasi) tempat segalanya — data, indeks, dan logika — hidup bersama; muat untuk penghuni tunggal, tetapi perluasan berarti membangun rumah baru. **Qdrant** adalah rumah layanan: aplikasi berkomunikasi lewat REST/gRPC dengan server mandiri yang mengelola *segment* dan indeks HNSW; perbaikan dan pemeliharaan bisa dilakukan tanpa menyentuh penghuni (aplikasi). **Milvus** adalah kompleks apartemen dengan pembagian tugas: *proxy* adalah resepsionis, *query node* menyiapkan unit untuk ditempati pencari, *index node* membangun tangga indeks, *data node* mengelola gudang (MinIO/S3), dan *etcd* adalah papan koordinasi umum. Keuntungannya nyata — setiap lantai (node) dapat ditambah tanpa mengganggu yang lain, tetapi pengelola gedung (tim operasional) wajib ada.
 
 
 ---
@@ -199,10 +199,10 @@ Pola pertumbuhan tersebut mengubah intuisi: di wilayah mulai ~1 juta vektor, kur
 
 ---
 
-## 6. Tutorial / Hands-On
+## 6. Praktikum / Hands-On
 
 
-### Tutorial 1: Setup ChromaDB + RAG Sederhana
+### Langkah 1: Setup ChromaDB + RAG Sederhana
 
 Mulai dari yang paling ringan. Install ChromaDB dan (opsional) jalankan versi server Docker:
 
@@ -260,7 +260,7 @@ print(results['documents'][0])
 
 Perhatikan dua hal dalam *collection*: metadata `hnsw:space: cosine` memastikan ruang jarak sesuai dengan cara model embedding mengukur kemiripan, dan `PersistentClient` menyimpan data ke disk sehingga koleksi Anda bertahan di antara sesi. Jika output berisi teks HR_Policy.pdf, prototipe RAG Anda resmi beroperasi.
 
-### Tutorial 2: Setup Qdrant dengan Docker
+### Langkah 2: Setup Qdrant dengan Docker
 
 Naik satu tingkat ke mode produksi. Jalankan Qdrant sebagai *service* melalui Docker dengan volume persisten:
 
@@ -315,7 +315,7 @@ Apa yang kita lakukan di sini? `m: 16` dan `ef_construct: 200` adalah parameter 
 
 Ukuran vektor di contoh ini (768) memang disengaja untuk memperlihatkan API; jika Anda memakai DeepSeek V4 Embedding (2048), cukup ubah `size=2048` — ingat dampaknya terhadap memori dan latensi sesuai Tabel 1, dan pertimbangkan naik ke Qdrant cluster saat jutaan vektor.
 
-### Tutorial 3: Setup Milvus dengan Docker Compose untuk Production
+### Langkah 3: Setup Milvus dengan Docker Compose untuk Production
 
 Milvus terdistribusi membutuhkan tiga pihak: *etcd* untuk koordinasi, *MinIO* untuk penyimpanan objek, dan *Milvus* sendiri. Simpan sebagai `docker-compose-milvus.yml`:
 

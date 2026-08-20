@@ -326,10 +326,10 @@ graph TD
 
 ---
 
-## 14. Tutorial / Hands-On
+## 14. Praktikum / Hands-On
 
 
-### Tutorial 1: Merasakan Perbedaan Generasi Model
+### Langkah 1: Merasakan Perbedaan Generasi Model
 
 Cara terbaik memahami evolusi model adalah menjalankannya langsung. Ikuti langkah-langkah berikut untuk merasakan perbedaan kualitas dari setiap era.
 
@@ -353,7 +353,7 @@ ollama pull deepseek-v4-flash
 ollama run deepseek-v4-flash "Jelaskan AI dalam bahasa Indonesia"
 ```
 
-### Tutorial 2: Benchmark Model Lama vs Baru
+### Langkah 2: Benchmark Model Lama vs Baru
 
 Untuk mengukur secara kuantitatif seberapa jauh perkembangan model:
 
@@ -372,7 +372,7 @@ lm_eval --model hf --model_args pretrained=microsoft/phi-4 \
 # Bandingkan hasilnya — perhatikan lonjakan dari 32% (GPT-2) ke 82% (Phi-4)
 ```
 
-### Tutorial 3: Visualisasi Evolusi Model (Python)
+### Langkah 3: Visualisasi Evolusi Model (Python)
 
 ```python
 import matplotlib.pyplot as plt

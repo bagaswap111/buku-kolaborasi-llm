@@ -72,7 +72,7 @@ Pilih model yang tepat sesuai bobot pekerjaan workflow — kolom "Keunggulan di 
 | **Gemini 2.5 Pro** | Proprietary | Proprietary | 1M | — | Thinking mode, multimodal |
 | **Ministral 3** | 3B/8B/14B | Apache 2.0 | 128K | — | Cascade Distillation, edge-friendly |
 
-Kedua model open-weight dari DeepSeek menjadi tulang punggung otomasi lokal berkat lisensi MIT tanpa batasan komersial. DeepSeek V4 Pro dengan 1M context unggul untuk *agentic workflow* yang menahan konteks percakapan panjang; DeepSeek V4 Flash (13B aktif) cukup untuk 80% tugas otomasi harian. Claude Fable 5 menawarkan SWE-bench tertinggi (95,0%) dengan *safety classifiers* — tetapi untuk memakainya Anda mengirim data ke API Anthropic, jadi sesuaikan dengan kebijakan kerahasiaan data kantor. Ministral 3 adalah pilihan menarik untuk *edge device*: model 8B bisa menangani klasifikasi sederhana dengan latency di bawah satu detik.
+Kedua model open-weight dari DeepSeek menjadi tulang punggung otomasi lokal berkat lisensi MIT tanpa batasan komersial. DeepSeek V4 Pro dengan 1M context unggul untuk *agentic workflow* yang menahan konteks percakapan panjang; DeepSeek V4 Flash (13B aktif) cukup untuk 80% tugas otomasi harian. Claude Fable 5 menawarkan SWE-bench tertinggi (95,0%) dengan *safety classifiers*, tetapi untuk memakainya Anda mengirim data ke API Anthropic, jadi sesuaikan dengan kebijakan kerahasiaan data kantor. Ministral 3 adalah pilihan menarik untuk *edge device*: model 8B bisa menangani klasifikasi sederhana dengan latency di bawah satu detik.
 
 
 ### Tabel 2: Perbandingan Mode Eksekusi n8n
@@ -402,7 +402,7 @@ Hasilnya nyata dan terukur:
 - **Beban agen berkurang 60%** — manusia kini berfokus pada kasus kompleks dan eskalasi, bukan menjawab pertanyaan berulang
 - **Biaya: Rp 800 ribu/bulan** untuk server VPS 16GB + 1 GPU, sementara n8n dan Ollama sepenuhnya gratis (harga asumsi, sangat bervariasi antar-provider) [Sumber?]
 
-Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model — Llama-3.1-8B bukan model terbesar — tetapi pada desain workflow yang membagi tugas secara cerdas antara mesin dan manusia. Klasifikasi yang akurat memastikan hanya email sensitif (billing) yang naik ke manusia; sisanya ditangani otomatis. Ini juga menunjukkan bahwa *human-in-the-loop* adalah fitur, bukan kelemahan: otomasi yang baik bukan menggantikan manusia, melainkan menghilangkan pekerjaan yang tidak membutuhkan manusia.
+Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model — Llama-3.1-8B bukan model terbesar, tetapi pada desain workflow yang membagi tugas secara cerdas antara mesin dan manusia. Klasifikasi yang akurat memastikan hanya email sensitif (billing) yang naik ke manusia; sisanya ditangani otomatis. Ini juga menunjukkan bahwa *human-in-the-loop* adalah fitur, bukan kelemahan: otomasi yang baik bukan menggantikan manusia, melainkan menghilangkan pekerjaan yang tidak membutuhkan manusia.
 
 ---
 

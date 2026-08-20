@@ -27,7 +27,7 @@ Sejak GitHub Copilot meramaikan pasar, para developer di seluruh dunia sudah mer
 
 Solusinya adalah membalik arah aliran data: datangkan assisan ke server Anda, bukan kirim kode Anda ke awan. Sebuah **centralized coding assistant server** — satu mesin dengan GPU, berdiri di ruang server atau di bawah meja admin — melayani semua IDE di tim melalui jaringan lokal. Setiap developer cukup memasang ekstensi di VS Code atau JetBrains, lalu semua permintaan *completion*, *chat*, dan *inline editing* diproses di dalam dinding kantor. Tidak ada kode yang bocor, tidak ada langganan per-user yang menumpuk, dan satu GPU bekerja untuk puluhan keyboard sekaligus.
 
-Perlu ditegaskan sejak awal: *centralized coding assistant* bukan pengganti penuh GitHub Copilot, melainkan pengganti yang **lebih baik secara privasi dan biaya** (lihat Tabel 1). Yang dikorbankan adalah kemudahan *setup* instan dan *ecosystem* penyedia cloud; sebagai gantinya tim mendapat kendali penuh: model bisa diganti kapan saja, konteks kode tim dipahami lebih dalam lewat *indexing*, dan tidak ada satu pun pihak ketiga yang membaca kode klien Anda. Mentalitasnya sama seperti memindahkan dapur kantor ke dalam gedung sendiri setelah sekian lama memesan katering luar.
+Perlu ditegaskan sejak awal: *centralized coding assistant* bukan pengganti penuh GitHub Copilot, melainkan pengganti yang **lebih baik secara privasi dan biaya** (lihat Tabel 3). Yang dikorbankan adalah kemudahan *setup* instan dan *ecosystem* penyedia cloud; sebagai gantinya tim mendapat kendali penuh: model bisa diganti kapan saja, konteks kode tim dipahami lebih dalam lewat *indexing*, dan tidak ada satu pun pihak ketiga yang membaca kode klien Anda. Mentalitasnya sama seperti memindahkan dapur kantor ke dalam gedung sendiri setelah sekian lama memesan katering luar.
 
 ### Mengapa Tidak Cukup dengan Ollama per Developer?
 
@@ -48,7 +48,7 @@ Fitur unggulan Tabby yang jarang dimiliki asisten coding lain: **repository-leve
 
 Dari sisi model, Tabby mendukung model open seperti **DeepSeek-Coder**, **StarCoder2**, dan **CodeLlama** melalui *backend* llama.cpp — tanpa dependensi ke layanan komersial mana pun. Kebutuhan sumber dayanya bersahabat untuk small office: **minimal 8 GB VRAM untuk context 16K**, dan **rekomendasi 24 GB untuk context 32K**. Sebuah RTX 4090 24 GB atau dua RTX 3090 yang dipasang *used* sudah cukup untuk melayani belasan developer aktif secara nyaman.
 
-### Tabel 3: Kebutuhan Resource Tabby Server
+### Tabel 1: Kebutuhan Resource Tabby Server
 
 Terakhir, pilih konfigurasi berdasarkan jumlah pengguna yang harus dilayani — tabel ini menjadi acuan *sizing* sebelum Anda membeli atau mengalokasikan GPU.
 
@@ -81,7 +81,7 @@ Fitur yang membuat Continue digemari: **@mentions** ke file dan konteks — cuku
 
 ### Pembagian Peran: Tabby untuk Completion, Continue untuk Chat
 
-Perbedaan filosofi ini penting dipahami sebelum memilih (lihat Tabel 1). Tabby hadir sebagai *server* lengkap dengan *indexing* repository dan dashboard admin; Continue hadir sebagai *client* yang fleksibel tanpa pengelolaan server. Di banyak kasus, jawaban terbaik bukan memilih salah satu, melainkan **kombinasi keduanya**: Tabby sebagai mesin *completion* terpusat, dan Continue di setiap IDE sebagai antarmuka yang menambahkan *chat* dan *inline editing* ke model vLLM yang lebih besar.
+Perbedaan filosofi ini penting dipahami sebelum memilih (lihat Tabel 3). Tabby hadir sebagai *server* lengkap dengan *indexing* repository dan dashboard admin; Continue hadir sebagai *client* yang fleksibel tanpa pengelolaan server. Di banyak kasus, jawaban terbaik bukan memilih salah satu, melainkan **kombinasi keduanya**: Tabby sebagai mesin *completion* terpusat, dan Continue di setiap IDE sebagai antarmuka yang menambahkan *chat* dan *inline editing* ke model vLLM yang lebih besar.
 
 ---
 
@@ -90,7 +90,7 @@ Perbedaan filosofi ini penting dipahami sebelum memilih (lihat Tabel 1). Tabby h
 
 Keputusan pemilihan sebaiknya mengikuti tiga pertanyaan. **Pertama, berapa ukuran tim?** Untuk tim di atas 10 developer, pengelolaan terpusat menjadi kebutuhan — Tabby unggul dengan *centralized management*, *repository indexing*, dan *admin dashboard*. Untuk tim di bawah 10 developer, beban administrasi Tabby bisa berlebihan; Continue yang langsung terhubung ke Ollama/vLLM yang sudah ada lebih praktis. **Kedua, seberapa penting fleksibilitas model?** Continue memenangkan kategori ini dengan dukungan *backend* apa pun. **Ketiga, apakah Anda butuh visibilitas pemakaian?** Hanya Tabby yang menyediakan *dashboard* pemakaian per developer. Bila jawaban ketiganya campur, jangan ragu menjalankan keduanya secara paralel — keduanya open source dan tidak saling mengunci.
 
-### Tabel 1: Tabby vs Continue vs GitHub Copilot
+### Tabel 2: Tabby vs Continue vs GitHub Copilot
 
 Berikut peta lengkap ketiga pendekatan utama agar keputusan tim Anda berbasis perbandingan langsung, bukan rumor.
 
@@ -119,9 +119,9 @@ Pemilihan model menentukan dua hal: kualitas saran dan kapasitas pengguna. Untuk
 
 Untuk tim besar yang sering bekerja dengan *repository* raksasa, ada kelas baru yang menarik: **DeepSeek V4 Flash** (284B parameter, 13B aktif, lisensi MIT, konteks **1 juta token**) — seluruh *codebase* perusahaan dapat masuk ke dalam satu konteks tanpa *chunking*, mengubah cara *code review* dilakukan. Terakhir, jika tim sudah matang, jalan berikutnya adalah **fine-tuning dengan QLoRA** untuk mengadaptasi model ke gaya kode dan domain bisnis Anda sendiri — topik yang akan dibahas lebih dalam pada jilid berikutnya.
 
-Sebagai panduan kasar memilih posisi di Tabel 2: mulailah dari model 6-8B untuk *completion* dan 14B untuk *chat* — pasangan ini adalah titik manis antara kualitas, VRAM, dan *latency* bagi tim di bawah 20 developer. Naik ke 33B hanya jika *review* kode membutuhkan pemahaman lintas file yang dalam; melompat ke DeepSeek V4 Flash hanya jika tim sering membaca *codebase* puluhan ribu baris dalam sekali konteks. Turun ke model 1.3-3B hanya untuk pengujian atau *autocomplete* di mesin tanpa GPU. Prinsipnya: beli kemampuan yang benar-benar dipakai, bukan yang paling mengesankan di *leaderboard*.
+Sebagai panduan kasar memilih posisi di Tabel 3: mulailah dari model 6-8B untuk *completion* dan 14B untuk *chat* — pasangan ini adalah titik manis antara kualitas, VRAM, dan *latency* bagi tim di bawah 20 developer. Naik ke 33B hanya jika *review* kode membutuhkan pemahaman lintas file yang dalam; melompat ke DeepSeek V4 Flash hanya jika tim sering membaca *codebase* puluhan ribu baris dalam sekali konteks. Turun ke model 1.3-3B hanya untuk pengujian atau *autocomplete* di mesin tanpa GPU. Prinsipnya: beli kemampuan yang benar-benar dipakai, bukan yang paling mengesankan di *leaderboard*.
 
-### Tabel 2: Model untuk Coding Assistant
+### Tabel 3: Model untuk Coding Assistant
 
 Sebelum mengisi konfigurasi, kenali lini model coding yang bisa Anda pakai beserta kebutuhan VRAM dan kecepatannya (asumsi kuantisasi Q4).
 
@@ -182,7 +182,7 @@ graph TB
 
 Diagram ini memetakan tiga lapisan penting. **Lapisan pertama**, *Developer IDEs*, adalah wajah yang dilihat pengguna — semuanya berbicara ke satu alamat via HTTP. **Lapisan kedua**, Tabby Server, adalah otak: API server menerima permintaan, *Repository Index* yang disinkronkan dari Git menyediakan konteks kode perusahaan, dan model DeepSeek-Coder menghasilkan saran. **Lapisan ketiga** adalah *backend* tambahan untuk Continue — vLLM untuk model chat besar dan Ollama untuk model kecil — yang diakses secara opsional dengan jalur putus-putus. Garis putus-putus inilah yang menandakan fleksibilitas Continue: tanpa mengubah apa pun di sisi server, setiap developer bisa memilih *backend* sesuai kebutuhannya.
 
-Setelah arsitektur hidup, dua tempat patut dikunjungi untuk memastikan semuanya sehat. Pertama, **Tabby admin dashboard** — tampilan yang merangkum *user aktif*, statistik *completion*, dan pemakaian model; dari sini Anda bisa tahu developer mana yang belum memasang ekstensi dan model mana yang paling banyak dipanggil. Kedua, pengalaman **Continue di VS Code** dengan *backend* Tabby — *inline completion* yang muncul saat mengetik adalah ujian paling jujur: jika saran terasa lambat atau meleset, kembali ke Tabel 2 dan Tabel 3 untuk mengevaluasi ulang pilihan model dan kapasitas VRAM.
+Setelah arsitektur hidup, dua tempat patut dikunjungi untuk memastikan semuanya sehat. Pertama, **Tabby admin dashboard** — tampilan yang merangkum *user aktif*, statistik *completion*, dan pemakaian model; dari sini Anda bisa tahu developer mana yang belum memasang ekstensi dan model mana yang paling banyak dipanggil. Kedua, pengalaman **Continue di VS Code** dengan *backend* Tabby — *inline completion* yang muncul saat mengetik adalah ujian paling jujur: jika saran terasa lambat atau meleset, kembali ke Tabel 3 dan Tabel 3 untuk mengevaluasi ulang pilihan model dan kapasitas VRAM.
 
 ---
 
@@ -226,7 +226,7 @@ docker exec tabby tabby scheduler \
   --git-branch main
 ```
 
-Catatan praktis: ganti `StarCoder2-7B` dengan model pilihan dari Tabel 2 (misalnya DeepSeek-Coder-6.7B) sesuai kapasitas VRAM Anda. Variabel `TABBY_DISABLE_USAGE_COLLECTION=1` mematikan telemetri — sesuai prinsip privasi kode yang menjadi alasan utama memilih self-hosted. Langkah keempat adalah kunci dari *repository-level context*: tanpa menjalankan *scheduler* ini, Tabby tidak akan mengenal kode internal tim.
+Catatan praktis: ganti `StarCoder2-7B` dengan model pilihan dari Tabel 3 (misalnya DeepSeek-Coder-6.7B) sesuai kapasitas VRAM Anda. Variabel `TABBY_DISABLE_USAGE_COLLECTION=1` mematikan telemetri — sesuai prinsip privasi kode yang menjadi alasan utama memilih self-hosted. Langkah keempat adalah kunci dari *repository-level context*: tanpa menjalankan *scheduler* ini, Tabby tidak akan mengenal kode internal tim.
 
 ### Langkah 2: Konfigurasi Continue dengan Backend Tabby
 
@@ -338,13 +338,13 @@ Bacaan hasilnya: **P50** mewakili pengalaman pengguna "biasa", sementara **P95**
 - Model open code LLM yang menjadi salah satu opsi backend Tabby; dasar pembahasan model completion.
 
 [3] Guo, D., Zhu, Q., Yang, D., et al. (2024). *DeepSeek-Coder: When the Large Language Model Meets Programming — The Rise of Code AI*. arXiv: 2401.14196. DOI: [10.48550/arXiv.2401.14196](https://arxiv.org/abs/2401.14196)
-- Model coding utama yang direkomendasikan untuk Tabby; kualitas completion di Tabel 2 merujuk benchmark paper ini.
+- Model coding utama yang direkomendasikan untuk Tabby; kualitas completion di Tabel 3 merujuk benchmark paper ini.
 
 [4] Qwen Team, Alibaba Group. (2025). *Qwen-2.5-Coder: A Strong Code Language Model*. arXiv: 2502.02368. DOI: [10.48550/arXiv.2502.02368](https://arxiv.org/abs/2502.02368)
 - Alternatif model coding terbaru dengan dukungan multilingual; relevan untuk tim multi-bahasa.
 
 [5] Chen, M., Tworek, J., Jun, H., et al. (2021). *Evaluating Large Language Models Trained on Code*. NeurIPS. DOI: [10.48550/arXiv.2107.03374](https://arxiv.org/abs/2107.03374)
-- Memperkenalkan benchmark HumanEval — standar evaluasi code generation yang dirujuk di Tabel 2.
+- Memperkenalkan benchmark HumanEval — standar evaluasi code generation yang dirujuk di Tabel 3.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 

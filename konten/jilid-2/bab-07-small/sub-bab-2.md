@@ -29,7 +29,7 @@ Perbandingan biaya di pasar Indonesia membuat pilihan ini hampir tanpa debat: **
 
 ### Kapan Satu GPU Sudah Cukup?
 
-Kejujuran arsitektur menuntut kita mengakui: tidak semua kantor butuh dua kartu. Kembali ke Tabel 2 Bab 7.1 — untuk **9-12 user dengan *coding* ringan**, satu RTX 4090 24 GB dengan model 14B (Ministral 3 14B atau Qwen-2.5-Coder-14B) melayani ~5 pengguna bersamaan dengan latensi excellent, dan *power budget* turun setengah. Dua GPU baru wajib ketika: (1) jumlah user lewat 12 dan *concurrency* melewati ~8, (2) tim mulai menuntut model 70B untuk *reasoning* berat, atau (3) model besar dan *code completion* harus berjalan bersamaan tanpa saling berebut. Membeli kartu kedua sebelum kebutuhan itu muncul hanya menambah biaya listrik dan kebisingan — keputusan *upgrade* yang baik selalu didahului pengukuran antrean vLLM, bukan perasaan "biar keren".
+Kejujuran arsitektur menuntut kita mengakui: tidak semua kantor butuh dua kartu. Kembali ke Tabel 2 Bab 7.1 — untuk **9-12 user dengan *coding* ringan**, satu RTX 4090 24 GB dengan model 14B (Ministral 3 (14B) atau Qwen 2.5 Coder (14B)) melayani ~5 pengguna bersamaan dengan latensi excellent, dan *power budget* turun setengah. Dua GPU baru wajib ketika: (1) jumlah user lewat 12 dan *concurrency* melewati ~8, (2) tim mulai menuntut model 70B untuk *reasoning* berat, atau (3) model besar dan *code completion* harus berjalan bersamaan tanpa saling berebut. Membeli kartu kedua sebelum kebutuhan itu muncul hanya menambah biaya listrik dan kebisingan — keputusan *upgrade* yang baik selalu didahului pengukuran antrean vLLM, bukan perasaan "biar keren".
 
 ### Pasar GPU Bekas: Kebijaksanaan dan Risikonya
 
@@ -47,12 +47,12 @@ Sebelum merakit, kita harus menguasai tabel berikut — ini adalah *mata uang* p
 
 | Teknologi | Bandwidth | Latensi | Harga Bridge | Scaling TP | Tersedia di |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **NVLink 3.0 (RTX 3090)** | 112.5 GB/s | Sangat rendah | ~$80-120 | 1.6-1.7x | RTX 3090 only |
-| **PCIe 4.0 x8/x8** | 32 GB/s | Rendah | Gratis | 1.3-1.4x | Semua consumer |
-| **PCIe 5.0 x8/x8** | 64 GB/s | Rendah | Gratis | 1.4-1.5x | Z790/X670E+ |
-| **PCIe 5.0 x16/x16** | 128 GB/s | Rendah | Gratis | 1.5-1.6x | TRX50/W790 |
+| **NVLink 3.0 (RTX 3090)** | 112,5 GB/s | Sangat rendah | ~$80-120 | 1,6-1,7x | RTX 3090 only |
+| **PCIe 4.0 x8/x8** | 32 GB/s | Rendah | Gratis | 1,3-1,4x | Semua consumer |
+| **PCIe 5.0 x8/x8** | 64 GB/s | Rendah | Gratis | 1,4-1,5x | Z790/X670E+ |
+| **PCIe 5.0 x16/x16** | 128 GB/s | Rendah | Gratis | 1,5-1,6x | TRX50/W790 |
 
-Analisis jujurnya: NVLink menawarkan *scaling* terbaik tetapi tersandera pada kartu 2020. PCIe 5.0 x16/x16 nyaris menyamai *scaling* NVLink (1.5-1.6x vs 1.6-1.7x) dan gratis — hanya saja sulit ditemukan di papan consumer. Untuk kantor dengan anggaran ketat, pilihan paling rasional adalah salah satu dari dua: RTX 3090 bekas + bridge (efisiensi maksimal) atau RTX 4090 + board workstation (jalan modern tanpa jembatan). PCIe 4.0 x8/x8 sebaiknya dihindari untuk tensor parallelism — *scaling*-nya turun ke 1.3-1.4x, dan untuk itu lebih baik beralih ke pipeline parallelism sama sekali.
+Analisis jujurnya: NVLink menawarkan *scaling* terbaik tetapi tersandera pada kartu 2020. PCIe 5.0 x16/x16 nyaris menyamai *scaling* NVLink (1,5-1,6x vs 1,6-1,7x) dan gratis — hanya saja sulit ditemukan di papan consumer. Untuk kantor dengan anggaran ketat, pilihan paling rasional adalah salah satu dari dua: RTX 3090 bekas + bridge (efisiensi maksimal) atau RTX 4090 + board workstation (jalan modern tanpa jembatan). PCIe 4.0 x8/x8 sebaiknya dihindari untuk tensor parallelism — *scaling*-nya turun ke 1,3-1,4x, dan untuk itu lebih baik beralih ke pipeline parallelism sama sekali.
 
 
 ### Tabel 2: Rekomendasi Build Small Office
@@ -80,13 +80,13 @@ Semua angka benchmark di bawah berasal dari pengukuran komunitas (r/LocalLLaMA d
 
 | Model | Kuantisasi | 1x RTX 4090 | 2x RTX 3090 (NVLink) | 2x RTX 4090 (PCIe 5) |
 |:---|:---|:---:|:---:|:---:|
-| **Llama-3.1-8B** | Q4_K_M | ~85 t/s | ~75 t/s | ~90 t/s |
-| **Qwen-2.5-14B** | Q4_K_M | ~45 t/s | ~55 t/s | ~60 t/s |
-| **Ministral 3 14B** | Q4_K_M | ~50 t/s | ~58 t/s | ~65 t/s |
-| **Qwen3.6-27B** | Q4_K_M | ~22 t/s | ~30 t/s | ~35 t/s |
-| **Llama-3.1-70B** | Q3_K_M | OOM | ~18 t/s | ~16 t/s |
-| **Llama-3.1-70B** | Q4_K_M | OOM | ~12 t/s | ~10 t/s |
-| **DeepSeek-Coder-67B** | Q4_K_M | OOM | ~14 t/s | ~12 t/s |
+| **Llama 3.1 (8B)** | Q4_K_M | ~85 t/s | ~75 t/s | ~90 t/s |
+| **Qwen 2.5 (14B)** | Q4_K_M | ~45 t/s | ~55 t/s | ~60 t/s |
+| **Ministral 3 (14B)** | Q4_K_M | ~50 t/s | ~58 t/s | ~65 t/s |
+| **Qwen 3.6 (27B)** | Q4_K_M | ~22 t/s | ~30 t/s | ~35 t/s |
+| **Llama 3.1 (70B)** | Q3_K_M | OOM | ~18 t/s | ~16 t/s |
+| **Llama 3.1 (70B)** | Q4_K_M | OOM | ~12 t/s | ~10 t/s |
+| **DeepSeek Coder (67B)** | Q4_K_M | OOM | ~14 t/s | ~12 t/s |
 | **DeepSeek V4 Flash** | Q4_K_M | OOM | ~20 t/s | ~18 t/s |
 | **Mistral Large 3** | Q3_K_M | OOM | ~15 t/s | ~13 t/s |
 
@@ -96,7 +96,7 @@ Semua angka benchmark di bawah berasal dari pengukuran komunitas (r/LocalLLaMA d
 
 Bacaan penting tabel ini ada tiga. **Pertama**, pada model 8-14B, satu GPU 4090 saja sudah *competitive* — jangan beli kartu kedua hanya untuk model kecil; utilitas kartu kedua muncul pada model 27B ke atas. **Kedua**, semua model penguji 70B+ menghasilkan "OOM" pada satu kartu — inilah bukti mengapa *multi-GPU* bukan tren tetapi kebutuhan. **Ketiga**, pola menarik antara kolom 3090-NVLink dan 4090-PCIe: pada model besar, 3090 bekas justru mengungguli 4090 baru (18 vs 16 t/s untuk Llama-70B Q3) — persis karena NVLink menebus kekurangan kartu yang lebih tua. Untuk DeepSeek V4 Flash yang berjalan 20 t/s di 64GB NVLink: angka itu berarti **~1.200 token/menit** per sesi — cukuplah untuk 8-10 user chat ringan sekaligus saat digabung dengan model kecil untuk *completion*.
 
-Perhatikan juga apa yang *tidak* ada di tabel: angka untuk 2x RTX 5090 (64 GB). Alasannya instruktif — pada saat tabel ini ditulis, data *benchmark* publik untuk model 70B di konfigurasi tersebut masih terlalu jarang untuk diklaim, dan ini sendiri adalah pelajaran: **jangan mempercayai angka *benchmark* yang tidak bisa Anda lacak sumbernya** [10]. Alur kerja yang benar: ambil tabel ini sebagai hipotesis, bangun sistem Anda, lalu jalankan `all_reduce_perf` dan `lm-eval` sendiri (Tutorial A) — angka di meja Anda adalah satu-satunya kebenaran yang relevan.
+Perhatikan juga apa yang *tidak* ada di tabel: angka untuk 2x RTX 5090 (64 GB). Alasannya instruktif — pada saat tabel ini ditulis, data *benchmark* publik untuk model 70B di konfigurasi tersebut masih terlalu jarang untuk diklaim, dan ini sendiri adalah pelajaran: **jangan mempercayai angka *benchmark* yang tidak bisa Anda lacak sumbernya** [10]. Alur kerja yang benar: ambil tabel ini sebagai hipotesis, bangun sistem Anda, lalu jalankan `all_reduce_perf` dan `lm-eval` sendiri (Langkah 1) — angka di meja Anda adalah satu-satunya kebenaran yang relevan.
 
 ---
 
@@ -116,21 +116,21 @@ graph LR
     end
 ```
 
-Diagram ini menangkap perbedaan fundamental kedua topologi. Di atas: GPU 0 dan GPU 1 terhubung langsung oleh jalur NVLink 112,5 GB/s — operasi *AllReduce* tensor parallelism terjadi *peer-to-peer* tanpa perantara. Di bawah: setiap pertukaran data harus singgah di CPU — jalur PCIe 64 GB/s dua arah, latensi bertambah, dan baris *AllReduce* digambar putus-putus karena bergantung pada jalur yang sama. Itulah mengapa untuk tensor parallelism NVLink unggul 40-60%, sementara untuk pipeline parallelism kedua topologi hampir identik.
+Diagram ini menangkap perbedaan fundamental kedua topologi. Di atas: GPU 0 dan GPU 1 terhubung langsung oleh jalur NVLink 112,5 GB/s — operasi *AllReduce* tensor parallelism terjadi *peer-to-peer* tanpa perantara. Di bawah: setiap pertukaran data harus singgah di CPU — jalur PCIe 64 GB/s dua arah, latensi bertambah, dan baris *AllReduce* digambar putus-putus karena bergantung pada jalur yang sama. Itulah mengapa untuk tensor parallelism NVLink unggul 40-60% [Sumber?], sementara untuk pipeline parallelism kedua topologi hampir identik.
 
 
 ### Gambar 2: Grafik Scaling Multi-GPU per Model
 
 ```mermaid
 graph LR
-    A[1x RTX 4090] -->|Base 100%| B[Llama-3.1-8B 85 t/s]
+    A[1x RTX 4090] -->|Base 100%|     B[Llama 3.1 (8B) 85 t/s]
     C[2x RTX 3090 NVLink] -->|75 t/s, scaling 0.88x| B
     D[2x RTX 4090 PCIe 5] -->|90 t/s, scaling 1.06x| B
 ```
 
 Grafik ringkas ini merangkum insight utama benchmark: **scaling bukan jaminan** — pada model kecil (8B), dua GPU bahkan bisa lebih lambat daripada satu (75 vs 85 t/s) karena data yang dibagi lebih kecil dari biaya komunikasi antar kartu. *Scaling* baru menguntungkan ketika model cukup besar sehingga paralelisasi menang atas biaya komunikasi — temuan yang sama yang membuat Megatron-LM menekankan pentingnya *tensor parallelism* hanya untuk model multi-miliar parameter [1].
 
-Implikasi praktis dari grafik ini untuk kantor kecil: **selalu mulai dari satu GPU, bootstrap ke dua GPU**. Pasang model 14B di satu kartu, ukur kepuasan tim, dan baru menambah kartu kedua ketika pengukuran menunjukkan *queue time* yang mulai terasa. Angka *scaling* 1.4-1.7x yang populer di forum hanya berlaku pada model yang memang cukup besar untuk dibagi — dan mengukur lebih murah daripada menebak.
+Implikasi praktis dari grafik ini untuk kantor kecil: **selalu mulai dari satu GPU, bootstrap ke dua GPU**. Pasang model 14B di satu kartu, ukur kepuasan tim, dan baru menambah kartu kedua ketika pengukuran menunjukkan *queue time* yang mulai terasa. Angka *scaling* 1,4-1,7x yang populer di forum hanya berlaku pada model yang memang cukup besar untuk dibagi — dan mengukur lebih murah daripada menebak.
 
 ---
 
@@ -156,7 +156,7 @@ Ringkasnya, hierarki keputusan untuk kantor kecil:
 
 1. Jika memakai **RTX 3090 bekas** — beli *NVLink bridge* bekas (~$80), gunakan tensor parallelism, dapatkan *scaling* terbaik.
 2. Jika memakai **RTX 4090/5090** — tidak ada NVLink; gunakan tensor parallelism lewat PCIe 5.0 x16/x16 (motherboard TRX50/W790) atau, bila hanya x8/x8, pertimbangkan pipeline parallelism agar *penalty* tetap kecil.
-3. Selalu verifikasi dengan pengukuran NCCL *benchmark* — bukan dengan perasaan — apakah konfigurasi Anda benar-benar memberikan *scaling* yang diharapkan (Tutorial A).
+3. Selalu verifikasi dengan pengukuran NCCL *benchmark* — bukan dengan perasaan — apakah konfigurasi Anda benar-benar memberikan *scaling* yang diharapkan (Langkah 1).
 
 ---
 
@@ -182,7 +182,7 @@ Dua RTX 3090/4090 berarti total **TDP 700-900W** hanya untuk kartu. Tambahkan CP
 
 ### Dingin: Musuh Nomor Satu
 
-*Thermal throttling* adalah musuh terbesar *uptime*. Dua kartu 350W dalam satu *chassis* adalah dua kompor menyala di satu dapur — dan dapur harus dirancang untuk itu. Rekomendasi: *airflow case* besar seperti Fractal Meshify atau Lian Li dengan keseimbangan *intake* dan *exhaust* yang jelas (panas naik dan keluar, bukan berputar di dalam), atau *custom water cooling* bagi yang serius mengejar senyap dan suhu stabil. Monitor temperatur setiap GPU dengan skrip pada Tutorial C — jika kartu kedua lebih panas 10°C dari kartu pertama, aliran udara sedang salah.
+*Thermal throttling* adalah musuh terbesar *uptime*. Dua kartu 350W dalam satu *chassis* adalah dua kompor menyala di satu dapur — dan dapur harus dirancang untuk itu. Rekomendasi: *airflow case* besar seperti Fractal Meshify atau Lian Li dengan keseimbangan *intake* dan *exhaust* yang jelas (panas naik dan keluar, bukan berputar di dalam), atau *custom water cooling* bagi yang serius mengejar senyap dan suhu stabil. Monitor temperatur setiap GPU dengan skrip pada Langkah 3 — jika kartu kedua lebih panas 10°C dari kartu pertama, aliran udara sedang salah.
 
 ### Kabel, Slot, dan Detail yang Menggagalkan Build
 
@@ -199,23 +199,22 @@ Workstation 900W bukan perabot meja kerja: ia adalah penduduk ruang server. Suhu
 
 Pilihan model akhirnya dibatasi satu variabel: VRAM. Berikut peta yang menjadi dasar Tabel 3.
 
-- **Dengan 2x 24GB VRAM (48 GB):** Llama-3.1-70B Q4_K_M, Qwen-3-32B Q8_0, DeepSeek-Coder-67B Q4_K_M, dan Qwen3.6-27B Q8.
+- **Dengan 2x 24GB VRAM (48 GB):** Llama 3.1 (70B) Q4_K_M, Qwen 3 (32B) Q8_0, DeepSeek Coder (67B) Q4_K_M, dan Qwen 3.6 (27B) Q8.
 - **Dengan 2x 32GB VRAM (64 GB):** model MoE kelas server terbuka — **DeepSeek V4 Flash** (284B total / 13B aktif) dalam Q4_K_M dan **Mistral Large 3** (675B / 41B aktif) dalam Q3_K_M [12][13].
-- **Dengan 1x 24GB saja:** Ministral 3 14B Q4_K_M, Qwen-2.5-Coder-14B Q8, dengan *fallback* API bila perlu.
-- **Dengan CPU offload:** Mixtral-8x22B Q4_K_M dan Command-R+ Q3_K_M — model besar yang melewati batas VRAM tetapi masih berjalan dengan *penalty* kecepatan.
+- **Dengan 1x 24GB saja:** Ministral 3 (14B) Q4_K_M, Qwen 2.5 Coder (14B) Q8, dengan *fallback* API bila perlu.
+- **Dengan CPU offload:** Mixtral 8x22B Q4_K_M dan Command-R+ Q3_K_M — model besar yang melewati batas VRAM tetapi masih berjalan dengan *penalty* kecepatan.
 
 Dua baris teratas tabel ini menandai pergeseran menarik: di 64 GB, model MoE besar seperti DeepSeek V4 Flash menjalankan *quality* kelas frontier hanya dengan 13B parameter aktif per token — komputasi sebanding model kecil, pengetahuan sebanding model besar, dan konteks mencapai 1 juta token [12]. Untuk kantor 20 user, inilah pilihan "server-class open" di Tabel 2 Bab 7.1.
 
 ### Menghitung Kebutuhan KV Cache untuk Concurrency
 
-Memilih model hanya dengan VRAM *weight* adalah cara berpikir generasi lalu. Perhitungan jujur harus menyertakan **KV cache** — memori yang tumbuh seiring konteks dan *concurrency*: lebih banyak sesi paralel berarti lebih banyak KV cache yang menempel. Model 70B Q4_K_M yang menghabiskan ~40 GB *weight* menyisakan ~8 GB dari 48 GB untuk KV cache — cukup untuk beberapa sesi konteks 8K, tetapi sempit untuk percakapan 32K. Inilah alasan strategis memilih MoE berparameter kecil-aktif seperti DeepSeek V4 Flash (Q4: ~150 GB di 64 GB VRAM justru tidak muat — perhatikan Tabel C hanya menjalankannya di konfigurasi 64 GB): saat VRAM sempit, pilih model dengan *weight* yang pas dan sisakan ruang KV cache yang jelas. Teknik ZeRO dari DeepSeek, yang memindahkan sebagian state ke CPU saat VRAM habis, adalah *last resort* — berfungsi, tetapi latensi naik [3].
+Memilih model hanya dengan VRAM *weight* adalah cara berpikir generasi lalu. Perhitungan jujur harus menyertakan **KV cache** — memori yang tumbuh seiring konteks dan *concurrency*: lebih banyak sesi paralel berarti lebih banyak KV cache yang menempel. Model 70B Q4_K_M yang menghabiskan ~40 GB *weight* menyisakan ~8 GB dari 48 GB untuk KV cache — cukup untuk beberapa sesi konteks 8K, tetapi sempit untuk percakapan 32K. Inilah alasan strategis memilih MoE berparameter kecil-aktif seperti DeepSeek V4 Flash (Q4: ~150 GB di 64 GB VRAM justru tidak muat — perhatikan Tabel 3 hanya menjalankannya di konfigurasi 64 GB): saat VRAM sempit, pilih model dengan *weight* yang pas dan sisakan ruang KV cache yang jelas. Teknik ZeRO dari DeepSeek, yang memindahkan sebagian state ke CPU saat VRAM habis, adalah *last resort* — berfungsi, tetapi latensi naik [3].
 
 ---
 
-## 7. Tutorial / Hands-On
+## 7. Praktikum / Hands-On
 
-
-### Tutorial A: Verifikasi NVLink dan PCIe di Linux
+### Langkah 1: Verifikasi NVLink dan PCIe di Linux
 
 Sebelum men-deploy apa pun, pastikan sistem *melihat* kedua kartu dan interkoneksinya benar. Skrip berikut adalah pemeriksaan medis pertama server Anda.
 
@@ -245,7 +244,7 @@ make
 
 Jelaskan apa yang Anda lihat: `nvidia-smi topo -m` menampilkan matriks koneksi antar GPU — label *NV2* menunjukkan NVLink 2 jalur aktif, sementara *PIX* atau *PHB* berarti GPU hanya terhubung lewat PCIe. Cek `pcie.link.*` untuk memastikan kartu berjalan di Gen yang benar — x8 dengan Gen 1 adalah gejala kabel riser atau BIOS yang salah. Uji terakhir, `all_reduce_perf`, adalah pengukuran jujur: *bandwidth* GPU-to-GPU sebenarnya. Jika angka Anda jauh di bawah 112 GB/s pada RTX 3090, jembatan NVLink tidak terpasang benar.
 
-### Tutorial B: Setup vLLM dengan Tensor Parallelism
+### Langkah 2: Setup vLLM dengan Tensor Parallelism
 
 Sekarang saatnya memanfaatkan dua GPU. vLLM mendukung baik *tensor* maupun *pipeline parallelism* — pilihan Anda bergantung pada temuan Seksi 3.
 
@@ -272,7 +271,7 @@ python -m vllm.entrypoints.openai.api_server \
 
 Dua argumen kunci: `--tensor-parallel-size 2` membagi model horizontal ke kedua GPU (butuh interconnect cepat), sedangkan `--pipeline-parallel-size 2` membagi vertikal (toleran terhadap PCIe). `--gpu-memory-utilization 0.90` memberi ruang 10% untuk KV cache dan runtime — jangan diisi 1.0 jika ada layanan lain seperti Tabby di kartu yang sama. Setelah server hidup di port 8000, uji dengan `curl` dan hubungkan Open WebUI—pola yang dibahas di Bab 7.3.
 
-### Tutorial C: Monitoring Temperatur dan Power Multi-GPU
+### Langkah 3: Monitoring Temperatur dan Power Multi-GPU
 
 Produksi membutuhkan mata terus-menerus. Skrip Python berikut memantau kedua kartu setiap 10 detik — cukup untuk *dashboard* terminal di dinding ruang server.
 
@@ -321,9 +320,9 @@ Skrip ini adalah inti dari *thermal policy* kantor Anda: jika suhu kartu konsist
 ## 8. Studi Kasus: Build Dual RTX 3090 untuk Kantor Hukum Teknologi
 
 
-Sebuah firma hukum teknologi dengan 15 pengacara dan 5 paralegal menghadapi masalah menarik: *knowledge base* 50 GB dokumen hukum (kontrak, *judicial review*, regulasi) yang harus dijawab model tanpa satu potong pun keluar kantor, dan *drafting* kontrak berbahasa Indonesia yang harus berjalan real-time. Kandidat model: Llama-3.1-70B Q4_K_M — akurat, tetapi butuh 48 GB.
+Sebuah firma hukum teknologi dengan 15 pengacara dan 5 paralegal menghadapi masalah menarik: *knowledge base* 50 GB dokumen hukum (kontrak, *judicial review*, regulasi) yang harus dijawab model tanpa satu potong pun keluar kantor, dan *drafting* kontrak berbahasa Indonesia yang harus berjalan real-time. Kandidat model: Llama 3.1 (70B) Q4_K_M — akurat, tetapi butuh 48 GB.
 
-**Hardware** yang dipilih: **2x RTX 3090 bekas dengan bridge NVLink**, Threadripper 7960X, 128GB RAM, 4TB NVMe. Alasan memilih 3090: NVLink membuat *tensor parallelism* efisien untuk model 70B, dan biaya dua kartu bekas sekitar **Rp 28 juta** — setara satu RTX 4090 baru, tetapi VRAM dua kali lipat. **Software**: vLLM dengan TP=2, Llama-3.1-70B Q4_K_M, Open WebUI untuk para pengacara, dan Qdrant untuk RAG dokumen.
+**Hardware** yang dipilih: **2x RTX 3090 bekas dengan bridge NVLink**, Threadripper 7960X, 128GB RAM, 4TB NVMe. Alasan memilih 3090: NVLink membuat *tensor parallelism* efisien untuk model 70B, dan biaya dua kartu bekas sekitar **Rp 28 juta** — setara satu RTX 4090 baru, tetapi VRAM dua kali lipat. **Software**: vLLM dengan TP=2, Llama 3.1 (70B) Q4_K_M, Open WebUI untuk para pengacara, dan Qdrant untuk RAG dokumen.
 
 **Tantangan** yang muncul selama *burn-in*: PSU 1200W yang semula dirasa cukup ternyata nyaris jebol saat kedua GPU *full load* (2×350W = 700W ditambah CPU ~200W = 900W, dan *spike* sesaat lebih tinggi). Tim meng-upgrade ke **1600W** dan mencatat pelajaran: *headroom* PSU di atas kertas tidak menghitung *spike* daya sesaat inference.
 

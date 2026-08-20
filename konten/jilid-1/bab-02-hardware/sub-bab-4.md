@@ -139,7 +139,7 @@ Riset terbaru juga menunjukkan bahwa "menaruh data di SSD" bisa menjadi lebih pi
 
 Sebelum melangkah ke teknik optimasi, satu ketakutan umum perlu diluruskan: **apakah offloading merusak SSD?** Jawaban singkatnya — tidak, dalam skala yang Anda bayangkan. Pola I/O offloading yang didominasi *read* dengan *write bandwidth* hanya sekitar 11 MiB/s [1] berarti siklus tulis yang ditanggung SSD sangat kecil dibanding beban normal sehari-hari. Keausan NAND (TBW, *TeraBytes Written*) hanya terakumulasi cepat pada operasi tulis besar-besaran — sesuatu yang dilakukan *benchmark* sintetis, bukan offloading LLM. Anda bisa menjalankan server LLM 24/7 dengan offloading aktif tanpa khawatir umur SSD menyusut secara berarti; kekhawatiran yang lebih beralasan justru terletak pada *latency*, yang ditangani oleh teknik pada seksi berikut.
 
-### Tabel 3: Karakteristik I/O Offloading (Data CHEOPS '25)
+### Tabel 2: Karakteristik I/O Offloading (Data CHEOPS '25)
 
 Terakhir, tabel ini merangkum temuan studi CHEOPS 2025 [1] tentang bagaimana dua sistem offloading populer memperlakukan NVMe SSD.
 
@@ -249,7 +249,7 @@ dd if=/dev/zero of=test_model.bin bs=1M count=4608
 time cat test_model.bin > /dev/null
 ```
 
-Pada langkah 6, Anda mensimulasikan persis beban kerja model 7B Q4_K_M — file ukuran 4,5 GB yang dibaca beruntun. Bandingkan waktu `cat` Anda dengan tabel estimasi pada Tabel 3: jika berada di sekitar 0,35 detik berarti Anda masih di Gen 3, sekitar 0,18 detik berarti Gen 4. Ingatlah juga bahwa angka `fio` dan `hdparm` menunjukkan *raw hardware*; loading model nyata akan lebih lambat karena melibatkan driver dan *filesystem*.
+Pada langkah 6, Anda mensimulasikan persis beban kerja model 7B Q4_K_M — file ukuran 4,5 GB yang dibaca beruntun. Bandingkan waktu `cat` Anda dengan tabel estimasi pada Tabel 2: jika berada di sekitar 0,35 detik berarti Anda masih di Gen 3, sekitar 0,18 detik berarti Gen 4. Ingatlah juga bahwa angka `fio` dan `hdparm` menunjukkan *raw hardware*; loading model nyata akan lebih lambat karena melibatkan driver dan *filesystem*.
 
 ### Langkah 2: Loader Model dengan Pinned Memory dan Async Prefetch
 

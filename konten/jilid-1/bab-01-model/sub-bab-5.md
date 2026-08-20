@@ -74,7 +74,7 @@ Agar Anda bisa "menerjemahkan" skor, berikut peta interpretasi lima benchmark ut
 | GPQA | Sains tingkat PhD | 0-shot CoT | Multiple choice (4) | 25% | ~65% |
 | MT-Bench | Kualitas percakapan | Multi-turn | GPT-4 judge 1-10 | N/A | N/A |
 
-Kolom "Skor Acak" dan "Skor Manusia" adalah dua titik acuan yang menghidupkan angka-angka ini. MMLU yang "kurang bagus" 62,5% (Mistral 7B) sebenarnya adalah 2,5 kali lebih baik dari tebakan acak — tetapi masih jauh di bawah tingkat manusia (89%). Sementara GSM8K 45,2% pada model yang sama berarti model itu nyaris gagal total dalam matematika multistep, sebab menebak acak memberi nyaris nol. Perhatikan juga: soal pilihan ganda punya batas bawah 25%, sehingga model yang "gagal" di GPQA tetap mendapat seperempat skor tanpa memahami apa pun. Benchmark adalah penggaris, tetapi setiap penggaris punya titik nolnya sendiri — dan membaca skor tanpa memahami titik nolnya berarti salah membaca.
+Kolom "Skor Acak" dan "Skor Manusia" adalah dua titik acuan yang menghidupkan angka-angka ini. MMLU yang "kurang bagus" 62,5% (Mistral 7B) sebenarnya adalah 2,5 kali lebih baik dari tebakan acak, tetapi masih jauh di bawah tingkat manusia (89%). Sementara GSM8K 45,2% pada model yang sama berarti model itu nyaris gagal total dalam matematika multistep, sebab menebak acak memberi nyaris nol. Perhatikan juga: soal pilihan ganda punya batas bawah 25%, sehingga model yang "gagal" di GPQA tetap mendapat seperempat skor tanpa memahami apa pun. Benchmark adalah penggaris, tetapi setiap penggaris punya titik nolnya sendiri — dan membaca skor tanpa memahami titik nolnya berarti salah membaca.
 
 
 ### Gambar 1: Radar Benchmark Perbandingan Model

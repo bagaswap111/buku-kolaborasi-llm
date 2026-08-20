@@ -50,7 +50,7 @@ Fitur yang paling membedakan TGI adalah integrasi native dengan **Hugging Face H
 
 TGI menangani berbagai skema *quantization* agar model muat di VRAM yang tersedia: **bitsandbytes** (untuk pemuatan dinamis, termasuk 4-bit NF4), **GPTQ** (4-bit pasca-training), **AWQ** (4-bit berbasis aktivasi), **EETQ** (8-bit cepat), hingga **FP8** yang dipakai Mistral Large 3 secara native. Pilihan kuantisasi dikendalikan lewat opsi `--quantize` atau variabel `QUANTIZE`, dan secara langsung menentukan *throughput* serta kualitas output — kita akan melihat angkanya di Tabel 2.
 
-### Tabel 2: Benchmark Throughput TGI (A100 80GB)
+### Tabel 1: Benchmark Throughput TGI (A100 80GB)
 
 Untuk menilai dampak kuantisasi secara kuantitatif, perhatikan *throughput*, TTFT, dan *latency* berbagai konfigurasi TGI di atas satu A100 80GB.
 
@@ -114,11 +114,11 @@ Terakhir, TGI mendukung **grammar-guided generation**: memaksa output model meng
 ## 5. TGI vs vLLM
 
 
-Kedua mesin kini sama-sama memakai PagedAttention dan continuous batching, sehingga perbedaan aslinya terletak pada prioritas desain. **TGI** unggul di integrasi *Hugging Face Hub* (otomatis, terpusat, dengan *token management*), fitur penyaring (*watermarking* dan *safety checker*), serta *streaming* SSE — paket lengkap untuk tim yang ingin cepat go-live. **vLLM** unggul di *throughput* murni pada model besar, kompatibilitas penuh dengan API OpenAI, serta dukungan parameter tuning yang lebih dalam. Keduanya mendukung *quantization*, *multi-LoRA*, dan *speculative decoding* — perbandingan fitur demi fitur akan Anda lihat di Tabel 1. Aturan praktisnya: jika tim Anda hidup dari ekosistem model Hugging Face dan membutuhkan penyaring konten, pilih TGI; jika targetnya adalah *throughput* maksimal dengan API yang sepenuhnya kompatibel OpenAI, vLLM lebih tepat.
+Kedua mesin kini sama-sama memakai PagedAttention dan continuous batching, sehingga perbedaan aslinya terletak pada prioritas desain. **TGI** unggul di integrasi *Hugging Face Hub* (otomatis, terpusat, dengan *token management*), fitur penyaring (*watermarking* dan *safety checker*), serta *streaming* SSE — paket lengkap untuk tim yang ingin cepat go-live. **vLLM** unggul di *throughput* murni pada model besar, kompatibilitas penuh dengan API OpenAI, serta dukungan parameter tuning yang lebih dalam. Keduanya mendukung *quantization*, *multi-LoRA*, dan *speculative decoding* — perbandingan fitur demi fitur akan Anda lihat di Tabel 2. Aturan praktisnya: jika tim Anda hidup dari ekosistem model Hugging Face dan membutuhkan penyaring konten, pilih TGI; jika targetnya adalah *throughput* maksimal dengan API yang sepenuhnya kompatibel OpenAI, vLLM lebih tepat.
 
 Tiga tabel berikut membandingkan TGI dan vLLM dari tiga sudut pandang: fitur, performa terukur, dan konfigurasi praktis. Baca berturut-turut — tabel pertama menjawab "apa bedanya", tabel kedua "berapa bedanya", dan tabel ketiga "bagaimana mengaturnya".
 
-### Tabel 1: TGI vs vLLM — Feature Matrix
+### Tabel 2: TGI vs vLLM — Feature Matrix
 
 Berikut peta fitur kedua mesin secara berdampingan — perhatikan bahwa "sama-sama punya" bukan berarti "sama cara kerjanya".
 

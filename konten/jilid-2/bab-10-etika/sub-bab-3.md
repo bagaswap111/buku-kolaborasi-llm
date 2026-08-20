@@ -51,7 +51,7 @@ gantt
     Llama 4 Scout/Maverick :2025-04, 2025-12
 ```
 
-Pola yang terlihat jelas: siklus rilis Meta kini sekitar tiga-empat bulan per versi *minor*, dengan generasi besar setiap 12-15 bulan. Implikasi operasionalnya: rencanakan jendela migrasi **sebelum** rilis berikutnya diumumkan, dan jangan pernah *commit* arsitektur yang mengunci diri pada satu generasi. Tim yang menunggu "rilis sempurna" akan selamanya mengejar; tim yang menyiapkan pipeline migrasi yang berulang akan selalu dipimpin [1][6].
+Pola yang terlihat jelas: siklus rilis Meta kini sekitar tiga-empat bulan per versi *minor*, dengan generasi besar setiap 12-15 bulan [Sumber?]. Implikasi operasionalnya: rencanakan jendela migrasi **sebelum** rilis berikutnya diumumkan, dan jangan pernah *commit* arsitektur yang mengunci diri pada satu generasi. Tim yang menunggu "rilis sempurna" akan selamanya mengejar; tim yang menyiapkan pipeline migrasi yang berulang akan selalu dipimpin [1][6].
 
 
 ---
@@ -59,7 +59,7 @@ Pola yang terlihat jelas: siklus rilis Meta kini sekitar tiga-empat bulan per ve
 ## 3. Perubahan Arsitektur: Dense, MoE, Granular MoE, dan Agent-Centric
 
 
-Perbedaan arsitektur adalah akar dari semua kejutan migrasi. **Dense Transformer** (Llama 3) mengaktifkan *seluruh* parameter untuk setiap token — tekanan komputasi seragam, perilaku mudah diprediksi, dan performa bersifat monotonik terhadap ukuran. **MoE standar** (Llama 4, DeepSeek V3) memperkenalkan *sparse activation*: sebuah *router network* memilih subset "expert" yang aktif untuk setiap token. Keuntungannya efisiensi — FLOPs per token jauh lebih rendah untuk kualitas setara — tetapi tantangannya nyata: *memory footprint* membengkak karena seluruh expert harus dimuat di memori, meski hanya sebagian yang aktif [1][2].
+Perbedaan arsitektur adalah akar dari semua kejutan migrasi. **Dense Transformer** (Llama 3) mengaktifkan *seluruh* parameter untuk setiap token — tekanan komputasi seragam, perilaku mudah diprediksi, dan performa bersifat monotonik terhadap ukuran. **MoE standar** (Llama 4, DeepSeek V3) memperkenalkan *sparse activation*: sebuah *router network* memilih subset "expert" yang aktif untuk setiap token. Keuntungannya efisiensi — FLOPs per token jauh lebih rendah untuk kualitas setara, tetapi tantangannya nyata: *memory footprint* membengkak karena seluruh expert harus dimuat di memori, meski hanya sebagian yang aktif [1][2].
 
 **Granular MoE** (Mistral Large 3, DeepSeek V4) melangkah lebih jauh: jumlah expert lebih banyak dengan ukuran per-expert lebih kecil, sehingga routing menjadi lebih halus dan presisi. Mistral Large 3 menggunakan 675B total / 41B aktif dengan granular routing yang mencapai **FLOPs 27% lebih rendah** daripada MoE standar untuk kualitas setara [8]. **Agent-Centric MoE** (Qwen3.7-Max) mengoptimalkan routing untuk tugas multi-langkah dengan *tool calling* — membentuk expert khusus untuk *reasoning*, *coding*, dan *tool use*, sehingga pipeline agen tidak perlu berpindah-pindah "kompetensi" [9].
 
@@ -127,7 +127,7 @@ Mengganti model di produksi adalah operasi *rolling upgrade* — dan seperti *de
 
 **Shadow Deployment.** Jalankan model baru di samping model lama — menerima *traffic* nyata yang sama, tetapi output-nya tidak pernah dilihat pengguna. Output kedua model dibandingkan secara otomatis dan manual: di sinilah *regression test* pada *prompt* produksi dijalankan dengan aman. Tidak ada risiko, hanya data. **Canary Release.** Naikkan sebagian kecil *traffic* — 5-10% — ke model baru sambil memantau metrik bisnis kunci: akurasi, latensi, dan *user satisfaction*. **A/B Testing.** Bila canary stabil, bandingkan kedua model secara sistematis pada metrik yang sama dalam produksi — mempertahankan keseimbangan statistik yang sah. **Promosi penuh + rollback plan.** Naikkan ke 100% *traffic*, tetapi **jangan pernah mematikan endpoint model lama**: endpoint itu adalah *safety net* Anda. Automatisasikan *rollback* jika metrik turun lebih dari 5% — keputusan otomatis yang melewati emosi dan rapat.
 
-Contoh konkret dari gerbang ini: migrasi DeepSeek V3 (konteks 128K, 37B aktif) ke V4 Pro (konteks 1M, 49B aktif). Keuntungan utamanya adalah konteks 1M yang memungkinkan pemrosesan dokumen utuh tanpa *chunking* — tetapi keuntungan ini hanya diraih bila *prompt* disesuaikan untuk memanfaatkan konteks sepanjang itu: instruksi "gunakan seluruh dokumen yang diberikan" menggantikan logika pemotongan dokumen yang dulu tertanam di sistem. Di sisi lain, konteks besar juga berarti *prefill* (pemrosesan awal) lebih berat — TTFT bisa naik sebelum throughput balas dendam — sehingga metrik latensi wajib dipantau sejak fase *shadow* [7].
+Contoh konkret dari gerbang ini: migrasi DeepSeek V3 (konteks 128K, 37B aktif) ke V4 Pro (konteks 1M, 49B aktif). Keuntungan utamanya adalah konteks 1M yang memungkinkan pemrosesan dokumen utuh tanpa *chunking*, tetapi keuntungan ini hanya diraih bila *prompt* disesuaikan untuk memanfaatkan konteks sepanjang itu: instruksi "gunakan seluruh dokumen yang diberikan" menggantikan logika pemotongan dokumen yang dulu tertanam di sistem. Di sisi lain, konteks besar juga berarti *prefill* (pemrosesan awal) lebih berat — TTFT bisa naik sebelum throughput balas dendam — sehingga metrik latensi wajib dipantau sejak fase *shadow* [7].
 
 ### Tabel 2: Matriks Keputusan Migrasi per Use Case
 
@@ -152,12 +152,12 @@ Contoh nyata tabel *baseline vs target* berikut dipakai sebagai kontrak antara t
 
 | Metrik | Llama 3.1 Baseline | Llama 4 Target | Tolerance | Metode Pengukuran |
 |:---|:---:|:---:|:---:|:---|
-| **Accuracy (QA test set)** | 87.2% | ≥87.2% | ±1% | Automated eval pipeline |
-| **Faithfulness (RAGAS)** | 0.91 | ≥0.89 | ±0.02 | RAGAS framework |
+| **Accuracy (QA test set)** | 87,2% | ≥87,2% | ±1% | Automated eval pipeline |
+| **Faithfulness (RAGAS)** | 0,91 | ≥0,89 | ±0,02 | RAGAS framework |
 | **TTFT (p50)** | 350ms | ≤400ms | +50ms | Production tracing |
 | **Throughput (token/s)** | 85 t/s | ≥75 t/s | -10 t/s | Load test |
 | **Cost per 1M tokens** | Rp 1.200 | ≤Rp 1.200 | - | Pricing API |
-| **User satisfaction** | 4.2/5.0 | ≥4.0/5.0 | -0.2 | Survey sampling |
+| **User satisfaction** | 4,2/5,0 | ≥4,0/5,0 | -0,2 | Survey sampling |
 
 Analisis: perhatikan bahwa tabel ini **tidak** menuntut model baru mengungguli model lama di semua metrik — ia menetapkan toleransi yang diperbolehkan untuk menurun. Latensi boleh naik 50ms, throughput boleh turun 10 t/s, faithfulness boleh turun 0,02 — asalkan accuracy tidak turun 1% dan biaya tidak naik. Logika di baliknya: model baru diambil karena *fitur* (konteks 10M, multimodal), bukan karena semua metrik lama ditingkatkan; toleransi menegosiasikan penurunan yang dapat diterima. Tabel inilah yang menjadi dasar keputusan *canary* → *rollback*: metrik yang menembus toleransi memicu *rollback* otomatis [5].
 
@@ -370,7 +370,7 @@ Perhatikan detail paling khas MoE pada skrip ini: `target_modules` mencakup **`g
 
 **Solusi.** Tim menjalankan playbook pada Gambar 3. *Shadow deployment* Llama 4 Scout (17B MoE, konteks 10M) selama dua minggu; *regression test* pada 500 *prompt* customer service menunjukkan akurasi naik **3,2%** dan latensi turun **40%** — karena dokumen tidak perlu di-*chunk* dan *prefill* gagal? Tidak — karena konteks utuh membuat *retrieval* dalam satu sesi jauh lebih efisien. *Prompt migration*: menambahkan instruksi "concise" karena Llama 4 lebih verbose — contoh nyata seksi 4. *Canary* 10% → 50% → 100% dalam tiga minggu.
 
-**Hasil.** Konteks 10M memungkinkan satu sesi mencakup seluruh riwayat chat + katalog. Biaya *inference* turun **55%** (17B aktif vs 70B *dense*). **Rollback tidak pernah diperlukan** — tetapi endpoint Llama 3.1 tetap hidup selama satu bulan sebagai pengaman [1][6].
+**Hasil.** Konteks 10M memungkinkan satu sesi mencakup seluruh riwayat chat + katalog. Biaya *inference* turun **55%** (17B aktif vs 70B *dense*). **Rollback tidak pernah diperlukan**, tetapi endpoint Llama 3.1 tetap hidup selama satu bulan sebagai pengaman [1][6].
 
 **Pelajaran.** MoE memberi efisiensi biaya signifikan untuk *use case* long-context — namun kunci keberhasilannya adalah *prompt migration*, bukan hanya memindahkan *traffic*. Mengganti model tanpa memperbarui instruksi sama seperti mengganti karyawan tanpa memberi buku panduan.
 
@@ -403,7 +403,11 @@ Perhatikan detail paling khas MoE pada skrip ini: `target_modules` mencakup **`g
 
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv: [2604.00001](https://arxiv.org/abs/2604.00001)
 
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
+
 [7] Anthropic. (2026). *Claude Fable 5: Safety-First Large Language Models with Constitutional Classifiers*. [Research Report](https://anthropic.com/research/claude-fable-5)
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 

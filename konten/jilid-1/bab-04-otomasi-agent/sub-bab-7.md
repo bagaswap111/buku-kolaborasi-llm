@@ -53,7 +53,7 @@ Whisper adalah *encoder-decoder Transformer* yang dilatih dengan *weak supervisi
 
 ### Peta Varian
 
-Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (74M), **small** (244M), **medium** (769M), **large-v3** (1,55B), dan **turbo** (809M). Aturan praktisnya: semakin besar model, semakin rendah *Word Error Rate* (WER) — tetapi semakin besar pula RAM dan waktu komputasinya. Untuk Bahasa Indonesia [Sumber?], **large-v3** mencapai WER 7,1% (hampir setara manusia untuk transkripsi umum), sementara **small** yang jauh lebih ringan masih mencatat 11,8% — angka yang sangat layak untuk sebagian besar kebutuhan praktis.
+Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (74M), **small** (244M), **medium** (769M), **large-v3** (1,55B), dan **turbo** (809M). Aturan praktisnya: semakin besar model, semakin rendah *Word Error Rate* (WER), tetapi semakin besar pula RAM dan waktu komputasinya. Untuk Bahasa Indonesia [Sumber?], **large-v3** mencapai WER 7,1% (hampir setara manusia untuk transkripsi umum), sementara **small** yang jauh lebih ringan masih mencatat 11,8% — angka yang sangat layak untuk sebagian besar kebutuhan praktis.
 
 ### faster-whisper: Turbo untuk Transkripsi
 
@@ -90,7 +90,7 @@ Piper dibangun di atas **VITS** (*Variational Inference with adversarial Trainin
 
 ### Bahasa dan Kualitas
 
-Piper mendukung **30+ bahasa** dengan empat tingkat kualitas suara: *x_low*, *low*, *medium*, dan *high*. Untuk Bahasa Indonesia tersedia suara seperti `id_ID-female-medium` — cukup untuk asisten suara dan pembacaan teks. Jika Anda sudah menikmati kualitas LLM besar, suara Piper memang belum setara aktor manusia — tetapi untuk kecepatan (RTF 0,3-0,8, lihat Tabel 1) dan kemudahan instalasi, Piper adalah pilihan terbaik untuk pemrosesan lokal.
+Piper mendukung **30+ bahasa** dengan empat tingkat kualitas suara: *x_low*, *low*, *medium*, dan *high*. Untuk Bahasa Indonesia tersedia suara seperti `id_ID-female-medium` — cukup untuk asisten suara dan pembacaan teks. Jika Anda sudah menikmati kualitas LLM besar, suara Piper memang belum setara aktor manusia, tetapi untuk kecepatan (RTF 0,3-0,8, lihat Tabel 1) dan kemudahan instalasi, Piper adalah pilihan terbaik untuk pemrosesan lokal.
 
 ---
 

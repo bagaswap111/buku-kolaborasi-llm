@@ -1,6 +1,6 @@
 # Bab 8.3: Kubernetes
 
-> Bayangkan sebuah kantor tempat setiap meja karyawan otomatis mendapat AI assistant saat jam sibuk, dan profesi tersebut berhenti bekerja di malam hari tanpa aba-aba — itulah janji *orchestration*: sistem yang menambah dan mengurangi kapasitas sendiri mengikuti denyut beban, tanpa manusia berdiri di depan server. Di bab ini kita masuk ke dapur *orchestrator*: mengapa **K3s** — bukan Kubernetes penuh — menjadi pilihan rasional untuk general office 21-50 user, bagaimana *auto-scaling* berbasis GPU utilization dan *queue depth* bekerja, serta bagaimana GPU dijadwalkan, state disimpan, dan klaster diamankan. Setelah bab ini, *deployment*, *HorizontalPodAutoscaler*, dan NVIDIA GPU Operator bukan lagi istilah asing — melainkan alat sehari-hari.
+> Bayangkan sebuah kantor tempat setiap meja karyawan otomatis mendapat AI assistant saat jam sibuk, dan profesi tersebut berhenti bekerja di malam hari tanpa aba-aba — itulah janji *orchestration*: sistem yang menambah dan mengurangi kapasitas sendiri mengikuti denyut beban, tanpa manusia berdiri di depan server. Di bab ini kita masuk ke dapur *orchestrator*: mengapa **K3s** — bukan Kubernetes penuh — menjadi pilihan rasional untuk general office 21-50 user, bagaimana *auto-scaling* berbasis GPU utilization dan *queue depth* bekerja, serta bagaimana GPU dijadwalkan, state disimpan, dan klaster diamankan. Setelah bab ini, *deployment*, *HorizontalPodAutoscaler*, dan NVIDIA GPU Operator bukan lagi istilah asing, melainkan alat sehari-hari.
 
 ---
 
@@ -62,14 +62,14 @@ Lalu lintas dari LiteLLM (*gateway*) menuju pod vLLM bisa diarahkan lewat **Trae
 |:---|:---:|:---:|:---:|:---:|:---:|
 | **vLLM DeepSeek V4 Flash Q4** | 8 core | 32 GB | 1x H100 80GB | 50 GB | 1-2 |
 | **vLLM Mistral Large 3 Q4** | 12 core | 48 GB | 2x H100 80GB | 80 GB | 1-2 |
-| **vLLM Llama 8B FP16** | 4 core | 16 GB | 1x L40S 48GB | 20 GB | 2-4 |
+| **vLLM Llama 3.1 (8B) FP16** | 4 core | 16 GB | 1x L40S 48GB | 20 GB | 2-4 |
 | **vLLM Ministral 3 14B Q4** | 4 core | 16 GB | 1x L40S 48GB | 20 GB | 2-4 |
 | **LiteLLM Proxy** | 2 core | 4 GB | None | 10 GB | 2-3 |
 | **Qdrant Vector DB** | 4 core | 16 GB | None | 100 GB | 2-3 |
 | **PostgreSQL Patroni** | 4 core | 16 GB | None | 200 GB | 2-3 |
 | **MinIO Object Store** | 2 core | 8 GB | None | 500 GB | 2-3 |
 
-Tiga bacaan penting dari tabel alokasi ini. Pertama, **GPU bukan satu-satunya sumber daya yang harus di-*request***: pod Mistral Large 3 meminta 12 core dan 48 GB RAM karena *prefill*, tokenizer, dan scheduler vLLM hidup di CPU/RAM — meminta GPU saja akan membuat pod *pending* karena kelaparan CPU. Kedua, perhatikan **pola *replicas***: workload besar (DeepSeek V4 Flash, Mistral Large 3) justru berreplica rendah (1-2) karena setiap replica menelan satu GPU H100 — *scaling* dilakukan lewat model kecil yang murah (Llama 8B, Ministral 3 14B: 2-4 replica) yang menyerap lonjakan trafik harian. Ketiga, **komponen non-GPU (LiteLLM, Qdrant, PostgreSQL, MinIO) berreplica 2-3** untuk memenuhi tuntutan redundansi Tabel 3 Bab 8.1 — semuanya *stateless-proxies* atau *stateful dengan replikasi*, dan semuanya menuntut disiplin: setiap *request limit* yang terlalu kecil adalah undangan *throttling* di jam puncak [4].
+Tiga bacaan penting dari tabel alokasi ini. Pertama, **GPU bukan satu-satunya sumber daya yang harus di-*request***: pod Mistral Large 3 meminta 12 core dan 48 GB RAM karena *prefill*, tokenizer, dan scheduler vLLM hidup di CPU/RAM — meminta GPU saja akan membuat pod *pending* karena kelaparan CPU. Kedua, perhatikan **pola *replicas***: workload besar (DeepSeek V4 Flash, Mistral Large 3) justru berreplica rendah (1-2) karena setiap replica menelan satu GPU H100 — *scaling* dilakukan lewat model kecil yang murah (Llama 3.1 (8B), Ministral 3 14B: 2-4 replica) yang menyerap lonjakan trafik harian. Ketiga, **komponen non-GPU (LiteLLM, Qdrant, PostgreSQL, MinIO) berreplica 2-3** untuk memenuhi tuntutan redundansi Tabel 3 Bab 8.1 — semuanya *stateless-proxies* atau *stateful dengan replikasi*, dan semuanya menuntut disiplin: setiap *request limit* yang terlalu kecil adalah undangan *throttling* di jam puncak [4].
 
 ![Model GPU berat memakan CPU 12 core/RAM 48 GB dan storage 80 GB, sedangkan MinIO paling besar di storage (500 GB) dengan replika 2-3 — skala log memperlihatkan kebutuhan pendukung yang sering dilupakan](../../assets/images/bab-08-general/sub-bab-3/alokasi-resource-per-pod.png)
 
@@ -129,11 +129,11 @@ Inilah jantung *orchestration* untuk LLM: **kemampuan sistem menyesuaikan jumlah
 
 **Horizontal Pod Autoscaler (HPA)** — mekanisme utama. HPA memantau metrik *request/limit* pada pod (CPU, memori, atau *custom metrics*) dan menambah/mengurangi jumlah *replica* secara periodik. Untuk LLM, metrik GPU yang diekspos vLLM — **`gpu_cache_usage`**, **`num_requests_running`** atau **`num_requests_waiting`** (kedalaman antrean), dan **`avg_time_per_token`** — adalah sinyal yang jauh lebih akurat daripada CPU: sebuah pod vLLM bisa memiliki CPU rendah tetapi GPU penuh. HPA dengan *custom metrics* membaca sinyal-sinyal ini melalui *custom metrics adapter* (Prometheus Adapter) dan menambah pod ketika antrean mengular — Tabel 3 merangkum ambang batasnya.
 
-**Vertical Pod Autoscaler (VPA)** — pasangan HPA yang bekerja pada sumbu *y*: ia mengoptimalkan *resource request/limit* tiap pod. Untuk beban *inference* yang volumenya fluktuatif, VPA berguna di fase awal untuk menemukan "ukuran sepatu" yang tepat (misalnya 8 core / 32 GB untuk pod DeepSeek V4 Flash), lalu biasanya dipatikan agar tidak berkonflik dengan HPA.
+**Vertical Pod Autoscaler (VPA)** — pasangan HPA yang bekerja pada sumbu *y*: ia mengoptimalkan *resource request/limit* tiap pod. Untuk beban *inference* yang volumenya fluktuatif, VPA berguna di fase awal untuk menemukan "ukuran sepatu" yang tepat (misalnya 8 core / 32 GB untuk pod DeepSeek V4 Flash), lalu biasanya dimatikan agar tidak berkonflik dengan HPA.
 
 **Cluster Autoscaler** — menambah/mengurangi *node fisik*. Di *on-premise*, kemampuannya terbatas: menambah node berarti membeli server. Karena itu, untuk general office, *Cluster Autoscaler* lebih relevan sebagai konsep cadangan (*capacity buffer* manual) daripada mekanisme harian — perannya dominan di *cloud*, yang menjadi bahan perbandingan di seksi 5 buku ini.
 
-**Custom Metrics** adalah bahan bakar ketiganya. vLLM mengekspos endpoint metrik Prometheus dengan nama seperti `vllm_num_requests_waiting`, `vllm_gpu_cache_usage`, dan `avg_time_per_token`; Prometheus mengumpulkannya, dan *Prometheus Adapter* menerjemahkannya menjadi metrik yang dapat dibaca HPA. Rantai inilah yang membuat auto-scaling LLM menjadi *data-driven* — bukan tebakan operator — dan menjadi dasar tutorial B di seksi 9.
+**Custom Metrics** adalah bahan bakar ketiganya. vLLM mengekspos endpoint metrik Prometheus dengan nama seperti `vllm_num_requests_waiting`, `vllm_gpu_cache_usage`, dan `avg_time_per_token`; Prometheus mengumpulkannya, dan *Prometheus Adapter* menerjemahkannya menjadi metrik yang dapat dibaca HPA. Rantai inilah yang membuat auto-scaling LLM menjadi *data-driven* — bukan tebakan operator — dan menjadi dasar Langkah 2 di Seksi 8.
 
 ### Tabel 3: HPA Auto-scaling Rules
 
@@ -190,7 +190,7 @@ GPU bukan CPU: ia tidak bisa dibagi begitu saja oleh *scheduler* default Kuberne
 
 Kontrol *penempatan* dilakukan dengan dua alat standar. **NodeSelector** paling sederhana: pod hanya boleh mendarat di node berlabel tertentu (misalnya `accelerator=nvidia-gpu`), cocok untuk memisahkan worker GPU dari control plane. **Affinity rules** lebih ekspresif — misalnya *pod affinity* yang memaksa replica model besar dan model kecil berada di node berbeda untuk mencegah *GPU contention*, atau *anti-affinity* agar dua replica model yang sama tidak pernah menumpuk di satu kartu *dan* satu node. Aturan praktis: gunakan *nodeSelector* untuk isolasi kelas (GPU vs non-GPU), dan *affinity rules* untuk keadilan antar-workload (GPU vs GPU).
 
-Ketika sebuah GPU ingin dibagi oleh banyak workload ringan — misalnya dua pod 8B berbagi satu L40S — dua teknologi muncul sebagai kandidat: **time-slicing** membagi GPU secara *waktu* (tiap pod mendapat giliran memakai seluruh kartu, sederhana tetapi tidak ada isolasi memori dan *latency* bisa saling mengganggu), sedangkan **MIG (Multi-Instance GPU)** membagi GPU secara *fisik* menjadi beberapa *instance* terisolasi dengan memori dan *compute* terpisah — tetapi MIG hanya didukung A100/H100, tidak oleh L40S, dan memerlukan perencanaan partisi yang lebih teliti. Rekomendasi untuk general office: mulai dengan satu pod per GPU (isolasi paling sederhana dan kinerja paling terprediksi), jadikan *time-slicing* sebagai opsi saat kartu mulai langka, dan baru pertimbangkan MIG untuk kasus H100 yang bebannya benar-benar ringan [2].
+Ketika sebuah GPU ingin dibagi oleh banyak workload ringan — misalnya dua pod 8B berbagi satu L40S — dua teknologi muncul sebagai kandidat: **time-slicing** membagi GPU secara *waktu* (tiap pod mendapat giliran memakai seluruh kartu, sederhana tetapi tidak ada isolasi memori dan *latency* bisa saling mengganggu), sedangkan **MIG (Multi-Instance GPU)** membagi GPU secara *fisik* menjadi beberapa *instance* terisolasi dengan memori dan *compute* terpisah, tetapi MIG hanya didukung A100/H100, tidak oleh L40S, dan memerlukan perencanaan partisi yang lebih teliti. Rekomendasi untuk general office: mulai dengan satu pod per GPU (isolasi paling sederhana dan kinerja paling terprediksi), jadikan *time-slicing* sebagai opsi saat kartu mulai langka, dan baru pertimbangkan MIG untuk kasus H100 yang bebannya benar-benar ringan [2].
 
 ---
 
@@ -400,6 +400,6 @@ Dua replica `vllm-8b` (keduanya meminta satu GPU) adalah wujud HPA dari Langkah 
 
 [9] Kubernetes SIGs. *Prometheus Adapter for Custom Metrics*. [https://github.com/kubernetes-sigs/prometheus-adapter](https://github.com/kubernetes-sigs/prometheus-adapter)
 
-[10] DeepSeek Team. (2026). *DeepSeek-V4 Flash: Deployment Guide for Kubernetes Clusters*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — panduan deployment MoE konteks 1 juta token yang optimal untuk *auto-scaling*.
+[10] DeepSeek Team. (2026). *DeepSeek-V4 Flash: Deployment Guide for Kubernetes Clusters*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — panduan deployment MoE konteks 1 juta token yang optimal untuk *auto-scaling*. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [11] Mistral AI. (2025). *Mistral Large 3: Apache 2.0 Licensed MoE for On-Premise Deployment*. [https://mistral.ai/news/mistral-large-3](https://mistral.ai/news/mistral-large-3) — model 675B/41B aktif yang aman lisensinya untuk deployment K3s *on-premise*.

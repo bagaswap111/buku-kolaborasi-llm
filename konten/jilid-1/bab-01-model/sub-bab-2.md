@@ -1,6 +1,6 @@
 # Bab 1.2: Anatomi Model (Weights & Biases)
 
-> Apa yang sebenarnya ada di dalam file model 7B, 14B, atau 70B yang Anda unduh? Bukan sihir — tetapi miliaran angka floating-point yang tersusun dalam matriks raksasa, hasil dari triliunan operasi matematika selama pelatihan.
+> Apa yang sebenarnya ada di dalam file model 7B, 14B, atau 70B yang Anda unduh? Bukan sihir, tetapi miliaran angka floating-point yang tersusun dalam matriks raksasa, hasil dari triliunan operasi matematika selama pelatihan.
 
 ---
 
@@ -308,10 +308,10 @@ Strategi optimal: deploy model kecil (7-8B) untuk 80% beban kerja harian, dan ro
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial 1: Memeriksa Anatomi Model dengan Python
+### Langkah 1: Memeriksa Anatomi Model dengan Python
 
 Cara terbaik untuk memahami parameter model adalah melihatnya langsung. Kode berikut memuat konfigurasi Llama-3 8B dan menghitung parameter secara manual.
 
@@ -349,7 +349,7 @@ print(f"  FFN: {ffn_params/1e9:.2f}B")
 
 Output yang diharapkan akan menunjukkan bahwa parameter terbanyak berada di FFN, diikuti attention, dan sebagian kecil di embedding — sesuai dengan Tabel 3.
 
-### Tutorial 2: Cek Ukuran Model di Local Disk
+### Langkah 2: Cek Ukuran Model di Local Disk
 
 Untuk melihat secara langsung berapa besar ruang yang digunakan model di sistem Anda:
 
@@ -375,7 +375,7 @@ with open('Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf', 'rb') as f:
 
 File GGUF Q4_K_M untuk Llama-3 8B seharusnya berukuran sekitar 4,9 GB — jauh lebih kecil dari 16 GB versi FP16.
 
-### Tutorial 3: Uji Bandwidth NVMe
+### Langkah 3: Uji Bandwidth NVMe
 
 Kecepatan memuat model ke VRAM dibatasi oleh bandwidth penyimpanan. NVMe Gen 4 memiliki throughput sekitar 5000 MB/s — artinya model 8B FP16 (16 GB) membutuhkan `16000 / 5000 ≈ 3,2 detik` untuk dimuat.
 

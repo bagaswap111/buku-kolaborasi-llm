@@ -114,7 +114,7 @@ Dua fitur teknis yang membuatnya istimewa. Pertama, **memory mapping (mmap)**: m
 
 Ada dua trade-off yang perlu Anda sadari. Pertama, kontrol kuantisasinya terbatas pada *level* yang sudah ditentukan (Q2_K hingga Q8_0) — Anda tidak bisa menetapkan bit-width 4,7 per lapisan seperti EXL2. Kedua, meskipun tercepat dalam hal *loading*, GGUF bukan yang tercepat dalam hal *throughput* token di GPU NVIDIA murni: di sana EXL2 dan AWQ masih lebih unggul. Singkatnya: GGUF memenangkan fleksibilitas platform dan kenyamanan pengelolaan; ia kalah tipis dalam kecepatan murni di GPU NVIDIA kelas atas.
 
-### Tabel 3: Benchmark Perbandingan (Llama-3 8B, RTX 4090)
+### Tabel 2: Benchmark Perbandingan (Llama-3 8B, RTX 4090)
 
 Angka riil pada hardware nyata — Llama-3 8B di RTX 4090:
 
@@ -169,7 +169,7 @@ Setiap langkah menghasilkan file baru; file FP16 bisa disimpan sebagai "master" 
 
 Harganya jelas: EXL2 **hanya berjalan di GPU NVIDIA** — tidak ada *fallback* CPU, tidak ada dukungan AMD maupun Apple Silicon. Ekosistemnya meliputi **ExUI**, **TabbyAPI**, dan text-generation-webui. Jika Anda memiliki RTX 3090/4090 dan mengejar kecepatan token per detik tertinggi, EXL2 adalah kandidat utama.
 
-### Tabel 2: Ekosistem Engine per Format
+### Tabel 3: Ekosistem Engine per Format
 
 Kompatibilitas engine adalah ujian kelayakan utama — periksa sebelum mengunduh model:
 
@@ -197,7 +197,7 @@ Pola yang terlihat: ekosistem "lokal & personal" (Ollama, LM Studio, GPT4All) be
 
 **GPTQ** adalah generasi pertama kuantisasi 4-bit yang dioptimalkan untuk GPU, menggunakan *group size* 128 atau 32 dengan koreksi error berbasis Hessian. **AWQ (Activation-aware Weight Quantization)** datang kemudian dengan gagasan lebih tajam: alih-alih memperlakukan semua bobot setara, ia memperhatikan bobot mana yang paling berpengaruh terhadap *activation* — bobot kritis itu dipertahankan presisinya. Hasilnya, AWQ umumnya berkualitas lebih baik daripada GPTQ pada ukuran yang sama, dan ia menjadi standar kuantisasi di **vLLM** dan **TGI** untuk *serving* produksi.
 
-Keduanya disimpan dalam bentuk **Safetensors + file konfigurasi tambahan** (bukan format file terpisah), dan keduanya didukung oleh vLLM, TGI, dan AutoGPTQ — tetapi **bukan oleh Ollama**. Jika kebutuhan Anda adalah *serving* multi-user dengan vLLM, AWQ adalah pilihan paling masuk akal.
+Keduanya disimpan dalam bentuk **Safetensors + file konfigurasi tambahan** (bukan format file terpisah), dan keduanya didukung oleh vLLM, TGI, dan AutoGPTQ, tetapi **bukan oleh Ollama**. Jika kebutuhan Anda adalah *serving* multi-user dengan vLLM, AWQ adalah pilihan paling masuk akal.
 
 ---
 
@@ -217,10 +217,10 @@ Satu catatan penutup: jangan biarkan tabel spesifikasi menggantikan pengalaman l
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Konversi Safetensors ke GGUF
+### Langkah 1: Konversi Safetensors ke GGUF
 
 Langkah-langkah konversi dari Safetensors menjadi GGUF terkuantisasi:
 
@@ -252,7 +252,7 @@ python convert_hf_to_gguf.py ./models/Meta-Llama-3-8B \
 
 Perhatikan urutannya: konversi ke FP16 dulu, kuantisasi menyusul. Dengan pola ini, Anda bisa membuat banyak varian kuantisasi (Q5_K_M, Q8_0, dst.) dari satu file FP16 tanpa mengunduh ulang model dari awal.
 
-### Tutorial B: Konversi ke EXL2
+### Langkah 2: Konversi ke EXL2
 
 Untuk pengguna GPU NVIDIA yang ingin kecepatan maksimal:
 
@@ -276,7 +276,7 @@ python -m exllamav2.convert \
 
 *Flag* `--measure` membuat ExLlamaV2 mengukur sensitivitas tiap lapisan dan mengalokasikan bit secara adaptif — lapisan yang sensitif diberi bit lebih banyak, yang "toleran" ditekan. Inilah alasan mengapa EXL2 mampu mempertahankan kualitas pada ukuran file yang kecil.
 
-### Tutorial C: Membandingkan Kualitas Format
+### Langkah 3: Membandingkan Kualitas Format
 
 Jangan percaya begitu saja pada klaim — ukur sendiri *perplexity* di machine Anda:
 

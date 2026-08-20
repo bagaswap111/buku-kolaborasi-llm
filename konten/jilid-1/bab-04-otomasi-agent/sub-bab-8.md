@@ -1,6 +1,6 @@
 # Bab 4.8: Keamanan & Sandbox
 
-> Memberi akses *shell* ke AI terasa seperti menyerahkan kunci mobil Anda kepada pengemudi yang sangat cerdas, tetapi kadang salah membaca rambu lalu lintas. Model bahasa bisa melakukan banyak hal luar biasa — tetapi ia juga bisa salah menafsirkan satu instruksi dan menghapus berkas yang seharusnya dijaga. Bab ini membahas *threat model* agentic AI, cara mengurung agen dalam **Docker sandbox**, strategi *defense-in-depth* berlapis, hingga sistem *approval gate* yang mencegah kehancuran sebelum terjadi.
+> Memberi akses *shell* ke AI terasa seperti menyerahkan kunci mobil Anda kepada pengemudi yang sangat cerdas, tetapi kadang salah membaca rambu lalu lintas. Model bahasa bisa melakukan banyak hal luar biasa, tetapi ia juga bisa salah menafsirkan satu instruksi dan menghapus berkas yang seharusnya dijaga. Bab ini membahas *threat model* agentic AI, cara mengurung agen dalam **Docker sandbox**, strategi *defense-in-depth* berlapis, hingga sistem *approval gate* yang mencegah kehancuran sebelum terjadi.
 
 ---
 
@@ -44,7 +44,7 @@ Cara berpikir yang benar adalah menganggap agen sebagai *untrusted code* — kod
 
 Container Docker adalah lapisan dasar isolasi yang paling mudah diadopsi. Setiap container berjalan dalam *Linux namespaces* — namespace terpisah untuk PID, *mount*, *network*, *user*, dan *UTS* — sehingga proses di dalam container "melihat" dunia yang terbatas. Sementara itu, *cgroups* (control groups) membatasi sumber daya: berapa banyak CPU, memori, dan I/O yang boleh dikonsumsi. Hasilnya, sebuah agen yang berjalan di dalam container tidak bisa melihat proses di luar container, tidak bisa memount *file system* host secara sembarangan, dan tidak bisa memboroskan seluruh RAM mesin.
 
-Bayangkan container seperti kamar sewa di dalam gedung apartemen: Anda punya pintu sendiri, perabot sendiri, dan kunci sendiri — tetapi dinding, fondasi, dan pipa air masih dibagikan dengan penghuni lain. Pintu kamar Anda (isolasi *namespaces*) cukup kuat untuk menahan penyusup biasa, tetapi *landlord* (kernel) masih bisa masuk kapan saja.
+Bayangkan container seperti kamar sewa di dalam gedung apartemen: Anda punya pintu sendiri, perabot sendiri, dan kunci sendiri, tetapi dinding, fondasi, dan pipa air masih dibagikan dengan penghuni lain. Pintu kamar Anda (isolasi *namespaces*) cukup kuat untuk menahan penyusup biasa, tetapi *landlord* (kernel) masih bisa masuk kapan saja.
 
 ### Keterbatasan: Kernel yang Dibagi
 
@@ -63,7 +63,7 @@ Bagian paling penting dari konfigurasi container untuk agen adalah cara Anda mem
 
 Banyak agen modern membutuhkan kemampuan untuk menjalankan container sendiri — misalnya, menguji aplikasi, menjalankan kode dalam lingkungan terisolasi, atau membangun image. Memberi agen akses ke *Docker socket* host (`/var/run/docker.sock`) adalah salah satu kesalahan keamanan paling fatal: siapa pun yang menguasai socket itu menguasai seluruh host, karena Docker socket memberikan akses *root* efektif. Solusinya adalah **Docker-in-Docker (DinD)** — agen menjalankan Docker di *dalam* container Docker, bukan pada Docker host.
 
-Dengan DinD, agen bebas menjalankan `docker run` sebanyak yang ia mau — tetapi semuanya terjadi di dalam lingkungan yang sudah terkunci. Ia tidak pernah menyentuh Docker daemon host, tidak bisa melihat container lain, dan tidak bisa mengubah konfigurasi mesin. Ini seperti memberi agen sebuah kotak pasir di dalam kotak pasir: ia bisa membangun istana pasir seluas apa pun, tetapi tidak pernah bisa keluar dari kotak terluar.
+Dengan DinD, agen bebas menjalankan `docker run` sebanyak yang ia mau, tetapi semuanya terjadi di dalam lingkungan yang sudah terkunci. Ia tidak pernah menyentuh Docker daemon host, tidak bisa melihat container lain, dan tidak bisa mengubah konfigurasi mesin. Ini seperti memberi agen sebuah kotak pasir di dalam kotak pasir: ia bisa membangun istana pasir seluas apa pun, tetapi tidak pernah bisa keluar dari kotak terluar.
 
 ### Lapisan Hypervisor: gVisor dan Firecracker
 

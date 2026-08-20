@@ -155,7 +155,7 @@ Bagaimana setiap fitur Dify diterjemahkan menjadi kasus penggunaan di dua depart
 | **Agent Tool** | Google Calendar (jadwal), Gmail (notifikasi) | PostgreSQL (data transaksi), Slack (approval) |
 | **Text Generator** | Surat offer letter, kontrak | Draft laporan bulanan, notifikasi budget overrun |
 
-Analisis tabel ini menunjukkan simetri yang menarik antara HR dan Finance. Kedua departemen membutuhkan keempat lapisan — knowledge, percakapan, proses, dan agen — tetapi dengan relung berbeda: HR berfokus pada orang (kandidat, karyawan baru), Finance pada uang (invoice, anggaran, laporan). Praktik terbaiknya adalah membangun knowledge base terlebih dahulu, kemudian chatbot di atasnya, lalu menambahkan workflow dan agent setelah kualitas jawaban stabil — urutan yang meminimalkan risiko kegagalan besar di tahap awal.
+Analisis tabel ini menunjukkan simetri yang menarik antara HR dan Finance. Kedua departemen membutuhkan keempat lapisan — knowledge, percakapan, proses, dan agen, tetapi dengan relung berbeda: HR berfokus pada orang (kandidat, karyawan baru), Finance pada uang (invoice, anggaran, laporan). Praktik terbaiknya adalah membangun knowledge base terlebih dahulu, kemudian chatbot di atasnya, lalu menambahkan workflow dan agent setelah kualitas jawaban stabil — urutan yang meminimalkan risiko kegagalan besar di tahap awal.
 
 
 ### Tabel 4: Perbandingan Performa Retrieval Dify
@@ -327,7 +327,7 @@ Hasil yang didokumentasikan:
 - **Skor kepuasan kandidat: 4,5/5** — kandidat merasa prosesnya cepat dan informatif, tanggapan chatbot selalu dalam hitungan detik
 - **Biaya: Rp 0 untuk software** (open source), **Rp 1,2 juta/bulan untuk server** — dibandingkan mengontrak vendor rekrutmen AI yang bisa memakan puluhan juta per bulan
 
-Pelajaran studi kasus ini: Dify menurunkan hambatan masuk bagi organisasi tanpa tim AI khusus. Kunci keberhasilannya bukan membuat model — Qwen-2.5-14B adalah model generasi 2024 — tetapi orkestrasi: knowledge base yang rapi, prompt yang dirancang bersama staf HR, dan loop umpan balik di mana *annotation* jawaban salah digunakan untuk memperbaiki prompt. Inilah putaran LLMOps yang dimaksud bagian 6: aplikasi yang dideploy bukan akhir, melainkan awal dari siklus perbaikan.
+Pelajaran studi kasus ini: Dify menurunkan hambatan masuk bagi organisasi tanpa tim AI khusus. Kunci keberhasilannya bukan membuat model — Qwen-2.5-14B adalah model generasi 2024, tetapi orkestrasi: knowledge base yang rapi, prompt yang dirancang bersama staf HR, dan loop umpan balik di mana *annotation* jawaban salah digunakan untuk memperbaiki prompt. Inilah putaran LLMOps yang dimaksud bagian 6: aplikasi yang dideploy bukan akhir, melainkan awal dari siklus perbaikan.
 
 ---
 

@@ -27,14 +27,14 @@ Karakteristik yang paling membedakan: **multi-departemen**. Dalam satu organisas
 
 Perbedaan fundamental dari asisten rumah tangga pun tegas. Sistem home boleh mati malam hari, boleh diakses tanpa login, dan boleh tidak meninggalkan jejak. Sistem general office memiliki empat tuntutan wajib: **SSO (Single Sign-On)** agar akses terpusat dan bisa dicabut sewaktu-waktu, **audit trail** yang merekam siapa bertanya apa, **RBAC (Role-Based Access Control)** yang memisahkan hak akses antardepartemen, **auto-scaling** agar kapasitas mengikuti beban, serta **operasi 24/7** karena karyawan boleh bekerja larut malam atau di akhir pekan. Tanpa kelima hal ini, sistem yang dibangun hanyalah "home assistant dengan karyawan banyak" — dan itu adalah resep bencana operasional dan hukum.
 
-### Tabel 2: SLA Target General Office
+### Tabel 1: SLA Target General Office
 
 | Metrik | Target | Metode Pengukuran |
 |:---|:---:|:---|
 | **TTFT P50** | < 1 detik | Prometheus + cAdvisor |
 | **TTFT P99** | < 3 detik | Distributed tracing (OpenTelemetry) |
 | **Throughput per GPU** | > 1000 req/jam | vLLM metrics endpoint |
-| **Uptime Tahunan** | 99.999% | Uptime Kuma / Grafana |
+| **Uptime Tahunan** | 99,999% | Uptime Kuma / Grafana |
 | **Max Concurrent** | 20 session | Rate limiter (LiteLLM) |
 | **Recovery Time (failover)** | < 30 detik | Health check script |
 
@@ -60,22 +60,22 @@ Pilar ketiga adalah kemampuan menambah **node GPU secara horizontal tanpa downti
 
 ### 3.4 100% Uptime: Lima Sembilan yang Realistis
 
-Pilar terakhir, dan yang paling sering disalahpahami: **100% uptime**. Tentu saja angka 100% secara matematis mustahil; yang dimaksud adalah target **five-nines (99.999%)** — maksimal 5 menit *downtime* dalam setahun, sedikit lebih lama dari waktu menyeduh satu cangkir kopi. Untuk mencapai angka ini, sistem memerlukan **failover otomatis**: *health check* dieksekusi setiap 5 detik, dan ketika satu komponen dinyatakan mati, lalu lintas dialihkan ke komponen cadangan dalam waktu kurang dari 30 detik. Bandingkan dengan skala home yang cukup hidup 16 jam sehari — jangankan lima sembilan, 99% pun tidak pernah dihitung. Pada general office, setiap detik mati berarti karyawan berhenti bekerja, dan itu terkonversi langsung menjadi biaya.
+Pilar terakhir, dan yang paling sering disalahpahami: **100% uptime**. Tentu saja angka 100% secara matematis mustahil; yang dimaksud adalah target **five-nines (99,999%)** — maksimal 5 menit *downtime* dalam setahun, sedikit lebih lama dari waktu menyeduh satu cangkir kopi. Untuk mencapai angka ini, sistem memerlukan **failover otomatis**: *health check* dieksekusi setiap 5 detik, dan ketika satu komponen dinyatakan mati, lalu lintas dialihkan ke komponen cadangan dalam waktu kurang dari 30 detik. Bandingkan dengan skala home yang cukup hidup 16 jam sehari — jangankan lima sembilan, 99% pun tidak pernah dihitung. Pada general office, setiap detik mati berarti karyawan berhenti bekerja, dan itu terkonversi langsung menjadi biaya.
 
 Pada sub-bab ini kita membandingkan tiga skala yang sudah disinggung di awal, lalu menurunkan target SLA dan komponen redundansi menjadi angka yang bisa dimonitor.
 
-### Tabel 1: Perbandingan Karakteristik per Skala
+### Tabel 2: Perbandingan Karakteristik per Skala
 
 | Karakteristik | Home (4-8) | Small Office (9-20) | General Office (21-50) |
 |:---|:---|:---|:---|
 | **Concurrency Peak** | 2-3 | 5-10 | 15-25 |
-| **Uptime Target** | 16 jam/hari | 24/7 (99.9%) | 24/7 (99.999%) |
+| **Uptime Target** | 16 jam/hari | 24/7 (99,9%) | 24/7 (99,999%) |
 | **Redundancy** | None | GPU failover | Full HA (LB + GPU + Storage) |
 | **Audit Logs** | Tidak perlu | Basic logging | Wajib (ISO 27001) |
 | **Auto-scaling** | Manual | Semi-auto | Kubernetes HPA/VPA |
 | **Biaya Estimasi** | Rp 25-45jt | Rp 60-120jt | Rp 200-500jt+ |
 
-Tabel ini menunjukkan bahwa setiap perpindahan skala menaikkan tuntutan secara non-linear. Lonjakan paling drastis terjadi antara small office dan general office: uptime naik dari 99,9% ke 99,999% (perbedaan 43 menit *downtime* per tahun), redundansi menjadi wajib penuh di tiga lapisan, dan biaya hampir empat kali lipat. Keputusan penting bagi pembaca: jangan membangun "small office yang diperbesar" — karena menambal arsitektur tanpa redundansi jauh lebih mahal daripada membangunnya benar sejak awal. Di sisi lain, koncurrency peak 25 bukan berarti kapasitas 25 *session* sepanjang hari; beban puncak itu hanya muncul pada momen-momen tertentu, sehingga investasi *auto-scaling* (Kubernetes HPA/VPA) justru yang paling masuk akal secara ekonomi.
+Tabel ini menunjukkan bahwa setiap perpindahan skala menaikkan tuntutan secara non-linear. Lonjakan paling drastis terjadi antara small office dan general office: uptime naik dari 99,9% ke 99,999% (perbedaan 43 menit *downtime* per tahun [Sumber?]), redundansi menjadi wajib penuh di tiga lapisan, dan biaya hampir empat kali lipat. Keputusan penting bagi pembaca: jangan membangun "small office yang diperbesar" — karena menambal arsitektur tanpa redundansi jauh lebih mahal daripada membangunnya benar sejak awal. Di sisi lain, koncurrency peak 25 bukan berarti kapasitas 25 *session* sepanjang hari; beban puncak itu hanya muncul pada momen-momen tertentu, sehingga investasi *auto-scaling* (Kubernetes HPA/VPA) justru yang paling masuk akal secara ekonomi.
 
 ![Rentang estimasi biaya naik dari Rp 25-45 jt (home) menjadi Rp 60-120 jt (small office) hingga Rp 200-500 jt+ (general office) — nyaris empat kali lipat per perpindahan skala](../../assets/images/bab-08-general/sub-bab-1/biaya-per-skala.png)
 
@@ -95,7 +95,7 @@ Perancangan kapasitas yang tepat dimulai dari memahami kapan dan bagaimana siste
 
 **Karakter query** di skala ini berbeda jauh dari skala home: prompt berukuran **500-2000 token** (dokumen lampiran, transkrip rapat), bersifat *multi-turn conversation* (percakapan bolak-balik yang menahan *context window* terus terbuka), dan berorientasi analitis — bukan sekadar tanya-jawab pendek. Dampaknya terhadap perancangan jelas: model harus menyediakan *context window* besar, KV cache harus dikelola efisien, dan latensi antar-turn harus tetap di bawah ambang SLA meskipun percakapan berjalan panjang. Konkurensi puncak 5-15 user simultan dengan *burst* hingga **25 saat meeting bersama**, dan setiap permintaan mengonsumsi VRAM — itulah sebabnya perhitungan kebutuhan GPU di Bab 8.2 selalu menyertakan faktor pengali konkurensi.
 
-### Gambar 2: Grafik Beban Harian
+### Gambar 1: Grafik Beban Harian
 
 Grafik *line chart* beban harian menampilkan sumbu X jam 00:00-23:59 dan sumbu Y jumlah *request* per jam. Dua puncak terlihat jelas — **08:00-11:00 dan 13:00-16:00** — sementara kurva menukik mendekati nol pada **20:00-06:00**. Pola tersebut dirangkum dalam diagram berikut:
 
@@ -123,9 +123,9 @@ Jika empat pilar di atas adalah "apa", maka bagian ini adalah "bagaimana". Arsit
 4. **Storage Layer** — tiga sistem yang saling melengkapi: **MinIO** untuk objek (bobot model, dokumen), **Qdrant** untuk vektor (basis data RAG dengan *replication factor* 3), dan **PostgreSQL Patroni** untuk metadata dan audit log.
 5. **Observability** — **Prometheus, Grafana, dan Loki** yang memantau kesehatan setiap lapisan, mengumpulkan metrik SLA, dan memicu *alert*.
 
-Arah aliran data bersifat satu arah dari atas ke bawah — pengguna → *balancer* → *gateway* → klaster → storage — sementara lapisan observability mengintip semua lapisan dari samping tanpa menjadi bagian jalur kritis. *Health check* dijalankan setiap 5 detik di seluruh lapisan, dan *auto-failover* ditargetkan selesai dalam waktu kurang dari 30 detik. Detail interkoneksi ini divisualisasikan pada Gambar 1 di seksi Diagram.
+Arah aliran data bersifat satu arah dari atas ke bawah — pengguna → *balancer* → *gateway* → klaster → storage — sementara lapisan observability mengintip semua lapisan dari samping tanpa menjadi bagian jalur kritis. *Health check* dijalankan setiap 5 detik di seluruh lapisan, dan *auto-failover* ditargetkan selesai dalam waktu kurang dari 30 detik. Detail interkoneksi ini divisualisasikan pada Gambar 2 di seksi 5 (Arsitektur High-Level).
 
-### Gambar 1: Arsitektur High-Level General Office
+### Gambar 2: Arsitektur High-Level General Office
 
 ```mermaid
 graph TB
@@ -227,7 +227,7 @@ Bacaan penting dari tabel ini: *failover time* terkumpul secara **berurutan**, b
 
 ### Gambar 3: Dashboard Grafana SLA Monitoring
 
-Dashboard Grafana menampilkan lima panel inti sebagai *cockpit* pemantauan: **Uptime, TTFT, Throughput, Error Rate, dan Active Sessions**. Tata letak ini bukan kebetulan — kelima metrik itu menjawab pertanyaan manajerial yang berbeda: "apakah sistem hidup?" (uptime), "apakah terasa lambat?" (TTFT), "apakah kapasitas cukup?" (throughput), "apakah ada yang rusak?" (error rate), dan "apakah perusahaan sedang ramai?" (active sessions). Satu dashboard yang merangkum kelima panel ini seharusnya menjadi *homepage* monitor: ketika SLA melanggar, *alert* Prometheus (disusun pada Tutorial B) memicu notifikasi sebelum karyawan sempat mengeluh.
+Dashboard Grafana menampilkan lima panel inti sebagai *cockpit* pemantauan: **Uptime, TTFT, Throughput, Error Rate, dan Active Sessions**. Tata letak ini bukan kebetulan — kelima metrik itu menjawab pertanyaan manajerial yang berbeda: "apakah sistem hidup?" (uptime), "apakah terasa lambat?" (TTFT), "apakah kapasitas cukup?" (throughput), "apakah ada yang rusak?" (error rate), dan "apakah perusahaan sedang ramai?" (active sessions). Satu dashboard yang merangkum kelima panel ini seharusnya menjadi *homepage* monitor: ketika SLA melanggar, *alert* Prometheus (disusun pada Langkah 2) memicu notifikasi sebelum karyawan sempat mengeluh.
 
 ---
 
@@ -303,7 +303,7 @@ groups:
           severity: warning
 ```
 
-Aturan `HighLatency` adalah terjemahan langsung SLA Tabel 2: *alert* berbunyi ketika kuantil 99 latensi melewati 3 detik selama satu menit — bukan lonjakan sesaat. Sedangkan `GPUUtilizationHigh` (> 95% selama 5 menit) adalah isyarat dini: alih-alih menunggu antrean menumpuk, aturan ini memberi tahu operator bahwa kapasitas GPU mendekati batas, sehingga keputusan *scale-out* bisa diambil proaktif.
+Aturan `HighLatency` adalah terjemahan langsung SLA Tabel 1: *alert* berbunyi ketika kuantil 99 latensi melewati 3 detik selama satu menit — bukan lonjakan sesaat. Sedangkan `GPUUtilizationHigh` (> 95% selama 5 menit) adalah isyarat dini: alih-alih menunggu antrean menumpuk, aturan ini memberi tahu operator bahwa kapasitas GPU mendekati batas, sehingga keputusan *scale-out* bisa diambil proaktif.
 
 ### Langkah 3: Simulasi Beban 25 User Bersamaan
 
@@ -347,7 +347,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len(prompt) > 2000 else "llama-3.1-70b"`: prompt panjang (di atas 2000 karakter) diarahkan ke **DeepSeek V4 Flash** yang memiliki konteks 1 juta token — cocok untuk dokumen legal — sementara prompt pendek-analitis memakai model 70B. *Routing* berbasis karakteristik query seperti inilah yang dimanfaatkan oleh API gateway LiteLLM secara otomatis di produksi. Jalankan skrip, amati apakah TTFT P99 tetap di bawah 3 detik, dan periksa apakah HPA menambah pod — itu adalah ujian lulus-tidak-lulusnya Tabel 2.
+Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len(prompt) > 2000 else "llama-3.1-70b"`: prompt panjang (di atas 2000 karakter) diarahkan ke **DeepSeek V4 Flash** yang memiliki konteks 1 juta token — cocok untuk dokumen legal — sementara prompt pendek-analitis memakai model 70B. *Routing* berbasis karakteristik query seperti inilah yang dimanfaatkan oleh API gateway LiteLLM secara otomatis di produksi. Jalankan skrip, amati apakah TTFT P99 tetap di bawah 3 detik, dan periksa apakah HPA menambah pod — itu adalah ujian lulus-tidak-lulusnya Tabel 1.
 
 ---
 
@@ -369,7 +369,7 @@ Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len
 
 ### Paper Jurnal/Konferensi
 
-[1] Wang, B., et al. (2025). *xLLM: High-performance and Intelligent LLM Inference Framework for Enterprise-grade Serving*. arXiv: [2510.14686](https://arxiv.org/abs/2510.14686), DOI: [10.48550/arXiv.2510.14686](https://doi.org/10.48550/arXiv.2510.14686) — arsitektur *decoupled service-engine* dengan *fault tolerance* dan manajemen distributed KV cache; menjadi dasar verifikasi target SLA pada Tabel 2.
+[1] Wang, B., et al. (2025). *xLLM: High-performance and Intelligent LLM Inference Framework for Enterprise-grade Serving*. arXiv: [2510.14686](https://arxiv.org/abs/2510.14686), DOI: [10.48550/arXiv.2510.14686](https://doi.org/10.48550/arXiv.2510.14686) — arsitektur *decoupled service-engine* dengan *fault tolerance* dan manajemen distributed KV cache; menjadi dasar verifikasi target SLA pada Tabel 1.
 
 [2] Hao, S., et al. (2025). *SLOs-Serve: Serving LLM Applications with Multi-SLOs and Dynamic Request Routing*. arXiv: [2504.08784](https://arxiv.org/abs/2504.08784), DOI: [10.48550/arXiv.2504.08784](https://doi.org/10.48550/arXiv.2504.08784) — *per-stage SLO management* dan optimasi kapasitas *serving* per GPU; rujukan untuk menyusun target SLA bertingkat.
 
@@ -377,7 +377,7 @@ Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len
 
 [4] Sun, B., et al. (2024). *Llumnix: Rescheduling LLM Serving for Heterogeneous and Unpredictable Requests*. Proceedings of USENIX OSDI. arXiv: [2409.01234](https://arxiv.org/abs/2409.01234), DOI: [10.48550/arXiv.2409.01234](https://doi.org/10.48550/arXiv.2409.01234), [PDF](https://www.usenix.org/system/files/osdi24-sun-biao.pdf) — *live migration* antar instance GPU untuk *load balancing* dan *fault tolerance*; relevan untuk strategi redundansi pada seksi 3.
 
-[5] Mao, Z., et al. (2024). *SkyServe: Serving AI Models across Regions and Clouds with Spot Instances*. arXiv: [2411.01438](https://arxiv.org/abs/2411.01438), DOI: [10.48550/arXiv.2411.01438](https://doi.org/10.48550/arXiv.2411.01438) — *high availability* dengan campuran *spot* dan *on-demand replicas*; rujukan verifikasi biaya dan *availability* pada Tabel 1 dan 3.
+[5] Mao, Z., et al. (2024). *SkyServe: Serving AI Models across Regions and Clouds with Spot Instances*. arXiv: [2411.01438](https://arxiv.org/abs/2411.01438), DOI: [10.48550/arXiv.2411.01438](https://doi.org/10.48550/arXiv.2411.01438) — *high availability* dengan campuran *spot* dan *on-demand replicas*; rujukan verifikasi biaya dan *availability* pada Tabel 2 dan 3.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 
@@ -391,6 +391,6 @@ Perhatikan logika pemilihan model pada baris `model = "deepseek-v4-flash" if len
 
 [10] Indonesia. (2022). *Undang-Undang Nomor 27 Tahun 2022 tentang Pelindungan Data Pribadi*. [https://peraturan.go.id/id/uu-no-27-tahun-2022](https://peraturan.go.id/id/uu-no-27-tahun-2022)
 
-[11] DeepSeek Team. (2026). *DeepSeek-V4 Flash: Efficient Open MoE for Enterprise Deployment*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model konteks 1 juta token dengan lisensi MIT; ideal untuk pemrosesan dokumen panjang di general office.
+[11] DeepSeek Team. (2026). *DeepSeek-V4 Flash: Efficient Open MoE for Enterprise Deployment*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model konteks 1 juta token dengan lisensi MIT; ideal untuk pemrosesan dokumen panjang di general office. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
-[12] Anthropic. (2026). *Claude Fable 5: Safety-Classifier Enhanced Language Model*. [https://anthropic.com](https://anthropic.com) — model dengan *safety classifiers* built-in dan konteks 1 juta token; alternatif untuk kantor dengan kebutuhan compliance tinggi.
+[12] Anthropic. (2026). *Claude Fable 5: Safety-Classifier Enhanced Language Model*. [https://anthropic.com](https://anthropic.com) — model dengan *safety classifiers* built-in dan konteks 1 juta token; alternatif untuk kantor dengan kebutuhan compliance tinggi. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.

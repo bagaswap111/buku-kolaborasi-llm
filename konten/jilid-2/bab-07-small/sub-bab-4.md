@@ -66,13 +66,13 @@ Pembuatan chunk adalah keputusan yang paling sering diremehkan. Untuk dokumentas
 
 *Vector search* saja akan gagal pada pertanyaan berisi istilah persis seperti kode error atau singkatan ("ERR_TIMEOUT_302"). **Hybrid search** — menggabungkan *dense retrieval* dengan **BM25** (keyword) — menutup lubang ini: BM25 mencocokkan token eksak yang luput dari semantik embedding. Inilah fondasi yang diperkenalkan SPLADE dan DPR, dan kini menjadi fitur standar Qdrant dan Weaviate [4][5].
 
-### Tabel 3: Estimasi Biaya Data RAG
+### Tabel 2: Estimasi Biaya Data RAG
 
 Pertanyaan finansial terakhir dijawab tabel ini: berapa biaya penyimpanan vektor untuk empat tipe dokumen khas kantor?
 
 | Tipe Dokumen | Volume | Ukuran | Chunk (500 token) | Embedding Storage | Biaya (Qdrant) |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **SOP Perusahaan** | 50 dokumen | ~10 MB | ~200 chunks | ~1.5 MB | Gratis |
+| **SOP Perusahaan** | 50 dokumen | ~10 MB | ~200 chunks | ~1,5 MB | Gratis |
 | **Dokumentasi API** | 200 halaman | ~50 MB | ~1000 chunks | ~8 MB | Gratis |
 | **Codebase Legacy** | 10.000 file | ~500 MB | ~50.000 chunks | ~400 MB | ~Rp 100rb/bln |
 | **Jurnal/Paper** | 500 dokumen | ~250 MB | ~25.000 chunks | ~200 MB | ~Rp 50rb/bln |
@@ -127,17 +127,17 @@ Embedding adalah peta bahasa — kualitasnya menentukan apakah query menemukan d
 
 Aturan praktisnya: mulai dengan nomic-embed-text; jika hasil retrieval kurang akurat pada dokumen hukum/regulasi, naik ke bge-m3; untuk kebutuhan editable and scalable mulai dengan ministral-3-embed.
 
-### Tabel 2: Perbandingan Embedding Model
+### Tabel 3: Perbandingan Embedding Model
 
 Pilihan embedding adalah keputusan yang sulit diubah setelah ingestion (semua vektor harus di-*embed* ulang). Karena itu, bandingkan dulu sebelum menabur.
 
 | Model | Dimensi | Max Tokens | Ukuran | Kecepatan | Multilingual | Rekomendasi |
 |:---|:---:|:---:|:---:|:---:|:---|:---|
 | **nomic-embed-text** | 768 | 8192 | ~274 MB | Sangat cepat | Ya | Default Ollama |
-| **bge-m3** | 1024 | 8192 | ~2.2 GB | Sedang | Ya (100+ bahasa) | Best accuracy |
-| **multilingual-e5-large** | 1024 | 512 | ~2.3 GB | Lambat | Ya | Enterprise |
+| **bge-m3** | 1024 | 8192 | ~2,2 GB | Sedang | Ya (100+ bahasa) | Best accuracy |
+| **multilingual-e5-large** | 1024 | 512 | ~2,3 GB | Lambat | Ya | Enterprise |
 | **all-MiniLM-L6-v2** | 384 | 256 | ~80 MB | Sangat cepat | Tidak | Prototype ringan |
-| **ministral-3-embed** | 1024 | 8192 | ~1.5 GB | Cepat | Ya (multilingual) | RAG small office |
+| **ministral-3-embed** | 1024 | 8192 | ~1,5 GB | Cepat | Ya (multilingual) | RAG small office |
 
 Dua kolom yang paling sering salah dibaca adalah **Max Tokens** dan **Multilingual**. Model dengan batas 512 token (e5-large) akan "melihat" hanya sebagian chunk jika chunk kita 500-1000 token — inefisiensi yang tidak terlihat di benchmark. Sementara *multilingual* menentukan: dokumen regulasi Indonesia dan kontrak bahasa Inggris dalam satu koleksi menuntut model yang memahami keduanya (bge-m3, nomic, ministral-3-embed) — model Inggris-only seperti all-MiniLM akan gagal di 30% pertanyaan [5].
 
@@ -156,7 +156,7 @@ Untuk small office, keputusan akhir hampir selalu: **Qdrant self-hosted via Dock
 ## 6. Permission dan Keamanan
 
 
-RAG internal menuntut jawaban atas pertanyaan yang tidak menyenangkan: *siapa yang boleh tahu apa?* Dokumen HR tidak boleh dibaca developer biasa — dan larangan ini harus dijalankan mesin, bukan digantung pada etiket. Implementasinya di sistem ini: **metadata filtering** — setiap chunk diberi label departemen (misal `department: "hr-policies"`), dan query hanya mengambil chunk dari departemen yang menjadi hak user. Filter dijalankan di Qdrant sebagai *filter condition* (Tutorial B), sehingga dokumen terlarang bahkan tidak masuk ke konteks — bukan sekadar disembunyikan.
+RAG internal menuntut jawaban atas pertanyaan yang tidak menyenangkan: *siapa yang boleh tahu apa?* Dokumen HR tidak boleh dibaca developer biasa — dan larangan ini harus dijalankan mesin, bukan digantung pada etiket. Implementasinya di sistem ini: **metadata filtering** — setiap chunk diberi label departemen (misal `department: "hr-policies"`), dan query hanya mengambil chunk dari departemen yang menjadi hak user. Filter dijalankan di Qdrant sebagai *filter condition* (Langkah 2), sehingga dokumen terlarang bahkan tidak masuk ke konteks — bukan sekadar disembunyikan.
 
 Di atasnya, dua praktik keamanan: **enkripsi at-rest** untuk dokumen sensitif di disk, dan **prinsip hak-akses terkecil** — developer hanya mendapat dokumentasi teknis; compliance dan HR mendapat semua. Bab 7.6 membahas bagaimana hak ini dihubungkan ke identitas perusahaan.
 
@@ -179,10 +179,9 @@ Diagram ini adalah *kebijakan keamanan* yang diterjemahkan menjadi struktur data
 
 ---
 
-## 7. Tutorial / Hands-On
+## 7. Praktikum / Hands-On
 
-
-### Tutorial 1: Setup Qdrant + Pipeline Ingestion dengan Python
+### Langkah 1: Setup Qdrant + Pipeline Ingestion dengan Python
 
 Mulai dari sisi *persiapan makan*: skrip berikut meng-index folder knowledge base menjadi koleksi Qdrant dengan *semantic chunking* berbasis heading.
 
@@ -255,9 +254,9 @@ if __name__ == "__main__":
     print("Ingestion selesai!")
 ```
 
-Tiga hal yang perlu disorot dari skrip ini. **Pertama**, *semantic chunking* memotong tepat di `\n## ` (heading level 2) — memanfaatkan struktur dokumen, bukan pemotongan buta. **Kedua**, setiap payload membawa label `department` yang diambil dari nama folder — inilah benih sistem keamanan Tutorial 2. **Ketiga**, ukuran dimensi vektor `1024` harus konsisten dengan embedding model yang dipakai (e5-large dan bge-m3 sama-sama 1024). Catatan kecil: `hash()` pada `id` bersifat *per-process* acak di Python 3 — untuk produksi gantilah dengan ID yang deterministik (misal `uuid5`) agar *re-indexing* tidak menggandakan data.
+Tiga hal yang perlu disorot dari skrip ini. **Pertama**, *semantic chunking* memotong tepat di `\n## ` (heading level 2) — memanfaatkan struktur dokumen, bukan pemotongan buta. **Kedua**, setiap payload membawa label `department` yang diambil dari nama folder — inilah benih sistem keamanan Langkah 2. **Ketiga**, ukuran dimensi vektor `1024` harus konsisten dengan embedding model yang dipakai (e5-large dan bge-m3 sama-sama 1024). Catatan kecil: `hash()` pada `id` bersifat *per-process* acak di Python 3 — untuk produksi gantilah dengan ID yang deterministik (misal `uuid5`) agar *re-indexing* tidak menggandakan data.
 
-### Tutorial 2: Query RAG dengan Filter Departemen
+### Langkah 2: Query RAG dengan Filter Departemen
 
 Sisi *pelayanan*: skrip pencarian yang menghormati hak akses. Developer menanyakan SOP dan hanya SOP yang ditemukan.
 
@@ -303,7 +302,7 @@ print("Sumber:", sources)
 
 Perhatikan bagaimana dua lapisan bekerja: fungsi menerima parameter `department` dan menerjemahkannya menjadi `Filter` Qdrant dengan `MatchValue` — dokumen dari departemen lain tidak pernah masuk daftar hasil, sehingga skor relevansi sekalipun tidak membocorkan isinya. Pada produksi, nilai `department` tidak ditentukan oleh pengguna dengan bebas — ia diturunkan dari identitas login user lewat Open WebUI (Bab 7.3) atau Authentik (Bab 7.6). Koleksi `kb-sop` di sini bisa diganti dengan koleksi dinamis per role pengguna.
 
-### Tutorial 3: Setup Auto-Sync RAG dengan GitHub Wiki
+### Langkah 3: Setup Auto-Sync RAG dengan GitHub Wiki
 
 Dokumentasi yang tidak sinkron lebih buruk daripada tidak ada dokumentasi. *Workflow* berikut menjalankan ingestion otomatis setiap kali `wiki/` atau `docs/` berubah di repository.
 
@@ -339,7 +338,7 @@ jobs:
           QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
 ```
 
-Pemicu `paths` memastikan *workflow* hanya berjalan saat dokumentasi berubah — bukan pada setiap *commit* kode. Rahasia koneksi (`QDRANT_HOST`, `QDRANT_API_KEY`) disimpan di GitHub *Secrets*, dan satu skrip ingestion yang sama (Tutorial 1) dipakai oleh workflow ini dan oleh *cron* harian — prinsip satu kode, banyak pemicu. Hasilnya: ketika developer *push* pembaruan wiki jam 4 sore, knowledge base sudah segar jam 4 lewat.
+Pemicu `paths` memastikan *workflow* hanya berjalan saat dokumentasi berubah — bukan pada setiap *commit* kode. Rahasia koneksi (`QDRANT_HOST`, `QDRANT_API_KEY`) disimpan di GitHub *Secrets*, dan satu skrip ingestion yang sama (Langkah 1) dipakai oleh workflow ini dan oleh *cron* harian — prinsip satu kode, banyak pemicu. Hasilnya: ketika developer *push* pembaruan wiki jam 4 sore, knowledge base sudah segar jam 4 lewat.
 
 ---
 
@@ -350,7 +349,7 @@ Sebuah startup fintech dengan 12 developer dan 3 produk menyadari masalah klasik
 
 **Hardware RAG** mereka: server dedicated — Ryzen 9 7950X, 64GB RAM, 2TB NVMe — dengan Qdrant + PostgreSQL di Docker. **Embedding model**: `bge-m3`, karena dokumen regulasi OJK campur bahasa Indonesia dan Inggris, dan akurasi 100+ bahasa model ini yang terbaik di kelasnya. **Chunking**: *semantic chunking* dengan *heading-based split* dan overlap 10% — memotong di seksi peraturan, bukan di tengah kalimat ayat.
 
-**Permission** adalah bagian yang memakan rapat terbanyak: dokumen HR dan compliance hanya bisa diakses admin; developer hanya mendapat dokumentasi teknis. Implementasinya persis pola Tutorial 2 — label `department` pada setiap chunk dan `Filter` pada setiap query. **Integrasi**: plugin RAG Open WebUI terhubung ke Qdrant, sehingga pertanyaan "Bagaimana cara integrasi payment gateway?" dijawab langsung dari dokumentasi API. **Auto-sync**: GitHub Actions dipicu oleh setiap *push* ke wiki repository; dokumen Confluence disinkronkan manual via *export* periodik.
+**Permission** adalah bagian yang memakan rapat terbanyak: dokumen HR dan compliance hanya bisa diakses admin; developer hanya mendapat dokumentasi teknis. Implementasinya persis pola Langkah 2 — label `department` pada setiap chunk dan `Filter` pada setiap query. **Integrasi**: plugin RAG Open WebUI terhubung ke Qdrant, sehingga pertanyaan "Bagaimana cara integrasi payment gateway?" dijawab langsung dari dokumentasi API. **Auto-sync**: GitHub Actions dipicu oleh setiap *push* ke wiki repository; dokumen Confluence disinkronkan manual via *export* periodik.
 
 **Hasilnya** diukur dengan dua angka yang berkesan: waktu pencarian dokumentasi turun dari **15 menit menjadi 30 detik** — karena mencari bukan lagi menyelami folder, melainkan bertanya. Developer tidak perlu menanyakan ulang hal yang sudah terdokumentasi ke senior. Dan tim compliance puas dengan cara yang paling meyakinkan: dokumen sensitif **tidak pernah bocor** — bukan karena janji, tetapi karena filter keamanan di jalur data. **Biaya**: Qdrant *self-hosted* gratis, model embedding gratis, dan total storage vektor di bawah 5 GB.
 

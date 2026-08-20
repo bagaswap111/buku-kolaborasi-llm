@@ -57,7 +57,7 @@ Grafik berikut memperjelas jurang memori antar metode — skala log sengaja dipa
 
 ### PEFT: Mengupdate Sebagian Kecil Saja
 
-**Parameter-Efficient Fine-Tuning (PEFT)** membalik logika ini: *freeze* bobot asli, dan hanya melatih sebagian kecil parameter tambahan. Metode PEFT paling populer adalah **LoRA**, yang hanya melatih **0,1–1%** parameter model. Dengan begitu, model 70B pun bisa di-*fine-tune* di GPU tunggal. Bukan tanpa konsekuensi — kualitasnya sedikit di bawah *full fine-tuning* — tetapi selisihnya sering tak terlihat di praktik, terutama jika data latih Anda tidak terlalu besar.
+**Parameter-Efficient Fine-Tuning (PEFT)** membalik logika ini: *freeze* bobot asli, dan hanya melatih sebagian kecil parameter tambahan. Metode PEFT paling populer adalah **LoRA**, yang hanya melatih **0,1–1%** parameter model. Dengan begitu, model 70B pun bisa di-*fine-tune* di GPU tunggal. Bukan tanpa konsekuensi — kualitasnya sedikit di bawah *full fine-tuning*, tetapi selisihnya sering tak terlihat di praktik, terutama jika data latih Anda tidak terlalu besar.
 
 ### Gambar 2: Alur Kerja Fine-Tuning yang Sehat
 
@@ -89,7 +89,7 @@ Kunci dari diagram ini adalah loop `EVAL → TUNE → TRAIN`: *fine-tuning* buka
 
 LoRA memanfaatkan satu pengamatan matematis: perubahan bobot yang dibutuhkan untuk adaptasi (ΔW) ternyata hampir selalu **ber-*rank* rendah** — ia hidup di ruang dimensi kecil. Alih-alih melatih ΔW raksasa berukuran *d × k*, LoRA mendekomposisinya menjadi dua matriks kecil: **B** berukuran *d × r* dan **A** berukuran *r × k*, dengan **r** (rank) biasanya 4–32. Dua matriks kecil inilah yang dilatih; bobot asli model tetap *frozen*.
 
-Semakin besar r, semakin banyak kapasitas adaptasi — tetapi juga semakin boros memori dan rawan *overfitting*. Aturan praktisnya: r=8–16 untuk kebanyakan tugas, r=32 untuk data besar atau gaya yang sangat berbeda. Target yang paling umum adalah proyeksi **QKV + O** pada lapisan *attention*, meskipun Anda bisa memperluas ke seluruh *linear layer* (termasuk FFN) jika ingin daya adaptasi penuh.
+Semakin besar r, semakin banyak kapasitas adaptasi, tetapi juga semakin boros memori dan rawan *overfitting*. Aturan praktisnya: r=8–16 untuk kebanyakan tugas, r=32 untuk data besar atau gaya yang sangat berbeda. Target yang paling umum adalah proyeksi **QKV + O** pada lapisan *attention*, meskipun Anda bisa memperluas ke seluruh *linear layer* (termasuk FFN) jika ingin daya adaptasi penuh.
 
 ### Tanpa Latensi Tambahan
 
@@ -200,10 +200,10 @@ Untuk mulai, Anda tidak harus membuat dataset sendiri — banyak dataset berkual
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: QLoRA Fine-Tuning dengan Hugging Face PEFT
+### Langkah 1: QLoRA Fine-Tuning dengan Hugging Face PEFT
 
 Langkah pertama yang wajib Anda kuasai — QLoRA model 8B di GPU 24 GB:
 
@@ -262,7 +262,7 @@ model.save_pretrained("./llama3-lora-final")
 
 Perhatikan angka `Trainable params:` — dengan r=16, angkanya hanya sekitar 0,1% dari 8 miliar parameter model. Itulah LoRA bekerja.
 
-### Tutorial B: Fine-Tuning dengan Unsloth (2x Lebih Cepat)
+### Langkah 2: Fine-Tuning dengan Unsloth (2x Lebih Cepat)
 
 Jika waktu adalah uang, Unsloth adalah pilihan pertama:
 
@@ -314,7 +314,7 @@ model.save_pretrained_merged("./llama3-merged", tokenizer, save_method="merged_1
 
 Perhatikan perbedaannya: semua modul linear ditarget (termasuk FFN), *dropout* nol, dan `use_rslora=True` (RSLoRA) untuk stabilitas *gradient* — kombinasi yang membuat Unsloth dikenal cepat dan hemat memori.
 
-### Tutorial C: Merge LoRA dan Test
+### Langkah 3: Merge LoRA dan Test
 
 Setelah pelatihan selesai, gabungkan adapter ke model base dan uji lewat Ollama:
 

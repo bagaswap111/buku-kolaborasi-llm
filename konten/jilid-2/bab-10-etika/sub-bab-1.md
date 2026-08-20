@@ -22,7 +22,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 Bayangkan Anda mempekerjakan seorang analis yang luar biasa rajin, fasih berbicara, tetapi sesekali mengarang angka tanpa sepengetahuan siapa pun — dan melakukannya dengan nada suara yang sama meyakinkannya seperti ketika ia menyampaikan fakta yang benar. Itulah gambaran paling jujur tentang LLM yang berhalusinasi. Secara teknis, *hallucination* didefinisikan sebagai konten yang dihasilkan model dan tampak faktual, tetapi tidak berdasar pada data yang terverifikasi — definisi yang dirumuskan Huang et al. dalam survei komprehensifnya [1][5]. Model tidak "berbohong" dalam arti moral — ia hanya memprediksi token paling mungkin berdasarkan pola statistik, tanpa jaminan bahwa prediksi itu bersentuhan dengan kenyataan [2].
 
-Dampaknya terhadap bisnis tidak main-main. Satu jawaban salah pada sistem *customer service* bisa berujung komplain beruntun; satu klausul yang dikarang oleh model pada *review* kontrak bisa membatalkan perjanjian senilai miliaran rupiah; satu kode produksi yang mengandung bug dari asisten coding bisa merusak sistem yang sedang berjalan. Estimasi Gartner pada 2024 menempatkan biaya rata-rata satu insiden halusinasi serius di lingkungan *enterprise* pada angka lebih dari $100.000 — mencakup kerugian langsung, upaya remediasi, hingga kerusakan reputasi merek. Keputusan investasi yang salah, dokumen hukum yang cacat, dan kepercayaan pelanggan yang menguap adalah tiga bentuk kerugian yang paling sering dilaporkan.
+Dampaknya terhadap bisnis tidak main-main. Satu jawaban salah pada sistem *customer service* bisa berujung komplain beruntun; satu klausul yang dikarang oleh model pada *review* kontrak bisa membatalkan perjanjian senilai miliaran rupiah; satu kode produksi yang mengandung bug dari asisten coding bisa merusak sistem yang sedang berjalan. Estimasi Gartner pada 2024 menempatkan biaya rata-rata satu insiden halusinasi serius di lingkungan *enterprise* pada angka lebih dari $100.000 [Sumber?] — mencakup kerugian langsung, upaya remediasi, hingga kerusakan reputasi merek. Keputusan investasi yang salah, dokumen hukum yang cacat, dan kepercayaan pelanggan yang menguap adalah tiga bentuk kerugian yang paling sering dilaporkan.
 
 Yang membuat masalah ini rumit adalah deteksinya. Halusinasi tidak selalu berbentuk jawaban yang jelas-jelas absurd; yang paling berbahaya justru yang *plausible* — angka yang masuk akal, tanggal yang cocok, nama pejabat yang nyata tetapi pernyataannya keliru. Karena *fluency* (kelancaran bahasa) model sangat tinggi, manusia cenderung menerima output begitu saja tanpa verifikasi — sebuah bias yang dimanfaatkan oleh kelemahan teknis ini. Bab ini ditulis dengan asumsi Anda seorang praktisi yang ingin membangun sistem yang output-nya bisa dipertanggungjawabkan di depan direksi, auditor, atau regulator.
 
@@ -43,7 +43,7 @@ Berikut peta lengkap tujuh teknik mitigasi — mulai dari yang termurah hingga t
 Analisis: tidak ada senjata tunggal yang memadai. Perhatikan bahwa teknik yang paling efektif (fine-tuning dan KG) justru yang paling mahal, sementara yang termurah (*guardrails*) hanya efektivitas sedang. Untuk tim kecil, kombinasi paling rasional adalah RAG + *constrained decoding* + *guardrails* — biaya medium, cakupan luas. *Constitutional classifiers* adalah pengecualian menarik: sangat efektif dengan biaya nol, tetapi hanya tersedia pada model proprietary tertentu dan membawa *trade-off* penolakan permintaan yang tadi dibahas.
 
 
-### Tabel 3: Matriks Risiko Halusinasi per Sektor Bisnis
+### Tabel 2: Matriks Risiko Halusinasi per Sektor Bisnis
 
 Peta ini menjawab pertanyaan "seberapa keras kita harus bertahan?" — tergantung sektor Anda:
 
@@ -56,7 +56,7 @@ Peta ini menjawab pertanyaan "seberapa keras kita harus bertahan?" — tergantun
 | **Marketing** | Tinggi | Prompt engineering | RAG opsional + Self-Correction | Reputasi merek minor |
 | **Internal Tools** | Rendah-Sedang | RAG dasar | RAG + Evaluasi sampling | Produktivitas turun |
 
-Analisis: pola yang jelas terlihat — semakin dekat aplikasi dengan konsekuensi fisik atau finansial langsung (pasien, uang, gugatan), semakin lengkap tumpukan mitigasinya, dan *human-in-the-loop* menjadi kata kunci di sektor legal. Sebaliknya, sektor marketing yang kerugiannya bersifat reputasi ringan cukup memakai *self-correction* dan *prompt engineering* — menghabiskan anggaran untuk full stack di sini adalah pemborosan. Prinsip *risk-based* ini juga yang dipakai untuk memilih model pada Tabel 2.
+Analisis: pola yang jelas terlihat — semakin dekat aplikasi dengan konsekuensi fisik atau finansial langsung (pasien, uang, gugatan), semakin lengkap tumpukan mitigasinya, dan *human-in-the-loop* menjadi kata kunci di sektor legal. Sebaliknya, sektor marketing yang kerugiannya bersifat reputasi ringan cukup memakai *self-correction* dan *prompt engineering* — menghabiskan anggaran untuk full stack di sini adalah pemborosan. Prinsip *risk-based* ini juga yang dipakai untuk memilih model pada Tabel 3.
 
 
 ---
@@ -156,26 +156,26 @@ Di kubu proprietary: **GPT-5.5** mencatat **2,9%** — peningkatan signifikan di
 
 Pelajaran utamanya: untuk aplikasi dengan toleransi risiko sangat rendah (keuangan, legal), pilihan terbaik adalah Fable 5, atau kombinasi DeepSeek V4 Pro dengan *guardrails* eksternal yang ketat. Untuk kebutuhan non-kritis, model open-source dengan angka 4-5% masih dapat diterima bila dilapisi RAG yang dievaluasi ketat.
 
-### Tabel 2: Perbandingan Hallucination Rate Model Terbaru (TruthfulQA)
+### Tabel 3: Perbandingan Hallucination Rate Model Terbaru (TruthfulQA)
 
 Angka pada tabel ini membantu Anda menilai model mana yang butuh pelapis mitigasi lebih tebal:
 
 | Model | Parameter (Aktif) | Hallucination Rate | False Refusal | Context | Keunggulan Mitigasi |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **Claude Fable 5** | Proprietary | **1.8%** | <2% | 1M | Constitutional classifiers built-in |
-| **GPT-5.5** | Proprietary | 2.9% | <1% | 1M | Reasoning efforts, multi-pass verification |
-| **Mistral Large 3** | 41B (Apache 2.0) | 3.8% | — | 256K | Granular MoE routing |
-| **Qwen3.7-Max** | Proprietary MoE | 4.0% | — | 1M | Agent-centric design |
-| **DeepSeek V4 Pro** | 49B (MIT) | 4.2% | — | 1M | MoE expert isolation, 1M context |
-| **DeepSeek V4 Flash** | 13B (MIT) | 5.1% | — | 1M | Efisien, cukup untuk non-kritis |
-| **Llama 3.1 70B** | 70B | 5.8% | — | 128K | Baseline dense model |
-| **GPT-4o** | Proprietary | 5.2% | <1% | 128K | Generasi sebelumnya |
+| **Claude Fable 5** | Proprietary | **1,8%** | <2% | 1M | Constitutional classifiers built-in |
+| **GPT-5.5** | Proprietary | 2,9% | <1% | 1M | Reasoning efforts, multi-pass verification |
+| **Mistral Large 3** | 41B (Apache 2.0) | 3,8% | — | 256K | Granular MoE routing |
+| **Qwen3.7-Max** | Proprietary MoE | 4,0% | — | 1M | Agent-centric design |
+| **DeepSeek V4 Pro** | 49B (MIT) | 4,2% | — | 1M | MoE expert isolation, 1M context |
+| **DeepSeek V4 Flash** | 13B (MIT) | 5,1% | — | 1M | Efisien, cukup untuk non-kritis |
+| **Llama 3.1 70B** | 70B | 5,8% | — | 128K | Baseline dense model |
+| **GPT-4o** | Proprietary | 5,2% | <1% | 128K | Generasi sebelumnya |
 
 ![Grafik batang horizontal hallucination rate delapan model dari yang tertinggi hingga terendah, dengan Llama 3.1 70B di puncak (5,8%) dan Claude Fable 5 di dasar (1,8%)](../../assets/images/bab-10-etika/sub-bab-1/hallucination-rate-model.png)
 
 *Gambar 10.1-1 — Urutan hallucination rate delapan model pada benchmark TruthfulQA 2026. Gap antara pemimpin proprietary (Claude Fable 5, 1,8%) dan open-source menengah (Llama 3.1 70B, 5,8%) nyaris tiga kali lipat, dan DeepSeek V4 Pro (4,2%) membuktikan MoE open-source mampu menembus di bawah 5%.*
 
-Analisis: gap antara model proprietary terbaik (1,8%) dan open-source menengah (5,8%) hampir tiga kali lipat — tetapi gap ini bisa ditutup secara arsitektural. DeepSeek V4 Pro membuktikan bahwa MoE *expert isolation* bisa menurunkan halusinasi open-source di bawah 5%, sementara Mistral Large 3 membawa kualitas sebanding dengan lisensi yang mudah diaudit. Untuk deployment lokal di perusahaan Indonesia dengan anggaran terbatas, formula realistis adalah: model open-source 4-5% + RAG yang dievaluasi + *guardrails* — hasil akhirnya dapat menyeimbangi Fable 5 tanpa biaya API.
+Analisis: gap antara model proprietary terbaik (1,8%) dan open-source menengah (5,8%) hampir tiga kali lipat, tetapi gap ini bisa ditutup secara arsitektural. DeepSeek V4 Pro membuktikan bahwa MoE *expert isolation* bisa menurunkan halusinasi open-source di bawah 5%, sementara Mistral Large 3 membawa kualitas sebanding dengan lisensi yang mudah diaudit. Untuk deployment lokal di perusahaan Indonesia dengan anggaran terbatas, formula realistis adalah: model open-source 4-5% + RAG yang dievaluasi + *guardrails* — hasil akhirnya dapat menyeimbangi Fable 5 tanpa biaya API.
 
 
 ### Gambar 2: Taksonomi Halusinasi dan Peta Mitigasi
@@ -216,13 +216,13 @@ Terakhir, patokan kuantitatif yang bisa dipakai sebagai *service level objective
 
 | Metrik | Definisi | Range | Target Bisnis | Tools |
 |:---|:---|:---:|:---:|:---|
-| **Faithfulness** | Proporsi klaim yang didukung konteks | 0-1 | >0.9 | CLAIMDECOMP, RAGAS |
-| **Answer Relevancy** | Relevansi jawaban terhadap query | 0-1 | >0.85 | RAGAS |
-| **Context Precision@k** | Presisi dokumen relevan di top-k | 0-1 | >0.8 | LlamaIndex, LangChain |
+| **Faithfulness** | Proporsi klaim yang didukung konteks | 0-1 | >0,9 | CLAIMDECOMP, RAGAS |
+| **Answer Relevancy** | Relevansi jawaban terhadap query | 0-1 | >0,85 | RAGAS |
+| **Context Precision@k** | Presisi dokumen relevan di top-k | 0-1 | >0,8 | LlamaIndex, LangChain |
 | **Hallucination Rate** | % output mengandung fakta tidak berdasar | 0-100% | <5% | HaluEval, SelfCheckGPT |
 | **Human Acceptability** | % output disetujui domain expert | 0-100% | >95% | Review manual sampling |
 
-Analisis: empat metrik pertama menutup sisi teknis, tetapi metrik kelima — *human acceptability* — adalah pengingat bahwa angka otomatis tidak selalu mencerminkan kualitas nyata. Faithfulness 0,95 yang dicapai dengan jawaban yang aman tetapi tidak berguna ("data tidak tersedia dalam konteks") selalu kalah dari jawaban yang benar-benar membantu dengan faithfulness 0,91. Karena itu target bisnis pada tabel ini bukan batas akhir: jadikan lima metrik ini dashboard mingguan, dan biarkan *domain expert* yang me-review sampling menentukan apakah pipeline "layak dipromosikan" atau perlu disetel kembali [4][9].
+Analisis: empat metrik pertama menutup sisi teknis, tetapi metrik kelima — *human acceptability* — adalah pengingat bahwa angka otomatis tidak selalu mencerminkan kualitas nyata. Faithfulness 0,95 yang dicapai dengan jawaban yang aman tetapi tidak berguna ("data tidak tersedia dalam konteks") selalu kalah dari jawaban yang benar-benar membantu dengan faithfulness 0,91. Karena itu target bisnis pada tabel ini bukan batas akhir: jadikan lima metrik ini *dashboard* mingguan, dan biarkan *domain expert* yang me-review sampling menentukan apakah pipeline "layak dipromosikan" atau perlu disetel kembali [4][9].
 
 ---
 
@@ -353,9 +353,9 @@ Perhatikan dua strategi penanganan kegagalan pada script ini: `on_fail="fix"` (p
 
 **Solusi.** Tim menerapkan mitigasi berlapis empat tahap. Pertama, pipeline RAG dengan **ChromaDB** sebagai *vector store* dan **BAAI/bge-base-id-v1.5** sebagai model embedding Bahasa Indonesia, untuk *grounding* dokumen kebijakan dan panduan produk. Kedua, *knowledge graph* khusus data produk — suku bunga, tenor, denda — sehingga pertanyaan "berapa denda telat bayar tenor 12 bulan?" dijawab dari struktur relasi yang pasti, bukan teks yang bisa ambigu. Ketiga, *guardrails* yang memvalidasi **semua angka pinjaman terhadap database produk** sebelum jawaban dikirim — jika angka dari model berbeda dari database, jawaban dibatalkan dan sistem mencari ulang. Keempat, *sampling review*: 10% output dicek manual oleh tim *quality assurance* setiap minggu, mengikuti praktik evaluasi *human acceptability* pada Tabel 4.
 
-**Hasil.** Dalam delapan minggu, *hallucination rate* turun dari 12% menjadi **1,8%** — sejajar dengan angka terbaik di kelas proprietary (Tabel 2), padahal sistemnya berbasis model open-source. Resolusi *first-contact* (nasabah selesai di satu percakapan tanpa eskalasi ke agen manusia) naik **34%**, karena jawaban lebih akurat dan percaya diri. Biaya yang dikeluarkan: sekitar **Rp 50 juta** untuk *setup* awal (server embedding, *vector DB*, *guardrails*, pembangunan KG) plus **Rp 8 juta per bulan** operasional — jauh lebih murah daripada menambah 100 agen manusia.
+**Hasil.** Dalam delapan minggu, *hallucination rate* turun dari 12% menjadi **1,8%** — sejajar dengan angka terbaik di kelas proprietary (Tabel 3), padahal sistemnya berbasis model open-source. Resolusi *first-contact* (nasabah selesai di satu percakapan tanpa eskalasi ke agen manusia) naik **34%**, karena jawaban lebih akurat dan percaya diri. Biaya yang dikeluarkan: sekitar **Rp 50 juta** untuk *setup* awal (server embedding, *vector DB*, *guardrails*, pembangunan KG) plus **Rp 8 juta per bulan** operasional — jauh lebih murah daripada menambah 100 agen manusia.
 
-**Pelajaran.** Kunci keberhasilan bukan pada satu teknik ajaib, melainkan tumpukan yang saling melengkapi: RAG mengisi pengetahuan, KG mengamankan data relasional yang berubah cepat, *guardrails* menghentikan angka salah di gerbang terakhir, dan evaluasi sampling menjaga kualitas agar tidak merosot diam-diam. Fintech ini juga membuktikan poin penting dari Tabel 2: model open-source tidak harus kalah akurat dari model proprietary — asalkan arsitektur *grounding*-nya dirancang dengan disiplin.
+**Pelajaran.** Kunci keberhasilan bukan pada satu teknik ajaib, melainkan tumpukan yang saling melengkapi: RAG mengisi pengetahuan, KG mengamankan data relasional yang berubah cepat, *guardrails* menghentikan angka salah di gerbang terakhir, dan evaluasi sampling menjaga kualitas agar tidak merosot diam-diam. Fintech ini juga membuktikan poin penting dari Tabel 3: model open-source tidak harus kalah akurat dari model proprietary — asalkan arsitektur *grounding*-nya dirancang dengan disiplin.
 
 ---
 
@@ -376,7 +376,11 @@ Perhatikan dua strategi penanganan kegagalan pada script ini: `on_fail="fix"` (p
 
 [6] Anthropic. (2026). *Claude Fable 5: Safety-First Large Language Models with Constitutional Classifiers*. [Research Report](https://anthropic.com/research/claude-fable-5)
 
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
+
 [7] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv: [2604.00001](https://arxiv.org/abs/2604.00001)
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 
@@ -392,8 +396,12 @@ Perhatikan dua strategi penanganan kegagalan pada script ini: `on_fail="fix"` (p
 
 [13] OpenAI. (2026). *GPT-5.5 System Card*. [openai.com](https://openai.com/index/gpt-5-5-system-card/)
 
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
+
 [14] Mistral AI. (2025). *Mistral Large 3 Technical Report*. arXiv: [2512.00001](https://arxiv.org/abs/2512.00001)
 
 [15] Qwen Team. (2026). *Qwen3.7: The Agent Frontier*. [qwen.ai](https://qwen.ai/blog?id=qwen3.7)
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [16] Hugging Face. *Open LLM Leaderboard*. [huggingface.co](https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard)

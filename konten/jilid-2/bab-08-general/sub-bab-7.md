@@ -114,7 +114,7 @@ Perhatikan percabangan pada lapisan *ingestion* dan *retrieval*. Pada *ingestion
 
 ### Entity Extraction: Menemukan "Benda" dalam Teks
 
-*Entity Extraction* adalah proses mengidentifikasi *entity* — orang, organisasi, proyek, dokumen, dan objek bisnis lainnya — dari teks bebas menggunakan *Named Entity Recognition* (NER) berbasis LLM. Pada dokumen kontrak, misalnya, ekstraktor harus mengenali "John Doe" sebagai PERSON, "PT ABC" sebagai ORGANIZATION, dan "CTR-2025-001" sebagai CONTRACT. Tantangannya bukan sekadar mengenali nama — LLM modern melakukan ini dengan baik — tetapi menjaga *identity resolution*: "PT ABC" di kontrak A harus sama dengan "PT ABC" di kontrak B agar graph tidak menciptakan dua node kembar. Praktik terbaik adalah memadukan deteksi LLM dengan aturan deterministic (misalnya format nomor kontrak) dan *deduplication* berbasis *hash* ID.
+*Entity Extraction* adalah proses mengidentifikasi *entity* — orang, organisasi, proyek, dokumen, dan objek bisnis lainnya — dari teks bebas menggunakan *Named Entity Recognition* (NER) berbasis LLM. Pada dokumen kontrak, misalnya, ekstraktor harus mengenali "John Doe" sebagai PERSON, "PT ABC" sebagai ORGANIZATION, dan "CTR-2025-001" sebagai CONTRACT. Tantangannya bukan sekadar mengenali nama — LLM modern melakukan ini dengan baik, tetapi menjaga *identity resolution*: "PT ABC" di kontrak A harus sama dengan "PT ABC" di kontrak B agar graph tidak menciptakan dua node kembar. Praktik terbaik adalah memadukan deteksi LLM dengan aturan deterministic (misalnya format nomor kontrak) dan *deduplication* berbasis *hash* ID.
 
 ### Relation Extraction: Menghubungkan Node dengan Triple
 
@@ -166,16 +166,16 @@ Tabel ini membandingkan tiga konfigurasi retrieval pada korpus campuran dokumen 
 
 | Metrik | Vector Only | Graph Only | Hybrid (RRF) | Improvement |
 |:---|:---:|:---:|:---:|:---:|
-| **Hit Rate@5** | 72.3% | 68.1% | 89.5% | +17.2 pp |
-| **MRR (Mean Reciprocal Rank)** | 0.581 | 0.512 | 0.743 | +27.9% |
-| **Multi-hop Accuracy** | 34.2% | 71.5% | 83.1% | +48.9 pp |
-| **End-to-end Latency** | 340ms | 890ms | 1.21s | +0.87s |
+| **Hit Rate@5** | 72,3% | 68,1% | 89,5% | +17,2 pp |
+| **MRR (Mean Reciprocal Rank)** | 0,581 | 0,512 | 0,743 | +27,9% |
+| **Multi-hop Accuracy** | 34,2% | 71,5% | 83,1% | +48,9 pp |
+| **End-to-end Latency** | 340ms | 890ms | 1,21s | +0,87s |
 
 ![Hybrid (RRF) menaikkan Hit Rate@5 dari 72,3% menjadi 89,5% dan multi-hop accuracy dari 34,2% (vector-only) menjadi 83,1%, dengan harga latensi naik ke 1,21 detik](../../assets/images/bab-08-general/sub-bab-7/benchmark-hybrid-retrieval.png)
 
 *Gambar 8.7-1 — Benchmark hybrid retrieval: RRF mengangkat kedua metrik akurasi jauh di atas jalur tunggal — multi-hop accuracy naik 48,9 poin persentase dari vector-only — sementara latensi tetap di bawah 2 detik yang masih nyaman bagi pengguna general office.*
 
-Dua wawasan penting muncul dari tabel ini. Pertama, *multi-hop accuracy* graph-only (71.5%) jauh mengungguli vector-only (34.2%) — bukti bahwa pertanyaan lintas hop memang butuh struktur, bukan sekadar kemiripan teks. Kedua, hybrid berhasil menaikkan *Hit Rate@5* dari 72.3% menjadi 89.5% — peningkatan 17.2 poin persentase — dengan *trade-off* latency yang meningkat sekitar 0.87 detik. Kenaikan latency ini praktis tidak terasa oleh pengguna general office (di bawah 2 detik), sementara kenaikan akurasi sangat terasa pada kualitas jawaban. Untuk konteks di mana latency adalah prioritas mutlak, pertimbangkan *cache* (Bagian 7) untuk meniadakan biaya latency pada pertanyaan berulang.
+Dua wawasan penting muncul dari tabel ini. Pertama, *multi-hop accuracy* graph-only (71,5%) jauh mengungguli vector-only (34,2%) — bukti bahwa pertanyaan lintas hop memang butuh struktur, bukan sekadar kemiripan teks. Kedua, hybrid berhasil menaikkan *Hit Rate@5* dari 72,3% menjadi 89,5% — peningkatan 17,2 poin persentase — dengan *trade-off* latency yang meningkat sekitar 0,87 detik. Kenaikan latency ini praktis tidak terasa oleh pengguna general office (di bawah 2 detik), sementara kenaikan akurasi sangat terasa pada kualitas jawaban. Untuk konteks di mana latency adalah prioritas mutlak, pertimbangkan *cache* (Bagian 7) untuk meniadakan biaya latency pada pertanyaan berulang.
 
 ---
 
@@ -222,7 +222,7 @@ Pertanyaan: "Total penjualan Q3 2025 dari klien sektor finansial"
 
 ### Safety Guard: SELECT Saja, Tidak Perlu Lebih
 
-Aturan non-negosiasi untuk Text-to-SQL produksi: *generator hanya boleh menghasilkan pernyataan SELECT*. Tidak ada INSERT, UPDATE, DELETE, DROP, atau ALTER dalam kondisi apa pun. Ini bukan sekadar instruksi dalam *prompt* — instruksi bisa diabaikan model — melainkan batasan di lapisan eksekusi: validasi *query* yang dihasilkan dengan aturan sintaksis dan daftar hitam kata kunci DML/DDL sebelum dieksekusi, dan gunakan kredensial database read-only untuk user aplikasi. Tambahkan juga *row-level restriction*: jika HRIS membatasi akses data gaji, database user untuk LLM harus mereplikasi pembatasan tersebut agar *query* yang lolos sekalipun tidak pernah menembus batas kebutuhan informasi.
+Aturan non-negosiasi untuk Text-to-SQL produksi: *generator hanya boleh menghasilkan pernyataan SELECT*. Tidak ada INSERT, UPDATE, DELETE, DROP, atau ALTER dalam kondisi apa pun. Ini bukan sekadar instruksi dalam *prompt* — instruksi bisa diabaikan model, melainkan batasan di lapisan eksekusi: validasi *query* yang dihasilkan dengan aturan sintaksis dan daftar hitam kata kunci DML/DDL sebelum dieksekusi, dan gunakan kredensial database read-only untuk user aplikasi. Tambahkan juga *row-level restriction*: jika HRIS membatasi akses data gaji, database user untuk LLM harus mereplikasi pembatasan tersebut agar *query* yang lolos sekalipun tidak pernah menembus batas kebutuhan informasi.
 
 ### Validasi di Sandbox
 
@@ -243,7 +243,7 @@ Kontrak baru, email masuk, karyawan pindah departemen — data kantor berubah se
 
 ### Model Baru untuk Pipeline KG: Qwen3.7-Max
 
-Satu perkembangan menarik pada 2026 menghapus sebagian kompleksitas pipeline tradisional: **Qwen3.7-Max** (rilis Mei 2026) membawa kemampuan *agent-centric* yang memungkinkan *entity extraction* dan *relation mapping* dilakukan langsung tanpa *fine-tuning*. Untuk skala general office, ini berarti satu model dapat menjalankan peran NER, ekstraksi *triple*, dan bahkan *query routing* sekaligus — mengurangi jumlah komponen yang harus di-*train* dan di-*maintain* terpisah. Perlu dicatat dengan jujur: untuk korpus yang sangat khusus (misalnya dokumen hukum dengan terminologi ekstrem), *fine-tuning* model ekstraksi yang lebih kecil masih bisa unggul. Keputusan memakai Qwen3.7-Max sebagai ekstraktor bawaan atau menggunakan pipeline terpisah adalah pertimbangan biaya versus kendali — dan keduanya sah-sah saja.
+Satu perkembangan menarik pada 2026 menghapus sebagian kompleksitas pipeline tradisional: **Qwen3.7-Max** (rilis Mei 2026 [Sumber?]) membawa kemampuan *agent-centric* yang memungkinkan *entity extraction* dan *relation mapping* dilakukan langsung tanpa *fine-tuning*. Untuk skala general office, ini berarti satu model dapat menjalankan peran NER, ekstraksi *triple*, dan bahkan *query routing* sekaligus — mengurangi jumlah komponen yang harus di-*train* dan di-*maintain* terpisah. Perlu dicatat dengan jujur: untuk korpus yang sangat khusus (misalnya dokumen hukum dengan terminologi ekstrem), *fine-tuning* model ekstraksi yang lebih kecil masih bisa unggul. Keputusan memakai Qwen3.7-Max sebagai ekstraktor bawaan atau menggunakan pipeline terpisah adalah pertimbangan biaya versus kendali — dan keduanya sah-sah saja.
 
 ---
 
@@ -393,7 +393,7 @@ Uji alur ini dengan tiga jenis pertanyaan: (1) pertanyaan agregasi — misal "to
 ## 9. Studi Kasus: Knowledge Graph untuk Departemen Legal & Finance
 
 
-**Skenario.** Sebuah perusahaan manufaktur dengan 40 karyawan menghadapi masalah klasik birokrasi silang. Departemen legal ingin mereview kontrak, departemen finance ingin menganalisa pengeluaran, tetapi keduanya tidak bisa bekerja dari satu sumber yang sama. Data yang ada: lebih dari 2.000 kontrak dalam format PDF, database ERP dengan lebih dari 100 tabel, dan *org chart* 40 karyawan. Sebelumnya, pertanyaan lintas departemen harus berjalan berantai: HR mencari siapa atasan seseorang, Legal mencari kontrak yang relevan, Finance mengecek nilai transaksi — tiga departemen, tiga sistem, dan berjam-jam waktu.
+**Skenario.** Sebuah perusahaan manufaktur dengan 40 karyawan menghadapi masalah klasik birokrasi silang. Departemen legal ingin mereview kontrak, departemen finance ingin menganalisis pengeluaran, tetapi keduanya tidak bisa bekerja dari satu sumber yang sama. Data yang ada: lebih dari 2.000 kontrak dalam format PDF, database ERP dengan lebih dari 100 tabel, dan *org chart* 40 karyawan. Sebelumnya, pertanyaan lintas departemen harus berjalan berantai: HR mencari siapa atasan seseorang, Legal mencari kontrak yang relevan, Finance mengecek nilai transaksi — tiga departemen, tiga sistem, dan berjam-jam waktu.
 
 **Solusi.** Perusahaan membangun Centralized Knowledge Graph dengan arsitektur pada Bagian 3. Pipeline *ingestion* memproses 2.000+ kontrak PDF menjadi graph yang berisi 15.000 *nodes* (klien, kontrak, proyek, karyawan) dan 40.000 *relations*, sementara tabel ERP tetap tinggal di PostgreSQL dan *org chart* masuk ke People KG di Neo4j. Query routing dan RRF fusion (Bagian 5) serta Text-to-SQL dengan *sandbox* (Bagian 6) melengkapi lapisan retrieval.
 
@@ -428,4 +428,4 @@ Uji alur ini dengan tiga jenis pertanyaan: (1) pertanyaan agregasi — misal "to
 
 [9] Microsoft. *GraphRAG Repository*. [https://github.com/microsoft/graphrag](https://github.com/microsoft/graphrag) — implementasi referensi GraphRAG skala enterprise.
 
-[10] Alibaba Qwen Team. (2026). *Qwen3.7-Max: Agent-Centric MoE for Enterprise Knowledge Management*. [https://qwenlm.github.io](https://qwenlm.github.io) — model agent-centric dengan kemampuan *entity extraction* dan *relation mapping* bawaan, mengurangi kebutuhan pipeline ekstraksi terpisah (Bagian 7).
+[10] Alibaba Qwen Team. (2026). *Qwen3.7-Max: Agent-Centric MoE for Enterprise Knowledge Management*. [https://qwenlm.github.io](https://qwenlm.github.io) — model agent-centric dengan kemampuan *entity extraction* dan *relation mapping* bawaan, mengurangi kebutuhan pipeline ekstraksi terpisah (Bagian 7). — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.

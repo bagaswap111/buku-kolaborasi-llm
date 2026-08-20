@@ -211,10 +211,10 @@ Perhatikan dua hal dalam diagram ini. *Pertama*, mikrofon fisik (MIC) dan node w
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup faster-whisper untuk Transkrip Real-Time
+### Langkah 1: Setup faster-whisper untuk Transkrip Real-Time
 
 Pipeline *speech-to-text* siap jalan dengan VAD, transkrip otomatis per kalimat, dan pengiriman hasil ke aplikasi lain. Simpan sebagai `realtime_stt.py`.
 
@@ -289,7 +289,7 @@ except KeyboardInterrupt:
 
 Bongkar tiga bagian kode ini. *Pertama*, `compute_type="float16"` memanfaatkan tensor core GPU — setengah dari memori dan waktu komputasi FP32. *Kedua*, `webrtcvad.Vad(2)` dengan *aggressiveness* 2: nilai 0 terlalu permisif (bising ikut terekam), 3 terlalu agresif (bisa memotong awal kalimat) — 2 adalah titik tengah yang aman untuk ruang keluarga. *Ketiga*, transkrip dijalankan di *thread* terpisah (`threading.Thread`) agar loop pendengaran tidak pernah berhenti meski model sedang memproses kalimat sebelumnya — inilah pola *pipelining* yang menjaga keseluruhan sistem tetap *real-time*. Uji dulu dengan `device="cpu"` jika server belum punya GPU, lalu pindah ke `cuda`.
 
-### Tutorial B: Setup ESP32-S3 sebagai Wireless Microphone Node
+### Langkah 2: Setup ESP32-S3 sebagai Wireless Microphone Node
 
 Sisi *hardware*: satu node mikrofon wireless yang mengirim audio 16 kHz ke server. Unggah kode ini ke ESP32-S3 dengan Arduino IDE (tambahkan library `WebSocketsClient` dan `I2S`).
 
@@ -338,9 +338,9 @@ void loop() {
 }
 ```
 
-Empat parameter yang harus disesuaikan dengan rumah Anda: SSID dan kata sandi WiFi, IP server (`192.168.1.100` diganti alamat server keluarga), dan tiga pin I2S — `setDATA(41)`, `setBCLK(40)`, `setMCLK(42)` mengikuti konvensi pinout ESP32-S3 standar untuk INMP441, tetapi periksa kembali diagram pin devkit Anda. Perhatikan `CHUNK_SIZE = 480` (30 ms × 16 kHz): ukuran yang sama dengan CHUNK di Tutorial A, sehingga server menerima paket yang sudah sempurna untuk VAD. Tambahkan `delay(10)` dimaksudkan agar loop tidak membanjiri WebSocket; bila audio terputus-putus, kurangi menjadi `delay(1)`.
+Empat parameter yang harus disesuaikan dengan rumah Anda: SSID dan kata sandi WiFi, IP server (`192.168.1.100` diganti alamat server keluarga), dan tiga pin I2S — `setDATA(41)`, `setBCLK(40)`, `setMCLK(42)` mengikuti konvensi pinout ESP32-S3 standar untuk INMP441, tetapi periksa kembali diagram pin devkit Anda. Perhatikan `CHUNK_SIZE = 480` (30 ms × 16 kHz): ukuran yang sama dengan CHUNK di Langkah 1, sehingga server menerima paket yang sudah sempurna untuk VAD. Tambahkan `delay(10)` dimaksudkan agar loop tidak membanjiri WebSocket; bila audio terputus-putus, kurangi menjadi `delay(1)`.
 
-### Tutorial C: WebSocket Server untuk Menerima Audio
+### Langkah 3: WebSocket Server untuk Menerima Audio
 
 Server penerima yang mengumpulkan paket audio ESP32 dan mentranskripnya setiap 3 detik. Simpan sebagai `ws_audio_server.py`.
 

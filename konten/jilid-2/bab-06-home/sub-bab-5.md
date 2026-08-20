@@ -42,7 +42,7 @@ Supaya tidak abstrak, bayangkan tiga skenario sehari-hari yang akan berjalan mul
 
 Ketiga skenario ini menggambarkan tiga jenis data yang berbeda (teks, dokumen terenkripsi, foto), dan semuanya dikelola oleh satu arsitektur yang akan kita bangun di seksi berikutnya.
 
-### Tabel 2: Ukuran Dataset Keluarga dan *Embedding Cost*
+### Tabel 1: Ukuran Dataset Keluarga dan *Embedding Cost*
 
 Tabel berikut memperkirakan volume data khas keluarga aktif beserta biaya pemrosesannya — perhatikan bahwa waktu *embedding* dihitung untuk CPU biasa.
 
@@ -65,7 +65,7 @@ Tabel berikut memperkirakan volume data khas keluarga aktif beserta biaya pemros
 Analisis: dua insight penting muncul dari tabel ini. *Pertama*, penyimpanan vektor total hanya ~100 MB untuk seluruh arsip — hampir tidak terasa di era NVMe 1 TB, dan ini membuktikan bahwa RAG keluarga bukan masalah kapasitas, melainkan disiplin pipeline. *Kedua*, *ingestion* sekali jalan memakan waktu paling banyak dari foto (15 menit dari total 25 menit) karena 10.000 foto harus lewat LLM *vision* untuk *captioning* — jadi lakukan *captioning* bertahap, misalnya 500 foto per malam, agar tidak mengganggu penggunaan server siang hari.
 
 
-### Tabel 3: Struktur Direktori RAG Keluarga
+### Tabel 2: Struktur Direktori RAG Keluarga
 
 Kerangka folder berikut menjadi kontrak antara anggota keluarga dan pipeline — setiap orang tahu di mana datanya berada.
 
@@ -106,15 +106,15 @@ Saat seorang anggota keluarga bertanya, urutan kebalikannya terjadi: pertanyaan 
 
 ### Toolbox: ChromaDB, Model Embedding, dan Ollama
 
-Untuk *deployment* rumahan, kombinasi yang paling praktis adalah **ChromaDB** sebagai *vector store*, **Nomic Embed Text** atau **BGE-M3** sebagai model *embedding*, dan **Ollama** sebagai *runtime* LLM. ChromaDB dipilih karena *setup*-nya sangat mudah dan hemat memori — sekitar ~500 MB RAM untuk 10 ribu dokumen (lihat Tabel 1). Ukuran dataset keluarga umumnya berada di kisaran **100-500 GB** (foto mendominasi, dokumen teks hanya puluhan MB), tetapi yang masuk ke ChromaDB hanyalah vektor *embedding* berukuran ~100 MB — jauh lebih kecil dari data aslinya.
+Untuk *deployment* rumahan, kombinasi yang paling praktis adalah **ChromaDB** sebagai *vector store*, **Nomic Embed Text** atau **BGE-M3** sebagai model *embedding*, dan **Ollama** sebagai *runtime* LLM. ChromaDB dipilih karena *setup*-nya sangat mudah dan hemat memori — sekitar ~500 MB RAM untuk 10 ribu dokumen (lihat Tabel 3). Ukuran dataset keluarga umumnya berada di kisaran **100-500 GB** (foto mendominasi, dokumen teks hanya puluhan MB), tetapi yang masuk ke ChromaDB hanyalah vektor *embedding* berukuran ~100 MB — jauh lebih kecil dari data aslinya.
 
 Untuk dokumen berbahasa Indonesia, rekomendasi model *embedding* adalah **BGE-M3** dari BAAI. Berbeda dengan Nomic Embed Text yang lebih kuat di dokumen Inggris, BGE-M3 dirancang *multi-lingual* — termasuk bahasa Indonesia — sehingga *retrieval quality*-nya lebih baik untuk resep, surat pajak, dan catatan sekolah berbahasa Indonesia [9]. Di sisi LLM, **Ministral 3 8B** menjadi pilihan menarik untuk RAG keluarga: *edge-optimized*, berkonteks **128K token**, sehingga satu *prompt* bisa memuat *chunk* yang lebih besar tanpa kehilangan informasi [11]. Untuk rumah *high-end*, **DeepSeek V4 Flash** dengan konteks **1 juta token** mampu me-*retrieve* ribuan dokumen dalam satu *prompt* tanpa kehilangan konteks; alternatifnya **Ministral 3 14B** dengan 128K konteks sudah lebih dari cukup untuk kebutuhan keluarga biasa [11].
 
 ### Ukuran Dataset dan Konsekuensinya
 
-Angka 100-500 GB terdengar besar, tetapi perlu ditegaskan: mayoritas volume itu adalah foto mentah dan dokumen scan yang tetap tersimpan sebagai *file* biasa di *file system*. Yang di-*embed* hanyalah representasi vektornya. Dengan total ~20.000 *chunk* untuk keluarga aktif (lihat Tabel 2), seluruh *embedding* hanya memakan ~100 MB penyimpanan dan ~25 menit waktu *embedding* di CPU. Artinya, sebuah PC rumahan kelas menengah sudah sanggup menjalankan seluruh pipeline tanpa GPU khusus untuk tahap *ingestion*.
+Angka 100-500 GB terdengar besar, tetapi perlu ditegaskan: mayoritas volume itu adalah foto mentah dan dokumen scan yang tetap tersimpan sebagai *file* biasa di *file system*. Yang di-*embed* hanyalah representasi vektornya. Dengan total ~20.000 *chunk* untuk keluarga aktif (lihat Tabel 3), seluruh *embedding* hanya memakan ~100 MB penyimpanan dan ~25 menit waktu *embedding* di CPU. Artinya, sebuah PC rumahan kelas menengah sudah sanggup menjalankan seluruh pipeline tanpa GPU khusus untuk tahap *ingestion*.
 
-### Tabel 1: Perbandingan Vector Database Lokal
+### Tabel 3: Perbandingan Vector Database Lokal
 
 Sebelum memutuskan tempat menyimpan vektor keluarga, berikut perbandingan empat kandidat *vector database* yang umum digunakan.
 
@@ -228,7 +228,7 @@ Alternatif yang lebih ringan: simpan *file* asli terenkripsi, dan di ChromaDB ha
 
 ### Titik Lemah yang Sering Dilupakan
 
-Enkripsi sekuat apa pun tidak berguna jika kuncinya disimpan di tempat yang sama. Tuliskan *passphrase* LUKS di *password manager* keluarga, bukan di catatan tempel di samping server. Dan ingat: enkripsi melindungi data saat istirahat (*at rest*) — tetapi selama *query* berlangsung, data ada dalam memori. Pastikan hanya proses pipeline yang sah yang bisa mengakses volume tersebut (lihat Tutorial C).
+Enkripsi sekuat apa pun tidak berguna jika kuncinya disimpan di tempat yang sama. Tuliskan *passphrase* LUKS di *password manager* keluarga, bukan di catatan tempel di samping server. Dan ingat: enkripsi melindungi data saat istirahat (*at rest*), tetapi selama *query* berlangsung, data ada dalam memori. Pastikan hanya proses pipeline yang sah yang bisa mengakses volume tersebut (lihat Langkah 3).
 
 ---
 
@@ -245,10 +245,10 @@ Dengan pola ini, pertanyaan "Cari foto liburan di Bali tahun 2024" diterjemahkan
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup ChromaDB Multi-User RAG
+### Langkah 1: Setup ChromaDB Multi-User RAG
 
 Skrip berikut adalah inti dari seluruh sub-bab ini — pipeline *multi-user* yang mengisolasi data per anggota keluarga. Simpan sebagai `rag_family.py`.
 
@@ -305,7 +305,7 @@ print(rag.query("anak", "Apa rumus luas lingkaran?"))
 
 Perhatikan dua detail keamanan dalam kode ini. *Pertama*, `anonymized_telemetry=False` memastikan telemetri anonim ChromaDB dimatikan — data keluarga tidak perlu meninggalkan rumah meski hanya sebagai statistik. *Kedua*, `user_id` ditulis dua kali: sebagai penentu nama *collection* dan sebagai metadata setiap dokumen. Coba jalankan `rag.query("anak", "Bagaimana cara membuat soto?")` — hasilnya kosong, karena resep ibu berada di *collection* `ibu_recipes` yang tidak pernah disentuh *query* anak.
 
-### Tutorial B: OCR Dokumen Bahasa Indonesia + Embed
+### Langkah 2: OCR Dokumen Bahasa Indonesia + Embed
 
 Pipeline lengkap dari PDF scan hingga vektor di ChromaDB, dalam satu skrip bash yang memanggil Python.
 
@@ -359,7 +359,7 @@ PYEOF
 
 Catatan penting: pemanggilan OCR menggunakan `lang='ind'` — tanpa ini, Tesseract akan menerka bahasa Inggris dan merusak teks berbahasa Indonesia (huruf `di`, `ke`, `yang` sering salah terjemah). Perhatikan juga pola *overlap* pada *chunking*: potongan teks diambil setiap 384 karakter dengan lebar 512 karakter, sehingga dua *chunk* bertetangga saling tumpang tindih 128 karakter — persis strategi 512/128 untuk dokumen formal yang dibahas di seksi 5. Untuk *production*, ganti *chunking* berbasis karakter ini dengan *tokenizer* LLM agar konsisten dengan batas 512 token.
 
-### Tutorial C: Enkripsi Dokumen Sensitif dengan LUKS
+### Langkah 3: Enkripsi Dokumen Sensitif dengan LUKS
 
 Amankan folder pajak dan medis dalam *encrypted volume* yang hanya terbuka saat diperlukan.
 
@@ -411,7 +411,7 @@ Ganti `PASSWORD` pada baris `ExecStart` dengan *passphrase* yang sebenarnya — 
 - Paper foundational RAG — arsitektur retriever-generator yang menjadi dasar pipeline sub-bab ini.
 
 [2] Lu, Z., et al. (2024). *Small Language Models: Survey, Measurements, and Insights*. arXiv preprint: 2409.15790. DOI: [10.48550/arXiv.2409.15790](https://arxiv.org/abs/2409.15790)
-- Analisis model *embedding* untuk *edge* — data ukuran *embedding*, kecepatan *retrieval*, dan *memory footprint* pada Tabel 1 dan 2.
+- Analisis model *embedding* untuk *edge* — data ukuran *embedding*, kecepatan *retrieval*, dan *memory footprint* pada Tabel 3 dan 2.
 
 [3] Lu, Z., et al. (2025). *Demystifying Small Language Models for Edge Deployment*. Proceedings of the 63rd Annual Meeting of the ACL. DOI: [10.18653/v1/2025.acl-long.718](https://aclanthology.org/2025.acl-long.718/)
 - Temuan tentang keterbatasan *in-context learning* SLM — dasar pemilihan *chunk size* dan konteks maksimal di pipeline RAG.

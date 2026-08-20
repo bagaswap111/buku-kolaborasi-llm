@@ -21,7 +21,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ### Jejak Tak Terlihat di Setiap Query
 
-LLM adalah konsumen energi raksasa yang sering tidak terlihat oleh penggunanya. Melatih **GPT-3** (175B parameter) diperkirakan menghasilkan sekitar **500 ton CO2** — setara emisi **100 mobil yang berjalan selama satu tahun penuh**. Lebih mengejutkan lagi, *inference* (fase penggunaan sehari-hari) bisa mengonsumsi energi **10 kali lipat** dari *training* jika dihitung kumulatif, karena model yang sudah dilatih terus melayani jutaan prompt setiap hari. Setiap *query* LLM mengonsumsi energi **5-10 kali lebih besar** daripada *search engine* tradisional. Di kantor yang menjalankan server LLM 24/7, tagihan listrik bulanan bisa mencapai puluhan juta rupiah — dan setiap rupiah itu juga merupakan emisi.
+LLM adalah konsumen energi raksasa yang sering tidak terlihat oleh penggunanya. Melatih **GPT-3** (175B parameter) diperkirakan menghasilkan sekitar **500 ton CO2 [Sumber?]** — setara emisi **100 mobil yang berjalan selama satu tahun penuh**. Lebih mengejutkan lagi, *inference* (fase penggunaan sehari-hari) bisa mengonsumsi energi **10 kali lipat** dari *training* jika dihitung kumulatif, karena model yang sudah dilatih terus melayani jutaan prompt setiap hari. Setiap *query* LLM mengonsumsi energi **5-10 kali lebih besar [Sumber?]** daripada *search engine* tradisional. Di kantor yang menjalankan server LLM 24/7, tagihan listrik bulanan bisa mencapai puluhan juta rupiah — dan setiap rupiah itu juga merupakan emisi.
 
 ### Regulasi Semakin Mengetat
 
@@ -50,7 +50,7 @@ Akhirnya, ada dimensi etis yang tidak bisa dihindari. Setiap *query* yang tidak 
 
 ### Training: Emisi Terkonsentrasi
 
-Fase *training* menghasilkan emisi yang **terkonsentrasi dalam waktu singkat**: satu siklus pelatihan model 175B saja bisa melebihi **500 ton CO2**. Besarannya tergantung ukuran model, efisiensi arsitektur, dan *grid carbon intensity* lokasi pusat data. Kabar baiknya, *training* adalah fase yang paling mudah dijadwalkan — karena tidak interaktif, ia bisa dipindah ke jam-jam dengan *carbon intensity* rendah tanpa mengganggu siapa pun. Inilah dasar dari *carbon-aware scheduling* yang dibahas di Seksi 5.
+Fase *training* menghasilkan emisi yang **terkonsentrasi dalam waktu singkat**: satu siklus pelatihan model 175B saja bisa melebihi **500 ton CO2 [Sumber?]**. Besarannya tergantung ukuran model, efisiensi arsitektur, dan *grid carbon intensity* lokasi pusat data. Kabar baiknya, *training* adalah fase yang paling mudah dijadwalkan — karena tidak interaktif, ia bisa dipindah ke jam-jam dengan *carbon intensity* rendah tanpa mengganggu siapa pun. Inilah dasar dari *carbon-aware scheduling* yang dibahas di Seksi 5.
 
 ### Inference: Emisi yang Tersebar
 
@@ -58,7 +58,7 @@ Fase *inference* berbanding terbalik: emisinya **kecil per kejadian tetapi terse
 
 ### Experimentation & Storage: Emisi yang Tersembunyi
 
-Fase terakhir yang paling jarang dihitung: **eksperimentasi dan penyimpanan**. Setiap percobaan *trial-and-error* yang gagal tetap membakar energi; setiap checkpoint yang disimpan tetap memakan daya penyimpanan dan *backup*. Estimasi yang sering dikutip: hingga 40% konsumsi listrik server AI di kantor berasal dari GPU yang menganggur di malam hari — memproses apa pun atau tidak sama sekali. Menghemat fase ini tidak memerlukan teknologi baru, hanya disiplin: hapus checkpoint yang tidak dipakai, matikan GPU di luar jam kerja, dan hentikan eksperimen yang tidak terukur.
+Fase terakhir yang paling jarang dihitung: **eksperimentasi dan penyimpanan**. Setiap percobaan *trial-and-error* yang gagal tetap membakar energi; setiap checkpoint yang disimpan tetap memakan daya penyimpanan dan *backup*. Estimasi yang sering dikutip: hingga 40% konsumsi listrik server AI di kantor berasal dari GPU yang menganggur di malam hari [Sumber?] — memproses apa pun atau tidak sama sekali. Menghemat fase ini tidak memerlukan teknologi baru, hanya disiplin: hapus checkpoint yang tidak dipakai, matikan GPU di luar jam kerja, dan hentikan eksperimen yang tidak terukur.
 
 ### Gambar 1: Siklus Hidup Emisi LLM
 
@@ -121,43 +121,43 @@ Prinsip pertama Green AI adalah **jangan pakai model 70B untuk tugas yang bisa d
 
 Pilihan arsitektur sejak awal adalah strategi Green AI yang paling elegan: **Mixture of Experts (MoE)** mengaktifkan hanya sebagian parameter per token. **DeepSeek V4 Pro** dengan *granular MoE* memakai **27% lebih sedikit FLOPs** dibandingkan *dense model* setara — sekitar 49B aktif vs ~180B *dense* untuk performa sebanding — yang berarti **penghematan energi ~55% per query** (dan sekaligus *SWE-bench* lebih tinggi 12%, karena MoE modern tidak mengorbankan kualitas). Keuntungan pentingnya: strategi ini "bersifat pilihan model" — biaya implementasi Rp 0, tinggal memilih DeepSeek V4 Pro atau Mistral Large 3 alih-alih model *dense* 180B.
 
-### Tabel A: Perbandingan Emisi per Model dan Kuantisasi
+### Tabel 1: Perbandingan Emisi per Model dan Kuantisasi
 
-Tabel berikut membandingkan konsumsi energi dan emisi per 1.000 *query* untuk 14 model — dari *frontier* cloud hingga model lokal kecil — dengan asumsi **grid carbon intensity 600 gCO2/kWh** (rata-rata Indonesia) dan padanan emisi dalam "halaman web yang dibuka".
+Tabel berikut membandingkan konsumsi energi dan emisi per 1.000 *query* untuk 15 model — dari *frontier* cloud hingga model lokal kecil — dengan asumsi **grid carbon intensity 600 gCO2/kWh** (rata-rata Indonesia) dan padanan emisi dalam "halaman web yang dibuka".
 
 | Model | Parameter (Aktif) | Kuantisasi | Energi/Query (Wh) | CO2/1K Query (g) | Setara (browsing) |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **GPT-4o** | Proprietary | FP16 | ~4.5 Wh | ~2.7 g | ~9 halaman web |
-| **GPT-5.5** | Proprietary | — | ~3.2 Wh | ~1.92 g | ~6.4 halaman web |
-| **Claude Fable 5** | Proprietary | — | ~3.8 Wh | ~2.28 g | ~7.6 halaman web |
-| **Llama 3.1 8B** | 8B | Q4_K_M | ~0.4 Wh | ~0.24 g | ~1 halaman web |
-| **Llama 3.1 70B** | 70B | Q3_K_M | ~2.8 Wh | ~1.68 g | ~5.6 halaman web |
-| **Llama 3.1 70B** | 70B | Q4_K_M | ~3.5 Wh | ~2.1 g | ~7 halaman web |
-| **Llama 4 Scout** | 17Bx16E (MoE) | Q4 | ~1.2 Wh | ~0.72 g | ~2.4 halaman web |
-| **Llama 4 Maverick** | 17Bx128E (MoE) | Q4 | ~1.8 Wh | ~1.08 g | ~3.6 halaman web |
-| **DeepSeek V4 Flash** | 13B (284B total MoE) | Q4_K_M | ~1.0 Wh | **~0.60 g** | ~2 halaman web |
-| **DeepSeek V4 Pro** | 49B (1.6T total MoE) | Q4_K_M | **~1.5 Wh** | **~0.90 g** | ~3 halaman web |
-| **Mistral Large 3** | 41B (675B total MoE) | Q4_K_M | ~1.4 Wh | ~0.84 g | ~2.8 halaman web |
-| **Qwen3.7-Max** | ~40B (MoE) | Q4 | ~1.3 Wh | ~0.78 g | ~2.6 halaman web |
-| **Ministral 3 (8B)** | 8B | Q4_K_M | **~0.25 Wh** | **~0.15 g** | ~0.5 halaman web |
-| **Qwen 2.5 7B** | 7B | Q4_K_M | ~0.3 Wh | ~0.18 g | ~0.6 halaman web |
-| **Qwen 2.5 14B** | 14B | Q4_K_M | ~0.6 Wh | ~0.36 g | ~1.2 halaman web |
+| **GPT-4o** | Proprietary | FP16 | ~4,5 Wh | ~2,7 g | ~9 halaman web |
+| **GPT-5.5** | Proprietary | — | ~3,2 Wh | ~1,92 g | ~6,4 halaman web |
+| **Claude Fable 5** | Proprietary | — | ~3,8 Wh | ~2,28 g | ~7,6 halaman web |
+| **Llama 3.1 8B** | 8B | Q4_K_M | ~0,4 Wh | ~0,24 g | ~1 halaman web |
+| **Llama 3.1 70B** | 70B | Q3_K_M | ~2,8 Wh | ~1,68 g | ~5,6 halaman web |
+| **Llama 3.1 70B** | 70B | Q4_K_M | ~3,5 Wh | ~2,1 g | ~7 halaman web |
+| **Llama 4 Scout** | 17Bx16E (MoE) | Q4 | ~1,2 Wh | ~0,72 g | ~2,4 halaman web |
+| **Llama 4 Maverick** | 17Bx128E (MoE) | Q4 | ~1,8 Wh | ~1,08 g | ~3,6 halaman web |
+| **DeepSeek V4 Flash** | 13B (284B total MoE) | Q4_K_M | ~1,0 Wh | **~0,60 g** | ~2 halaman web |
+| **DeepSeek V4 Pro** | 49B (1,6T total MoE) | Q4_K_M | **~1,5 Wh** | **~0,90 g** | ~3 halaman web |
+| **Mistral Large 3** | 41B (675B total MoE) | Q4_K_M | ~1,4 Wh | ~0,84 g | ~2,8 halaman web |
+| **Qwen3.7-Max** | ~40B (MoE) | Q4 | ~1,3 Wh | ~0,78 g | ~2,6 halaman web |
+| **Ministral 3 (8B)** | 8B | Q4_K_M | **~0,25 Wh** | **~0,15 g** | ~0,5 halaman web |
+| **Qwen 2.5 7B** | 7B | Q4_K_M | ~0,3 Wh | ~0,18 g | ~0,6 halaman web |
+| **Qwen 2.5 14B** | 14B | Q4_K_M | ~0,6 Wh | ~0,36 g | ~1,2 halaman web |
 | *Asumsi: grid carbon intensity 600 gCO2/kWh (rata-rata Indonesia)* | | | | | |
 
 ![Grafik batang horizontal emisi CO2 per seribu query untuk lima belas model, diurutkan dari tertinggi ke terendah, dengan model proprietary cloud berwarna merah dan model open-weight lokal berwarna hijau](../../assets/images/bab-10-etika/sub-bab-5/emisi-co2-per-model.png)
 
-*Gambar 10.5-1 — Emisi CO2 per 1.000 query (grid Indonesia, 600 gCO2/kWh) untuk 15 model pada Tabel A. Query ke GPT-4o mengeluarkan 18x emisi dibandingkan Ministral 3 (2,70 g vs 0,15 g) — sebagian besar emisi sebenarnya bisa dihindari hanya dengan penugasan model yang tepat.*
+*Gambar 10.5-1 — Emisi CO2 per 1.000 query (grid Indonesia, 600 gCO2/kWh) untuk 15 model pada Tabel 1. Query ke GPT-4o mengeluarkan 18x emisi dibandingkan Ministral 3 (2,70 g vs 0,15 g) — sebagian besar emisi sebenarnya bisa dihindari hanya dengan penugasan model yang tepat.*
 
 Tiga *insight* penting. Pertama, **efisiensi per query berbanding terbalik dengan popularitas**: query ke GPT-4o mengeluarkan energi 18x lebih besar dari query ke Ministral 3 — dan karena keduanya sering dipakai untuk tugas yang sama, sebagian besar emisi *sebenarnya* bisa dihindari hanya dengan penugasan model yang tepat. Kedua, **MoE adalah tameng hijau model besar**: DeepSeek V4 Pro dengan kapasitas setara model 180B *dense* hanya mengonsumsi ~1,5 Wh per query — kualitas besar tanpa harga energi yang sebanding. Ketiga, **kuantisasi bekerja nyata**: Llama 3.1 70B Q3_K_M vs Q4_K_M selisih ~20% energi, dan keduanya jauh di bawah versi FP16-nya. Perhatikan juga konteks Indonesia: dengan *grid* 600 gCO2/kWh, "harga" karbon setiap query lokal hampir dua kali lipat dibandingkan di grid rendah karbon — penghematan energi berarti penghematan emisi yang lebih besar lagi di sini.
 
 
-### Tabel B: Perbandingan Strategi Green AI
+### Tabel 2: Perbandingan Strategi Green AI
 
 Sebelas strategi Green AI dibandingkan berdasarkan penghematan energi, kompleksitas, dampak kualitas, dan biaya — untuk membantu Anda memulai dari yang paling berdampak per rupiah.
 
 | Strategi | Kategori | Penghematan Energi | Kompleksitas | Dampak Kualitas | Biaya Implementasi |
 |:---|:---|:---:|:---:|:---:|:---:|
-| **Quantization (Q4_K_M)** | Model | 60-70% | Rendah | Minimal (+0.2 perplexity) | Rp 0 |
+| **Quantization (Q4_K_M)** | Model | 60-70% | Rendah | Minimal (+0,2 perplexity) | Rp 0 |
 | **Model Distillation** | Model | 50-80% | Tinggi | Sedang (-2-5% accuracy) | Rp 50-200jt |
 | **MoE Architecture (DS V4 Pro)** | Model | **~55%** vs dense setara | Rendah (pilih model) | Meningkat (+12% SWE-bench) | Rp 0 (pilih MoE) |
 | **Cascade Distillation (Ministral 3)** | Model | **~35%** vs konvensional | Rendah (pilih model) | Minimal | Rp 0 (pilih model) |
@@ -197,15 +197,15 @@ Baca diagram ini sebagai sistem tertutup yang berdenyut sendiri: *tick* → cek 
 
 ### Hardware Efficiency: Generasi Baru Lebih Irit
 
-GPU generasi terbaru membawa efisiensi per FLOP yang jauh lebih tinggi — H100 maupun RTX 4090 sekitar **2-4x lebih efisien** dibandingkan GPU beberapa generasi sebelumnya. Data konkretnya: mengganti 4x RTX 3090 dengan 2x RTX 4090 memberikan performa setara dengan **daya 40% lebih rendah** (studi kasus Seksi 9). *Hardware upgrade* adalah investasi yang perlu dihitung hati-hati terhadap *embodied carbon* perangkat baru — tetapi untuk *upgrade* dengan gap efisiensi seperti di atas, pengembalian emisi dan uangnya cepat.
+GPU generasi terbaru membawa efisiensi per FLOP yang jauh lebih tinggi — H100 maupun RTX 4090 sekitar **2-4x lebih efisien** dibandingkan GPU beberapa generasi sebelumnya. Data konkretnya: mengganti 4x RTX 3090 dengan 2x RTX 4090 memberikan performa setara dengan **daya 40% lebih rendah** (studi kasus Seksi 9). *Hardware upgrade* adalah investasi yang perlu dihitung hati-hati terhadap *embodied carbon* perangkat baru, tetapi untuk *upgrade* dengan gap efisiensi seperti di atas, pengembalian emisi dan uangnya cepat.
 
 ### Carbon-Aware Scheduling: Bekerja Saat Grid Sedang Hijau
 
-**Carbon-aware scheduling** memindahkan beban komputasi — terutama *training batch* dan pekerjaan *batch* lain — ke jam-jam ketika *grid carbon intensity* rendah. Di banyak jaringan, malam hari (misal **01:00-05:00**) memiliki intensitas lebih rendah karena permintaan berkurang. Penghematan emisinya **20-40%** tanpa dampak kualitas apa pun (komputasinya sama; hanya jamnya yang beda). Tutorial B di Seksi 8 menunjukkan implementasinya dengan API *carbon intensity* dan *scheduler*. Di Indonesia, karena *grid* masih didominasi batu bara, variasi harian lebih kecil — tetapi memakai listrik malam tetap bermanfaat dan mulai dipandang sebagai praktik terbaik industri.
+**Carbon-aware scheduling** memindahkan beban komputasi — terutama *training batch* dan pekerjaan *batch* lain — ke jam-jam ketika *grid carbon intensity* rendah. Di banyak jaringan, malam hari (misal **01:00-05:00**) memiliki intensitas lebih rendah karena permintaan berkurang. Penghematan emisinya **20-40%** tanpa dampak kualitas apa pun (komputasinya sama; hanya jamnya yang beda). Langkah 2 di Seksi 8 menunjukkan implementasinya dengan API *carbon intensity* dan *scheduler*. Di Indonesia, karena *grid* masih didominasi batu bara, variasi harian lebih kecil, tetapi memakai listrik malam tetap bermanfaat dan mulai dipandang sebagai praktik terbaik industri.
 
 ### Power Management: Jadikan GPU Profesional Tidur
 
-Sebagian besar GPU di kantor **menganggur lebih dari separuh hari** — dan tetap menyala dengan daya idle yang signifikan. Dua senjata utamanya: *auto-shutdown* GPU di luar jam kerja (penghematan **40-60%** dari konsumsi idle, biaya implementasi hanya Rp 1-5 juta untuk skrip cron) dan **GPU Power Cap 80%** — membatasi daya maksimum GPU sehingga hemat **15-25%** dengan penurunan *throughput* di bawah 5%. Tutorial C memberikan skrip lengkapnya. Tidak ada strategi lain yang memberikan penghematan sebesar itu dengan biaya sekecil itu.
+Sebagian besar GPU di kantor **menganggur lebih dari separuh hari** — dan tetap menyala dengan daya idle yang signifikan. Dua senjata utamanya: *auto-shutdown* GPU di luar jam kerja (penghematan **40-60%** dari konsumsi idle, biaya implementasi hanya Rp 1-5 juta untuk skrip cron) dan **GPU Power Cap 80%** — membatasi daya maksimum GPU sehingga hemat **15-25%** dengan penurunan *throughput* di bawah 5%. Langkah 3 memberikan skrip lengkapnya. Tidak ada strategi lain yang memberikan penghematan sebesar itu dengan biaya sekecil itu.
 
 ### Data Center: Pilih PUE yang Sehat
 
@@ -222,17 +222,17 @@ Keputusan terakhir dan paling berdampak: lokasi hosting di region dengan energi 
 
 ### Tools: Tiga Lapisan Pengukuran
 
-Green AI membutuhkan pengukuran, dan pengukuran membutuhkan *tool* yang tepat pada tiga lapisan berbeda. **LLMCarbon** adalah *projection tool* — menghitung emisi end-to-end (termasuk *embodied*) dari spesifikasi model dan hardware, berguna untuk perencanaan sebelum membeli. **CodeCarbon** adalah *tracking tool* real-time — mengukur konsumsi energi dan emisi langsung dari proses yang berjalan, ringan dan mudah diintegrasikan. **WattsOnAI** adalah *monitoring tool* — dashboard *time-series* yang mengkorelasikan daya, energi, dan metrik hardware secara multi-metrik. Tabel C di Seksi 4 membandingkan enam *tool* secara lengkap.
+Green AI membutuhkan pengukuran, dan pengukuran membutuhkan *tool* yang tepat pada tiga lapisan berbeda. **LLMCarbon** adalah *projection tool* — menghitung emisi end-to-end (termasuk *embodied*) dari spesifikasi model dan hardware, berguna untuk perencanaan sebelum membeli. **CodeCarbon** adalah *tracking tool* real-time — mengukur konsumsi energi dan emisi langsung dari proses yang berjalan, ringan dan mudah diintegrasikan. **WattsOnAI** adalah *monitoring tool* — dashboard *time-series* yang mengkorelasikan daya, energi, dan metrik hardware secara multi-metrik. Tabel 3 di Seksi 6 membandingkan enam *tool* secara lengkap.
 
 ### Metrik: Bahasa yang Sama untuk Semua Tim
 
-Tiga metrik standar yang harus dipakai semua orang: **gCO2eq per token** (emisi per unit kerja — paling mudah dibandingkan), **kWh per query** (energi per interaksi — tidak tergantung *grid*), dan **PUE-adjusted emissions** (emisi yang disesuaikan dengan efisiensi fasilitas — paling adil antar lokasi). Target yang ambisius namun masuk akal: **carbon intensity di bawah 10 gCO2eq per 1.000 token** — sebanding dengan membuka satu halaman web. Model kecil lokal yang efisien berada jauh di bawah ambang ini (lihat Tabel A).
+Tiga metrik standar yang harus dipakai semua orang: **gCO2eq per token** (emisi per unit kerja — paling mudah dibandingkan), **kWh per query** (energi per interaksi — tidak tergantung *grid*), dan **PUE-adjusted emissions** (emisi yang disesuaikan dengan efisiensi fasilitas — paling adil antar lokasi). Target yang ambisius namun masuk akal: **carbon intensity di bawah 10 gCO2eq per 1.000 token** — sebanding dengan membuka satu halaman web. Model kecil lokal yang efisien berada jauh di bawah ambang ini (lihat Tabel 1).
 
 ### Framework: Greenhouse Gas Protocol
 
 Pelaporan mengikuti **Greenhouse Gas Protocol (GHG Protocol)**, kerangka standar global. *Scope 1*: emisi langsung dari pembakaran bahan bakar di lokasi Anda (jarang relevan untuk server selain generator darurat). *Scope 2*: emisi tidak langsung dari listrik yang dibeli — inilah kategori utama untuk LLM. *Scope 3*: emisi rantai pasok — termasuk *embodied carbon* hardware dan emisi cloud yang Anda beli. Melaporkan lengkap ketiga *scope* — bukan hanya Scope 2 — adalah pembeda antara "klaim hijau" dan akuntabilitas nyata, dan sejalan dengan audit ISO 14001.
 
-### Tabel C: Tools Pengukuran Energi AI
+### Tabel 3: Tools Pengukuran Energi AI
 
 | Tool | Tipe | Metrik | Platform | Output | Open Source | Kelebihan |
 |:---|:---|:---|:---|:---|:---:|:---|
@@ -243,7 +243,7 @@ Pelaporan mengikuti **Greenhouse Gas Protocol (GHG Protocol)**, kerangka standar
 | **EnviroLLM** | Benchmarking | Energy, Speed, Latency | Ollama/LM Studio/vLLM | Dashboard | Ya | Personal device focus |
 | **LLMCO2** | Prediction | CO2 (inference) | NVIDIA GPU | GNN-based prediction | Ya | High accuracy for inference |
 
-Praktik terbaiknya adalah menggunakan *tool* di tiga lapisan sekaligus, bukan memilih satu: **LLMCarbon** untuk proyeksi sebelum membeli, **CodeCarbon** untuk pengukuran real-time saat menjalankan (Tutorial A dan D), dan **WattsOnAI** untuk pemantauan berkelanjutan. Perhatikan bahwa semua *tool* pada tabel bersifat *open source* — transparansi metode pengukuran sama pentingnya dengan angkanya, karena *sustainability report* hanya berarti bila angkanya dapat diaudit ulang oleh siapa pun.
+Praktik terbaiknya adalah menggunakan *tool* di tiga lapisan sekaligus, bukan memilih satu: **LLMCarbon** untuk proyeksi sebelum membeli, **CodeCarbon** untuk pengukuran real-time saat menjalankan (Langkah 1 dan Langkah 4), dan **WattsOnAI** untuk pemantauan berkelanjutan. Perhatikan bahwa semua *tool* pada tabel bersifat *open source* — transparansi metode pengukuran sama pentingnya dengan angkanya, karena *sustainability report* hanya berarti bila angkanya dapat diaudit ulang oleh siapa pun.
 
 ---
 
@@ -265,7 +265,7 @@ Kebijakan tanpa data adalah sekadar slogan; data tanpa kebijakan adalah pengukur
 
 ### Gambar 3: Dashboard Green AI Monitoring
 
-Dashboard pada gambar 3 menampilkan empat panel KPI inti yang disarankan untuk pemantauan berkelanjutan (versi interaktif tersedia pada *tool* WattsOnAI).
+Dashboard pada Gambar 3 menampilkan empat panel KPI inti yang disarankan untuk pemantauan berkelanjutan (versi interaktif tersedia pada *tool* WattsOnAI).
 
 ```mermaid
 graph LR
@@ -326,7 +326,7 @@ CodeCarbon mengukur daya proses secara real-time (parameter `measure_power_secs=
 
 ### Langkah 2: Carbon-Aware Scheduling untuk Training Batch
 
-Tutorial ini membangun penjadwal yang hanya menjalankan *training batch* saat *carbon intensity* grid rendah. Jalankan sebagai proses latar dengan `python carbon_aware_scheduler.py`.
+Langkah ini membangun penjadwal yang hanya menjalankan *training batch* saat *carbon intensity* grid rendah. Jalankan sebagai proses latar dengan `python carbon_aware_scheduler.py`.
 
 ```python
 # carbon_aware_scheduler.py — Jadwalkan training saat carbon intensity rendah
@@ -406,11 +406,11 @@ power=$(nvidia-smi -i $GPU_ID --query-gpu=power.draw --format=csv,noheader,nouni
 echo "Konsumsi daya saat ini: $power W" >> /var/log/gpu_power.log
 ```
 
-Perhatikan dua pola yang disengaja. Pertama, *power limit* (`-pl`) diturunkan ke 100W di luar jam kerja — GPU tidak mati total sehingga *job* yang masih berjalan tidak crash, tetapi daya dibatasi ketat; ini adalah implementasi halus dari strategi *power cap* pada Tabel B. Kedua, ada pencatatan otomatis konsumsi daya ke `/var/log/gpu_power.log` — data sekunder yang bisa digunakan oleh *audit energi* bulanan (kebijakan poin 3 di Seksi 7). Sesuaikan `-pl` dengan GPU Anda: cek TDP normalnya via `nvidia-smi -q -d POWER`, lalu gunakan 40% TDP untuk mode hemat.
+Perhatikan dua pola yang disengaja. Pertama, *power limit* (`-pl`) diturunkan ke 100W di luar jam kerja — GPU tidak mati total sehingga *job* yang masih berjalan tidak crash, tetapi daya dibatasi ketat; ini adalah implementasi halus dari strategi *power cap* pada Tabel 2. Kedua, ada pencatatan otomatis konsumsi daya ke `/var/log/gpu_power.log` — data sekunder yang bisa digunakan oleh *audit energi* bulanan (kebijakan poin 3 di Seksi 7). Sesuaikan `-pl` dengan GPU Anda: cek TDP normalnya via `nvidia-smi -q -d POWER`, lalu gunakan 40% TDP untuk mode hemat.
 
 ### Langkah 4: Membandingkan Model Berdasarkan Efisiensi Energi
 
-Tutorial penutup mengotomasi *benchmark* efisiensi: membandingkan tiga model lokal dengan prompt yang sama dan merankingnya berdasarkan CO2 yang dihasilkan. Install `pandas` terlebih dahulu jika belum ada.
+Langkah penutup mengotomasi *benchmark* efisiensi: membandingkan tiga model lokal dengan prompt yang sama dan merankingnya berdasarkan CO2 yang dihasilkan. Install `pandas` terlebih dahulu jika belum ada.
 
 ```python
 # model_efficiency_rank.py — Bandingkan efisiensi energi berbagai model lokal
@@ -452,21 +452,21 @@ Skrip ini menambahkan satu metrik yang sering terlewat: **chars_per_wh** — kar
 ## 9. Studi Kasus: Implementasi Green AI di Kantor Startup Teknologi
 
 
-**Skenario.** Sebuah startup AI dengan 20 *engineer* menjalankan 3 server LLM 24/7 untuk keperluan R&D dan staging. Tagihan listrik membengkak menjadi **Rp 15 juta/bulan**, sementara perusahaan telah berkomitmen pada *Net Zero* 2030. Manajemen tidak ingin menurunkan kualitas riset — tetapi jelas bahwa sebagian besar energi terbakar tanpa menghasilkan nilai.
+**Skenario.** Sebuah startup AI dengan 20 *engineer* menjalankan 3 server LLM 24/7 untuk keperluan R&D dan staging. Tagihan listrik membengkak menjadi **Rp 15 juta/bulan**, sementara perusahaan telah berkomitmen pada *Net Zero* 2030. Manajemen tidak ingin menurunkan kualitas riset, tetapi jelas bahwa sebagian besar energi terbakar tanpa menghasilkan nilai.
 
 **Analisis.** Masalahnya bukan pada "AI yang boros", melainkan pada tiga kebocoran sistemik: GPU menyala semalaman (idle), satu model 70B dipakai untuk semua tugas termasuk yang sederhana, dan *training batch* dijalankan sembarangan tanpa memperhatikan jadwal grid. Ketiganya dapat ditutup dengan strategi Green AI yang sudah dibahas — tanpa teknologi baru.
 
 **Langkah Green AI.**
 
 1. **Audit energi:** CodeCarbon dipasang di semua server — ditemukan **40% konsumsi berasal dari idle GPU semalam**. Data ini mengubah diskusi dari "apakah perlu hemat?" menjadi "apa yang harus dihemat dulu?".
-2. **Power scheduling:** GPU dimatikan otomatis jam 22:00-06:00 via *cron* — *hemat 35% listrik* hanya dari kebijakan jadwal (Tutorial C).
+2. **Power scheduling:** GPU dimatikan otomatis jam 22:00-06:00 via *cron* — *hemat 35% listrik* hanya dari kebijakan jadwal (Langkah 3).
 3. **Model selection:** Llama 3 70B diganti **Qwen 2.5 14B Q4_K_M** untuk tugas non-kritis — *hemat 60% energi* per query dengan kualitas yang masih memadai untuk R&D internal.
-4. **Carbon-aware training:** *training batch* dijadwalkan jam **01:00-05:00** saat *carbon intensity* rendah — mengikuti pola Tutorial B.
+4. **Carbon-aware training:** *training batch* dijadwalkan jam **01:00-05:00** saat *carbon intensity* rendah — mengikuti pola Langkah 2.
 5. **Hardware:** 2x RTX 4090 menggantikan 4x RTX 3090 — performa setara dengan **daya 40% lebih rendah**.
 
 **Hasil.** Biaya listrik turun dari **Rp 15 juta → Rp 5,5 juta/bulan (-63%)**, dan emisi CO2 turun **4,2 ton/tahun**. Investasi **Rp 45 juta** (upgrade GPU) balik modal dalam **5 bulan** dari penghematan listrik saja — belum termasuk nilai reputasi dari laporan emisi yang menurun.
 
-**Pelajaran.** Urutan langkah bukanlah kebetulan: *audit dulu, baru bertindak* (langkah 1), *perbaiki perilaku sebelum belanja* (langkah 2-4), dan *hanya ulangi* membeli hardware setelah kebocoran perilaku tertutup (langkah 5). Perhatikan juga proporsinya: penghematan 63% dicapai dengan kombinasi langkah murah (scheduling, model selection) dan satu investasi yang terukur — pola yang sama terlihat di Tabel B: baris dengan biaya Rp 0 memberikan sebagian besar hasil. Green AI bukan proyek mahal; ia adalah disiplin yang dimulai dari pengukuran.
+**Pelajaran.** Urutan langkah bukanlah kebetulan: *audit dulu, baru bertindak* (langkah 1), *perbaiki perilaku sebelum belanja* (langkah 2-4), dan *hanya ulangi* membeli hardware setelah kebocoran perilaku tertutup (langkah 5). Perhatikan juga proporsinya: penghematan 63% dicapai dengan kombinasi langkah murah (scheduling, model selection) dan satu investasi yang terukur — pola yang sama terlihat di Tabel 2: baris dengan biaya Rp 0 memberikan sebagian besar hasil. Green AI bukan proyek mahal; ia adalah disiplin yang dimulai dari pengukuran.
 
 ---
 
@@ -486,6 +486,8 @@ Skrip ini menambahkan satu metrik yang sering terlewat: **chars_per_wh** — kar
 [5] Dodge, J., et al. (2025). *Holistically Evaluating the Environmental Impact of Creating Language Models*. arXiv preprint arXiv:2503.05804. DOI: [10.48550/arXiv.2503.05804](https://arxiv.org/abs/2503.05804)
 
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv preprint arXiv:2604.00001. DOI: [10.48550/arXiv.2604.00001](https://arxiv.org/abs/2604.00001)
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 

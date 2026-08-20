@@ -29,13 +29,13 @@ Implikasi komputasi dari arsitektur ini sangat linear dan dapat diprediksi. Biay
 
 Meskipun semua parameter aktif setiap saat, tidak semua parameter sama pentingnya untuk setiap input. Penelitian dalam bidang mechanistic interpretability menunjukkan bahwa untuk input tertentu — misalnya, sebuah token dalam kalimat tentang memasak — hanya sebagian kecil neuron yang benar-benar berkontribusi pada output. Neuron yang berkaitan dengan konsep memasak, bahan makanan, dan alat dapur akan aktif, sementara neuron yang berkaitan dengan pemrograman atau fisika tetap ikut dihitung meskipun tidak relevan. Dense model tetap mengaktifkan semuanya, menciptakan inefisiensi inheren yang menjadi motivasi utama pengembangan arsitektur Mixture of Experts.
 
-Model-model dense populer mencakup Llama-3 dalam varian 8B, 70B, dan 405B; Mistral 7B; keluarga Qwen 2.5 dari 7B hingga 72B; Gemma 2 dalam ukuran 9B dan 27B; serta Phi-4 14B dari Microsoft. Semuanya menggunakan arsitektur decoder-only dense dengan variasi pada mekanisme attention — seperti Grouped Query Attention (GQA) pada Llama-3 dan Sliding Window Attention pada Mistral — tetapi FFN tetap seragam di semua lapisan. Tidak ada mekanisme routing, tidak ada seleksi expert, hanya satu jalur komputasi yang seragam.
+Model-model dense populer mencakup Llama-3 dalam varian 8B, 70B, dan 405B; Mistral 7B; keluarga Qwen 2.5 dari 7B hingga 72B; Gemma 2 dalam ukuran 9B dan 27B; serta Phi-4 14B dari Microsoft. Semuanya menggunakan arsitektur decoder-only dense dengan variasi pada mekanisme attention — seperti Grouped Query Attention (GQA) pada Llama-3 dan Sliding Window Attention pada Mistral, tetapi FFN tetap seragam di semua lapisan. Tidak ada mekanisme routing, tidak ada seleksi expert, hanya satu jalur komputasi yang seragam.
 
 ### Kelebihan Dense Model
 
 Kelebihan utama dense model terletak pada lima aspek. Pertama, latensi deterministik — waktu per token hampir identik untuk input apa pun, tidak tergantung pada konten token. Kedua, deployment sederhana — tidak memerlukan expert parallelism atau routing logic yang kompleks. Ketiga, fine-tuning mudah — semua parameter dapat di-update dengan teknik standar seperti LoRA atau QLoRA tanpa perlu khawatir tentang load balance. Keempat, prediktabilitas hardware — kebutuhan VRAM langsung diketahui dari jumlah parameter dan presisi yang digunakan. Kelima, efisiensi batch processing tetap baik hingga ukuran batch tertentu.
 
-### Tabel A: Perbandingan Dense vs MoE — Model Populer
+### Tabel 1: Perbandingan Dense vs MoE — Model Populer
 
 | Model | Arsitektur | Total Param | Active Param | VRAM FP16 | VRAM Q4 | MMLU | GSM8K |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -52,7 +52,7 @@ Kelebihan utama dense model terletak pada lima aspek. Pertama, latensi determini
 
 *\*MMLU-Pro untuk DeepSeek V4 Pro (MMLU standar tidak dipublikasikan).*
 
-Tabel A menunjukkan kontras yang jelas antara parameter total dan parameter aktif. Perhatikan bahwa Mixtral 8x7B dengan 12,9B aktif membutuhkan VRAM yang sama dengan dense model 50B (90 GB FP16), tetapi memberikan kualitas yang mendekati Llama-3 70B pada sebagian benchmark. DeepSeek V4 Flash dengan 13B aktif adalah contoh paling efisien dalam tabel — ia memberikan kapasitas model 284B tetapi dengan kebutuhan komputasi hanya setara 13B.
+Tabel 1 menunjukkan kontras yang jelas antara parameter total dan parameter aktif. Perhatikan bahwa Mixtral 8x7B dengan 12,9B aktif membutuhkan VRAM yang sama dengan dense model 50B (90 GB FP16), tetapi memberikan kualitas yang mendekati Llama-3 70B pada sebagian benchmark. DeepSeek V4 Flash dengan 13B aktif adalah contoh paling efisien dalam tabel — ia memberikan kapasitas model 284B tetapi dengan kebutuhan komputasi hanya setara 13B.
 
 ![Perbandingan parameter total, parameter aktif, dan skor MMLU](../../assets/images/bab-01-model/sub-bab-3/dense-vs-moe-param.png)
 
@@ -123,7 +123,7 @@ Pendekatan yang lebih radikal adalah Expert Choice routing, di mana expert yang 
 
 Output akhir lapisan MoE dihitung sebagai `output = Σ_{i ∈ top-k} router_weight_i · FFN_i(x)`. Bobot router dari hasil softmax menentukan kontribusi relatif setiap expert. Untuk konfigurasi K=2, biasanya satu expert dominan dengan bobot 0,7-0,9, sementara expert lainnya berperan sebagai "pelengkap" dengan bobot 0,1-0,3. Bobot ini juga merupakan indikator kepercayaan router terhadap pilihannya — distribusi bobot yang merata (0,5/0,5) menandakan bahwa token berada di perbatasan dua domain, sementara bobot yang timpang menandakan token yang jelas termasuk dalam satu domain tertentu.
 
-### Tabel B: Trade-off Berdasarkan Skenario
+### Tabel 2: Trade-off Berdasarkan Skenario
 
 | Skenario | Pilihan Terbaik | Alasan |
 |:---|:---|:---|
@@ -134,7 +134,7 @@ Output akhir lapisan MoE dihitung sebagai `output = Σ_{i ∈ top-k} router_weig
 | **Fine-tuning custom** | Dense (lebih mudah) | MoE butuh teknik khusus |
 | **Apple Silicon 48GB** | MoE Q4_K_M | Unified memory cukup besar |
 
-Tabel B menunjukkan bagaimana pilihan arsitektur sangat tergantung pada skenario penggunaan. Tidak ada arsitektur yang unggul dalam semua situasi — setiap pilihan melibatkan trade-off yang perlu dipertimbangkan berdasarkan prioritas Anda.
+Tabel 2 menunjukkan bagaimana pilihan arsitektur sangat tergantung pada skenario penggunaan. Tidak ada arsitektur yang unggul dalam semua situasi — setiap pilihan melibatkan trade-off yang perlu dipertimbangkan berdasarkan prioritas Anda.
 
 
 ---
@@ -171,7 +171,7 @@ Pipeline RAG (Retrieval-Augmented Generation) dengan batch processing besar — 
 
 ### Kebutuhan VRAM yang Besar
 
-Meskipun hanya 2 dari 8 expert yang aktif per token, seluruh expert harus berada di VRAM karena token yang berbeda dalam satu batch dapat mengaktifkan expert yang berbeda. Mixtral 8x7B membutuhkan sekitar 90 GB dalam FP16 — setara dengan dense model sekitar 50B — tetapi hanya 13B parameter yang benar-benar aktif. Sebagai perbandingan, dense 13B hanya membutuhkan sekitar 26 GB. Ini membatasi MoE pada GPU dengan VRAM besar. DeepSeek V4 Flash dengan 284B total dan 13B aktif masih membutuhkan 160 GB dalam format Q4 — hanya muat di server multi-GPU atau Apple Silicon dengan unified memory 192 GB atau lebih.
+Meskipun hanya 2 dari 8 expert yang aktif per token, seluruh expert harus berada di VRAM karena token yang berbeda dalam satu batch dapat mengaktifkan expert yang berbeda. Mixtral 8x7B membutuhkan sekitar 90 GB dalam FP16 — setara dengan dense model sekitar 50B, tetapi hanya 13B parameter yang benar-benar aktif. Sebagai perbandingan, dense 13B hanya membutuhkan sekitar 26 GB. Ini membatasi MoE pada GPU dengan VRAM besar. DeepSeek V4 Flash dengan 284B total dan 13B aktif masih membutuhkan 160 GB dalam format Q4 — hanya muat di server multi-GPU atau Apple Silicon dengan unified memory 192 GB atau lebih.
 
 ### Latensi Lebih Tinggi untuk Skenario Single User
 
@@ -216,7 +216,7 @@ Pemilihan backend sangat tergantung pada hardware yang tersedia. Untuk GPU kelas
 
 Pengguna Apple Silicon dengan M2 Max 96GB memiliki keunggulan unified memory. Mixtral Q4_K_M via llama.cpp mencapai sekitar 30 TPS, dan DeepSeek V4 Flash Q4 pada 20 TPS. Sementara itu, pengguna dengan konfigurasi multi-GPU seperti 2 RTX 3090 (48GB total) dapat memanfaatkan vLLM untuk Mixtral Q4_K_M dengan throughput 180 TPS pada batch 8, atau DeepSeek V2 Q4 pada 70 TPS. Untuk pengguna rumahan dengan satu GPU, llama.cpp atau EXL2 adalah pilihan terbaik. Untuk server multi-user, vLLM adalah standar industri yang tidak tergantikan.
 
-### Tabel C: Perbandingan Kecepatan Inference (RTX 4090, Q4_K_M)
+### Tabel 3: Perbandingan Kecepatan Inference (RTX 4090, Q4_K_M)
 
 | Model | Arsitektur | TPS (single) | TPS (batch 8) | VRAM | Latency (TTFT) |
 |:---|:---|:---:|:---:|:---:|:---:|
@@ -227,7 +227,7 @@ Pengguna Apple Silicon dengan M2 Max 96GB memiliki keunggulan unified memory. Mi
 | DeepSeek V4 Flash Q4 | MoE (13B aktif) | ~55 | ~200 | 160 GB | ~80 ms |
 | Mistral Large 3 Q4 | MoE (41B aktif) | ~20 | ~80 | 380 GB | ~250 ms |
 
-Tabel C mengkonfirmasi analisis sebelumnya: untuk single user, dense model memberikan latency yang lebih rendah (Llama-3 8B dengan TTFT 50ms vs Mixtral 120ms). Namun, pada batch 8, MoE menunjukkan keunggulan throughput yang signifikan. DeepSeek V4 Flash mencatatkan TPS single yang cukup baik (55 TPS) mengingat ukuran modelnya yang sangat besar.
+Tabel 3 mengkonfirmasi analisis sebelumnya: untuk single user, dense model memberikan latency yang lebih rendah (Llama-3 8B dengan TTFT 50ms vs Mixtral 120ms). Namun, pada batch 8, MoE menunjukkan keunggulan throughput yang signifikan. DeepSeek V4 Flash mencatatkan TPS single yang cukup baik (55 TPS) mengingat ukuran modelnya yang sangat besar.
 
 ---
 
@@ -261,10 +261,10 @@ graph LR
 
 ---
 
-## 9. Tutorial
+## 9. Praktikum
 
 
-### Tutorial A: Menjalankan Dense vs MoE di Ollama
+### Langkah 1: Menjalankan Dense vs MoE di Ollama
 
 Cara terbaik untuk memahami perbedaan dense dan MoE adalah menjalankannya langsung dan merasakan perbedaan kecepatan serta kualitas output.
 
@@ -285,7 +285,7 @@ watch -n 1 nvidia-smi
 
 Perhatikan perbedaan waktu eksekusi — dense model akan memberikan respons lebih cepat, sementara MoE kemungkinan akan memberikan jawaban yang lebih informatif. Amati juga penggunaan VRAM melalui `nvidia-smi`: Mixtral akan memakan VRAM jauh lebih besar meskipun parameter aktifnya hanya sedikit lebih besar dari Llama-3 8B.
 
-### Tutorial B: Memeriksa Konfigurasi MoE di HuggingFace
+### Langkah 2: Memeriksa Konfigurasi MoE di HuggingFace
 
 Tutorial ini menunjukkan cara memeriksa konfigurasi arsitektur MoE dari model Mixtral menggunakan library Transformers.
 
@@ -312,7 +312,7 @@ print(f"Ini berarti hanya {sparsity:.1f}% dari parameter FFN yang aktif per toke
 
 Skrip ini akan menampilkan detail arsitektur Mixtral dan menghitung sparsity ratio secara langsung dari konfigurasi. Untuk Mixtral 8x7B, Anda akan melihat bahwa hanya sekitar 25% dari parameter FFN yang aktif per token.
 
-### Tutorial C: Simulasi Router MoE
+### Langkah 3: Simulasi Router MoE
 
 Untuk memahami bagaimana router bekerja, tutorial ini mensimulasikan proses routing MoE dengan PyTorch.
 

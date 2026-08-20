@@ -226,10 +226,10 @@ Beberapa kebiasaan sederhana yang dampaknya besar:
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Mengaktifkan Flash Attention di Berbagai Engine
+### Langkah 1: Mengaktifkan Flash Attention di Berbagai Engine
 
 Mengaktifkan Flash Attention cukup satu parameter di Transformers, satu baris di Modelfile Ollama, atau satu *flag* di vLLM:
 
@@ -267,7 +267,7 @@ python -m vllm.entrypoints.openai.api_server \
 
 Perhatikan pola yang sama di ketiga engine: model yang sama, panjang konteks yang sama, tetapi implementasi attention yang berbeda. Bandingkan *time to first token* dan *throughput* dengan dan tanpa `flash_attention_2` pada prompt 8K — perbedaannya akan terlihat nyata.
 
-### Tutorial B: Mengukur Pengaruh Context Length
+### Langkah 2: Mengukur Pengaruh Context Length
 
 Bukti terbaik adalah pengukuran. Script berikut membandingkan waktu respons Ollama pada berbagai panjang konteks:
 
@@ -295,7 +295,7 @@ for ctx_len in [2048, 4096, 8192, 16384, 32768]:
 
 Hasil tipikal menunjukkan kenaikan waktu yang tidak linear — karena selain komputasi attention, KV-cache yang membengkak juga memperlambat prefetch dan menekan ruang VRAM. Jika grafik yang Anda dapat hampir linear, itu pertanda Flash Attention dan GQA bekerja dengan baik.
 
-### Tutorial C: Monitor KV-Cache Usage
+### Langkah 3: Monitor KV-Cache Usage
 
 Untuk melihat secara langsung seberapa besar KV-cache memakan VRAM:
 

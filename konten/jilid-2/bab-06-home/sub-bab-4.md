@@ -343,7 +343,7 @@ Ganti `your-long-lived-token` dengan token yang dibuat dari profil pengguna Anda
 
 **Hasil.** Anak bisa meminta lampu kamar menyala tanpa remote. Orang tua mengatur AC dari dapur. Tidak ada satu pun data yang keluar ke *cloud*. Latensi rata-rata **3,5 detik** (wake → action → TTS) — nyaman di bawah target SLA 5 detik [1].
 
-**Pelajaran.** Keberhasilan keluarga Santoso tidak datang dari model terbesar, melainkan dari pemilihan peran yang tepat: YAML tetap mengurusi trigger sensor yang deterministik, sementara LLM mengambil alih kalimat manusia yang ambigu. Rumah yang "pintar" bukanlah rumah dengan perangkat terbanyak — tetapi rumah yang bisa *dibicarai*.
+**Pelajaran.** Keberhasilan keluarga Santoso tidak datang dari model terbesar, melainkan dari pemilihan peran yang tepat: YAML tetap mengurusi trigger sensor yang deterministik, sementara LLM mengambil alih kalimat manusia yang ambigu. Rumah yang "pintar" bukanlah rumah dengan perangkat terbanyak, tetapi rumah yang bisa *dibicarai*.
 
 ---
 

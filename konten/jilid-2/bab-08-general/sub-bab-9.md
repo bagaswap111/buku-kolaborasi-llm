@@ -68,7 +68,7 @@ pie showData
     "Maintenance" : 5
 ```
 
-Informasi yang paling mengejutkan dari pie chart ini mungkin bukan GPU (40%) — itu sudah diduga — melainkan **SDM (20%)** dan **Listrik + Cooling (12%)**: gabungan keduanya (32%) hampir menyamai server + storage (23%). Artinya, ketika Anda membeli server seharga Rp 610 juta, Anda juga sedang menandatangani komitmen biaya manusia dan energi yang lebih besar dari separuh komponen hardware. Kesimpulan praktis: *negosiasi paling efektif untuk menekan TCO bukan pada harga GPU, melainkan pada desain yang mereduksi kebutuhan SDM dan listrik* — misalnya *cold standby* hemat energi (Bab 8.8) dan otomasi operasional yang mengurangi jam kerja DevOps.
+Informasi yang paling mengejutkan dari pie chart ini mungkin bukan GPU (40%) — itu sudah diduga, melainkan **SDM (20%)** dan **Listrik + Cooling (12%)**: gabungan keduanya (32%) hampir menyamai server + storage (23%). Artinya, ketika Anda membeli server seharga Rp 610 juta, Anda juga sedang menandatangani komitmen biaya manusia dan energi yang lebih besar dari separuh komponen hardware. Kesimpulan praktis: *negosiasi paling efektif untuk menekan TCO bukan pada harga GPU, melainkan pada desain yang mereduksi kebutuhan SDM dan listrik* — misalnya *cold standby* hemat energi (Bab 8.8) dan otomasi operasional yang mengurangi jam kerja DevOps.
 
 ---
 
@@ -103,12 +103,12 @@ Tabel berikut merinci seluruh komponen biaya untuk tiga skenario — Entry, Medi
 | **Network (Switch 25GbE)** | 10jt | 20jt | 30jt |
 | **Storage (NVMe + MinIO)** | 15jt | 30jt | 50jt |
 | **Setup & Instalasi** | 25jt | 40jt | 60jt |
-| **Total CAPEX** | **Rp 320jt** | **Rp 610jt** | **Rp 1.16M** |
+| **Total CAPEX** | **Rp 320jt** | **Rp 610jt** | **Rp 1,16M** |
 | **Listrik/tahun** | 15jt | 35jt | 60jt |
 | **Maintenance/tahun** | 10jt | 20jt | 35jt |
 | **SDM/tahun** | 120jt | 180jt | 240jt |
 | **Total OPEX/tahun** | **Rp 145jt** | **Rp 235jt** | **Rp 335jt** |
-| **TCO 3 Tahun** | **Rp 610jt** | **Rp 1.08M** | **Rp 1.83M** |
+| **TCO 3 Tahun** | **Rp 610jt** | **Rp 1,08M** | **Rp 1,83M** |
 
 *Catatan: M = miliar. Semua harga bersifat indikatif.*
 
@@ -143,8 +143,8 @@ Untuk menempatkan keputusan dalam satu tabel, berikut perbandingan tiga jalur im
 | Aspek | On-premise (Medium) | Cloud GPU (AWS/GCP) | Hybrid (On-prem + Burst) |
 |:---|:---:|:---:|:---:|
 | **CAPEX 3 Tahun** | Rp 610jt | Rp 0 | Rp 400jt |
-| **OPEX 3 Tahun** | Rp 705jt | Rp 1.8M | Rp 1.1M |
-| **Total 3 Tahun** | **Rp 1.32M** | **Rp 1.8M** | **Rp 1.5M** |
+| **OPEX 3 Tahun** | Rp 705jt | Rp 1,8M | Rp 1,1M |
+| **Total 3 Tahun** | **Rp 1,32M** | **Rp 1,8M** | **Rp 1,5M** |
 | **Data Security** | Sangat tinggi | Sedang (shared) | Tinggi |
 | **Latency P99** | < 3 detik | 3-8 detik | < 3 detik |
 | **Scalability** | Terbatas | Sangat fleksibel | Fleksibel |
@@ -164,7 +164,7 @@ Biaya listrik adalah OPEX yang paling sering diremehkan, padahal dapat diprediks
 
 ### Implikasi Desain: Utilisasi Menentukan Tagihan
 
-Biaya listrik tidak linear terhadap pemakaian: server LLM yang menyala 24 jam membayar listrik penuh bahkan saat idle (kecuali di-*power down*). Inilah alasan mengapa *cold standby* (Bab 8.8) secara ekonomi menarik — GPU kadang menyala tapi idle tetap membayar listrik, sehingga memilih *standby* yang tepat sama pentingnya dengan memilih model yang tepat. Saat menghitung skenario anggaran, gunakan *kalkulator* pada Tutorial B (Bagian 8) untuk menghitung sendiri: masukkan jumlah GPU, TDP, tarif PLN Anda, dan faktor *cooling* — angka yang keluar adalah komitmen bulanan yang harus dimasukkan ke Tabel 1.
+Biaya listrik tidak linear terhadap pemakaian: server LLM yang menyala 24 jam membayar listrik penuh bahkan saat idle (kecuali di-*power down*). Inilah alasan mengapa *cold standby* (Bab 8.8) secara ekonomi menarik — GPU kadang menyala tapi idle tetap membayar listrik, sehingga memilih *standby* yang tepat sama pentingnya dengan memilih model yang tepat. Saat menghitung skenario anggaran, gunakan *kalkulator* pada Langkah 2 (Bagian 8) untuk menghitung sendiri: masukkan jumlah GPU, TDP, tarif PLN Anda, dan faktor *cooling* — angka yang keluar adalah komitmen bulanan yang harus dimasukkan ke Tabel 1.
 
 ---
 
@@ -173,11 +173,11 @@ Biaya listrik tidak linear terhadap pemakaian: server LLM yang menyala 24 jam me
 
 ### DevOps, IT Support, dan Training
 
-Perangkat keras hanyalah separuh biaya; manusia adalah separuh lainnya. Untuk general office 21-50 user, kebutuhan SDM relatif ringan dibandingkan data center korporat: **DevOps/Platform Engineer paruh waktu (0.5 FTE)** dengan kisaran **Rp 10-15 juta/bulan** untuk mengelola kluster, pemantauan, dan failover; **IT Support (0.25 FTE)** sekitar **Rp 3-5 juta/bulan** untuk dukungan pengguna dan perawatan; dan **training & onboarding karyawan** sekitar **Rp 5-10 juta sekali** — biaya yang dihabiskan di awal untuk memastikan pengguna benar-benar memakai sistem, karena infrastruktur yang tidak terpakai adalah biaya terbesar yang halus.
+Perangkat keras hanyalah separuh biaya; manusia adalah separuh lainnya. Untuk general office 21-50 user, kebutuhan SDM relatif ringan dibandingkan data center korporat: **DevOps/Platform Engineer paruh waktu (0,5 FTE)** dengan kisaran **Rp 10-15 juta/bulan** untuk mengelola kluster, pemantauan, dan failover; **IT Support (0,25 FTE)** sekitar **Rp 3-5 juta/bulan** untuk dukungan pengguna dan perawatan; dan **training & onboarding karyawan** sekitar **Rp 5-10 juta sekali** — biaya yang dihabiskan di awal untuk memastikan pengguna benar-benar memakai sistem, karena infrastruktur yang tidak terpakai adalah biaya terbesar yang halus.
 
 ### Mengapa SDM Harus Masuk TCO
 
-Lihat Tabel 1: baris SDM/tahun adalah komponen OPEX terbesar — Rp 120 juta (entry), Rp 180 juta (medium), Rp 240 juta (premium) — melebihi gabungan listrik dan *maintenance*. Keputusan "hemat" yang sering dilakukan perusahaan adalah menekan baris ini: mempekerjakan 0.25 FTE atau meminta IT *generalist* belajar sambil jalan. Hemat jangka pendek, mahal jangka panjang — kesalahan kecil dalam konfigurasi kluster, *alerting* yang tidak ada yang memantau, atau *runbook* yang tidak pernah diuji (Bab 8.8) bisa menelan biaya *downtime* berkali lipat dari gaji yang dihemat. Untuk konteks ini, tuliskan SDM dalam proposal anggaran secara jujur, bukan optimistis.
+Lihat Tabel 1: baris SDM/tahun adalah komponen OPEX terbesar — Rp 120 juta (entry), Rp 180 juta (medium), Rp 240 juta (premium) — melebihi gabungan listrik dan *maintenance*. Keputusan "hemat" yang sering dilakukan perusahaan adalah menekan baris ini: mempekerjakan 0,25 FTE atau meminta IT *generalist* belajar sambil jalan. Hemat jangka pendek, mahal jangka panjang — kesalahan kecil dalam konfigurasi kluster, *alerting* yang tidak ada yang memantau, atau *runbook* yang tidak pernah diuji (Bab 8.8) bisa menelan biaya *downtime* berkali lipat dari gaji yang dihemat. Untuk konteks ini, tuliskan SDM dalam proposal anggaran secara jujur, bukan optimistis.
 
 ---
 
@@ -186,7 +186,7 @@ Lihat Tabel 1: baris SDM/tahun adalah komponen OPEX terbesar — Rp 120 juta (en
 
 ### Titik Tolak: Berapa yang Sudah Anda Bayar?
 
-ROI tidak pernah bisa dihitung tanpa titik tolak. Untuk general office, titik tolaknya adalah biaya langganan yang sedang berjalan: **ChatGPT Enterprise $60/user/bulan** atau **GitHub Copilot $19/user/bulan**. Untuk 40 user, langganan ChatGPT Enterprise berarti **$2.400/bulan ≈ Rp 38 juta/bulan** — dan Rp 461 juta per tahun. Angka inilah "biaya yang hilang" jika Anda memilih langganan terus-menerus. Perhatikan bahwa Rp 461 juta per tahun sudah dua pertiga jurnal Tabel 1 kasus premium sekalipun — perbandingan ini yang membuat on-premise menarik secara matematis.
+ROI tidak pernah bisa dihitung tanpa titik tolak. Untuk general office, titik tolaknya adalah biaya langganan yang sedang berjalan: **ChatGPT Enterprise $60/user/bulan** atau **GitHub Copilot $19/user/bulan**. Untuk 40 user, langganan ChatGPT Enterprise berarti **$2.400/bulan ≈ Rp 38 juta/bulan** — dan Rp 461 juta per tahun. Angka inilah "biaya yang hilang" jika Anda memilih langganan terus-menerus. Perhatikan bahwa Rp 461 juta per tahun sudah dua pertiga Tabel 1 kasus premium sekalipun — perbandingan ini yang membuat on-premise menarik secara matematis.
 
 ### Menghitung Payback
 
@@ -203,19 +203,19 @@ Tabel terakhir membandingkan on-premise medium dengan dua langganan SaaS paling 
 | Metrik | ChatGPT Enterprise | GitHub Copilot | On-premise (Medium) |
 |:---|:---:|:---:|:---:|
 | **Biaya/user/bulan** | $60 (Rp 960k) | $19 (Rp 304k) | Rp 275k* |
-| **Biaya 40 user/bulan** | Rp 38.4jt | Rp 12.2jt | Rp 11jt |
+| **Biaya 40 user/bulan** | Rp 38,4jt | Rp 12,2jt | Rp 11jt |
 | **Biaya 40 user/tahun** | Rp 461jt | Rp 146jt | Rp 132jt |
 | **Biaya 3 Tahun** | Rp 1.38M | Rp 438jt | Rp 1.08M** |
 | **Payback vs ChatGPT** | - | - | 18 bulan |
 | **Payback vs GitHub Copilot** | - | - | 30 bulan |
 
-*\*TCO per user per bulan (Rp 1.32M / 36 bulan / 40 user). \*\*Termasuk depresiasi hardware.*
+*\*TCO per user per bulan (Rp 1,32M / 36 bulan / 40 user). \*\*Termasuk depresiasi hardware.*
 
 ![On-premise medium (Rp 275 rb/user/bulan) hanya sekitar seperempat biaya ChatGPT Enterprise (Rp 960 rb) dan sedikit di bawah GitHub Copilot (Rp 304 rb)](../../assets/images/bab-08-general/sub-bab-9/biaya-per-user-saas.png)
 
 *Gambar 8.9-2 — Biaya per user per bulan: on-premise medium hampir 3,5x lebih murah dari ChatGPT Enterprise — namun payback terhadap Copilot yang sudah murah tetap berlangsung 30 bulan, bukan 18 bulan.*
 
-Perhatikan dua hal menarik. Pertama, on-premise medium secara per-user (Rp 275 ribu) hampir seperempat biaya ChatGPT Enterprise (Rp 960 ribu) — tetapi *payback* terhadap GitHub Copilot (30 bulan) jauh lebih lama daripada terhadap ChatGPT Enterprise (18 bulan), karena titik tolak Copilot sudah murah. Ini membuka pertanyaan yang jujur: jika kebutuhan kantor hanya *coding assistance*, Copilot mungkin sudah menjadi keputusan yang lebih efisien daripada membangun infrastruktur. Kedua, keputusan akhir tidak pernah murni finansial — keamanan data, kedaulatan data (tidak bocor ke server AS), dan latency ikut menentukan; studi kasus Bagian 9 menunjukkan bagaimana ketiganya digabung dalam satu keputusan nyata.
+Perhatikan dua hal menarik. Pertama, on-premise medium secara per-user (Rp 275 ribu) hampir seperempat biaya ChatGPT Enterprise (Rp 960 ribu), tetapi *payback* terhadap GitHub Copilot (30 bulan) jauh lebih lama daripada terhadap ChatGPT Enterprise (18 bulan), karena titik tolak Copilot sudah murah. Ini membuka pertanyaan yang jujur: jika kebutuhan kantor hanya *coding assistance*, Copilot mungkin sudah menjadi keputusan yang lebih efisien daripada membangun infrastruktur. Kedua, keputusan akhir tidak pernah murni finansial — keamanan data, kedaulatan data (tidak bocor ke server AS), dan latency ikut menentukan; studi kasus Bagian 9 menunjukkan bagaimana ketiganya digabung dalam satu keputusan nyata.
 
 ---
 
@@ -325,7 +325,7 @@ Terakhir, susun argumen Anda ke dalam *template* proposal yang bisa langsung dii
 - Bulan 3: Go-live + training
 ```
 
-*Template* ini sengaja menyajikan empat opsi, bukan dua — karena keputusan budget yang sehat selalu perbandingan, bukan pembelaan satu jalur. Lengkapi Bagian "Rekomendasi" dengan tiga hal yang sudah dihitung di bab ini: (1) *payback period* terhadap langganan yang berjalan, (2) pertimbangan keamanan data — apakah data boleh tinggal di server pihak ketiga — dan (3) kesiapan SDM, karena *TCO* akan langsung meleset bila baris SDM pada Tabel 1 tidak dianggarkan. Proposal yang berisi ketiga elemen ini hampir selalu lolos devan, bukan karena angkanya menarik, tetapi karena asumsinya bisa dipertanggungjawabkan.
+*Template* ini sengaja menyajikan empat opsi, bukan dua — karena keputusan budget yang sehat selalu perbandingan, bukan pembelaan satu jalur. Lengkapi Bagian "Rekomendasi" dengan tiga hal yang sudah dihitung di bab ini: (1) *payback period* terhadap langganan yang berjalan, (2) pertimbangan keamanan data — apakah data boleh tinggal di server pihak ketiga — dan (3) kesiapan SDM, karena *TCO* akan langsung meleset bila baris SDM pada Tabel 1 tidak dianggarkan. Proposal yang berisi ketiga elemen ini hampir selalu lolos dewan, bukan karena angkanya menarik, tetapi karena asumsinya bisa dipertanggungjawabkan.
 
 ---
 
@@ -334,7 +334,7 @@ Terakhir, susun argumen Anda ke dalam *template* proposal yang bisa langsung dii
 
 **Situasi Awal.** PT Startup AI, perusahaan dengan 40 karyawan, memakai **ChatGPT Enterprise** untuk seluruh kebutuhan AI internal — *coding assistant*, *document review*, dan *data analysis*. Biayanya $60/user/bulan atau sekitar **Rp 38,4 juta/bulan** — sebuah arus kas yang membengkak seiring bertambahnya karyawan, tanpa aset apa pun yang tersisa.
 
-**Keputusan.** Manajemen memutuskan beralih ke **on-premise dengan 2× H100** (skenario medium pada Bagian 3), total investasi **Rp 610 juta**. Angka ini sempat mengguncang — hampir setengah miliar keluar di muka — tetapi analisis TCO menunjukkan garis finish: kalkulator *payback* (Tutorial A, Bagian 8) memperlihatkan bahwa langganan yang berjalan akan menelan Rp 461 juta per tahun, hampir setara biaya server dalam satu tahun.
+**Keputusan.** Manajemen memutuskan beralih ke **on-premise dengan 2× H100** (skenario medium pada Bagian 3), total investasi **Rp 610 juta**. Angka ini sempat mengguncang — hampir setengah miliar keluar di muka, tetapi analisis TCO menunjukkan garis finish: kalkulator *payback* (Langkah 1, Bagian 8) memperlihatkan bahwa langganan yang berjalan akan menelan Rp 461 juta per tahun, hampir setara biaya server dalam satu tahun.
 
 **Biaya Operasional.** Setelah server berjalan, biaya bulanan riil: **listrik Rp 3 juta/bulan** + **maintenance Rp 1,7 juta/bulan** + **SDM Rp 15 juta/bulan** (0,5 FTE DevOps) = **Rp 19,7 juta/bulan**.
 
@@ -349,7 +349,7 @@ Terakhir, susun argumen Anda ke dalam *template* proposal yang bisa langsung dii
 
 ### Paper Jurnal/Konferensi
 
-[1] Ohiri, E., Berry, S. (2026). *Real-World GPU Benchmark: NVIDIA H100 vs A100 vs L40S*. CUDO Compute Blog. [https://www.cudocompute.com/blog/real-world-gpu-benchmarks](https://www.cudocompute.com/blog/real-world-gpu-benchmarks) — benchmark *cost/token* A100, H100, L40S; acuan verifikasi angka TCO.
+[1] Ohiri, E., Berry, S. (2026). *Real-World GPU Benchmark: NVIDIA H100 vs A100 vs L40S*. CUDO Compute Blog. [https://www.cudocompute.com/blog/real-world-gpu-benchmarks](https://www.cudocompute.com/blog/real-world-gpu-benchmarks) — benchmark *cost/token* A100, H100, L40S; acuan verifikasi angka TCO. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [2] Weber, S., et al. (2025). *Automated Dynamic AI Inference Scaling on HPC-Infrastructure*. arXiv:2511.21413. DOI: [10.48550/arXiv.2511.21413](https://arxiv.org/abs/2511.21413) — efisiensi *scaling* untuk *concurrent requests*; dasar estimasi kebutuhan GPU per user.
 
@@ -373,6 +373,6 @@ Terakhir, susun argumen Anda ke dalam *template* proposal yang bisa langsung dii
 
 [10] PLN. *Tarif Listrik Industri 2025*. [https://www.pln.co.id](https://www.pln.co.id) — acuan tarif kWh untuk perhitungan biaya listrik.
 
-[11] DeepSeek Team. (2026). *DeepSeek-V4 Flash: MIT Licensed MoE for Cost-Sensitive Deployment*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model 284B/13B aktif berlisensi MIT; biaya *inference* lebih rendah dari *dense* 70B, dipertimbangkan dalam TCO Tabel 1.
+[11] DeepSeek Team. (2026). *DeepSeek-V4 Flash: MIT Licensed MoE for Cost-Sensitive Deployment*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model 284B/13B aktif berlisensi MIT; biaya *inference* lebih rendah dari *dense* 70B, dipertimbangkan dalam TCO Tabel 1. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [12] Mistral AI Team. (2025). *Mistral Large 3: Apache 2.0 Licensed Granular MoE*. [https://mistral.ai/news/mistral-large-3](https://mistral.ai/news/mistral-large-3) — tanpa biaya lisensi, menghemat Rp 20-60jt/tahun dibandingkan model *proprietary*; dipertimbangkan pada Tabel 2.

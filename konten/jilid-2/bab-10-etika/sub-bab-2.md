@@ -19,7 +19,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 ## 2. Hak Cipta dalam Konteks AI Generatif
 
 
-*Copyright* (hak cipta) lahir jauh sebelum model bahasa — tetapi pertanyaannya kini bergeser: apakah aturan yang dirancang untuk buku, lagu, dan film dapat menjawab realitas model yang menelan korpus digital raksasa? Undang-Undang Nomor 28 Tahun 2014 tentang Hak Cipta di Indonesia melindungi karya cipta yang *original* dan *diekspresikan* dalam bentuk nyata — dan perdebatan saat ini berpusat pada apakah reproduksi internal yang dilakukan machine learning merupakan pelanggaran, serta apakah output model bisa dianggap sebagai karya turunan atau justru karya baru [1][3].
+*Copyright* (hak cipta) lahir jauh sebelum model bahasa, tetapi pertanyaannya kini bergeser: apakah aturan yang dirancang untuk buku, lagu, dan film dapat menjawab realitas model yang menelan korpus digital raksasa? Undang-Undang Nomor 28 Tahun 2014 tentang Hak Cipta di Indonesia melindungi karya cipta yang *original* dan *diekspresikan* dalam bentuk nyata — dan perdebatan saat ini berpusat pada apakah reproduksi internal yang dilakukan machine learning merupakan pelanggaran, serta apakah output model bisa dianggap sebagai karya turunan atau justru karya baru [1][3].
 
 Praktisi hukum dan teknis sepakat bahwa risiko *copyright* pada generative AI terkonsentrasi di **tiga titik** dalam rantai pasok. Pertama, **ingestion** — menyalin *training data* ke dalam model. Kedua, **reproduksi dalam model** — menyimpan pola karya dalam *weights*. Ketiga, **output generatif** — menghasilkan konten yang menyalin karya asli secara *verbatim* atau sebagai karya turunan [2][4]. Ketiga titik ini diatur berbeda di setiap yurisdiksi: Amerika Serikat mengandalkan doktrin *fair use* yang fleksibel; Uni Eropa mengatur pengecualian *text and data mining* (TDM) dalam DSM Directive dan menempatkan AI di bawah payung AI Act; sementara Indonesia belum memiliki regulasi spesifik AI — UU 28/2014 dan UU Perlindungan Data Pribadi (UU 27/2022) menjadi rujukan utama yang tidak dirancang untuk kasus ini [1].
 
@@ -166,7 +166,7 @@ Kepatuhan bukan konsep gratis. Tabel ini memperkirakan investasi yang diperlukan
 
 ![Grafik batang horizontal berkelompok membandingkan biaya setup dan biaya operasional tahunan lima langkah kepatuhan copyright, dengan pengadaan dataset berlisensi paling mahal dan dokumentasi provenance paling murah](../../assets/images/bab-10-etika/sub-bab-2/biaya-kepatuhan-copyright.png)
 
-*Gambar 10.2-1 — Perkiraan biaya lima lapisan kepatuhan copyright (titik tengah rentang estimasi Tabel 3). Pengadaan dataset berlisensi membutuhkan setup hingga Rp 350 juta — sepuluh kali lipat dokumentasi provenance (Rp 35 juta) — tetapi keduanya "membeli" jenis keamanan hukum yang berbeda.*
+*Gambar 10.2-1 — Perkiraan biaya lima lapisan kepatuhan copyright (titik tengah rentang estimasi Tabel 3). Pengadaan dataset berlisensi membutuhkan setup hingga Rp 350 juta — sepuluh kali lipat dokumentasi provenance (Rp 35 juta), tetapi keduanya "membeli" jenis keamanan hukum yang berbeda.*
 
 Analisis: bandingkan baris pertama dan terakhir — *provenance documentation* (Rp 20-50jt) dan *licensed dataset procurement* (Rp 200-500jt) berbeda kelipatan sepuluh, tetapi keduanya "membeli" jenis keamanan yang berbeda: *provenance* membeli pembelaan hukum saat sengketa terjadi, sementara *licensed dataset* membeli ketenangan sejak awal. Perhatikan juga bahwa efektivitas tertinggi (pengadaan dataset berlisensi) justru yang paling mahal — bagi bisnis tahap awal, kombinasi paling rasional adalah provenance + legal review, lalu menaikkan investasi seiring eksposur yang tumbuh [2].
 
@@ -195,7 +195,7 @@ Kombinasi `provenance + deduplication` di hulu dan `output filter` di hilir menu
 
 Pemetaan strategi dimulai dari satu pertanyaan: **berapa besar eksposur hukum bisnis Anda?** Model yang hanya menjalankan *chatbot* internal dengan data sendiri menghadapi risiko jauh lebih kecil daripada perusahaan yang melatih model baru dari awal. Matriks pada Tabel 2 membantu memetakan lima skenario bisnis khas — dari *internal chatbot* hingga *training from scratch* — beserta mitigasi minimum dan optimalnya.
 
-Pemilihan model sebaiknya mengikuti *risk appetite* yang sama. Untuk bisnis dengan anggaran hukum tipis, MIT (DeepSeek V4) menghilangkan kekhawatiran kewajiban lisensi; untuk organisasi yang memerlukan *accountability* penggunaan (fintech, kesehatan), RAIL atau model dengan *acceptable use policy* justru membantu karena pembatasan penggunaan tertulis secara eksplisit [3]. Terakhir, sebelum *deployment* ke produksi, wajib ada **SOP legal review**: audit lisensi model (Tutorial A), audit sumber data (bila *fine-tuning*), penetapan tanggung jawab output dalam *terms of service* (pengguna bertanggung jawab atas *prompt* dan penggunaan output), serta dokumentasi seluruh putusan. Biaya kepatuhan ini bukan nol — Tabel 3 memperlihatkan estimasinya — tetapi selalu lebih murah daripada satu gugatan.
+Pemilihan model sebaiknya mengikuti *risk appetite* yang sama. Untuk bisnis dengan anggaran hukum tipis, MIT (DeepSeek V4) menghilangkan kekhawatiran kewajiban lisensi; untuk organisasi yang memerlukan *accountability* penggunaan (fintech, kesehatan), RAIL atau model dengan *acceptable use policy* justru membantu karena pembatasan penggunaan tertulis secara eksplisit [3]. Terakhir, sebelum *deployment* ke produksi, wajib ada **SOP legal review**: audit lisensi model (Langkah 1), audit sumber data (bila *fine-tuning*), penetapan tanggung jawab output dalam *terms of service* (pengguna bertanggung jawab atas *prompt* dan penggunaan output), serta dokumentasi seluruh putusan. Biaya kepatuhan ini bukan nol — Tabel 3 memperlihatkan estimasinya, tetapi selalu lebih murah daripada satu gugatan.
 
 ---
 
@@ -362,6 +362,8 @@ Hasil dari dua contoh ini konsisten dengan analisis seksi 4: parameter DeepSeek 
 [5] Hou, D. (2025). *Language Models' Verbatim Copying: Copyright Infringement Analysis through the Lens of The New York Times Co. v. Microsoft Corp., OpenAI, Inc.* Cardozo Arts & Entertainment Law Journal, 43(2), 349-370. DOI: [10.2139/ssrn.5001098](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5001098)
 
 [6] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv: [2604.00001](https://arxiv.org/abs/2604.00001)
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [7] Mistral AI. (2025). *Mistral Large 3: A Granular Mixture-of-Experts Model*. arXiv: [2512.00001](https://arxiv.org/abs/2512.00001)
 

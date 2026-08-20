@@ -162,7 +162,7 @@ Ketika domain spesifik — misalnya SQL untuk skema perbankan dengan istilah int
 
 ### Multi-Agent (SuperSQL)
 
-Pendekatan paling maju: beberapa agen LLM berkolaborasi — satu menulis SQL, satu memverifikasi terhadap skema, satu mengeksekusi dan meninjau hasil, dan error dikirim balik untuk perbaikan. Kerangka *NL2SQL360* melaporkan **SuperSQL** mencapai 87,0% *execution accuracy* di Spider — yang tertinggi dalam tabel kita — tetapi dengan latensi <12 detik karena beberapa *round-trip* LLM. Ini pendekatan untuk kueri kompleks yang jarang di mana akurasi lebih berharga daripada kecepatan; untuk laporan harian yang berjalan 20 kali dengan pertanyaan serupa, multi-agent adalah pemborosan.
+Pendekatan paling maju: beberapa agen LLM berkolaborasi — satu menulis SQL, satu memverifikasi terhadap skema, satu mengeksekusi dan meninjau hasil, dan error dikirim balik untuk perbaikan. Kerangka *NL2SQL360* melaporkan **SuperSQL** mencapai 87,0% *execution accuracy* di Spider — yang tertinggi dalam tabel kita, tetapi dengan latensi <12 detik karena beberapa *round-trip* LLM. Ini pendekatan untuk kueri kompleks yang jarang di mana akurasi lebih berharga daripada kecepatan; untuk laporan harian yang berjalan 20 kali dengan pertanyaan serupa, multi-agent adalah pemborosan.
 
 ### Strategi Praktis
 
@@ -241,10 +241,10 @@ Distribusi lintas kanal: **email** untuk eksekutif (CEO, CFO, *Head of Sales*), 
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial 1: NL2SQL + Report Generator Python Script
+### Langkah 1: NL2SQL + Report Generator Python Script
 
 Seluruh pipeline inti — dari pertanyaan bahasa alami hingga file laporan tersimpan — dapat berjalan dalam satu skrip Python yang terhubung ke Ollama. Simpan sebagai `auto_report.py`:
 
@@ -349,7 +349,7 @@ if __name__ == "__main__":
 
 Alur empat langkah skrip ini adalah pipeline mini dari bagian 3: *generate_sql* (NL2SQL dengan *zero-shot*), *execute_sql* (Query Executor pada SQLite in-memory), *generate_report* (Report Generator dengan template empat bagian), dan penyimpanan Markdown. Perhatikan pemisahan data dan analisis: database contoh diisi tiga baris penjualan agar skrip dapat langsung diuji, dan hasil kueri diserialisasi ke JSON — *interface* standar antar tahap. Semua model terdaftar sebagai komentar di `MODEL` dapat ditukar bebas; mulai `deepseek-v4-flash` untuk keseimbangan kecepatan-akurasi, dan naikkan ke `deepseek-v4-pro` ketika kueri melibatkan schema besar.
 
-### Tutorial 2: Setup n8n Workflow untuk Laporan Harian
+### Langkah 2: Setup n8n Workflow untuk Laporan Harian
 
 Untuk versi yang lebih operasional dan visual, rangkai pipeline yang sama sebagai *workflow* **n8n** — *automation platform* yang mengeksekusi node secara berurutan:
 
@@ -366,7 +366,7 @@ Untuk versi yang lebih operasional dan visual, rangkai pipeline yang sama sebaga
 
 Keunggulan n8n dibanding skrip mentah ada tiga: *error tracking* visual di setiap node, *retry* dan *notification* bawaan pada kegagalan, serta *execution history* yang dapat diinspeksi — nilai praktis yang menyelamatkan Anda saat laporan pagi tidak kunjung tiba dan manajemen menanyakan alasannya.
 
-### Tutorial 3: Insight Extraction dengan Python
+### Langkah 3: Insight Extraction dengan Python
 
 Sebelum diserahkan ke LLM, data mentah harus diubah menjadi insight terstruktur. Skrip berikut menghitung statistik dan mendeteksi anomali secara deterministik:
 

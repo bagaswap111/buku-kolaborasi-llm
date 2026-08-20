@@ -25,7 +25,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 Ketika sebuah kantor dengan 21-50 karyawan membiarkan setiap orang mengakses LLM *cloud* secara langsung — membuka ChatGPT Enterprise, mengetik pertanyaan ke API OpenAI, atau menjalankan model di laptop masing-masing — tiga masalah klasik muncul secara bersamaan. Pertama, **biaya membengkak tanpa kontrol**: tidak ada yang tahu berapa token yang dikonsumsi HR dibanding Engineering, siapa yang paling boros, dan apakah pemakaian itu memang dibutuhkan untuk pekerjaan. Kedua, **tidak ada pembatas kecepatan**: satu karyawan yang menjalankan *script* batch bisa menghabiskan kuota harian seluruh tim dalam hitungan menit. Ketiga, **tidak ada jejak audit**: ketika terjadi insiden data, manajemen tidak memiliki catatan siapa mengirim prompt apa ke model mana — persoalan yang langsung bertabrakan dengan tuntutan *compliance* UU PDP dan ISO 27001.
 
-Masalah ini semakin tajam di skala 21-50 user. Di bawah 20 user, akses langsung masih bisa "diingat-ingat" oleh admin; di atas 50 user, organisasi biasanya sudah punya tim infra yang mapan. General office berada di titik tengah yang janggal: terlalu besar untuk diabaikan, terlalu kecil untuk memiliki tim keamanan yang besar. Solusinya bukan melarang pemakaian AI — melainkan memasang sebuah *gerbang* yang menertibkannya.
+Masalah ini semakin tajam di skala 21-50 user. Di bawah 20 user, akses langsung masih bisa "diingat-ingat" oleh admin; di atas 50 user, organisasi biasanya sudah punya tim infra yang mapan. General office berada di titik tengah yang janggal: terlalu besar untuk diabaikan, terlalu kecil untuk memiliki tim keamanan yang besar. Solusinya bukan melarang pemakaian AI, melainkan memasang sebuah *gerbang* yang menertibkannya.
 
 ### Solusi: LiteLLM sebagai Proxy
 
@@ -43,7 +43,7 @@ Fitur kunci LiteLLM yang langsung berguna bagi general office adalah:
 - **Load balancing** — distribusi permintaan antar *backend* dengan *round-robin* atau *least-connections*
 - **Audit logging** — pencatatan setiap permintaan ke PostgreSQL untuk kebutuhan pelaporan dan *compliance*
 
-### Tabel 2: Perbandingan AI Gateway
+### Tabel 1: Perbandingan AI Gateway
 
 Sebelum memilih LiteLLM, ada baiknya membandingkan dengan alternatif pasar — tabel berikut merangkum keempat opsi utama.
 
@@ -83,9 +83,9 @@ Pengaturan ini adalah pola *hybrid* yang mengoptimalkan biaya tanpa mengorbankan
 
 ### Database: PostgreSQL sebagai Sumber Kebenaran
 
-**PostgreSQL** adalah database yang menyimpan metadata penting: kunci (*keys*), pengguna dan tim (*teams*), serta catatan pengeluaran (*spend logs*). Setiap kali sebuah *virtual key* mengirim permintaan, LiteLLM mencatat jumlah token, model yang dipakai, dan biaya yang timbul ke dalam tabel *spend*. Database inilah yang menjadi *single source of truth* untuk laporan bulanan, penyelidikan insiden, dan perhitungan biaya per departemen di Bab 8.6. Ukurannya relatif kecil untuk skala kantor — tidak perlu *database* khusus kelas enterprise — tetapi tetap harus dicadangkan secara rutin karena nilainya sangat tinggi saat *audit*.
+**PostgreSQL** adalah database yang menyimpan metadata penting: kunci (*keys*), pengguna dan tim (*teams*), serta catatan pengeluaran (*spend logs*). Setiap kali sebuah *virtual key* mengirim permintaan, LiteLLM mencatat jumlah token, model yang dipakai, dan biaya yang timbul ke dalam tabel *spend*. Database inilah yang menjadi *single source of truth* untuk laporan bulanan, penyelidikan insiden, dan perhitungan biaya per departemen di Bab 8.6. Ukurannya relatif kecil untuk skala kantor — tidak perlu *database* khusus kelas enterprise, tetapi tetap harus dicadangkan secara rutin karena nilainya sangat tinggi saat *audit*.
 
-### Diagram 1: Arsitektur LiteLLM Gateway
+### Gambar 1: Arsitektur LiteLLM Gateway
 
 Berikut arsitektur lengkap *gateway* — perhatikan jalur utama (garis tebal) dan jalur *fallback* (garis putus-putus).
 
@@ -144,7 +144,7 @@ Akses dibagi menjadi empat *tier* dengan jenjang kuota dan hak model:
 - **Standard** (HR, Finance, Legal) — hanya model 8B, cukup untuk *summarization*, tanya jawab dokumen, dan penulisan.
 - **Guest** (Intern, Trainee) — hanya model 8B tanpa RAG, budget paling kecil, untuk orientasi dan tugas-tugas ringan.
 
-Logika di balik *tier* ini adalah **menuangkan kebutuhan kerja ke dalam kuota** (pemetaan rinci lihat Tabel 1 di Seksi 4). Karyawan yang pekerjaannya menuntut model besar dibayar mahal oleh perusahaan — mereka mendapat kuota besar. Karyawan yang hanya butuh bantuan menulis surat tidak perlu menyentuh model 70B yang biayanya jauh lebih tinggi. Hasilnya: budget terpakai tepat sasaran, bukan menguap tanpa arah.
+Logika di balik *tier* ini adalah **menuangkan kebutuhan kerja ke dalam kuota** (pemetaan rinci lihat Tabel 2 di Seksi 4). Karyawan yang pekerjaannya menuntut model besar dibayar mahal oleh perusahaan — mereka mendapat kuota besar. Karyawan yang hanya butuh bantuan menulis surat tidak perlu menyentuh model 70B yang biayanya jauh lebih tinggi. Hasilnya: budget terpakai tepat sasaran, bukan menguap tanpa arah.
 
 ### RBAC: Tiga Peran Pengelola
 
@@ -152,7 +152,7 @@ RBAC di LiteLLM berjalan dalam tiga lapisan peran: **Proxy Admin** — pengelola
 
 Setiap lapisan peran ini juga dapat dipautkan ke **SSO** (misalnya Google Workspace atau Microsoft Entra ID) sehingga identitas karyawan yang sudah ada di direktori kantor langsung dipakai untuk otentikasi. Karyawan yang keluar otomatis kehilangan akses saat akunnya dinonaktifkan di direktori — tidak ada lagi "kunci API yang masih hidup setelah mantan karyawan itu pergi."
 
-### Tabel 1: Tier Virtual Key untuk General Office
+### Tabel 2: Tier Virtual Key untuk General Office
 
 Empat *tier* kunci berikut memetakan kebutuhan kerja departemen ke kuota model, budget, dan batas kecepatan — angka-angka ini adalah titik awal yang lazim untuk kantor 21-50 user.
 
@@ -197,24 +197,24 @@ Berikut contoh nyata pemakaian satu bulan di kantor 40 user — angka yang bisa 
 
 | Departemen | User | Key Tier | Budget/bln | Pemakaian/bln | Sisa |
 |:---|:---:|:---|:---:|:---:|:---:|
-| **Engineering** | 15 | Power | Rp 5jt | Rp 4.2jt | Rp 800k |
-| **Data Science** | 5 | Power | Rp 5jt | Rp 4.8jt | Rp 200k |
-| **HR** | 8 | Standard | Rp 2jt | Rp 1.1jt | Rp 900k |
-| **Finance** | 6 | Standard | Rp 2jt | Rp 1.5jt | Rp 500k |
-| **Legal** | 4 | Standard | Rp 2jt | Rp 1.8jt | Rp 200k |
-| **IT Ops** | 2 | Admin | Rp 10jt | Rp 3.5jt | Rp 6.5jt |
-| **Total** | **40** | | **Rp 26jt** | **Rp 16.9jt** | **Rp 9.1jt** |
+| **Engineering** | 15 | Power | Rp 5jt | Rp 4,2jt | Rp 800k |
+| **Data Science** | 5 | Power | Rp 5jt | Rp 4,8jt | Rp 200k |
+| **HR** | 8 | Standard | Rp 2jt | Rp 1,1jt | Rp 900k |
+| **Finance** | 6 | Standard | Rp 2jt | Rp 1,5jt | Rp 500k |
+| **Legal** | 4 | Standard | Rp 2jt | Rp 1,8jt | Rp 200k |
+| **IT Ops** | 2 | Admin | Rp 10jt | Rp 3,5jt | Rp 6,5jt |
+| **Total** | **40** | | **Rp 26jt** | **Rp 16,9jt** | **Rp 9,1jt** |
 
 ![Perbandingan budget dan pemakaian bulanan enam departemen di kantor 40 user, dalam juta rupiah.](../../assets/images/bab-08-general/sub-bab-4/budget-vs-pemakaian-departemen.png)
 
-*Gambar 8.4-2 — Pemakaian paling timpang ada di Data Science (96% budget, Rp 4.8jt) dan IT Ops (35%, Rp 3.5jt); dengan total sisa Rp 9.1jt dari budget Rp 26jt, alokasi hulu terbukti lebih longgar dari kebutuhan aktual.*
+*Gambar 8.4-2 — Pemakaian paling timpang ada di Data Science (96% budget, Rp 4,8jt) dan IT Ops (35%, Rp 3,5jt); dengan total sisa Rp 9,1jt dari budget Rp 26jt, alokasi hulu terbukti lebih longgar dari kebutuhan aktual.*
 
-Dua *insight* langsung terlihat. Pertama, **pemakaian tidak merata**: Data Science memakai 96% budget-nya (Rp 4.8jt dari Rp 5jt) sementara IT Ops baru 35% — signal untuk audit internal: apakah workload Data Science memang sedang tinggi, atau ada *script* yang berulang sia-sia? Kedua, **total sisa Rp 9.1jt (35%)** menunjukkan budget hulu Rp 26jt lebih longgar dari kebutuhan aktual Rp 16.9jt; kantor bisa menurunkan alokasi atau menyalurkan sisa ke pelatihan AI karyawan. Tabel seperti ini juga menjadi bahan introspeksi: kalau sebuah departemen selalu habis di minggu ketiga, itu bukan masalah budget, melainkan masalah kebutuhan yang tidak dipetakan sejak awal — persis kasus yang terjadi pada departemen Legal di studi kasus PT Finansial Sejahtera (Seksi 9).
+Dua *insight* langsung terlihat. Pertama, **pemakaian tidak merata**: Data Science memakai 96% budget-nya (Rp 4,8jt dari Rp 5jt) sementara IT Ops baru 35% — signal untuk audit internal: apakah workload Data Science memang sedang tinggi, atau ada *script* yang berulang sia-sia? Kedua, **total sisa Rp 9,1jt (35%)** menunjukkan budget hulu Rp 26jt lebih longgar dari kebutuhan aktual Rp 16,9jt; kantor bisa menurunkan alokasi atau menyalurkan sisa ke pelatihan AI karyawan. Tabel seperti ini juga menjadi bahan introspeksi: kalau sebuah departemen selalu habis di minggu ketiga, itu bukan masalah budget, melainkan masalah kebutuhan yang tidak dipetakan sejak awal — persis kasus yang terjadi pada departemen Legal di studi kasus PT Finansial Sejahtera (Seksi 9).
 
 ---
 
 
-### Diagram 2: Alur Rate Limiting dan Budget Check
+### Gambar 2: Alur Rate Limiting dan Budget Check
 
 Setiap permintaan melewati tiga gerbang sebelum sampai ke model — RPM, TPM, lalu *budget*:
 
@@ -260,7 +260,7 @@ Kemampuan ekspor ini mengubah percakapan anggaran dari obrolan informal menjadi 
 
 ### Multi-Region Routing dan Fallback
 
-Ketika GPU on-premise penuh — misalnya sore hari ketika seluruh tim Data Science mengirim pekerjaan berat bersamaan — gateway otomatis melakukan **fallback multi-region**: permintaan dialihkan ke *cloud* (GPT-5.5, Gemini 2.5 Pro) tanpa karyawan harus mengganti URL atau menunggu antrean. Arah *fallback* ini digambar sebagai garis putus-putus pada Diagram 1: jalur utama selalu on-premise, jalur cadangan baru dipakai saat dibutuhkan.
+Ketika GPU on-premise penuh — misalnya sore hari ketika seluruh tim Data Science mengirim pekerjaan berat bersamaan — gateway otomatis melakukan **fallback multi-region**: permintaan dialihkan ke *cloud* (GPT-5.5, Gemini 2.5 Pro) tanpa karyawan harus mengganti URL atau menunggu antrean. Arah *fallback* ini digambar sebagai garis putus-putus pada Gambar 1: jalur utama selalu on-premise, jalur cadangan baru dipakai saat dibutuhkan.
 
 Strategi ini menyeimbangkan biaya dan kesiapan: *failover* jarang terjadi sehingga biaya cloud tetap rendah, tetapi ketika terjadi, kantor tidak berhenti. Penelitian tentang *enterprise data leakage* pada *query* ke LLM eksternal mengingatkan bahwa *fallback* ke cloud harus disertai kontrol data — prompt yang mengandung rahasia perusahaan sebaiknya tidak pernah dialihkan ke luar [3]. Di Bab 8.5 kita akan melihat bagaimana DLP menyaring prompt sebelum mencapai jalur manapun.
 
@@ -408,7 +408,7 @@ Dengan *webhook* ini, tidak ada lagi alasan "tidak tahu budget habis": saat kunc
 
 **Analisis pilihan.** Tim IT mengevaluasi tiga opsi: (1) tetap ChatGPT Enterprise tanpa kontrol per departemen — ditolak karena tidak ada *budget* per unit; (2) gateway komersial seperti Kong AI Gateway — ditolak karena lisensi $5k+/tahun memberatkan; (3) **LiteLLM self-hosted** di K3s dengan vLLM on-premise — diterima karena gratis, mendukung model on-premise murah, dan menyediakan pelacakan biaya per kunci secara bawaan.
 
-**Implementasi.** LiteLLM dideploy dengan 3 *replica* di K3s dan backend vLLM untuk DeepSeek V4 Flash serta Mistral Large 3. Enam *virtual keys* dibuat — satu per departemen (Engineering, Data, HR, Finance, Legal, IT) — dengan budget total **Rp 30 juta/bulan** dan *tier* sesuai Tabel 1. Webhook *budget alert* disambungkan ke Slack kanal `#ai-budget`, dan bagian keuangan menerima *export* CSV bulanan dari `/global/spend/report`.
+**Implementasi.** LiteLLM dideploy dengan 3 *replica* di K3s dan backend vLLM untuk DeepSeek V4 Flash serta Mistral Large 3. Enam *virtual keys* dibuat — satu per departemen (Engineering, Data, HR, Finance, Legal, IT) — dengan budget total **Rp 30 juta/bulan** dan *tier* sesuai Tabel 2. Webhook *budget alert* disambungkan ke Slack kanal `#ai-budget`, dan bagian keuangan menerima *export* CSV bulanan dari `/global/spend/report`.
 
 **Hasil.** Bulan pertama, pemakaian aktual hanya **Rp 18,5 juta (62% dari budget)** — hampir separuh dari estimasi awal Rp 45 juta. Sistem berhasil mendeteksi anomali: departemen **Legal hampir overflow** karena *review* kontrak massal yang memproses ratusan halaman dokumen dalam seminggu; setelah diverifikasi bahwa ini pekerjaan nyata, budget Legal dinaikkan. Biaya total setelah memperhitungkan listrik GPU Rp 4 juta menjadi **Rp 22,5 juta/bulan** — **hemat 50%** dibanding akses langsung.
 
@@ -425,7 +425,7 @@ Dengan *webhook* ini, tidak ada lagi alasan "tidak tahu budget habis": saat kunc
 - Dokumentasi resmi LiteLLM gateway. Semua fitur (virtual keys, budget tracking, spend logs) di Tabel 1 dan 2 merujuk pada dokumentasi ini.
 
 [2] Malik, S., et al. (2025). *SafeGPT: Preventing Data Leakage and Unethical Outputs in Enterprise LLM Use*. arXiv preprint arXiv:2601.06366. DOI: [10.48550/arXiv.2601.06366](https://arxiv.org/abs/2601.06366)
-- *Two-sided guardrail system* untuk enterprise. Data efektivitas *budget control* di Tabel 3 harus diverifikasi dengan metodologi paper ini.
+- *Two-sided guardrail system* untuk enterprise. Data efektivitas *budget control* di Tabel 3 harus diverifikasi dengan metodologi paper ini. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [3] Kumar, A., et al. (2025). *QueryShield: A Platform to Mitigate Enterprise Data Leakage in Queries to External LLMs*. Proceedings of NAACL 2025 Industry Track. [https://aclanthology.org/2025.naacl-industry.30.pdf](https://aclanthology.org/2025.naacl-industry.30.pdf)
 - Deteksi dan *rephrasing* *query* untuk mencegah *data leakage*. Relevan untuk Seksi 7 (*High Availability* & *fallback* ke cloud).
@@ -434,7 +434,7 @@ Dengan *webhook* ini, tidak ada lagi alasan "tidak tahu budget habis": saat kunc
 - Kerangka *Policy-to-Prompt* untuk *runtime compliance*. Data *budget threshold* (alert 80%) di Seksi 5 merujuk rekomendasi paper ini.
 
 [5] Sinha, K., et al. (2025). *Permissioned LLMs: Enforcing Access Control in Large Language Models*. arXiv preprint arXiv:2505.22860. DOI: [10.48550/arXiv.2505.22860](https://arxiv.org/abs/2505.22860)
-- RBAC untuk LLM — akses kontrol berdasarkan *role* dan *clearance level*. Data RBAC di Tabel 1 (*Tier* Virtual Key) diverifikasi dengan kerangka paper ini.
+- RBAC untuk LLM — akses kontrol berdasarkan *role* dan *clearance level*. Data RBAC di Tabel 2 (*Tier* Virtual Key) diverifikasi dengan kerangka paper ini.
 
 ### Referensi Pendukung (Dokumentasi/Repository)
 
@@ -445,7 +445,7 @@ Dengan *webhook* ini, tidak ada lagi alasan "tidak tahu budget habis": saat kunc
 [8] LiteLLM. *Spend Tracking Endpoints*. [https://docs.litellm.ai/docs/proxy/cost_tracking](https://docs.litellm.ai/docs/proxy/cost_tracking)
 
 [9] OpenAI. (2026). *GPT-5.5: Advanced Reasoning with Effort Control*. [https://openai.com](https://openai.com)
-- Model proprietary dengan 1M konteks dan *reasoning efforts* — opsi *cloud fallback* untuk *general office* yang membutuhkan kemampuan *reasoning* tinggi.
+- Model proprietary dengan 1M konteks dan *reasoning efforts* — opsi *cloud fallback* untuk *general office* yang membutuhkan kemampuan *reasoning* tinggi. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [10] Anthropic. (2026). *Claude Fable 5: Safety-First Enterprise Language Model*. [https://anthropic.com](https://anthropic.com)
-- Model dengan *safety classifiers* built-in — cocok sebagai *backup model* untuk konten sensitif di *general office*.
+- Model dengan *safety classifiers* built-in — cocok sebagai *backup model* untuk konten sensitif di *general office*. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.

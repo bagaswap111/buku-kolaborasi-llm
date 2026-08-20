@@ -228,7 +228,7 @@ Bagi calon pembeli laptop di 2026, arah ini memiliki tiga implikasi praktis. Per
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial 1: Jalankan LLM di NPU Intel dengan NITRO
+### Langkah 1: Jalankan LLM di NPU Intel dengan NITRO
 
 Cara terbaik untuk memahami batas NPU adalah mengujinya sendiri. Framework NITRO adalah titik masuk paling mudah di NPU Intel.
 
@@ -259,7 +259,7 @@ python nitro/run_npu.py \
 
 Pengalaman yang diharapkan: pada langkah 4, NPU menghasilkan respons, tetapi dengan kecepatan yang terasa "berat", sekitar 3,5 detik per token untuk model 8B (model 3B sedikit lebih cepat). Pada langkah 5, CPU sering kali lebih cepat untuk prompt pendek karena NPU harus menyelesaikan inisialisasi pipa terlebih dahulu. Eksperimen ini mengajarkan dua hal: pertama, NPU benar-benar bisa menjalankan LLM — bukan *smoke and mirrors*; kedua, untuk penggunaan interaktif, NPU belum menawarkan pengalaman yang nyaman. Catat pula konsumsi daya keduanya dengan `powerstat` — di situlah NPU menunjukkan keunggulannya: efisiensi per watt untuk tugas yang memang ringan [1].
 
-### Tutorial 2: Hybrid NPU + CPU + GPU dengan Agent.xpu
+### Langkah 2: Hybrid NPU + CPU + GPU dengan Agent.xpu
 
 Selanjutnya, coba arsitektur masa depan: jalankan model secara *hybrid*, dengan prefill di NPU dan decode di iGPU.
 
@@ -291,7 +291,7 @@ print(tokenizer.decode(outputs[0]))
 
 Perhatikan filosofi di balik dua baris konfigurasi `prefill_device='NPU'` dan `decode_device='GPU'`: *prefill* (memproses prompt sekaligus) adalah komputasi matriks masif yang cocok untuk *systolic array* NPU, sementara *decode* (menghasilkan token satu per satu) adalah beban *bandwidth-bound* yang jauh lebih cepat di iGPU. Hasil yang diharapkan adalah throughput 1,2–4,9x lebih tinggi dibandingkan menjalankan seluruhnya di iGPU — persis seperti temuan paper Agent.xpu [3]. Jika Anda tidak memiliki Core Ultra, skrip tetap berjalan di GPU biasa, hanya tanpa partisipasi NPU.
 
-### Tutorial 3: Test T-MAC di Snapdragon X Elite
+### Langkah 3: Test T-MAC di Snapdragon X Elite
 
 Terakhir, uji fenomena "CPU mengalahkan NPU" dengan T-MAC dari Microsoft di Snapdragon X Elite.
 

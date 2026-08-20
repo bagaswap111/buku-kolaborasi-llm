@@ -1,6 +1,6 @@
 # Bab 8.8: Maintenance & Failover
 
-> Pukul 10:30 pagi, jam sibuk kantor. Asisten AI tiba-tiba tidak menjawab, antrean permintaan menumpuk, dan panel monitoring menunjukkan suhu GPU yang melambung. Fan mati, *thermal shutdown*, satu node hilang dari cluster. Pertanyaan yang menentukan bukanlah "apakah itu terjadi?" — melainkan "berapa lama hingga layanan kembali?" Bab ini menyiapkan Anda menghadapi GPU yang mati di tengah jam kerja: skenario kegagalan, strategi failover, *runbook* langkah demi langkah, dan jadwal *preventive maintenance* yang mencegah insiden serupa terulang.
+> Pukul 10:30 pagi, jam sibuk kantor. Asisten AI tiba-tiba tidak menjawab, antrean permintaan menumpuk, dan panel monitoring menunjukkan suhu GPU yang melambung. Fan mati, *thermal shutdown*, satu node hilang dari cluster. Pertanyaan yang menentukan bukanlah "apakah itu terjadi?", melainkan "berapa lama hingga layanan kembali?" Bab ini menyiapkan Anda menghadapi GPU yang mati di tengah jam kerja: skenario kegagalan, strategi failover, *runbook* langkah demi langkah, dan jadwal *preventive maintenance* yang mencegah insiden serupa terulang.
 
 ---
 
@@ -72,7 +72,7 @@ Bacaan kunci dari tabel ini ada dua. Pertama, perhatikan kesenjangan RTO: *GPU P
 
 Dampak kegagalan pada pengguna ditentukan oleh satu variabel: berapa banyak jalur layanan yang tersisa. Pada konfigurasi **single GPU dengan cold standby**, satu GPU mati berarti *downtime* total selama 10-30 menit — tidak ada user yang bisa mengakses asisten AI sama sekali. Ini pengalaman terburuk yang harus dikomunikasikan dengan transparan: beri tahu user lewat status page, bukan membiarkan mereka menebak. Pada **multi-GPU cluster dengan HA (high availability)**, kegagalan satu node biasanya ditangani failover otomatis dalam waktu kurang dari 30 detik — user mungkin hanya merasakan *latency* naik sesaat, tanpa sadar bahwa layanan baru saja pindah rumah.
 
-Prinsip prioritas yang wajib dipegang: **model kritis harus failover pertama**. Model yang melayani aplikasi *customer-facing* (misalnya chatbot yang diakses perwakilan penjualan) mendapat hak prioritas atas model internal untuk *summarization* dokumen. Terakhir, tetapkan *SLA commitment* yang realistis dan terukur: untuk standar 99.999% *uptime*, total *downtime* maksimum hanya **5 menit per tahun**. Angka ini menyingkap kenyataan pahit — SLA tersebut hanya terpenuhi dengan strategi failover otomatis (warm standby ke atas), bukan dengan prosedur manual. Jika perusahaan Anda tidak punya anggaran untuk itu, turunkan SLA secara jujur menjadi 99.9% (sekitar 8,7 jam/tahun) dan kelola ekspektasi user sejak awal.
+Prinsip prioritas yang wajib dipegang: **model kritis harus failover pertama**. Model yang melayani aplikasi *customer-facing* (misalnya chatbot yang diakses perwakilan penjualan) mendapat hak prioritas atas model internal untuk *summarization* dokumen. Terakhir, tetapkan *SLA commitment* yang realistis dan terukur: untuk standar 99,999% *uptime*, total *downtime* maksimum hanya **5 menit per tahun**. Angka ini menyingkap kenyataan pahit — SLA tersebut hanya terpenuhi dengan strategi failover otomatis (warm standby ke atas), bukan dengan prosedur manual. Jika perusahaan Anda tidak punya anggaran untuk itu, turunkan SLA secara jujur menjadi 99,9% (sekitar 8,7 jam/tahun) dan kelola ekspektasi user sejak awal.
 
 ---
 
@@ -194,7 +194,7 @@ Aturan suhu yang berlaku untuk GPU data center modern: **target suhu operasi di 
 
 ### Driver, Firmware, dan Staging
 
-**NVIDIA driver + CUDA toolkit** harus diperbarui terjadwal (sekitar setiap 3 bulan), tetapi peraturan yang tidak bisa ditawar: semua pembaruan driver diuji di *staging* dulu sebelum menyentuh produksi — satu versi driver baru yang bermasalah dengan workload Anda dapat menghabiskan durasi downtime sebesar insiden yang ingin Anda cegah. Firmware (BIOS server, BMC/iDRAC, firmware NIC) diperbarui per 6 bulan; keuntungannya, *update* firmware BMC tidak mengganggu layanan karena ia dapat *reboot* terpisah dari host OS. Terakhir, jadwal yang sering diabaikan: **DR drill** — uji coba pemulihan penuh setiap 6 bulan, yang akan Anda praktikkan langsung pada Bagian 8 (Tutorial C).
+**NVIDIA driver + CUDA toolkit** harus diperbarui terjadwal (sekitar setiap 3 bulan), tetapi peraturan yang tidak bisa ditawar: semua pembaruan driver diuji di *staging* dulu sebelum menyentuh produksi — satu versi driver baru yang bermasalah dengan workload Anda dapat menghabiskan durasi downtime sebesar insiden yang ingin Anda cegah. Firmware (BIOS server, BMC/iDRAC, firmware NIC) diperbarui per 6 bulan; keuntungannya, *update* firmware BMC tidak mengganggu layanan karena ia dapat *reboot* terpisah dari host OS. Terakhir, jadwal yang sering diabaikan: **DR drill** — uji coba pemulihan penuh setiap 6 bulan, yang akan Anda praktikkan langsung pada Bagian 8 (Langkah 3).
 
 ### Tabel 3: Preventive Maintenance Schedule
 
@@ -229,7 +229,7 @@ flowchart TD
     RMA --> POST[Post-mortem + laporan insiden]
 ```
 
-Alur ini menekankan tiga titik kritis. Pertama, *diagnosa* selalu mendahului *keputusan* — tahan keinginan untuk langsung failover; terkadang GPU hang cukup diselesaikan dengan restart (Tutorial B di Bagian 8). Kedua, *verifikasi* adalah gerbang wajib sebelum layanan dinyatakan sehat — failover tanpa verifikasi hanya memindahkan masalah. Ketiga, *post-mortem* menutup siklus: setiap insiden harus menghasilkan pembaruan *runbook* atau perubahan konfigurasi, sehingga insiden berikutnya lebih cepat ditangani.
+Alur ini menekankan tiga titik kritis. Pertama, *diagnosa* selalu mendahului *keputusan* — tahan keinginan untuk langsung failover; terkadang GPU hang cukup diselesaikan dengan restart (Langkah 2 di Bagian 8). Kedua, *verifikasi* adalah gerbang wajib sebelum layanan dinyatakan sehat — failover tanpa verifikasi hanya memindahkan masalah. Ketiga, *post-mortem* menutup siklus: setiap insiden harus menghasilkan pembaruan *runbook* atau perubahan konfigurasi, sehingga insiden berikutnya lebih cepat ditangani.
 
 ---
 
@@ -407,6 +407,6 @@ Notasi lain perlu diingat. Langkah 4 adalah verifikasi paling penting: *curl* pe
 
 [9] PagerDuty. *Integration with Prometheus AlertManager*. [https://www.pagerduty.com/docs/guides/prometheus-alertmanager-integration-guide/](https://www.pagerduty.com/docs/guides/prometheus-alertmanager-integration-guide/) — penerusan alert P1/P3 ke on-call.
 
-[10] DeepSeek Team. (2026). *DeepSeek-V4 Flash: Efficient MoE for Resilient Enterprise Deployment*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model MoE 284B/13B aktif, hanya butuh VRAM ~10 GB dalam Q4; lebih mudah dipindahkan antar node saat failover.
+[10] DeepSeek Team. (2026). *DeepSeek-V4 Flash: Efficient MoE for Resilient Enterprise Deployment*. [https://api-docs.deepseek.com](https://api-docs.deepseek.com) — model MoE 284B/13B aktif, hanya butuh VRAM ~10 GB dalam Q4; lebih mudah dipindahkan antar node saat failover. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [11] Mistral AI Team. (2025). *Mistral Large 3: Apache 2.0 Granular MoE for High Availability*. [https://mistral.ai/news/mistral-large-3](https://mistral.ai/news/mistral-large-3) — lisensi Apache 2.0 tanpa restriksi, bebas dipakai di multi-node tanpa biaya lisensi tambahan untuk konfigurasi HA.

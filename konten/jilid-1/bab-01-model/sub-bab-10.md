@@ -89,7 +89,7 @@ Berikut peta model paling relevan untuk 2026, lengkap dengan *benchmark* publik:
 
 *MMLU-Pro untuk DeepSeek V4; †LiveCodeBench.
 
-Bacaan penting dari tabel ini: tiga model dengan kebutuhan RAM paling kecil (Llama-3.2 3B, Gemma 4 E4B, Ministral 3) menawarkan pilihan nyata untuk laptop 8 GB — tetapi skor MMLU-nya (63–76%) masih kalah jauh dari kelas MoE. Sementara itu, **Qwen 3 dengan 22B aktif menawarkan MMLU 86,8% hanya dengan 16 GB RAM Q4** — inilah pemenang rasio performa-per-hardware tahun ini. Untuk konteks 1M, hanya model CSA/HCA dan model proprietary yang layak.
+Bacaan penting dari tabel ini: tiga model dengan kebutuhan RAM paling kecil (Llama-3.2 3B, Gemma 4 E4B, Ministral 3) menawarkan pilihan nyata untuk laptop 8 GB, tetapi skor MMLU-nya (63–76%) masih kalah jauh dari kelas MoE. Sementara itu, **Qwen 3 dengan 22B aktif menawarkan MMLU 86,8% hanya dengan 16 GB RAM Q4** — inilah pemenang rasio performa-per-hardware tahun ini. Untuk konteks 1M, hanya model CSA/HCA dan model proprietary yang layak.
 
 Grafik berikut mengurutkan model dari MMLU tertinggi ke terendah, dengan GSM8K sebagai pendamping untuk melihat kekuatan penalaran matematis:
 
@@ -217,10 +217,10 @@ Peta ini menegaskan pesan utama bab: hampir seluruh jajaran model 2026 — kecua
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Menjalankan SLM Terbaru di Laptop
+### Langkah 1: Menjalankan SLM Terbaru di Laptop
 
 Cara tercepat merasakan SLM 2026 adalah Ollama:
 
@@ -244,7 +244,7 @@ ollama run gemma4:4b "Jelaskan gambar ini"  # multimodal
 
 Coba urutan ini: mulai dari yang paling ringan (llama3.2:3b) lalu naik kelas — Anda akan merasakan sendiri perbedaan latensi dan kualitas, dan menemukan titik optimal antara keduanya untuk mesin Anda.
 
-### Tutorial B: Benchmark SLM 2026
+### Langkah 2: Benchmark SLM 2026
 
 Jangan percaya klaim vendor — ukur sendiri:
 
@@ -277,7 +277,7 @@ for name, model in slms.items():
 
 Tiga tugas ini mewakili tiga kemampuan yang diuji pasar: matematika, *coding*, dan pengetahuan umum. Catat waktu dan kualitas jawaban di masing-masing model — perbandingan inilah yang seharusnya menjadi dasar keputusan Anda, bukan sekadar angka MMLU.
 
-### Tutorial C: Prediksi Kebutuhan Hardware
+### Langkah 3: Prediksi Kebutuhan Hardware
 
 Sebelum membeli hardware, hitung dulu kebutuhan memori:
 

@@ -110,7 +110,7 @@ Ketika udara saja tidak sanggup, air adalah jawabannya. Dua jalur tersedia: **AI
 
 Satu solusi yang sering diremehkan: **undervolt** melalui *power limit*. Dengan menurunkan batas daya dari, misalnya, 350W ke 220W, suhu turun **8–12°C** sementara penurunan performa hanya sekitar 5% — karena GPU modern sudah bekerja mendekati *sweet spot* efisiensinya, dan panas yang berkurang membuat clock justru lebih stabil. Ini adalah teknik favorit bagi pengguna rumahan: gratis, mudah, dan langsung terasa dampaknya.
 
-Yang paling penting untuk diingat: solusi-solusi ini **tidak saling eksklusif** — mereka justru bekerja paling baik secara berurutan. Hasil studi kasus di Seksi 7 menunjukkan pola khas: repaste menurunkan suhu 7°C, *undervolt* menurunkan 3°C lagi, dan fan intake menurunkan 5°C — total 15°C dari tiga langkah yang masing-masing kecil. Efeknya bersifat *additive* karena masing-masing menyerang sumber panas yang berbeda: paste mengembalikan transfer panas chip → heatsink, *undervolt* mengurangi total energi yang harus dibuang, dan airflow mempercepat pembuangan panas dari heatsink → ruangan. Karena itu, mulailah dari yang paling murah dan ukur dampaknya dengan skrip monitoring (Tutorial 1) sebelum pindah ke langkah berikutnya — Anda mungkin terkejut menemukan bahwa repaste + *undervolt* saja sudah cukup, tanpa perlu menyentuh *watercooling* sama sekali.
+Yang paling penting untuk diingat: solusi-solusi ini **tidak saling eksklusif** — mereka justru bekerja paling baik secara berurutan. Hasil studi kasus di Seksi 7 menunjukkan pola khas: repaste menurunkan suhu 7°C, *undervolt* menurunkan 3°C lagi, dan fan intake menurunkan 5°C — total 15°C dari tiga langkah yang masing-masing kecil. Efeknya bersifat *additive* karena masing-masing menyerang sumber panas yang berbeda: paste mengembalikan transfer panas chip → heatsink, *undervolt* mengurangi total energi yang harus dibuang, dan airflow mempercepat pembuangan panas dari heatsink → ruangan. Karena itu, mulailah dari yang paling murah dan ukur dampaknya dengan skrip monitoring (Langkah 1) sebelum pindah ke langkah berikutnya — Anda mungkin terkejut menemukan bahwa repaste + *undervolt* saja sudah cukup, tanpa perlu menyentuh *watercooling* sama sekali.
 
 ### Tabel 2: Solusi Pendinginan — Biaya vs Efektivitas
 
@@ -190,7 +190,7 @@ Ringkasnya, setiap sesi monitoring yang baik menjawab lima pertanyaan berikut:
 4. Apakah suhu VRAM *hotspot* melewati batas 95°C (untuk RTX 40-series) atau 105°C (RTX 30-series)?
 5. Apakah alasan throttle yang tercatat adalah *Thermal*, *Power Cap*, atau keduanya?
 
-Lima pertanyaan ini bisa dijawab dalam 10 menit dengan `thermal_check.sh` pada Tutorial 1 — dan jawabannya langsung menunjuk ke solusi yang tepat di Tabel 2.
+Lima pertanyaan ini bisa dijawab dalam 10 menit dengan `thermal_check.sh` pada Langkah 1 — dan jawabannya langsung menunjuk ke solusi yang tepat di Tabel 2.
 
 ### Tabel 3: Suhu Threshold GPU NVIDIA
 
@@ -227,7 +227,7 @@ Menutup bagian teori, berikut peta jalan yang disarankan berdasarkan profil peng
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial 1: Monitoring dan Deteksi Thermal Throttle
+### Langkah 1: Monitoring dan Deteksi Thermal Throttle
 
 Langkah pertama adalah membangun mata-mata yang tidak pernah tidur: skrip sederhana yang mencatat suhu, clock, daya, fan, dan status throttle setiap 2 detik.
 
@@ -254,7 +254,7 @@ done
 
 Jalankan skrip ini sambil menjalankan inference Llama 3.1 (8B) Q4_K_M dengan konteks panjang di RTX 3090. Amati pola: pada menit-menit pertama clock bertahan di zona boost, lalu perlahan-lahan menurun saat suhu merangkak melewati 80°C — dan kolom *Throttle* berubah menjadi "Active" dengan alasan "Thermal". Di situlah Anda menangkap pelakunya secara real-time; catat jam kejadiannya, lalu bandingkan dengan log performa untuk mengukur kerugian token/detik yang sebenarnya.
 
-### Tutorial 2: Kustom Fan Curve dengan GreenWithEnvy (Linux)
+### Langkah 2: Kustom Fan Curve dengan GreenWithEnvy (Linux)
 
 Setelah mengetahui GPU Anda panas, langkah berikutnya adalah membuat fan bekerja lebih keras lebih awal. Di Linux, GreenWithEnvy (GWE) memberikan antarmuka grafis untuk mengatur kurva fan NVIDIA.
 
@@ -284,7 +284,7 @@ nvidia-settings -a "[fan:0]/GPUTargetFanSpeed=70"
 
 Curve di atas mengikuti prinsip "memanaskan lebih awal": fan mulai bergerak dari 30% di 40°C dan mencapai 100% di 83°C — tepat sebelum ambang throttle NVIDIA. Dengan begitu, GPU "didorong" untuk tetap berada di bawah threshold bahkan saat *power spike* prefill melanda. Perlu diingat, fan control penuh membutuhkan *coolbits* yang memakan risiko kecil: pastikan fan speed tidak di-set terlalu rendah saat idle, atau kartu bisa menumpuk panas tanpa perlindungan otomatis.
 
-### Tutorial 3: Undervolt + Benchmark untuk Stabilitas
+### Langkah 3: Undervolt + Benchmark untuk Stabilitas
 
 Terakhir, temukan *sweet spot* daya GPU Anda dengan pengujian sistematis: turunkan power limit bertahap sambil mengukur performa dan suhu.
 
@@ -321,7 +321,7 @@ Hasil tipikal pada RTX 3090: pada 350W Anda mungkin melihat 85 t/s di 82°C; pad
 
 **Skenario.** Seorang peneliti membeli RTX 3090 bekas untuk menjalankan DeepSeek-R1 dengan konteks 128K. Pada hari-hari pertama semuanya berjalan mulus — 85 token/detik. Namun setiap kali sesi *deep research* berjalan, sekitar 10 menit kemudian kecepatan menurun drastis dari 85 menjadi **45 token/detik**, dan yang lebih buruk, penurunan itu terjadi di tengah pekerjaan yang paling penting: saat model sedang menggabungkan seluruh 128K konteks untuk menjawab.
 
-**Diagnosis.** Menjalankan skrip monitoring dari Tutorial 1 mengungkap segalanya: setelah 10 menit, suhu GPU mencapai **86°C**, clock jatuh ke **1100 MHz** — jauh di bawah boost 1860 MHz — dan kolom throttle menyala "Active (Thermal)". Kartu sedang dalam *throttle* parah, sesuai pola pada Tabel 1: kehilangan 47% performa.
+**Diagnosis.** Menjalankan skrip monitoring dari Langkah 1 mengungkap segalanya: setelah 10 menit, suhu GPU mencapai **86°C**, clock jatuh ke **1100 MHz** — jauh di bawah boost 1860 MHz — dan kolom throttle menyala "Active (Thermal)". Kartu sedang dalam *throttle* parah, sesuai pola pada Tabel 1: kehilangan 47% performa.
 
 **Penyebab.** Tiga tersangka terdeteksi. Pertama, RTX 3090 ini adalah kartu *used* yang *thermal paste*-nya sudah kering sejak pabrik bertahun-tahun lalu. Kedua, *case*-nya sempit dengan ruang mati di bawah GPU — tepat di mana intake udara seharusnya masuk. Ketiga, tidak ada yang pernah menyentuh *fan curve*; fan masih mengikuti profil kesopanan bawaan pabrik.
 

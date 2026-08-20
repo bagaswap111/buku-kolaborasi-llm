@@ -68,19 +68,19 @@ Tier menengah untuk tim **12-16 pengguna** memasang **2× RTX 4090** di platform
 
 Tier tertinggi memasang **2× RTX 5090** di platform Threadripper Pro dengan 256 GB ECC RAM. Kartu generasi terbaru membuka 64 GB VRAM — *headroom* untuk DeepSeek V4 Flash Q4 melayani ~15 pengguna bersamaan, atau model 70B dalam Q8. Ilusinya sederhana: ini bukan membeli GPU tambahan, melainkan membeli **waktu tenang selama 3-5 tahun** — tidak perlu upgrade di tengah jalan ketika tim dan model tumbuh. Perhatikan bahwa label tier ("~Rp 120jt") sedikit berbeda dari jumlah rincian komponen di Tabel 1 (~Rp 160jt) — wajar, karena harga GPU generasi baru bergejolak; jadikan rincian komponen sebagai pegangan anggaran yang lebih jujur.
 
-### Tabel 4: Perbandingan Model Berdasarkan Budget VRAM
+### Tabel 2: Perbandingan Model Berdasarkan Budget VRAM
 
 Terakhir, peta kualitas yang bisa Anda beli di setiap rentang VRAM — untuk memastikan tier yang dipilih benar-benar menghidupkan model yang dibutuhkan:
 
 | Budget VRAM | GPU | Model Maksimal | Concurrency | Kualitas |
 |:---|:---|:---|:---:|:---:|
-| **24 GB** | 1x RTX 4090 | Llama-3.1-8B Q8 / Qwen-3-32B Q4 / Ministral 3 14B Q8 | ~5 user | Baik |
-| **48 GB** | 2x RTX 3090+NVLink | Llama-3.1-70B Q4 / Qwen-3-32B Q8 / Qwen3.6-27B Q8 | ~10 user | Sangat Baik |
-| **48 GB** | 2x RTX 4090 PCIe | Llama-3.1-70B Q4 / DeepSeek-Coder-67B Q4 / Mistral Large 3 Q3 | ~8 user | Sangat Baik |
-| **64 GB** | 2x RTX 5090 | Llama-3.1-70B Q8 / DeepSeek V4 Flash Q4 / DeepSeek V4 Pro Q4 | ~15 user | Excellent |
+| **24 GB** | 1x RTX 4090 | Llama 3.1 (8B) Q8 / Qwen 3 (32B) Q4 / Ministral 3 (14B) Q8 | ~5 user | Baik |
+| **48 GB** | 2x RTX 3090+NVLink | Llama 3.1 (70B) Q4 / Qwen 3 (32B) Q8 / Qwen 3.6 (27B) Q8 | ~10 user | Sangat Baik |
+| **48 GB** | 2x RTX 4090 PCIe | Llama 3.1 (70B) Q4 / DeepSeek Coder (67B) Q4 / Mistral Large 3 Q3 | ~8 user | Sangat Baik |
+| **64 GB** | 2x RTX 5090 | Llama 3.1 (70B) Q8 / DeepSeek V4 Flash Q4 / DeepSeek V4 Pro Q4 | ~15 user | Excellent |
 | **80 GB** | 1x A100/H100 | DeepSeek V4 Flash Q8 / Mistral Large 3 Q4 / Qwen3.7-Max (API) | ~12 user | Excellent |
 
-Tabel ini mematahkan mitos "semakin mahal semakin baik" dengan dua temuan. **Pertama**, 48 GB sudah cukup untuk Llama-3.1-70B Q4 — tier Budget yang memasang 2× RTX 3090 (48 GB, 10 user) bisa melayani lebih banyak pengguna daripada 2× RTX 4090 (48 GB, 8 user) pada model yang sama, karena *NVLink bridge* mempercepat koordinasi antar kartu; harga kartu *used* pun jauh lebih rendah. **Kedua**, baris 80 GB (A100/H100) yang harganya berlipat kali lipat tidak menambah *concurrency* dibanding 64 GB — kelipatan investasi hanya membeli kualitas presisi (Q8/Q4), bukan jumlah pengguna.
+Tabel ini mematahkan mitos "semakin mahal semakin baik" dengan dua temuan. **Pertama**, 48 GB sudah cukup untuk Llama 3.1 (70B) Q4 — tier Budget yang memasang 2× RTX 3090 (48 GB, 10 user) bisa melayani lebih banyak pengguna daripada 2× RTX 4090 (48 GB, 8 user) pada model yang sama, karena *NVLink bridge* mempercepat koordinasi antar kartu; harga kartu *used* pun jauh lebih rendah. **Kedua**, baris 80 GB (A100/H100) yang harganya berlipat kali lipat tidak menambah *concurrency* dibanding 64 GB — kelipatan investasi hanya membeli kualitas presisi (Q8/Q4), bukan jumlah pengguna.
 
 ---
 
@@ -140,7 +140,7 @@ Untuk membandingkan secara adil, pertama-tama hitung tagihan cloud yang sedang (
 
 ### Saat Garis-Garis Bersilangan
 
-Melawan angka itu, self-hosted menawarkan **Rp 60-120 juta sekali** ditambah **Rp 1-3 juta/bulan** untuk listrik dan maintenance (rincian di Tabel 2). Kurva keduanya saling berpotongan: cloud mulai lebih murah (nol modal), tetapi garisnya naik tak pernah berhenti; self-hosted menanjak di awal, lalu mendatar. Titik persilangan itulah **break-even point** — sekitar **6-12 bulan** untuk tier Budget, bergantung jumlah pengguna dan intensitas pemakaian. Pada akhir tahun ketiga (Tabel 3), selisihnya bukan kecil-kecilan: self-hosted Budget menghemat **±Rp 153 juta** dibanding cloud.
+Melawan angka itu, self-hosted menawarkan **Rp 60-120 juta sekali** ditambah **Rp 1-3 juta/bulan** untuk listrik dan maintenance (rincian di Tabel 4). Kurva keduanya saling berpotongan: cloud mulai lebih murah (nol modal), tetapi garisnya naik tak pernah berhenti; self-hosted menanjak di awal, lalu mendatar. Titik persilangan itulah **break-even point** — sekitar **6-12 bulan** untuk tier Budget, bergantung jumlah pengguna dan intensitas pemakaian. Pada akhir tahun ketiga (Tabel 3), selisihnya bukan kecil-kecilan: self-hosted Budget menghemat **±Rp 153 juta** dibanding cloud.
 
 ### Tabel 3: Perbandingan Self-Hosted vs Cloud (TCO 3 Tahun)
 
@@ -173,7 +173,7 @@ Anggaran yang matang selalu menganggarkan hal-hal yang tidak menyenangkan. Lima 
 
 Praktik keuangan yang bijak: sisihkan **buffer biaya tak terduga 5-10%** dari total Capex — untuk GPU pengganti saat kartu *used* mati, kabel power rusak, atau upgrade PSU mendadak. Tabel 1 memasukkannya sebagai baris tersendiri, dan ini bukan pemborosan: ini premi asuransi untuk proyek yang menggerakkan produktivitas seluruh perusahaan.
 
-### Tabel 2: Biaya Operasional Bulanan
+### Tabel 4: Biaya Operasional Bulanan
 
 Setelah server berdiri, inilah tagihan bulanan yang akan menemani Anda terus-menerus:
 
@@ -318,7 +318,7 @@ echo "Listrik GPU bulan ini: Rp $COST"
 echo "User aktif: $USERS"
 ```
 
-Skrip ini mengubah klaim "listrik ±Rp 2 juta/bulan" menjadi fakta terukur: daya aktual GPU dibaca dari `nvidia-smi`, dikalikan 24 jam 30 hari dengan tarif Rp 1.500/kWh, lalu dicatat berbulan-bulan. Setelah tiga bulan, Anda memiliki *trend line* biaya nyata yang bisa dibandingkan dengan estimasi Opex pada Tabel 2 — sekaligus data untuk menanggapi pertanyaan "server-nya sebenarnya mahal atau tidak?" dengan jawaban, bukan perasaan.
+Skrip ini mengubah klaim "listrik ±Rp 2 juta/bulan" menjadi fakta terukur: daya aktual GPU dibaca dari `nvidia-smi`, dikalikan 24 jam 30 hari dengan tarif Rp 1.500/kWh, lalu dicatat berbulan-bulan. Setelah tiga bulan, Anda memiliki *trend line* biaya nyata yang bisa dibandingkan dengan estimasi Opex pada Tabel 4 — sekaligus data untuk menanggapi pertanyaan "server-nya sebenarnya mahal atau tidak?" dengan jawaban, bukan perasaan.
 
 ---
 
@@ -327,7 +327,7 @@ Skrip ini mengubah klaim "listrik ±Rp 2 juta/bulan" menjadi fakta terukur: daya
 
 ### Perusahaan A, B, C: Tiga Tier, Tiga Waktu Balik Modal
 
-**Perusahaan A (Budget, 10 developer)** memilih **2× RTX 3090 used + Ministral 3 14B** (Apache 2.0) dengan Capex ±Rp 55jt dan Opex Rp 4,6jt/bulan. Langganan cloud 10 orang (±Rp 7jt/bulan) membuat *break-even*-nya **4,5 bulan** — hampir secepat gaji satu bulan. **Perusahaan B (Medium, 15 developer)** memasang **2× RTX 4090 + DeepSeek V4 Flash** (MIT, konteks 1 juta token) dengan Capex ±Rp 95jt dan Opex Rp 6,8jt/bulan; *break-even* **8,5 bulan** — setahun pertama sudah balik modal. **Perusahaan C (Optimal, 20 developer)** membeli **2× RTX 5090 + Mistral Large 3** (Apache 2.0, MoE 675B) dengan Capex ±Rp 150jt; *break-even*-nya **13 bulan**, paling lama karena modal terbesar.
+**Perusahaan A (Budget, 10 developer)** memilih **2× RTX 3090 used + Ministral 3 (14B)** (Apache 2.0) dengan Capex ±Rp 55jt dan Opex Rp 4,6jt/bulan. Langganan cloud 10 orang (±Rp 7jt/bulan) membuat *break-even*-nya **4,5 bulan** — hampir secepat gaji satu bulan. **Perusahaan B (Medium, 15 developer)** memasang **2× RTX 4090 + DeepSeek V4 Flash** (MIT, konteks 1 juta token) dengan Capex ±Rp 95jt dan Opex Rp 6,8jt/bulan; *break-even* **8,5 bulan** — setahun pertama sudah balik modal. **Perusahaan C (Optimal, 20 developer)** membeli **2× RTX 5090 + Mistral Large 3** (Apache 2.0, MoE 675B) dengan Capex ±Rp 150jt; *break-even*-nya **13 bulan**, paling lama karena modal terbesar.
 
 Pelajaran yang tidak terlihat di kalkulator: Perusahaan C membeli sesuatu yang tidak bisa dibeli cloud dengan harga sebanding — kemampuan menjalankan **model MoE 675B di Q3 untuk 15+ pengguna bersamaan**. Cloud dengan harga ±Rp 14jt/bulan tidak akan pernah menyediakan kualitas dan *concurrency* itu. Rekomendasi jujurnya: tim di bawah 12 orang paling hemat di Budget; tim di atas 16 orang, investasi Medium/Optimal terbayar dalam waktu kurang dari satu tahun — dengan syarat pemakaian tim benar-benar intensif dan tidak berhenti di bulan ketiga.
 
@@ -358,7 +358,7 @@ Rangkuman filosofis dari kedua studi kasus: dalam rentang 2 tahun, biaya cloud d
 - Kalkulator interaktif self-hosted vs API; metodologi kalkulasi dijadikan referensi.
 
 [6] DevTK. (2026). *Self-Host LLM vs API: Real Cost Breakdown 2026*. [https://devtk.ai/en/blog/self-hosting-llm-vs-api-cost-2026](https://devtk.ai/en/blog/self-hosting-llm-vs-api-cost-2026)
-- *Breakdown* biaya tersembunyi self-hosting — listrik, maintenance, tenaga kerja; data dipakai untuk Opex Tabel 2.
+- *Breakdown* biaya tersembunyi self-hosting — listrik, maintenance, tenaga kerja; data dipakai untuk Opex Tabel 4.
 
 [7] Practical Web Tools. (2026). *Local LLMs vs API Costs: A Real-World Comparison for Small Teams in 2026*. [https://practicalwebtools.com/blog/local-llm-vs-api-costs-small-teams-2026](https://practicalwebtools.com/blog/local-llm-vs-api-costs-small-teams-2026)
 - Studi kasus tim kecil yang beralih dari cloud ke self-hosted; data *real-world* untuk tim 5-20 orang.

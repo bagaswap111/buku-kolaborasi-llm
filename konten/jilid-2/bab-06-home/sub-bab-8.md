@@ -91,7 +91,7 @@ Tarif listrik rumah tangga Indonesia berada di kisaran **Rp 1.444 - Rp 1.700 per
 
 ### Effisiensi per Build
 
-Perbandingan paling jujur ada di Tabel 2, tetapi satu angka layak disebut di sini: **Mac Mini M4 Pro** dengan idle 7W + load 65W menghabiskan sekitar Rp 25rb/bulan — tagihan listrik yang lebih kecil dari satu kali makan keluarga. Sebaliknya **2× RTX 4090** untuk DeepSeek V4 Flash menghabiskan ~Rp 252rb/bulan: lebih dari setahun cloud termurah? Tidak — tetapi angka ini harus masuk kesadaran Anda sebelum membeli hardware kedua.
+Perbandingan paling jujur ada di Tabel 2, tetapi satu angka layak disebut di sini: **Mac Mini M4 Pro** dengan idle 7W + load 65W menghabiskan sekitar Rp 25rb/bulan — tagihan listrik yang lebih kecil dari satu kali makan keluarga. Sebaliknya **2× RTX 4090** untuk DeepSeek V4 Flash menghabiskan ~Rp 252rb/bulan: lebih dari setahun cloud termurah? Tidak, tetapi angka ini harus masuk kesadaran Anda sebelum membeli hardware kedua.
 
 ### Tabel 2: Perbandingan Biaya Listrik per Build
 
@@ -208,14 +208,14 @@ Analisis: klasifikasi prioritas di kolom terakhir mencerminkan urutan rasional b
 
 Angka tidak pernah bercerita utuh, dan ada empat nilai yang tidak muncul di kalkulator TCO. **Privasi**: data keluarga — chat, dokumen, audio — tidak dijual atau dipelajari pihak ketiga; survei *privacy-preserving inference* menyoroti bahwa biaya privasi adalah nyata di kedua arah: cloud murah di depan tetapi mahal dalam risiko [4]. **Ketersediaan**: saat internet mati, server tetang melakukan semua yang bisa ia lakukan — fitur yang tidak dimiliki langganan cloud mana pun. **Edukasi**: anak-anak belajar *prompt engineering*, literasi data, dan cara kerja AI di rumah sendiri — nilai pengganti kursus yang bisa puluhan juta rupiah. **Kustomisasi**: model bisa diganti sesuai kebutuhan minggu ini, tanpa negosiasi kontrak.
 
-Apakah nilai-nilai ini pantas dihitung dalam rupiah? Keluarga yang menjawab "ya" cenderung memilih lokal lebih cepat; keluarga yang "tidak" bisa berkonsentrasi penuh pada Tabel 1. Keduanya sah — tetapi kini Anda menghitung dengan dua jenis mata uang sekaligus.
+Apakah nilai-nilai ini pantas dihitung dalam rupiah? Keluarga yang menjawab "ya" cenderung memilih lokal lebih cepat; keluarga yang "tidak" bisa berkonsentrasi penuh pada Tabel 1. Keduanya sah, tetapi kini Anda menghitung dengan dua jenis mata uang sekaligus.
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Kalkulator TCO Lokal vs Cloud
+### Langkah 1: Kalkulator TCO Lokal vs Cloud
 
 Script interaktif yang menghitung sendiri perbandingan untuk angka keluarga Anda — bukan angka kami.
 
@@ -283,9 +283,9 @@ if __name__ == "__main__":
     hitung_tco()
 ```
 
-Coba tiga skenario: (1) build hemat — `30000000`, `80`, `420`, `16`, `1500`; (2) build performa — `45000000`, `85`, `520`, `16`, `1500`; (3) NUC edge — `12000000`, `15`, `35`, `24`, `1500`. Dua hal yang perlu disadari saat membaca output: *pertama*, model pembebanan 70% idle / 30% load adalah asumsi — ganti dengan angka aktual dari *watt meter* (Tutorial B) setelah sebulan berjalan; *kedua*, script ini belum memasukkan *resale value* — kurangkan 30% CAPEX dari kolom lokal untuk menyamai metodologi Tabel 1. Versi *break-even* di sini juga tidak memasukkan *maintenance* Rp 500rb/tahun; jika ingin presisi penuh, tambahkan ke `listrik_per_tahun`.
+Coba tiga skenario: (1) build hemat — `30000000`, `80`, `420`, `16`, `1500`; (2) build performa — `45000000`, `85`, `520`, `16`, `1500`; (3) NUC edge — `12000000`, `15`, `35`, `24`, `1500`. Dua hal yang perlu disadari saat membaca output: *pertama*, model pembebanan 70% idle / 30% load adalah asumsi — ganti dengan angka aktual dari *watt meter* (Langkah 2) setelah sebulan berjalan; *kedua*, script ini belum memasukkan *resale value* — kurangkan 30% CAPEX dari kolom lokal untuk menyamai metodologi Tabel 1. Versi *break-even* di sini juga tidak memasukkan *maintenance* Rp 500rb/tahun; jika ingin presisi penuh, tambahkan ke `listrik_per_tahun`.
 
-### Tutorial B: Monitoring Biaya Listrik Real-Time
+### Langkah 2: Monitoring Biaya Listrik Real-Time
 
 Script yang menampilkan biaya listrik GPU secara langsung dari `nvidia-smi` — data nyata, bukan asumsi.
 
@@ -320,9 +320,9 @@ while true; do
 done
 ```
 
-Nilai script ini ada di *realisme*: `nvidia-smi` membaca konsumsi GPU yang sebenarnya, sehingga angka "Rp per hari" adalah fakta meteran, bukan estimasi. Dua modifikasi yang disarankan untuk keluarga: tambahkan perintah `nvidia-smi --query-gpu=temperature.gpu` agar suhu ikut tampil (fan case dari Tabel 3 dibeli berdasarkan data ini), dan log hasilnya ke file (`>> /var/log/power.txt`) agar terbentuk dataset mingguan untuk memvalidasi asumsi 70/30 pada Tutorial A. Catatan: script ini hanya menghitung **GPU**, bukan seluruh server — untuk angka total, gunakan *smart plug* di Tutorial C.
+Nilai script ini ada di *realisme*: `nvidia-smi` membaca konsumsi GPU yang sebenarnya, sehingga angka "Rp per hari" adalah fakta meteran, bukan estimasi. Dua modifikasi yang disarankan untuk keluarga: tambahkan perintah `nvidia-smi --query-gpu=temperature.gpu` agar suhu ikut tampil (fan case dari Tabel 3 dibeli berdasarkan data ini), dan log hasilnya ke file (`>> /var/log/power.txt`) agar terbentuk dataset mingguan untuk memvalidasi asumsi 70/30 pada Langkah 1. Catatan: script ini hanya menghitung **GPU**, bukan seluruh server — untuk angka total, gunakan *smart plug* di Langkah 3.
 
-### Tutorial C: Setup Smart Plug untuk Monitoring Daya
+### Langkah 3: Setup Smart Plug untuk Monitoring Daya
 
 Memasang *watt meter* digital yang mengubah data konsumsi menjadi biaya rupiah di dashboard Home Assistant.
 
@@ -345,7 +345,7 @@ sensor:
           {{ (kwh * 1500) | round(0) | int }}
 ```
 
-Keunggulan *template sensor* di atas dibanding Tutorial B: ia mengukur **seluruh server** (bukan GPU saja) dan mengakumulasikan energi sepanjang bulan, sehingga angka "Biaya Listrik Server (Bulan Ini)" di dashboard adalah tagihan rupiah sebenarnya. Nilai `1500` di baris terakhir harus disesuaikan dengan golongan tarif PLN Anda (Rp 1.444 - Rp 1.700). Kombinasi ketiga tutorial inilah yang membangun *accountability* finansial: Tutorial A menghitung rencana, Tutorial B mengukur GPU, Tutorial C mengukur kenyataan. Sebulan setelah server berdiri, bandingkan ketiganya — perbedaan di antara mereka adalah pembelajaran pertama dalam *budgeting* AI keluarga.
+Keunggulan *template sensor* di atas dibanding Langkah 2: ia mengukur **seluruh server** (bukan GPU saja) dan mengakumulasikan energi sepanjang bulan, sehingga angka "Biaya Listrik Server (Bulan Ini)" di dashboard adalah tagihan rupiah sebenarnya. Nilai `1500` di baris terakhir harus disesuaikan dengan golongan tarif PLN Anda (Rp 1.444 - Rp 1.700). Kombinasi ketiga tutorial inilah yang membangun *accountability* finansial: Langkah 1 menghitung rencana, Langkah 2 mengukur GPU, Langkah 3 mengukur kenyataan. Sebulan setelah server berdiri, bandingkan ketiganya — perbedaan di antara mereka adalah pembelajaran pertama dalam *budgeting* AI keluarga.
 
 ---
 

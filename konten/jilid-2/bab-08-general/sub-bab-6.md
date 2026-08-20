@@ -1,6 +1,6 @@
 # Bab 8.6: Audit & Logging
 
-> Setiap percakapan karyawan dengan AI meninggalkan jejak — pertanyaan yang diajukan, model yang menjawab, berapa lama menunggu, dan berapa rupiah yang terpakai. Jejak ini bisa menjadi bukti kepatuhan yang membuat auditor tersenyum, atau menjadi lubang hitam yang membuat sertifikasi ditunda sepanjang tahun. Dalam dunia yang diatur UU PDP dan ISO 27001, "kami tidak mencatat apa-apa" bukan lagi alasan yang bisa diterima — melainkan kalimat paling berbahaya yang bisa diucapkan seorang manajer IT.
+> Setiap percakapan karyawan dengan AI meninggalkan jejak — pertanyaan yang diajukan, model yang menjawab, berapa lama menunggu, dan berapa rupiah yang terpakai. Jejak ini bisa menjadi bukti kepatuhan yang membuat auditor tersenyum, atau menjadi lubang hitam yang membuat sertifikasi ditunda sepanjang tahun. Dalam dunia yang diatur UU PDP dan ISO 27001, "kami tidak mencatat apa-apa" bukan lagi alasan yang bisa diterima, melainkan kalimat paling berbahaya yang bisa diucapkan seorang manajer IT.
 
 ---
 
@@ -31,7 +31,7 @@ Ketiga tekanan ini tidak bisa dipenuhi oleh *log* aplikasi biasa yang berisi der
 
 Skala 21-50 user sering menggoda kantor untuk beralasan: "log kami kecil, cukup pakai file teks." Anggapan itu keliru ganda. *Log* dalam jumlah kecil sekalipun bisa menyimpan data pribadi karyawan dan pelanggan — dan **regulasi tidak membedakan ukuran kantor**: UU PDP berlaku untuk siapa pun yang memproses data pribadi di Indonesia. Di sisi lain, *audit log* yang berantakan justru lebih berbahaya daripada tidak ada *log* sama sekali, karena auditor akan membacanya dan menemukan bahwa metadata hilang, *timestamp* acak, atau *response* tidak tersimpan. Untungnya, skala kecil juga berarti solusi bisa sederhana: satu PostgreSQL 500 GB, satu *aggregator* Fluentd, dan satu SIEM bisa melayani 50 user selama bertahun-tahun.
 
-### Diagram 1: Pipeline Audit Logging
+### Gambar 1: Pipeline Audit Logging
 
 Berikut perjalanan satu permintaan dari pengguna hingga tiba di empat tujuan penyimpanan.
 
@@ -98,9 +98,9 @@ Perhatikan tiga kolom yang paling sering dilupakan implementor: **prompt_hash** 
 ## 4. Arsitektur Logging: Dari Permintaan hingga Arsip
 
 
-### Litelllm Logging ke PostgreSQL
+### LiteLLM Logging ke PostgreSQL
 
-Titik awal pipeline adalah **LiteLLM** itu sendiri, yang punya *logging* bawaan: setiap request/response dapat langsung ditulis ke PostgreSQL bersama metadata (user, model, cost). Ini *jalur utama* untuk kantor di bawah 50 user — sederhana, sudah teruji, dan cukup untuk kebutuhan harian. Di atasnya, pengaturan `turn_off_message_logging: false` memastikan isi pesan tercatat, bukan hanya jumlah token (lihat Tutorial A di Seksi 8).
+Titik awal pipeline adalah **LiteLLM** itu sendiri, yang punya *logging* bawaan: setiap request/response dapat langsung ditulis ke PostgreSQL bersama metadata (user, model, cost). Ini *jalur utama* untuk kantor di bawah 50 user — sederhana, sudah teruji, dan cukup untuk kebutuhan harian. Di atasnya, pengaturan `turn_off_message_logging: false` memastikan isi pesan tercatat, bukan hanya jumlah token (lihat Langkah 1 di Seksi 8).
 
 ### Fluentd sebagai Aggregator
 
@@ -122,7 +122,7 @@ Lima strategi berikut sering dicampur — pahami kekuatan masing-masing sebelum 
 | **Wazuh SIEM** | Compliance ready, alerting | Overhead agent | Butuh integrasi security |
 | **TimescaleDB** | Append-only, time-series | Learning curve | Tamper-evident requirement |
 
-Pola yang terbaca: *LiteLLM DB Logging* adalah *default* yang baik untuk kantor di bawah 50 user — tetapi *PostgreSQL bisa penuh* jika *log* dibiarkan menumpuk tanpa retensi, karena *log* request/response tumbuh jauh lebih cepat daripada data bisnis biasa. *Fluentd + MinIO* mengangkat batas itu dengan menyimpan ke *object storage* murah yang *S3-compatible* — diperlukan begitu volume melewati 10 GB/hari, mudah dicapai oleh 40 user yang rajin memakai AI. *ELK* dan *Wazuh* bukan pengganti *storage*, melainkan lapisan analisis: ELK untuk pencarian *full-text* yang cepat, Wazuh untuk *alerting* berbasis aturan keamanan. Sedangkan *TimescaleDB* hanya dipilih jika *tamper-evident* menjadi kebutuhan formal — misalnya menjelang *audit* ISO 27001 — karena *append-only* mempersulit (dan merekam) setiap perubahan.
+Pola yang terbaca: *LiteLLM DB Logging* adalah *default* yang baik untuk kantor di bawah 50 user, tetapi *PostgreSQL bisa penuh* jika *log* dibiarkan menumpuk tanpa retensi, karena *log* request/response tumbuh jauh lebih cepat daripada data bisnis biasa. *Fluentd + MinIO* mengangkat batas itu dengan menyimpan ke *object storage* murah yang *S3-compatible* — diperlukan begitu volume melewati 10 GB/hari, mudah dicapai oleh 40 user yang rajin memakai AI. *ELK* dan *Wazuh* bukan pengganti *storage*, melainkan lapisan analisis: ELK untuk pencarian *full-text* yang cepat, Wazuh untuk *alerting* berbasis aturan keamanan. Sedangkan *TimescaleDB* hanya dipilih jika *tamper-evident* menjadi kebutuhan formal — misalnya menjelang *audit* ISO 27001 — karena *append-only* mempersulit (dan merekam) setiap perubahan.
 
 
 ---
@@ -136,7 +136,7 @@ Masalah klasik *audit log* adalah pemiliknya sendiri: admin database bisa saja m
 
 ### Verifikasi Berkala dan Nilainya di Mata Auditor
 
-*Signature* hanya berarti jika diverifikasi. Kantor yang sehat menjalankan **verifikasi berkala**: *script* membuka file log, menghitung ulang HMAC setiap entri, dan melaporkan entri yang tidak cocok — pada Tutorial C (Seksi 8) Anda akan mendapatkan *script* siap pakai untuk tugas ini. Rutinitas verifikasi ini menghasilkan artefak yang sangat disukai auditor: bukti bahwa organisasi memiliki **proses penyelidikan integritas log**, bukan sekadar klaim. Ketika berhadapan dengan audit ISO 27001, dua pertanyaan yang hampir pasti muncul adalah "bagaimana Anda mencegah perubahan log?" dan "kapan terakhir kali Anda memverifikasi?" — jawaban untuk keduanya lahir dari seksi ini.
+*Signature* hanya berarti jika diverifikasi. Kantor yang sehat menjalankan **verifikasi berkala**: *script* membuka file log, menghitung ulang HMAC setiap entri, dan melaporkan entri yang tidak cocok — pada Langkah 3 (Seksi 8) Anda akan mendapatkan *script* siap pakai untuk tugas ini. Rutinitas verifikasi ini menghasilkan artefak yang sangat disukai auditor: bukti bahwa organisasi memiliki **proses penyelidikan integritas log**, bukan sekadar klaim. Ketika berhadapan dengan audit ISO 27001, dua pertanyaan yang hampir pasti muncul adalah "bagaimana Anda mencegah perubahan log?" dan "kapan terakhir kali Anda memverifikasi?" — jawaban untuk keduanya lahir dari seksi ini.
 
 ---
 
@@ -145,7 +145,7 @@ Masalah klasik *audit log* adalah pemiliknya sendiri: admin database bisa saja m
 
 ### Empat Tier Penyimpanan
 
-*Audit log* tidak bisa disimpan selamanya di satu tempat: *storage* mahal, dan hukum menentukan kapan sesuatu harus dihapus. Solusinya adalah **retensi berjenjang** empat *tier* (rincian di Tabel 3, Seksi 3): **Hot** (0-30 hari, PostgreSQL, akses < 1 detik), **Warm** (31-90 hari, MinIO, akses < 5 detik dengan kompresi Gzip ~70%), **Cold** (91-365 hari, MinIO/Glacier, akses < 1 menit, enkripsi + KMS), dan **Archive** (1-3 tahun, tape/*cold storage*, akses > 1 jam, kompresi Zstd ~90%). Semakin tua *log*, semakin lambat aksesnya dan semakin terkompresi — mencerminkan kebutuhan nyata: data lama hampir tak pernah dibaca, tetapi terkadang harus muncul sebagai bukti.
+*Audit log* tidak bisa disimpan selamanya di satu tempat: *storage* mahal, dan hukum menentukan kapan sesuatu harus dihapus. Solusinya adalah **retensi berjenjang** empat *tier* (rincian di Tabel 3, Seksi 6): **Hot** (0-30 hari, PostgreSQL, akses < 1 detik), **Warm** (31-90 hari, MinIO, akses < 5 detik dengan kompresi Gzip ~70%), **Cold** (91-365 hari, MinIO/Glacier, akses < 1 menit, enkripsi + KMS), dan **Archive** (1-3 tahun, tape/*cold storage*, akses > 1 jam, kompresi Zstd ~90%). Semakin tua *log*, semakin lambat aksesnya dan semakin terkompresi — mencerminkan kebutuhan nyata: data lama hampir tak pernah dibaca, tetapi terkadang harus muncul sebagai bukti.
 
 ### Delete Otomatis Sesuai Regulasi
 
@@ -190,7 +190,7 @@ Terakhir, **right to erasure**: seorang karyawan bisa meminta log-nya dihapus (h
 
 Beban audit manual bisa dikurangi dengan otomasi dari sisi model. **Claude Fable 5** membawa *safety classifiers* built-in yang secara otomatis **menandai log yang mencurigakan untuk review compliance** — setiap interaksi menghasilkan *audit log* terstruktur, dan pola mencurigakan (misalnya pertanyaan berulang tentang data nasabah dari satu departemen) diklasifikasikan untuk perhatian manusia. Efeknya: *compliance officer* tidak lagi membaca ribuan baris log, melainkan hanya *sample* yang ditandai — kualitas review naik, jam kerja turun. Namun seperti semua otomasi, *classifier* bisa salah arah; keputusan final tetap di tangan manusia, dan *false positive*-nya ikut dievaluasi pada *review* berkala.
 
-### Diagram 2: Alur Compliance Audit
+### Gambar 2: Alur Compliance Audit
 
 Siklus kepatuhan penuh — dari permintaan hingga penghapusan — digambarkan sebagai loop yang ketat:
 
@@ -312,7 +312,7 @@ Dari PostgreSQL, *log* disalin ke *storage* berjenjang dan Elasticsearch oleh Fl
 </match>
 ```
 
-Konfigurasi ini membaca *log* berformat JSON dari port 9880, menambahkan `hostname` dan `environment` (relevan saat *multi-server*), lalu **menyalin** ke dua tujuan: bucket S3 (`llm-audit-logs` di region `ap-southeast-1` — pilih region sesuai lokasi data untuk kepatuhan lokal) dengan *path* berjenis tahun/bulan/hari, dan Elasticsearch dengan *index* harian `litellm-logs-%Y%m%d`. Pola `<match litellm.**>` menggunakan *wildcard* Fluentd untuk mencocokkan semua tag berawalan `litellm` — merefleksikan *fan-out* pada Diagram 1, di mana MinIO/S3 berperan sebagai *warm storage* dan Elasticsearch sebagai motor pencarian ELK.
+Konfigurasi ini membaca *log* berformat JSON dari port 9880, menambahkan `hostname` dan `environment` (relevan saat *multi-server*), lalu **menyalin** ke dua tujuan: bucket S3 (`llm-audit-logs` di region `ap-southeast-1` — pilih region sesuai lokasi data untuk kepatuhan lokal) dengan *path* berjenis tahun/bulan/hari, dan Elasticsearch dengan *index* harian `litellm-logs-%Y%m%d`. Pola `<match litellm.**>` menggunakan *wildcard* Fluentd untuk mencocokkan semua tag berawalan `litellm` — merefleksikan *fan-out* pada Gambar 1, di mana MinIO/S3 berperan sebagai *warm storage* dan Elasticsearch sebagai motor pencarian ELK.
 
 Arahkan LiteLLM ke Fluentd dan uji alur *log*:
 
@@ -401,7 +401,7 @@ Perhatikan detail penting di *code*: `hmac.compare_digest` digunakan alih-alih p
 ### Paper Jurnal/Konferensi
 
 [1] Mökander, J., et al. (2025). *Audit Trails for Accountability in Large Language Models*. arXiv preprint arXiv:2601.20727. DOI: [10.48550/arXiv.2601.20727](https://arxiv.org/abs/2601.20727)
-- Kerangka *audit trail* untuk LLM — *tamper-evident ledger*, *governance records*. Data skema log di Tabel 1 merujuk paper ini.
+- Kerangka *audit trail* untuk LLM — *tamper-evident ledger*, *governance records*. Data skema log di Tabel 1 merujuk paper ini. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [2] Jakka, S. (2025). *Runtime Enforcement for Responsible AI: A Framework for Policy-to-Prompt Compliance in Enterprise LLMs*. arXiv preprint. [https://openreview.net/pdf?id=8TMSomzq6y](https://openreview.net/pdf?id=8TMSomzq6y)
 - Kerangka *Policy-to-Prompt* dengan *audit logging*, *provenance*, *traceability*. Data di Tabel 3 (kebijakan retensi) merujuk rekomendasi paper ini.
@@ -426,4 +426,4 @@ Perhatikan detail penting di *code*: `hmac.compare_digest` digunakan alih-alih p
 [9] Republik Indonesia. *Undang-Undang No. 27 Tahun 2022 tentang Pelindungan Data Pribadi (UU PDP)*. [https://peraturan.go.id/id/uu-no-27-tahun-2022](https://peraturan.go.id/id/uu-no-27-tahun-2022)
 
 [10] Anthropic. (2026). *Claude Fable 5: Built-in Safety Classifiers for Compliance Auditing*. [https://anthropic.com](https://anthropic.com)
-- Model dengan *safety classifiers* yang menghasilkan *audit log* terstruktur untuk setiap interaksi — memudahkan *compliance audit* ISO 27001 dan UU PDP.
+- Model dengan *safety classifiers* yang menghasilkan *audit log* terstruktur untuk setiap interaksi — memudahkan *compliance audit* ISO 27001 dan UU PDP. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.

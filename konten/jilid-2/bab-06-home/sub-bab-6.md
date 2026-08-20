@@ -98,13 +98,13 @@ Diagram ini menunjukkan tiga titik keputusan: input filter yang menyaring sebelu
 
 ### Aturan YAML: Block Topik per Kelompok Usia
 
-Aturan ditulis sederhana, misalnya: blokir topik **kekerasan, seksual, dan judi online** untuk semua kelompok; tambahkan blokir **politik sensitif** untuk anak SD; longgarkan menjadi *filter sedang* untuk anak SMA. Kelebihan NeMo Guardrails dibanding filter sederhana: ia mendukung *flow* berurutan — misalnya, pertama cek kata kunci terlarang, lalu cek *prompt injection*, baru izinkan *request* masuk ke model (lihat Tutorial A dan Tabel 3). Alternatif ringan bila ingin menghindari dependensi tambahan: **llama.cpp** dengan *safety tokenizer* atau filter **regex** sederhana — cocok untuk keluarga yang hanya butuh lapis dasar.
+Aturan ditulis sederhana, misalnya: blokir topik **kekerasan, seksual, dan judi online** untuk semua kelompok; tambahkan blokir **politik sensitif** untuk anak SD; longgarkan menjadi *filter sedang* untuk anak SMA. Kelebihan NeMo Guardrails dibanding filter sederhana: ia mendukung *flow* berurutan — misalnya, pertama cek kata kunci terlarang, lalu cek *prompt injection*, baru izinkan *request* masuk ke model (lihat Langkah 1 dan Tabel 3). Alternatif ringan bila ingin menghindari dependensi tambahan: **llama.cpp** dengan *safety tokenizer* atau filter **regex** sederhana — cocok untuk keluarga yang hanya butuh lapis dasar.
 
 ### Filter Output Juga Menangkap Halusinasi
 
 Guardrail output tidak hanya menyaring konten berbahaya, tetapi juga dapat mengecek **akurasi faktual**. *Self-check facts* membandingkan klaim model dengan pengetahuan umum dan menandai jawaban yang meragukan — relevan untuk melindungi anak dari halusinasi yang menyesatkan, baik soal PR maupun kesehatan. Teknik yang lebih maju, seperti *R²-Guard*, menggunakan *logical reasoning* untuk menilai konsistensi jawaban — lebih *robust* daripada sekadar pencocokan kata kunci [2].
 
-### Tabel 3: Contoh Rules NeMo Guardrails untuk Anak
+### Tabel 1: Contoh Rules NeMo Guardrails untuk Anak
 
 Ini adalah *blueprint* awal konfigurasi guardrails — simpan sebagai `config/guardrails.yaml`:
 
@@ -144,7 +144,7 @@ Analisis: dua blok menunjukkan *dual-mode filtering* NeMo Guardrails. *Flows* be
 
 ### Batas Waktu: 60 Menit per Hari
 
-Durasi pemakaian diatur lewat *script* eksternal — misalnya *cron job* yang menonaktifkan akun anak pada jam tertentu (lihat Tutorial B). Pola khas keluarga Indonesia: aktif 07:00-13:00 di hari sekolah, 09:00-11:00 di akhir pekan, dan mati total setelah 20:00 — waktunya PR dikerjakan dengan pikiran sendiri, bukan dengan AI. Catatan penting: pembatasan waktu ini tidak tersedia bawaan di NeMo Guardrails maupun Open WebUI — keduanya butuh *script* eksternal untuk menegakkannya (lihat Tabel 2).
+Durasi pemakaian diatur lewat *script* eksternal — misalnya *cron job* yang menonaktifkan akun anak pada jam tertentu (lihat Langkah 2). Pola khas keluarga Indonesia: aktif 07:00-13:00 di hari sekolah, 09:00-11:00 di akhir pekan, dan mati total setelah 20:00 — waktunya PR dikerjakan dengan pikiran sendiri, bukan dengan AI. Catatan penting: pembatasan waktu ini tidak tersedia bawaan di NeMo Guardrails maupun Open WebUI — keduanya butuh *script* eksternal untuk menegakkannya (lihat Tabel 2).
 
 ### Tabel 2: Perbandingan Tools Parental Control untuk LLM
 
@@ -170,9 +170,9 @@ Analisis: tidak ada satu pun tool yang lengkap sendiri. NeMo Guardrails unggul d
 
 ### Prinsip: Meningkat Bersama Usia
 
-Filter tidak boleh statis — ia harus mengikuti perkembangan kognitif dan kebutuhan anak. Anak SD belum punya kerangka moral untuk memproses kekerasan dan konten seksual, jadi semua diblokir. Anak SMP mulai berdebat tentang politik, tetapi belum cukup dewasa untuk menyaring informasi sensitif, jadi aturan tambahan melindungi mereka. Anak SMA sudah bisa diajak diskusi — blokir dikurangi menjadi *peringatan* dan *verifikasi*, tetapi yang ilegal tetap diblokir. Matriks lengkapnya ada di Tabel 1.
+Filter tidak boleh statis — ia harus mengikuti perkembangan kognitif dan kebutuhan anak. Anak SD belum punya kerangka moral untuk memproses kekerasan dan konten seksual, jadi semua diblokir. Anak SMP mulai berdebat tentang politik, tetapi belum cukup dewasa untuk menyaring informasi sensitif, jadi aturan tambahan melindungi mereka. Anak SMA sudah bisa diajak diskusi — blokir dikurangi menjadi *peringatan* dan *verifikasi*, tetapi yang ilegal tetap diblokir. Matriks lengkapnya ada di Tabel 3.
 
-### Tabel 1: Level Filtering per Kelompok Usia
+### Tabel 3: Level Filtering per Kelompok Usia
 
 Matriks berikut menjadi acuan utama konfigurasi *guardrails* — satu baris per kategori topik, satu kolom per jenjang pendidikan.
 
@@ -192,7 +192,7 @@ Matriks berikut menjadi acuan utama konfigurasi *guardrails* — satu baris per 
 
 *Gambar 6.6-1 — Batas screen time naik dari 30 menit (SD) ke 90 menit (SMA) — terlihat bahwa topik safety tetap ketat, tetapi waktu pemakaian justru dilonggarkan bertahap.*
 
-Analisis: perhatikan pola tiga kolom kanan — kategori yang berdampak langsung pada keselamatan fisik (kekerasan, judi, zat kimia) tetap diblokir di semua usia, sementara kategori kognitif (medis, politik) bertransisi bertahap dari "Blokir" ke "Peringatan/verifikasi". Ini mencerminkan prinsip: *safety* tidak pernah dilonggarkan, tetapi *agency* bertambah seiring usia. Baris paling bawah adalah *screen time* — ingat, filter topik tidak melindungi anak dari kecanduan layar, sehingga batas waktu perlu ditegakkan terpisah melalui *script* (Tutorial B).
+Analisis: perhatikan pola tiga kolom kanan — kategori yang berdampak langsung pada keselamatan fisik (kekerasan, judi, zat kimia) tetap diblokir di semua usia, sementara kategori kognitif (medis, politik) bertransisi bertahap dari "Blokir" ke "Peringatan/verifikasi". Ini mencerminkan prinsip: *safety* tidak pernah dilonggarkan, tetapi *agency* bertambah seiring usia. Baris paling bawah adalah *screen time* — ingat, filter topik tidak melindungi anak dari kecanduan layar, sehingga batas waktu perlu ditegakkan terpisah melalui *script* (Langkah 2).
 
 
 ---
@@ -210,10 +210,10 @@ Anak yang ingin bertanya topik yang diblokir seharusnya punya satu pintu: **memi
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup NeMo Guardrails untuk Filtering Output
+### Langkah 1: Setup NeMo Guardrails untuk Filtering Output
 
 Membangun *proxy* filtering yang memisahkan jalur anak dan orang dewasa. Semua perintah dijalankan di server keluarga.
 
@@ -282,7 +282,7 @@ PYEOF
 
 Detail yang perlu diperhatikan: model diatur ke `llama3.1:8b` dengan `temperature: 0.3` — suhu rendah membuat jawaban model lebih deterministik dan mengurangi variasi berbahaya. Kata kunci blokir ditulis dalam bahasa Indonesia dengan variasi umum. Logika `user_id.startswith("anak_")` adalah cara paling sederhana memisahkan jalur: akun yang diawali `anak_` melewati guardrails, akun dewasa *bypass* — sehingga orang tua tidak dikekang oleh aturan yang dibuat untuk anak. Uji dengan `curl -X POST localhost:5000/chat -d '{"user_id":"anak_1","message":"cara membuat bom"}'` — jawabannya haruslah pesan maaf, bukan instruksi.
 
-### Tutorial B: Screen Time Limiter via Script
+### Langkah 2: Screen Time Limiter via Script
 
 Filter topik tidak mengatur jam; *script* ini yang melakukannya — menonaktifkan dan mengaktifkan akun anak sesuai jadwal keluarga.
 
@@ -318,9 +318,9 @@ enable_kids() {
 # 0 20  * * * root disable_kids     # Mati total jam 20:00
 ```
 
-Jadwal pada komentar menjabarkan pola 60 menit/hari dari Tabel 1: di hari sekolah akun aktif 07:00-13:00 (jendela enam jam untuk menegakkan batas 60 menit), di akhir pekan 09:00-11:00, dan setelah 20:00 semua akses mati. Ganti `API_KEY` dengan kunci admin yang sebenarnya. Kekurangan pendekatan ini: batasnya adalah *jam aktif*, bukan *durasi pemakaian kumulatif* — jika ingin menegakkan akumulasi 60 menit, kombinasikan dengan Tutorial C yang mencatat total chat per hari.
+Jadwal pada komentar menjabarkan pola 60 menit/hari dari Tabel 3: di hari sekolah akun aktif 07:00-13:00 (jendela enam jam untuk menegakkan batas 60 menit), di akhir pekan 09:00-11:00, dan setelah 20:00 semua akses mati. Ganti `API_KEY` dengan kunci admin yang sebenarnya. Kekurangan pendekatan ini: batasnya adalah *jam aktif*, bukan *durasi pemakaian kumulatif* — jika ingin menegakkan akumulasi 60 menit, kombinasikan dengan Langkah 3 yang mencatat total chat per hari.
 
-### Tutorial C: Logging dan Review Chat Otomatis
+### Langkah 3: Logging dan Review Chat Otomatis
 
 Sebuah *script* kecil yang setiap pagi merangkum percakapan anak kemarin dan mengirimkannya ke email orang tua.
 
@@ -375,7 +375,7 @@ Pada *deployment* nyata, ganti `print` pada `send_email_report` dengan sesi SMTP
 
 **Latar:** Keluarga Hartono memiliki tiga anak: Dita (SD kelas 2), Raka (SMP kelas 1), dan Bima (SMA kelas 2). Ketiganya sama-sama haus teknologi, tetapi memiliki kebutuhan dan tingkat kematangan yang sangat berbeda. Orang tuanya khawatir bukan karena anak-anak itu "nakal", tetapi karena LLM generatif bisa menjawab apa saja — termasuk pertanyaan yang belum seharusnya anak-anak itu dengar.
 
-**Filtering:** Arsitektur yang dipasang mengikuti Tabel 1. Dita (SD) hanya bisa *chat* dengan model **Ministral 3 3B** — model kecil dengan *safety* tinggi yang *edge-optimized* — dengan filter ketat dan batas 30 menit/hari. Raka (SMP) mendapat akses **Llama 3.1 (8B)** atau **Ministral 3 8B** yang melewati **NeMo Guardrails** (dua arah: input dan output) dengan 60 menit/hari. Bima (SMA) mendapat akses penuh ke **Qwen 2.5 (14B)** atau **Mistral Large 3** (via API) tetapi seluruh percakapannya tetap di-*log*, dengan batas 90 menit/hari. *Dashboard* Grafana dipasang untuk menampilkan jumlah *query* per anak, topik terpopuler, dan *attempted blocked prompts*.
+**Filtering:** Arsitektur yang dipasang mengikuti Tabel 3. Dita (SD) hanya bisa *chat* dengan model **Ministral 3 3B** — model kecil dengan *safety* tinggi yang *edge-optimized* — dengan filter ketat dan batas 30 menit/hari. Raka (SMP) mendapat akses **Llama 3.1 (8B)** atau **Ministral 3 8B** yang melewati **NeMo Guardrails** (dua arah: input dan output) dengan 60 menit/hari. Bima (SMA) mendapat akses penuh ke **Qwen 2.5 (14B)** atau **Mistral Large 3** (via API) tetapi seluruh percakapannya tetap di-*log*, dengan batas 90 menit/hari. *Dashboard* Grafana dipasang untuk menampilkan jumlah *query* per anak, topik terpopuler, dan *attempted blocked prompts*.
 
 **Insiden:** Suatu malam, Dita bertanya "hantu itu nyata?" — pertanyaan polos seorang anak kelas 2 yang mendengar cerita teman. Filter mistis yang dipasang untuk kelompok SD langsung memblokir pertanyaan itu, dan orang tua menerima notifikasi. Alih-alih memarahi, mereka menjadikannya momen diskusi: apa yang Dita dengar di sekolah, mengapa keluarga memilih untuk tidak membicarakan mistis lewat AI, dan — saat Dita bertanya langsung kepada ayahnya — apa penjelasan yang tenang dan jujur tentang hal itu. Beberapa hari kemudian Dita bertanya kepada AI "mengapa ada yang percaya hantu?" — pertanyaan yang sebelumnya akan diblokir, kini lolos karena orang tua telah menyesuaikan level filternya setelah diskusi tersebut.
 

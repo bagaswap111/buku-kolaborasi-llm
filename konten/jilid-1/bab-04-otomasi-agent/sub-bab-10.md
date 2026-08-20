@@ -94,7 +94,7 @@ Dari tabel ini, pesan utama tentang sumber daya: pipeline kelas ini berjalan nya
 *Gambar 4.10-1 — Whisper large-v3 adalah komponen termahal (15 menit, 10 GB) sementara diarization menyusul (12 menit); total 25-35 menit dan ~16 GB memori membuat pipeline ideal dijalankan sebagai batch malam hari.*
 
 
-### Tabel 3: Task Tracker Integration
+### Tabel 2: Task Tracker Integration
 
 Terakhir, perbandingan lima platform *task tracker* yang dapat menjadi tujuan akhir *action items* — dari yang paling sederhana hingga yang paling enterprise.
 
@@ -118,13 +118,13 @@ Dari tabel ini, rekomendasi berbeda untuk kebutuhan berbeda. **Taskwarrior** ada
 
 ### Frontmatter Standar
 
-Setiap file hasil pipeline mengikuti format yang konsisten — ini bukan sekadar kerapian, melainkan desain yang membuat output bisa diparse oleh alat lain. File dimulai dengan *frontmatter* YAML berisi `title`, `date`, `duration`, dan daftar `attendees`. Kemudian tiga bagian utama: **Key Points** (poin-poin diskusi dalam *bullet*), **Action Items** (tugas dengan pemilik dan *deadline*), dan referensi ke **Full Transcript** lengkap. Langkah pada bagian 8 menghasilkan output persis dengan format ini; Tabel 2 memperlihatkan contoh lengkapnya.
+Setiap file hasil pipeline mengikuti format yang konsisten — ini bukan sekadar kerapian, melainkan desain yang membuat output bisa diparse oleh alat lain. File dimulai dengan *frontmatter* YAML berisi `title`, `date`, `duration`, dan daftar `attendees`. Kemudian tiga bagian utama: **Key Points** (poin-poin diskusi dalam *bullet*), **Action Items** (tugas dengan pemilik dan *deadline*), dan referensi ke **Full Transcript** lengkap. Langkah pada bagian 8 menghasilkan output persis dengan format ini; Tabel 3 memperlihatkan contoh lengkapnya.
 
 ### Mengapa Struktur Ini Penting
 
 Format standar memberikan tiga keuntungan. Pertama, *action items* dengan format `[ ] tugas → deadline: tanggal` bisa dikenali oleh kode — sebuah *regex* sederhana cukup untuk mengekstraknya tanpa melibatkan LLM. Kedua, konsistensi format membuat file dari meeting yang berbeda bisa dibandingkan dan diagregasi — misalnya, rangkuman semua meeting minggu ini dalam satu tampilan. Ketiga, *frontmatter* memungkinkan integrasi langsung dengan alat seperti Obsidian yang membaca metadata YAML untuk menampilkan properti dokumen. Dengan kata lain: pilih format sekali, dan semua alat lain menyesuaikan.
 
-### Tabel 2: Format Structured Output
+### Tabel 3: Format Structured Output
 
 Tabel ini menunjukkan format output final yang dihasilkan pipeline — perhatikan struktur *frontmatter*, *key points*, dan *action items* yang konsisten, lengkap dengan pemilik dan *deadline*.
 
@@ -412,7 +412,7 @@ Kode ini menunjukkan pola *idempotent batch* yang aman untuk dijalankan berulang
 
 **Hasil:** Angka yang paling mencolok adalah waktu review: dari 15 jam meeting per minggu, tim kini hanya menghabiskan **30 menit** untuk mereview semua rangkuman — efisiensi 96% waktu yang dihemat untuk notulensi. *Action items* tidak lagi hilang: setiap tugas muncul di Taskwarrior dengan *owner* dan *deadline* dari hasil ekstraksi JSON, dan akhir sprint tidak lagi dimulai dengan pertanyaan "tugas siapa ini?". Satu penyesuaian yang mereka lakukan di minggu kedua: *prompt* rangkuman diperjelas agar menuliskan keputusan secara eksplisit ("KEPUTUSAN: ..."), karena tim menemukan bahwa keputusan sering tenggelam di antara diskusi.
 
-**Pelajaran:** Studi kasus ini menunjukkan tiga faktor keberhasilan. Pertama, *hardware matters*: Mac Mini M4 Pro 48GB menangani seluruh pipeline dengan nyaman, dan *unified memory* membuat RAM dan VRAM tidak perlu dipisahkan. Kedua, *format consistency* adalah kunci adopsi: karena semua output mengikuti struktur frontmatter + action items, tim dengan cepat mengembangkan kebiasaan baru — membaca rangkuman pagi hari sebagai "surat kabar meeting". Ketiga, otomasi bukan pengganti manusia, melainkan pengganti pekerjaan yang paling dibenci manusia: mencatat. Review 30 menit tetap dilakukan manusia — tetapi yang direview adalah *ringkasan yang sudah jadi*, bukan jam rekaman mentah [5].
+**Pelajaran:** Studi kasus ini menunjukkan tiga faktor keberhasilan. Pertama, *hardware matters*: Mac Mini M4 Pro 48GB menangani seluruh pipeline dengan nyaman, dan *unified memory* membuat RAM dan VRAM tidak perlu dipisahkan. Kedua, *format consistency* adalah kunci adopsi: karena semua output mengikuti struktur frontmatter + action items, tim dengan cepat mengembangkan kebiasaan baru — membaca rangkuman pagi hari sebagai "surat kabar meeting". Ketiga, otomasi bukan pengganti manusia, melainkan pengganti pekerjaan yang paling dibenci manusia: mencatat. Review 30 menit tetap dilakukan manusia, tetapi yang direview adalah *ringkasan yang sudah jadi*, bukan jam rekaman mentah [5].
 
 ---
 

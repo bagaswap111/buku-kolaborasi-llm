@@ -81,10 +81,10 @@ Setelah memahami teknik deteksi, pilih *tool* yang mewadahinya. Perbandingan ber
 | **Guardrails AI** | Ya | Ya | Ya | SDK | OSS + Enterprise |
 | **Claude Fable 5 Classifiers** | Ya (built-in) | Ya (built-in) | Tidak (cloud) | API | Pay-per-use |
 
-Perhatikan pola *trade-off*: lima *tool* pertama semuanya *self-hosted* dan gratis — cocok untuk *general office* yang menginginkan data tetap di dalam perimeter — tetapi berbeda dalam kedalaman fitur. *LLMGuard* (dari LinkedIn) unggul sebagai *API-based scanner* generik dengan repertoar detektor luas, *SafeGPT* menonjol di *redaction* dua arah, *NeMo Guardrails* unggul di ekosistem LangChain/NVIDIA, dan *QueryShield* (karya riset NAACL) mempraktikkan *rephrasing* — mengubah *query* sensitif menjadi versi aman, bukan sekadar memblokir. Lainnya, *Claude Fable 5* adalah satu-satunya yang *cloud-only* dan *pay-per-use* — biaya ada, tetapi *classifier*-nya sudah *built-in* dan menyatu dengan pipeline model. Pilihan akhir tergantung satu pertanyaan: apakah kantor memproses mayoritas trafik via API Anthropic (pilih Fable 5 sebagai lapisan tambahan) atau via model on-premise (wajib pilih *tool self-hosted*).
+Perhatikan pola *trade-off*: lima *tool* pertama semuanya *self-hosted* dan gratis — cocok untuk *general office* yang menginginkan data tetap di dalam perimeter, tetapi berbeda dalam kedalaman fitur. *LLMGuard* (dari LinkedIn) unggul sebagai *API-based scanner* generik dengan repertoar detektor luas, *SafeGPT* menonjol di *redaction* dua arah, *NeMo Guardrails* unggul di ekosistem LangChain/NVIDIA, dan *QueryShield* (karya riset NAACL) mempraktikkan *rephrasing* — mengubah *query* sensitif menjadi versi aman, bukan sekadar memblokir. Lainnya, *Claude Fable 5* adalah satu-satunya yang *cloud-only* dan *pay-per-use* — biaya ada, tetapi *classifier*-nya sudah *built-in* dan menyatu dengan pipeline model. Pilihan akhir tergantung satu pertanyaan: apakah kantor memproses mayoritas trafik via API Anthropic (pilih Fable 5 sebagai lapisan tambahan) atau via model on-premise (wajib pilih *tool self-hosted*).
 
 
-### Diagram 1: Pipeline DLP Input-Output
+### Gambar 1: Pipeline DLP Input-Output
 
 Berikut alur keputusan menyeluruh — dari prompt pengguna, melewati dua pemeriksaan, hingga keputusan akhir.
 
@@ -138,7 +138,7 @@ Harganya adalah **kompleksitas**: harus ada *embedding service*, vektor yang dip
 
 ### Safety Classifiers Bawaan Model (Claude Fable 5)
 
-Perkembangan terbaru datang dari sisi model itu sendiri: model enterprise seperti **Claude Fable 5 (Juni 2026)** membawa **safety classifiers built-in** yang dapat mendeteksi prompt berbahaya, data sensitif, dan *policy violation* secara *real-time* — menghasilkan *audit log* terstruktur untuk setiap interaksi. Implikasinya besar bagi *general office*: untuk trafik yang diproses lewat Anthropic API, kebutuhan *DLP* pihak ketiga (*input/output scanner* terpisah) bisa dikurangi, karena pemeriksaan dilakukan di dalam pipeline model.
+Perkembangan terbaru datang dari sisi model itu sendiri: model enterprise seperti **Claude Fable 5 (Juni 2026) [Sumber?]** membawa **safety classifiers built-in** yang dapat mendeteksi prompt berbahaya, data sensitif, dan *policy violation* secara *real-time* — menghasilkan *audit log* terstruktur untuk setiap interaksi. Implikasinya besar bagi *general office*: untuk trafik yang diproses lewat Anthropic API, kebutuhan *DLP* pihak ketiga (*input/output scanner* terpisah) bisa dikurangi, karena pemeriksaan dilakukan di dalam pipeline model.
 
 Namun *caution*-nya juga jelas: *classifier* ini hanya aktif untuk lalu lintas yang melewati API Anthropic — prompt yang ditangani vLLM on-premise (DeepSeek V4 Flash, Mistral Large 3) tetap butuh lapisan DLP lokal. *Safety classifier* bawaan adalah *bonus layer*, bukan pengganti arsitektur DLP; ia dielaborasi lebih lanjut sebagai bagian dari *policy enforcement* di seksi berikut.
 
@@ -157,7 +157,7 @@ Kunci desainnya adalah memetakan **keparahan data ke keparahan tindakan**: data 
 
 Sensitifitas bukan absolut — ia **relatif terhadap konteks kerja**. Kebijakan DLP yang baik merefleksikan hal ini: *Legal* boleh mengirim draf kontrak ke LLM untuk *review*, sementara *Marketing* tidak boleh menyentuh kontrak rahasia sama sekali; *HR* boleh memproses data kandidat dalam pipeline yang terisolasi, sementara departemen lain terlarang. Aturan per departemen ini menjadi *scope*-ing yang menjaga produktivitas: fakta yang sama **legal bagi satu tim dan ilegal bagi tim lain**, dan sistem harus menghormatinya.
 
-Granularitasnya bisa sangat halus: per *user*, per *group*, per *model*, per *jenis data*. Per *model* penting karena model on-premise dan model *cloud* memiliki risiko berbeda — data boleh masuk ke DeepSeek V4 Flash di GPU kantor, tetapi tidak boleh dikirim ke API eksternal. Per *user* memungkinkan *exception* individual bagi penanggung jawab data (mis. *Data Protection Officer*), sementara *group* menyalurkan aturan ke departemen secara keseluruhan. Semakin halus granularitas, semakin presisi keputusan — tetapi juga semakin kompleks konfigurasi; kantor 21-50 user biasanya mulai dari *per-group* sebelum menurunkan ke *per-user*.
+Granularitasnya bisa sangat halus: per *user*, per *group*, per *model*, per *jenis data*. Per *model* penting karena model on-premise dan model *cloud* memiliki risiko berbeda — data boleh masuk ke DeepSeek V4 Flash di GPU kantor, tetapi tidak boleh dikirim ke API eksternal. Per *user* memungkinkan *exception* individual bagi penanggung jawab data (mis. *Data Protection Officer*), sementara *group* menyalurkan aturan ke departemen secara keseluruhan. Semakin halus granularitas, semakin presisi keputusan, tetapi juga semakin kompleks konfigurasi; kantor 21-50 user biasanya mulai dari *per-group* sebelum menurunkan ke *per-user*.
 
 ### Tabel 3: DLP Policy Rules Contoh
 
@@ -199,15 +199,15 @@ Penting untuk dicatat: *redaction* di output **tidak membuat insiden menjadi tid
 
 ### Log ke SIEM dan Notifikasi Real-Time
 
-Tidak ada DLP yang sempurna — *false negative* pasti terjadi, dan *false positive* harus dikelola. Karena itu setiap keputusan DLP — BLOCK, WARN, LOG, maupun *missed detection* yang diperbaiki manual — harus **dicatat ke SIEM** (Splunk, Wazuh, atau ELK). Log ini menjadi dasar *incident response*: **notifikasi real-time ke tim keamanan via Slack/Email** saat aturan BLOCK tersentuh, sehingga insiden ditangani dalam hitungan menit, bukan ditemukan *ex post facto* dalam laporan bulanan. Detail integrasi SIEM dibahas pada Seksi 8 (Tutorial C) dan Bab 8.6.
+Tidak ada DLP yang sempurna — *false negative* pasti terjadi, dan *false positive* harus dikelola. Karena itu setiap keputusan DLP — BLOCK, WARN, LOG, maupun *missed detection* yang diperbaiki manual — harus **dicatat ke SIEM** (Splunk, Wazuh, atau ELK). Log ini menjadi dasar *incident response*: **notifikasi real-time ke tim keamanan via Slack/Email** saat aturan BLOCK tersentuh, sehingga insiden ditangani dalam hitungan menit, bukan ditemukan *ex post facto* dalam laporan bulanan. Detail integrasi SIEM dibahas pada Seksi 8 (Langkah 3) dan Bab 8.6.
 
 ### Post-Mortem dan Metrik Kualitas
 
 Siklus ditutup dengan **post-mortem analysis**. Secara berkala, tim keamanan me-*review* prompt yang di-block: berapa yang memang benar melanggar, berapa yang salah diblokir (*false positive*), dan — yang lebih keras — berapa insiden yang lolos (*false negative*). Metrik kunci di sini adalah **false positive rate**: angka yang sehat di bawah 10%, dicapai dengan *fine-tuning* aturan dan classifier. Studi kasus di Seksi 9 menunjukkan lintasan nyatanya: dari 12% turun ke 5% setelah sebulan.
 
-Tujuan keseluruhan bukan menghentikan semua karyawan menggunakan AI — melainkan membuat sistem **pintar dan berani**: berani memblokir saat perlu, cukup percaya diri untuk meloloskan pekerjaan sah, dan terus belajar dari setiap keputusan manusia.
+Tujuan keseluruhan bukan menghentikan semua karyawan menggunakan AI, melainkan membuat sistem **pintar dan berani**: berani memblokir saat perlu, cukup percaya diri untuk meloloskan pekerjaan sah, dan terus belajar dari setiap keputusan manusia.
 
-### Diagram 2: Alur Incident Response DLP
+### Gambar 2: Alur Incident Response DLP
 
 Ketika aturan dilanggar atau lolos, siklus penanganan insiden berjalan dalam lima tahap yang berulang:
 
@@ -362,7 +362,7 @@ EOF
 systemctl restart wazuh-agent
 ```
 
-Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/litellm/dlp_alerts.log`) sebagai JSON, lalu *decode* setiap entri untuk mengekstrak `rule_id` — sehingga *alerts* DLP muncul sebagai *event* terstruktur di *dashboard* SIEM, bisa di-*query* per aturan yang dilanggar. Setelah *restart*, kirim beberapa prompt uji dan verifikasi entri muncul di Wazuh dalam beberapa menit; dari sini Anda dapat membangun *alert* Wazuh untuk aturan berprioritas Critical (DLP-001 dan DLP-002), sesuai alur *incident response* pada Diagram 2.
+Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/litellm/dlp_alerts.log`) sebagai JSON, lalu *decode* setiap entri untuk mengekstrak `rule_id` — sehingga *alerts* DLP muncul sebagai *event* terstruktur di *dashboard* SIEM, bisa di-*query* per aturan yang dilanggar. Setelah *restart*, kirim beberapa prompt uji dan verifikasi entri muncul di Wazuh dalam beberapa menit; dari sini Anda dapat membangun *alert* Wazuh untuk aturan berprioritas Critical (DLP-001 dan DLP-002), sesuai alur *incident response* pada Gambar 2.
 
 ---
 
@@ -389,7 +389,7 @@ Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/
 ### Paper Jurnal/Konferensi
 
 [1] Malik, S., et al. (2025). *SafeGPT: Preventing Data Leakage and Unethical Outputs in Enterprise LLM Use*. arXiv preprint arXiv:2601.06366. DOI: [10.48550/arXiv.2601.06366](https://arxiv.org/abs/2601.06366)
-- *Two-sided guardrail* (input *redaction* + output *moderation*) untuk enterprise. Data efikasi DLP (precision, recall, *false positive*) di Tabel 2 harus diverifikasi dengan paper ini.
+- *Two-sided guardrail* (input *redaction* + output *moderation*) untuk enterprise. Data efikasi DLP (precision, recall, *false positive*) di Tabel 2 harus diverifikasi dengan paper ini. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [2] Kumar, A., et al. (2025). *QueryShield: A Platform to Mitigate Enterprise Data Leakage in Queries to External LLMs*. Proceedings of NAACL 2025 Industry Track. [https://aclanthology.org/2025.naacl-industry.30.pdf](https://aclanthology.org/2025.naacl-industry.30.pdf)
 - Deteksi + *rephrasing query* untuk enterprise dengan *dataset* 1.500 *query* ber-annotasi sensitivitas. Relevan untuk Seksi 4 (Teknik Deteksi).
@@ -414,4 +414,4 @@ Konfigurasi ini memberitahu *agent* Wazuh untuk membaca file log DLP (`/var/log/
 [9] Wazuh. *SIEM Open Source Documentation*. [https://documentation.wazuh.com](https://documentation.wazuh.com)
 
 [10] Anthropic. (2026). *Claude Fable 5: Safety-Classifier Enhanced Language Model*. [https://anthropic.com](https://anthropic.com)
-- Model dengan *safety classifiers* built-in untuk deteksi prompt berbahaya dan data sensitif — mengurangi kebutuhan DLP tambahan untuk trafik via Anthropic API.
+- Model dengan *safety classifiers* built-in untuk deteksi prompt berbahaya dan data sensitif — mengurangi kebutuhan DLP tambahan untuk trafik via Anthropic API. — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.

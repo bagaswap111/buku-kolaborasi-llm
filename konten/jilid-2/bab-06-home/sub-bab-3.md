@@ -96,11 +96,11 @@ Suatu sore, Ayah yang sedang dinas luar kota perlu mengakses LLM server — mung
 
 Cara kerjanya menyerupai grup keluarga tertutup: setiap perangkat yang di-*login* ke akun Tailscale yang sama menjadi anggota "jaringan pribadi" yang saling bisa menemukan — bahkan di balik NAT rumah, hotel, atau jaringan kantor. Yang membuat Tailscale unggul untuk keluarga adalah **ACL** (Access Control List): Anda bisa membatasi perangkat anak hanya boleh mengakses `llm-server:11434`, sementara perangkat orang tua menikmati akses penuh. *Parental control* pun berpindah dari level aplikasi ke level jaringan.
 
-WireGuard, sebagai protokol fondasinya, tetap relevan bagi *power user* yang ingin membangun situs-ke-situs sendiri tanpa perantara koordinasi Tailscale — tetapi biaya administrasinya jauh lebih tinggi, dan untuk kebutuhan keluarga, Tailscale hampir selalu pilihan yang lebih bijak.
+WireGuard, sebagai protokol fondasinya, tetap relevan bagi *power user* yang ingin membangun situs-ke-situs sendiri tanpa perantara koordinasi Tailscale, tetapi biaya administrasinya jauh lebih tinggi, dan untuk kebutuhan keluarga, Tailscale hampir selalu pilihan yang lebih bijak.
 
 Pilihan antara Tailscale dan WireGuard murni WireGuard sebenarnya bukan pertarungan teknologi, melainkan pertarungan waktu luang keluarga: WireGuard menuntut Anda mengelola *key* per perangkat, memastikan *NAT traversal*, dan menulis konfigurasi di tiap ujung — pekerjaan yang mengasyikkan bagi *enthusiast*, tetapi menjadi *tech debt* bagi keluarga yang pengurusnya sibuk. Ukurannya sederhana: jika Anda menikmati menulis konfigurasi di akhir pekan, WireGuard adalah taman bermain Anda; jika tidak, Tailscale memberikan 90% manfaat dengan 10% pekerjaan.
 
-### Tabel 2: Metode Akses ke LLM Server
+### Tabel 1: Metode Akses ke LLM Server
 
 Berbagai jalur menuju server — dari yang termudah hingga yang paling terkunci.
 
@@ -112,7 +112,7 @@ Berbagai jalur menuju server — dari yang termudah hingga yang paling terkunci.
 | **WireGuard (site-to-site)** | Tinggi | Tinggi | Sulit | Power user |
 | **Cloudflare Tunnel** | Lambat | Tinggi | Sedang | Tidak direkomendasikan |
 
-Bacaan pentingnya adalah pertukaran kecepatan versus keamanan. Untuk perangkat di rumah, *LAN langsung* dan *mDNS* adalah raja — tetapi keamanannya rendah karena apa pun di jaringan yang sama dapat berbicara langsung ke port. Tailscale menawarkan kompromi terbaik untuk akses remote: keamanan *sangat tinggi* dengan setup hanya *sedang*. Cloudflare Tunnel ditempatkan di daftar ini sebagai peringatan: meski teknisnya berfungsi, rute yang membawa *traffic* keluarga keluar ke *edge* pihak ketiga bertentangan dengan pilar *privacy* yang kita bangun di sub-bab 6.1.
+Bacaan pentingnya adalah pertukaran kecepatan versus keamanan. Untuk perangkat di rumah, *LAN langsung* dan *mDNS* adalah raja, tetapi keamanannya rendah karena apa pun di jaringan yang sama dapat berbicara langsung ke port. Tailscale menawarkan kompromi terbaik untuk akses remote: keamanan *sangat tinggi* dengan setup hanya *sedang*. Cloudflare Tunnel ditempatkan di daftar ini sebagai peringatan: meski teknisnya berfungsi, rute yang membawa *traffic* keluarga keluar ke *edge* pihak ketiga bertentangan dengan pilar *privacy* yang kita bangun di sub-bab 6.1.
 
 Satu pertanyaan yang sering muncul: bolehkah menggabungkan beberapa metode? Justru dianjurkan — inilah *defense in depth*. Rumah yang sehat memakai LAN langsung untuk TV dan *speaker* (perangkat yang tidak menyimpan data), Open WebUI dengan API key untuk laptop anak, dan Tailscale untuk perangkat orang tua di luar rumah. Campuran ini bukan kebocoran desain, melainkan penerjemahan langsung dari tingkat kepercayaan yang berbeda-beda terhadap setiap perangkat: semakin pribadi datanya, semakin ketat jalannya.
 
@@ -152,7 +152,7 @@ Konteks keamanannya harus dibaca jujur: sistem *privacy-preserving* seperti Home
 
 Perlu dicatat bahwa VLAN bukan pengganti kontrol di tingkat aplikasi, melainkan fondasi yang membawahinya. Ketika sub-bab 6.6 membahas *parental control* pada konten LLM, kebijakan itu bekerja di atas jaringan yang sudah disegmentasi ini — anak tidak bisa "lompat" ke VLAN 10 hanya dengan berpindah perangkat. Inilah prinsip pertahanan berlapis: setiap lapisan menutup kelemahan lapisan sebelumnya, dan segmen jaringan adalah lapisan paling bawah yang menopang semuanya.
 
-### Tabel 1: Skema Subnet dan VLAN untuk Keluarga
+### Tabel 2: Skema Subnet dan VLAN untuk Keluarga
 
 Denah jaringan lengkap yang akan kita bangun di tutorial — empat segmen dengan peran berbeda.
 

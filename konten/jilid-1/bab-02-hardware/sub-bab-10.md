@@ -109,7 +109,7 @@ Harga stiker hardware hanyalah permulaan. **TCO** (Total Cost of Ownership) menj
 
 ### Break-Even dengan Cloud
 
-Pertanyaan besar kemudian menjadi: kapan biaya lokal lebih murah daripada berlangganan API? Untuk **heavy user** — mereka yang mengonsumsi sekitar 500.000 token per hari — RTX 3090 *used* bisa mencapai titik *break-even* dalam sekitar 8 bulan dibandingkan memakai OpenAI GPT-4o sepanjang waktu. Setelah itu, semua yang Anda proses adalah "gratis". Bagi pengguna ringan yang hanya 50.000 token per hari, hitungannya berbalik: berlangganan cloud seharga beberapa ratus ribu per bulan bisa jadi lebih ekonomis daripada modal puluhan juta di muka. Perhitungan lengkapnya akan Anda praktikkan di Tutorial 1 dan 2.
+Pertanyaan besar kemudian menjadi: kapan biaya lokal lebih murah daripada berlangganan API? Untuk **heavy user** — mereka yang mengonsumsi sekitar 500.000 token per hari — RTX 3090 *used* bisa mencapai titik *break-even* dalam sekitar 8 bulan dibandingkan memakai OpenAI GPT-4o sepanjang waktu. Setelah itu, semua yang Anda proses adalah "gratis". Bagi pengguna ringan yang hanya 50.000 token per hari, hitungannya berbalik: berlangganan cloud seharga beberapa ratus ribu per bulan bisa jadi lebih ekonomis daripada modal puluhan juta di muka. Perhitungan lengkapnya akan Anda praktikkan di Langkah 1 dan 2.
 
 ### Tabel 3: Perbandingan Biaya per Juta Token — Lokal vs Cloud
 
@@ -181,7 +181,7 @@ Alur diagram ini mencerminkan prioritas berlapis yang dibahas di seluruh sub-bab
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial 1: Kalkulator TCO untuk Keputusan Pembelian
+### Langkah 1: Kalkulator TCO untuk Keputusan Pembelian
 
 Sebelum membeli apa pun, hitung dulu biaya sebenarnya. Skrip berikut menghitung TCO — hardware + listrik — untuk berbagai konfigurasi dengan tarif PLN.
 
@@ -229,7 +229,7 @@ for name, hw, watt, hours in configs:
 
 Jalankan skrip ini dan perhatikan dua baris yang paling kontras: PC 2x RTX 3090 (TCO ~Rp 34 juta) dan Mac Studio M2 Ultra (TCO ~Rp 77 juta) memiliki *capability* model yang sebanding (keduanya sanggup 70B+), tetapi selisihnya lebih dari Rp 40 juta dalam 3 tahun — itulah "biaya kemewahan" ketenangan dan *form factor* Apple. Sebaliknya, laptop RTX 4060 yang tampak murah (Rp 18 juta) ternyata TCO 3 tahunnya ~Rp 20 juta — hampir menyentuh harga PC RTX 3090 (Rp 12 juta + listrik = ~Rp 17 juta) dengan performa yang kalah kelas. Angka-angka ini mengubah percakapan "berapa harga laptopnya?" menjadi "berapa biayanya selama tiga tahun?" — pertanyaan yang jauh lebih jujur [1][4][5].
 
-### Tutorial 2: Menghitung Break-even Point vs Cloud API
+### Langkah 2: Menghitung Break-even Point vs Cloud API
 
 Setelah TCO diketahui, hitung kapan investasi lokal melunasi dirinya dibandingkan memakai cloud.
 
@@ -262,7 +262,7 @@ print(f"Break-even dalam: {breakeven_days:.0f} hari (~{breakeven_days/30:.1f} bu
 
 Eksperimen dengan angka ini sangat menyenangkan: ubah `TOKENS_PER_DAY` menjadi 50.000 dan `CLOUD_COST_PER_1M` menjadi 35.000 (Gemini 1.5 Pro), dan hasilnya akan menunjukkan break-even yang melonjak hingga bertahun-tahun — bukti bahwa **cloud tetap menang untuk pemakaian ringan**. Sebaliknya, ubah konsumsi menjadi 1 juta token/hari dengan GPT-5.5 (Rp 150.000/M token), dan break-even menyusut drastis. Pelajaran utamanya: jangan membeli workstation LLM karena "lebih murah" secara umum — belilah karena *pola pemakaian Anda* membuatnya lebih murah. Hitung dulu dengan skrip ini sebelum menyerahkan uang Anda [8].
 
-### Tutorial 3: Checklist Pembelian Komponen PC LLM
+### Langkah 3: Checklist Pembelian Komponen PC LLM
 
 Ketika Anda sudah memutuskan membangun PC, kesalahan kompatibilitas adalah pembunuh budget yang paling diam-diam. Checklist berikut mencegahnya.
 
@@ -319,11 +319,11 @@ Kesalahan paling umum yang dicegah checklist ini: membeli motherboard yang slot 
 - **Opsi B — Mac Mini M4 Pro 48GB:** **Rp 32 juta** — sudah *over budget* Rp 2 juta. Performa 40 t/s untuk 7B, dan tidak bisa menjalankan 70B dengan nyaman (memori cukup, tetapi *bandwidth* rendah). Listrik hanya ~Rp 23 ribu per bulan, dan mesinnya *silent*.
 - **Opsi C — Laptop Lenovo Legion RTX 4060 8GB:** **Rp 22 juta**. Performa 35 t/s untuk 7B Q4, tidak bisa 70B, tetapi portabel untuk dibawa ke kampus dan kantor.
 
-**Analisis.** Menjalankan kalkulator TCO dari Tutorial 1 mengubah gambaran. Opsi A: TCO 3 tahun ~Rp 30 juta (listrik 8 jam/hari). Opsi B: ~Rp 33 juta — ternyata *hampir sebanding* dengan Opsi A, karena listrik Mac yang murah mengkompensasi harga awal yang lebih tinggi. Opsi C: ~Rp 24 juta — termurah, tetapi dengan kapabilitas paling kecil. Namun TCO saja tidak cukup: Raka butuh *coding assistant* interaktif yang responsif dan RAG atas dokumen-dokumennya. Di sini Opsi A unggul tegas dengan 85 t/s (2x Mac, 2,4x laptop) dan satu-satunya yang bisa menjalankan 70B.
+**Analisis.** Menjalankan kalkulator TCO dari Langkah 1 mengubah gambaran. Opsi A: TCO 3 tahun ~Rp 30 juta (listrik 8 jam/hari). Opsi B: ~Rp 33 juta — ternyata *hampir sebanding* dengan Opsi A, karena listrik Mac yang murah mengkompensasi harga awal yang lebih tinggi. Opsi C: ~Rp 24 juta — termurah, tetapi dengan kapabilitas paling kecil. Namun TCO saja tidak cukup: Raka butuh *coding assistant* interaktif yang responsif dan RAG atas dokumen-dokumennya. Di sini Opsi A unggul tegas dengan 85 t/s (2x Mac, 2,4x laptop) dan satu-satunya yang bisa menjalankan 70B.
 
 **Keputusan.** Raka memilih **Opsi A**. Alasan utamanya: budget pas, performa terbaik per rupiah, dan *upgrade path* ke 2x GPU untuk 70B — membeli GPU kedua Rp 12 juta di tahun kedua lebih murah daripada lompat ke Mac Studio. Sisa Rp 5 juta digunakan untuk **UPS + *fan upgrade*** — pelajaran dari Sub-bab 2.8: GPU yang sehat secara termal menjaga performa yang sudah dibayar mahal.
 
-**Hasil.** Menghitung dengan Tutorial 2: dibandingkan langganan ChatGPT (US$20/bulan ≈ Rp 320 ribu/bulan), biaya listrik lokal per bulan hanya ~Rp 134 ribu — menghemat ~Rp 186 ribu/bulan, atau ~Rp 6,7 juta dalam 3 tahun. Angka itu terlihat kecil, tetapi cerita sebenarnya berbeda: untuk pemakaian 500.000 token/hari yang sedang bertumbuh (makin banyak kode dan dokumen yang diproses), *break-even* terhadap API cloud menyusut drastis — pada volume jutaan token per hari, balik modal terjadi dalam 4–6 bulan, lebih cepat daripada ~8 bulan untuk *heavy user* biasa dengan hardware yang lebih murah — dan setelah itu seluruh inferensi adalah "gratis". Ditambah kebebasan tanpa batas *rate limit* dan data yang tidak pernah meninggalkan mesin.
+**Hasil.** Menghitung dengan Langkah 2: dibandingkan langganan ChatGPT (US$20/bulan ≈ Rp 320 ribu/bulan), biaya listrik lokal per bulan hanya ~Rp 134 ribu — menghemat ~Rp 186 ribu/bulan, atau ~Rp 6,7 juta dalam 3 tahun. Angka itu terlihat kecil, tetapi cerita sebenarnya berbeda: untuk pemakaian 500.000 token/hari yang sedang bertumbuh (makin banyak kode dan dokumen yang diproses), *break-even* terhadap API cloud menyusut drastis — pada volume jutaan token per hari, balik modal terjadi dalam 4–6 bulan, lebih cepat daripada ~8 bulan untuk *heavy user* biasa dengan hardware yang lebih murah — dan setelah itu seluruh inferensi adalah "gratis". Ditambah kebebasan tanpa batas *rate limit* dan data yang tidak pernah meninggalkan mesin.
 
 **Catatan 2026.** Dunia berubah cepat. Model frontier baru — **DeepSeek V4 Flash** (284B, MIT license) dan **Mistral Large 3** (675B, Apache 2.0) — membuka akses ke kualitas level GPT-5 secara lokal, tetapi harganya mahal: butuh 6–8 GPU atau Mac Studio 192GB, investasi Rp 70–100 juta. Untuk pengguna dengan budget Rp 30 juta seperti Raka, kabar baiknya adalah model 7B–14B Q4_K_M saat ini sudah mencapai performa level **GPT-4o-mini** — cukup untuk 90% kebutuhan sehari-hari [11][12]. Strategi bertahap adalah jawabannya: mulai dari yang mampu dibeli hari ini, dan biarkan kebutuhan yang menentukan kapan *upgrade* berikutnya layak dilakukan.
 
