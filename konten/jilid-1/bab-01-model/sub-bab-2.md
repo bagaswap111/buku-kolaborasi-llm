@@ -120,7 +120,7 @@ Parameter attention dan FFN tumbuh secara **kuadratik** terhadap d_model. Attent
 
 ### Model MoE: Parameter Raksasa, Komputasi Minimal
 
-DeepSeek V4 Pro memiliki 1,6 triliun parameter total tetapi hanya 49 miliar aktif per token. Arsitektur Mixture-of-Experts (MoE) yang digunakan memiliki 256 expert dalam FFN — setiap token hanya mengaktifkan 2 expert. Rumus parameter MoE: `P_total = P_dense + n_experts × P_expert_per_layer × L`. Parameter aktif hanya `P_dense + n_aktif × P_expert_per_layer × L`.
+DeepSeek V4 Pro memiliki 1,6 triliun parameter total tetapi hanya 49 miliar aktif per token. Arsitektur Mixture-of-Experts (MoE) yang digunakan memiliki 256 expert dalam FFN — setiap token hanya mengaktifkan 9 dari 256+ expert (sparsity 3,1%). Rumus parameter MoE: `P_total = P_dense + n_experts × P_expert_per_layer × L`. Parameter aktif hanya `P_dense + n_aktif × P_expert_per_layer × L`.
 
 Embedding (vocab × d_model = 128K × 8192 ≈ 1 miliar) dan attention tetap di-load penuh. Hanya expert FFN yang bisa di-*route* secara selektif. Inilah keajaiban MoE: model ini memberikan kualitas setara model 1,6T dengan kecepatan dan VRAM setara model 49B — karena hanya 49B parameter yang perlu dikomputasi per token. Semua parameter (1,6T) harus tetap di-load ke VRAM, tetapi hanya 49B yang aktif digunakan dalam setiap langkah.
 
@@ -157,11 +157,11 @@ Di mana V = vocab size, d = d_model, ffn = ffn_dim, L = jumlah lapisan. Komponen
 | FP32 | 4 | 6 GB | 28 GB | 32 GB | 52 GB | 196 GB | 280 GB | 1.6 TB | 2.7 TB |
 | FP16 | 2 | 3 GB | 14 GB | 16 GB | 26 GB | 98 GB | 140 GB | 810 GB | 1.35 TB |
 | INT8 (Q8_0) | 1 | 1.5 GB | 7 GB | 8 GB | 13 GB | 49 GB | 70 GB | 405 GB | 675 GB |
-| INT4 (Q4_K_M) | ~0.5 | 0.8 GB | 3.8 GB | 4.2 GB | 6.5 GB | 25 GB | 38 GB | 220 GB | 340 GB |
+| INT4 (Q4_K_M) | ~0.5 | 0.8 GB | 3.8 GB | 4.9 GB | 6.5 GB | 25 GB | 42 GB | 220 GB | 340 GB |
 
 *Parameter aktif untuk model MoE. Semua expert harus tetap di-load ke VRAM meskipun hanya sebagian yang aktif per token.*
 
-Perhatikan bagaimana kuantisasi menggeser batas kemampuan perangkat keras: model 70B yang memerlukan 280 GB dalam FP32 bisa "dipadatkan" menjadi 38 GB dalam Q4_K_M — perbedaan yang menentukan antara butuh server dan cukup satu kartu RTX 4090.
+Perhatikan bagaimana kuantisasi menggeser batas kemampuan perangkat keras: model 70B yang memerlukan 280 GB dalam FP32 bisa "dipadatkan" menjadi 42 GB dalam Q4_K_M — perbedaan yang menentukan antara butuh server dan cukup satu kartu RTX 4090.
 
 ![Kebutuhan memori model dari 1,5B hingga 675B pada empat tingkat presisi](../../assets/images/bab-01-model/sub-bab-2/memori-per-presisi.png)
 
@@ -258,11 +258,11 @@ Pada arsitektur MoE seperti DeepSeek V4 Pro (1,6T total, 49B aktif), distribusi 
 
 | Komponen | Jumlah Parameter | Persentase |
 |:---|:---:|:---:|
-| Embedding (vocab 128K × 4096) | 524M | 6.5% |
-| Attention (QKV + Output per layer × 32) | 2.1B | 26.2% |
-| FFN (gate + up + down per layer × 32) | 5.2B | 64.7% |
-| LayerNorm + RoPE | 209M | 2.6% |
-| **Total** | **8.03B** | **100%** |
+| Embedding (vocab 128K × 4096) | 524M | 6.7% |
+| Attention (QKV + Output per layer × 32) | 2.1B | 26.8% |
+| FFN (gate + up + down per layer × 32) | 5.2B | 66.5% |
+| LayerNorm + RoPE | 0,26M | 0,003% |
+| **Total** | **7.82B** | **100%** |
 
 ![Distribusi parameter dalam Llama-3 8B](../../assets/images/bab-01-model/sub-bab-2/distribusi-parameter.png)
 

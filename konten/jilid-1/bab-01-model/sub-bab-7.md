@@ -53,7 +53,7 @@ Dua kali lipat karena ada dua tensor (K dan V), dikali jumlah lapisan, dikali di
 
 Untungnya, sebagian besar model modern memakai **Grouped Query Attention (GQA)** — arsitektur yang memperkenalkan diri di Mistral 7B dan kini menjadi standar pada Llama-3, Qwen, dan hampir semua model besar. GQA membagi beberapa query head untuk berbagi satu pasang K dan V, sehingga dimensi KV yang harus disimpan menyusut 4–8 kali lipat. Llama-3 8B, misalnya, hanya menyimpan 8 head KV untuk 32 query head — KV-cache-nya turun dari 1,5 MB menjadi sekitar **0,2 MB per token**. Angka yang sama menjelaskan mengapa Qwen 2.5 7B dengan 4 KV head hanya butuh 0,1 MB per token.
 
-Tabel A pada seksi 3 memperlihatkan dengan jelas: tanpa GQA, model sekecil GPT-2 1.5B pun membutuhkan 0,3 MB per token, sementara Llama-3 70B yang jauh lebih besar hanya 0,7 MB per token berkat GQA. Memilih model dengan GQA adalah keputusan arsitektur termurah yang bisa Anda ambil untuk konteks panjang.
+Tabel 1 pada seksi 3 memperlihatkan dengan jelas: tanpa GQA, model sekecil GPT-2 1.5B pun membutuhkan 0,3 MB per token, sementara Llama-3 70B yang jauh lebih besar hanya 0,7 MB per token berkat GQA. Memilih model dengan GQA adalah keputusan arsitektur termurah yang bisa Anda ambil untuk konteks panjang.
 
 ### Tabel 1: Memori KV-Cache per Model dan Context Length
 
@@ -75,12 +75,12 @@ Pertumbuhan memori per model terlihat dramatis ketika kolom-kolom panjang kontek
 
 ![Pertumbuhan Memori KV-Cache vs Panjang Konteks per Model](../../assets/images/bab-01-model/sub-bab-7/pertumbuhan-kv-cache.png)
 
-*Gambar 1.7-3 — Semua kurva naik sejajar pada skala log; pada 128K token Llama-3 70B menuntut 89,6 GB KV-cache, sementara Qwen 2.5 7B dengan 4 KV head hanya 12,8 GB. GPT-2 (1,5B, tanpa GQA) dan Mistral 7B tidak tercatat pada 128K (ditandai "—" di Tabel 1).*
+*Gambar 1.7-1 — Semua kurva naik sejajar pada skala log; pada 128K token Llama-3 70B menuntut 89,6 GB KV-cache, sementara Qwen 2.5 7B dengan 4 KV head hanya 12,8 GB. GPT-2 (1,5B, tanpa GQA) dan Mistral 7B tidak tercatat pada 128K (ditandai "—" di Tabel 1).*
 
 Analisis di balik angka-angka ini: Qwen 2.5 7B dengan 4 KV head menekan biaya per token hingga 0,1 MB — sepertiga dari GPT-2 yang lebih kecil tetapi tanpa GQA. Perhatikan juga bahwa pada konteks 128K, bahkan Llama-3 70B dengan GQA membutuhkan 89,6 GB KV-cache — satu-satunya entri yang tetap realistis adalah model yang memang dirancang untuk konteks raksasa seperti DeepSeek V4 Pro. Kesimpulannya: jika konteks panjang adalah kebutuhan Anda, arsitektur model lebih menentukan daripada jumlah parameter.
 
 
-### Gambar 2: Mekanisme KV-Cache pada Inferensi Autoregressive
+### Gambar 1: Mekanisme KV-Cache pada Inferensi Autoregressive
 
 Untuk melengkapi gambaran, berikut alur token generation yang memanfaatkan KV-cache — token baru hanya perlu mencocokkan Q-nya dengan K dan V yang telah tersimpan.
 
@@ -114,7 +114,7 @@ Implementasi *standard attention* menulis matriks skor S (hasil Q·Kᵀ) dan mat
 
 **Flash Attention**, diperkenalkan Dao et al. (2022), membalik logika ini: alih-alih menulis matriks penuh ke HBM, attention dihitung dalam **blok-blok kecil di SRAM** — tiling — lalu hasilnya ditulis sekali ke HBM. Tidak ada matriks S atau P berukuran penuh yang pernah tercipta. Memori yang dibutuhkan berubah dari O(n²) menjadi **O(n)**, dan kecepatannya meningkat karena GPU tidak lagi menunggu transfer data bolak-balik.
 
-Versi rilisnya terus membaik. **Flash Attention v1** (2022) memberi *speedup* 2–4× dengan memori linear. **Flash Attention v2** (2023) menyempurnakan paralelisme dan partisi kerja — 2× lebih cepat dari v1 dengan pemanfaatan FLOPs mencapai 72%, dan menjadi versi yang diadopsi paling luas oleh inference engine. **Flash Attention v3** (2024) menargetkan GPU Hopper dengan dukungan **FP8**, mencapai pemanfaatan FLOPs sekitar 85%. Perbandingan lengkapnya ada di Tabel B seksi 3 — mulai dari GPU Volta+ untuk v1 hingga Hopper+ untuk v3.
+Versi rilisnya terus membaik. **Flash Attention v1** (2022) memberi *speedup* 2–4× dengan memori linear. **Flash Attention v2** (2023) menyempurnakan paralelisme dan partisi kerja — 2× lebih cepat dari v1 dengan pemanfaatan FLOPs mencapai 72%, dan menjadi versi yang diadopsi paling luas oleh inference engine. **Flash Attention v3** (2024) menargetkan GPU Hopper dengan dukungan **FP8**, mencapai pemanfaatan FLOPs sekitar 85%. Perbandingan lengkapnya ada di Tabel 2 seksi 3 — mulai dari GPU Volta+ untuk v1 hingga Hopper+ untuk v3.
 
 ### Tabel 2: Perbandingan Flash Attention vs Standard
 
@@ -133,12 +133,12 @@ Lompatan efisiensi setiap generasi Flash Attention terangkum dalam satu metrik:
 
 ![Pemanfaatan FLOPs: Standard vs Flash Attention v1-v3](../../assets/images/bab-01-model/sub-bab-7/pemanfaatan-flops-flash-attention.png)
 
-*Gambar 1.7-4 — Pemanfaatan FLOPs naik dari ~20% (standard) menjadi ~40% (v1), ~72% (v2), hingga ~85% (v3). Flash Attention v2 tetap pilihan terbaik untuk GPU konsumen Ampere/Ada, karena v3 menuntut GPU Hopper untuk FP8.*
+*Gambar 1.7-2 — Pemanfaatan FLOPs naik dari ~20% (standard) menjadi ~40% (v1), ~72% (v2), hingga ~85% (v3). Flash Attention v2 tetap pilihan terbaik untuk GPU konsumen Ampere/Ada, karena v3 menuntut GPU Hopper untuk FP8.*
 
 Dua temuan penting. Pertama, lonjakan kapasitas konteks di A100 80 GB — dari ~32K pada standard attention menjadi ~512K pada Flash Attention v3 — terjadi tanpa mengubah model sama sekali, murni dari pengelolaan memori yang lebih baik. Kedua, perhatikan syarat GPU: v1 bisa berjalan di GPU Volta (RTX 20-series), tetapi v3 menuntut Hopper (H100) untuk FP8. Di GPU konsumen Ampere atau Ada seperti RTX 3090/4090, Flash Attention v2 tetap pilihan terbaik Anda.
 
 
-### Gambar 1: Perbandingan Standard vs Flash Attention
+### Gambar 2: Perbandingan Standard vs Flash Attention
 
 Diagram berikut menunjukkan alur data pada kedua implementasi — perhatikan berapa kali standard attention bolak-balik antara HBM dan unit komputasi, sementara Flash Attention cukup sekali jalan.
 

@@ -25,7 +25,7 @@ Rumah pintar tradisional dikuasai *juga* oleh aturan YAML yang kaku: "jika senso
 
 Alurnya berbentuk rantai satu arah: **User → Wake Word → Whisper (STT) → Ollama (Intent) → HA API → Action → Piper (TTS)**. Ucapan keluarga menjadi teks oleh Whisper, teks menjadi maksud oleh LLM, maksud menjadi perintah nyata oleh Home Assistant, dan tanggapan menjadi suara oleh Piper. Setiap mata rantai bisa diperbaharui secara terpisah — inilah arsitektur modular yang dianjurkan *Harmony* [3] dan dipraktikkan langsung oleh keluarga di lapangan [2].
 
-Konsekuensi pentingnya: model LLM di sini tidak dituntut menjadi *supergenius* — ia cukup pandai memahami maksud kalimat rumah tangga dan menerjemahkannya ke *service call*. Justru itulah alasan model kecil seperti Ministral 3 atau Qwen-2.5-7B lebih disukai daripada model raksasa: lebih cepat, lebih hemat daya, dan tugasnya memang sederhana [1].
+Konsekuensi pentingnya: model LLM di sini tidak dituntut menjadi *supergenius* — ia cukup pandai memahami maksud kalimat rumah tangga dan menerjemahkannya ke *service call*. Justru itulah alasan model kecil seperti Ministral 3 atau Qwen 2.5 (7B) lebih disukai daripada model raksasa: lebih cepat, lebih hemat daya, dan tugasnya memang sederhana [1].
 
 ### Tabel 1: Perbandingan Model untuk Home Assistant
 
@@ -33,12 +33,12 @@ Enam kandidat model — dari yang paling hemat daya hingga paling akurat.
 
 | Model | Ukuran Q4 | Function Calling | Latensi (GPU) | Latensi (CPU) | Rekomendasi |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **Qwen-2.5-7B** | ~4.5 GB | Sangat Baik | 1.5 detik | 6 detik | Terbaik untuk HA |
-| **Llama-3.1-8B** | ~5.0 GB | Baik | 1.8 detik | 7 detik | Alternatif umum |
+| **Qwen 2.5 (7B)** | ~4,5 GB | Sangat Baik | 1,5 detik | 6 detik | Terbaik untuk HA |
+| **Llama 3.1 (8B)** | ~5,0 GB | Baik | 1,8 detik | 7 detik | Alternatif umum |
 | **Phi-4-mini (3.8B)** | ~2.5 GB | Sedang | 0.8 detik | 3 detik | Hemat daya |
 | **Ministral 3 3B** | ~1.8 GB | Baik | 0.5 detik | 2 detik | **Terbaik edge** |
 | **Ministral 3 8B** | ~4.8 GB | Sangat Baik | 1.2 detik | 5 detik | **Sweet spot home** |
-| **Qwen-2.5-14B** | ~8.5 GB | Sangat Baik | 3.0 detik | 15 detik | Akurasi maksimal |
+| **Qwen 2.5 (14B)** | ~8,5 GB | Sangat Baik | 3,0 detik | 15 detik | Akurasi maksimal |
 
 Kesenjangan latensi GPU versus CPU hanya bisa dirasakan ketika digambar — semua model lolos SLA 5 detik di GPU, sementara di CPU hanya model terkecil yang aman.
 
@@ -56,7 +56,7 @@ Ministral 3 (Apache 2.0, Desember 2025) adalah pilihan terbaik untuk Home Assist
 
 Sejak versi **2024.4**, Home Assistant memiliki integrasi **Ollama** bawaan — tidak perlu *custom component*. Langkahnya sesederhana membuka **Settings → Devices & Services → Add Ollama**, lalu mengisi URL (default `http://192.168.1.100:11434`), memilih model, dan menyesuaikan parameter.
 
-Dua keputusan penting menyusul. Pertama, **ekspos entity** — tentukan perangkat mana yang boleh dikontrol LLM melalui *Assist*; jangan pernah mengekspos semua entity, karena itu berarti memberi pembantu rumah tangga kunci semua kamar. Kedua, **pilih model dengan *function calling* yang stabil** — rekomendasi utama adalah **Qwen-2.5-7B** (paling stabil untuk *function calling*) dan **Llama-3.1-8B** (serba guna). *Function calling* adalah bahasa yang membuat LLM mampu menyebut nama *service* dan *entity* secara terstruktur — tanpa itu, jawaban model hanya akan menjadi cerita, bukan tindakan.
+Dua keputusan penting menyusul. Pertama, **ekspos entity** — tentukan perangkat mana yang boleh dikontrol LLM melalui *Assist*; jangan pernah mengekspos semua entity, karena itu berarti memberi pembantu rumah tangga kunci semua kamar. Kedua, **pilih model dengan *function calling* yang stabil** — rekomendasi utama adalah **Qwen 2.5 (7B)** (paling stabil untuk *function calling*) dan **Llama 3.1 (8B)** (serba guna). *Function calling* adalah bahasa yang membuat LLM mampu menyebut nama *service* dan *entity* secara terstruktur — tanpa itu, jawaban model hanya akan menjadi cerita, bukan tindakan.
 
 ---
 
@@ -86,7 +86,7 @@ Sekarang bedah rantai suara komponen per komponen — perhatikan betapa ringanny
 |:---|:---|:---|:---:|:---:|
 | **openWakeWord** | Wake word detection | Neural network kecil | ~100 MB | 0.3 detik |
 | **Whisper (faster-whisper)** | Speech-to-text | Whisper small/turbo | ~1-2 GB | 0.5-1 detik |
-| **Ollama (LLM agent)** | Intent parsing + action | Ministral 3 3B / Qwen-2.5-7B | ~2-5 GB | 0.5-1.2 detik |
+| **Ollama (LLM agent)** | Intent parsing + action | Ministral 3 3B / Qwen 2.5 (7B) | ~2-5 GB | 0,5-1,2 detik |
 | **Piper TTS** | Text-to-speech | Piper medium ID | ~500 MB | 0.5 detik |
 
 Dengan **Ministral 3 3B** sebagai LLM agent, total pipeline *voice* mencapai **< 2 detik end-to-end** (wake → action → TTS) — angka yang sangat responsif untuk smart home. Kesimpulan praktisnya: seluruh rantai suara hanya membutuhkan ~3,6-8,6 GB RAM dan latensi GPU di bawah 3 detik — artinya, pipeline ini bahkan bisa ditaruh di Mini PC *home server* yang sama dengan Home Assistant, tanpa menuntut rig GPU khusus.
@@ -332,7 +332,7 @@ Ganti `your-long-lived-token` dengan token yang dibuat dari profil pengguna Anda
 
 **Perangkat.** 20+ *smart bulbs* (Philips Hue), 3 AC (Broadlink IR), 5 sensor suhu, dan *smart lock* — semua dikontrol lewat bahasa alami, tanpa remote.
 
-**LLM Model.** **Qwen-2.5-7B Q4_K_M** — *function calling* yang stabil menjadikannya pilihan utama, dengan respons di bawah 2 detik di GPU.
+**LLM Model.** **Qwen 2.5 (7B) Q4_K_M** — *function calling* yang stabil menjadikannya pilihan utama, dengan respons di bawah 2 detik di GPU.
 
 **Voice.** Dua *microphone array* ESP32-S3 di ruang tamu dan dapur, dengan kata pemicu "Hei Rumah". Dari ruang tamu anak bisa memanggil asisten; dari dapur orang tua bisa mengatur AC tanpa meninggalkan kompor.
 

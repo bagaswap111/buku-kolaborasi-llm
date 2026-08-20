@@ -50,7 +50,7 @@ graph LR
     SUB --> MERGE1 --> MERGE2 --> MERGE3
 ```
 
-Diagram ini memperlihatkan dua jalur yang berjalan paralel: aliran teks *yang jelas* (kiri), dan proses pembentukan token *yang tersembunyi* (kotak bawah). Kuncinya ada di anak panah terakhir: pembagian sub-word ternyata dipengaruhi oleh *merge history* — token "menye" hanya bisa tercipta jika pasangan "men"+"ye" cukup sering muncul selama pelatihan. Untuk Bahasa Indonesia yang frekuensinya di dataset global rendah, jalur bawah ini hampir tidak pernah "berpihak" pada kata Indonesia — dan akibatnya terlihat pada kolom "Contoh" di Tabel 1. Memahami diagram ini berarti memahami *mengapa* memilih model dengan tokenizer multibahasa sering kali lebih penting daripada memilih model dengan parameter terbesar.
+Diagram ini memperlihatkan dua jalur yang berjalan paralel: aliran teks *yang jelas* (kiri), dan proses pembentukan token *yang tersembunyi* (kotak bawah). Kuncinya ada di anak panah terakhir: pembagian sub-word ternyata dipengaruhi oleh *merge history* — token "menye" hanya bisa tercipta jika pasangan "men"+"ye" cukup sering muncul selama pelatihan. Untuk Bahasa Indonesia yang frekuensinya di dataset global rendah, jalur bawah ini hampir tidak pernah "berpihak" pada kata Indonesia — dan akibatnya terlihat pada kolom "Contoh" di Tabel 2. Memahami diagram ini berarti memahami *mengapa* memilih model dengan tokenizer multibahasa sering kali lebih penting daripada memilih model dengan parameter terbesar.
 
 
 ---
@@ -66,7 +66,7 @@ Konsekuensinya berlapis. Pertama, **konteks efektif menyusut**: jendela 128K tok
 
 Coba perhatikan satu contoh nyata. Kata "ketidakadilan" mengandung tiga morfem: "tidak", "adil", dan "an" dengan awalan "ke-". Dalam tokenizer yang ramah Indonesia, morfem-morfem ini menjadi token-token bermakna, sehingga model dapat *menggabungkan makna*: "tidak" + "adil" + proses nominalisasi. Dalam tokenizer Inggris, kata itu bisa terpecah menjadi potongan tak bermakna seperti "ket"+"idak"+"adil"+"an" — dan model hanya bisa menebak makna dari *konteks sekitar*, bukan dari *bentuk kata itu sendiri*. Inilah mengapa dua model dengan kemampuan Inggris yang setara bisa berbeda jauh dalam kualitas Bahasa Indonesia: perbedaannya bukan di lapisan *reasoning*, melainkan di gerbang masuk — tokenizer — yang menentukan seberapa baik morfologi kata tersampaikan kepada model.
 
-### Tabel 2: Efisiensi Token untuk Bahasa Indonesia
+### Tabel 1: Efisiensi Token untuk Bahasa Indonesia
 
 Untuk menyentuh kasus nyata, mari bandingkan empat tokenizer terhadap lima frasa Indonesia sehari-hari:
 
@@ -83,7 +83,7 @@ Pola boros-hemat antar tokenizer terlihat lebih jelas ketika kelima frasa dipeta
 
 ![Efisiensi Token 5 Frasa Bahasa Indonesia per Model](../../assets/images/bab-01-model/sub-bab-6/efisiensi-token-frasa-id.png)
 
-*Gambar 1.6-3 — Llama-3 selalu paling boros di kelima frasa (4-5 token), sementara Nusantara-7B paling hemat (1-3 token) dan bahkan memecah "Ketidakadilan" menjadi satu token utuh. Dengan rata-rata token/kata 0,9, Nusantara lebih efisien dari satu token per kata, sedangkan Llama-3 di angka 1,8.*
+*Gambar 1.6-1 — Llama-3 selalu paling boros di kelima frasa (4-5 token), sementara Nusantara-7B paling hemat (1-3 token) dan bahkan memecah "Ketidakadilan" menjadi satu token utuh. Dengan rata-rata token/kata 0,9, Nusantara lebih efisien dari satu token per kata, sedangkan Llama-3 di angka 1,8.*
 
 Rata-rata token/kata adalah metrik yang paling mudah diingat: **Llama-3 1,8, Qwen 1,2, Gemma 1,3, Nusantara 0,9**. Terjemahan langsungnya: untuk kalimat yang sama, Llama-3 mengonsumsi 50% lebih banyak token daripada Qwen — dan hampir dua kali lipat Nusantara. Ini bukan sekadar statistik salon: 1,8 vs 1,2 berarti setiap dokumen Bahasa Indonesia yang Anda proses di Llama-3 membebani *context window* 50% lebih berat dan memperlambat *inference* dengan proporsi yang sama. Sementara Nusantara yang mencetak 0,9 bahkan lebih efisien daripada satu token per kata — karena kata majemuk dan bentukan umum digabung menjadi satu token utuh — menandakan tokenizer yang benar-benar "hidup" dalam morfologi Indonesia.
 
@@ -99,7 +99,7 @@ Setiap keluarga model mengambil keputusan berbeda dalam merancang *vocabulary*-n
 
 Yang perlu disorot: ukuran *vocabulary* bukan satu-satunya penentu. WordPiece BPE yang sama bisa menghasilkan kualitas berbeda tergantung distribusi data training. Karena itu, mengukur *efisiensi token* secara langsung — bukan menebak dari ukuran vocabulary — adalah cara terbaik menilai. Bab ini memberi Anda alat untuk itu, di Seksi 8.
 
-### Tabel 1: Perbandingan Tokenizer per Model
+### Tabel 2: Perbandingan Tokenizer per Model
 
 Tabel berikut menjawab pertanyaan "tokenizer siapa yang paling ramah Bahasa Indonesia" — perhatikan kolom terakhir: jumlah token untuk satu kata: "mempertanggungjawabkan".
 
@@ -267,7 +267,7 @@ for model_name in models:
     print()
 ```
 
-Hasilnya akan memukau Anda: dari 10 kata Indonesia yang paling umum di dokumen formal, hampir tidak ada yang hidup utuh di *vocabulary* Mistral, sementara beberapa model multibahasa modern dapat mencetak angka lebih baik. Inilah cara paling meyakinkan untuk *membuktikan* klaim Tabel 1 dengan perangkat Anda sendiri.
+Hasilnya akan memukau Anda: dari 10 kata Indonesia yang paling umum di dokumen formal, hampir tidak ada yang hidup utuh di *vocabulary* Mistral, sementara beberapa model multibahasa modern dapat mencetak angka lebih baik. Inilah cara paling meyakinkan untuk *membuktikan* klaim Tabel 2 dengan perangkat Anda sendiri.
 
 ### Langkah 3: Test Efisiensi Prompt Dua Bahasa
 
@@ -333,7 +333,7 @@ Perplexity yang lebih rendah berarti model lebih "mengerti" aliran bahasa Indone
 
 **Masalah awal:** Tim mencoba Llama-3 8B dan langsung menemukan tembok. Kata panjang seperti "pertanggungjawaban" dan "ketidakadilan" dipecah tokenizer menjadi sub-word tak bermakna, membuat output terasa kaku dan kadang membingungkan — misalnya kata "berkebinekaan" yang dipecah jadi potongan yang tidak menyalakan makna apa pun di pikiran model. Pengguna desa yang sudah tidak sabar dengan bentuk digital tidak akan memaafkan jawaban yang "mengambang".
 
-**Analisis pilihan:** Dari Tabel 2, tim membandingkan Llama-3 (rasio token/kata 1,8) dengan Qwen 2.5 7B (rasio 1,2, *vocabulary* multibahasa 152K). Meskipun menaikkan rasio itu tidak terasa di *benchmark* standar, tim menghitung bahwa Qwen menghemat sekitar **30% biaya compute per percakapan** — dan, lebih penting, menghasilkan jawaban yang lebih natural karena tokenizer memahami morfologi Indonesia: awalan "me-", akhiran "-kan", dan bentukan berimbuhan lainnya disimpan sebagai token-token bermakna, bukan serpihan.
+**Analisis pilihan:** Dari Tabel 1, tim membandingkan Llama-3 (rasio token/kata 1,8) dengan Qwen 2.5 7B (rasio 1,2, *vocabulary* multibahasa 152K). Meskipun menaikkan rasio itu tidak terasa di *benchmark* standar, tim menghitung bahwa Qwen menghemat sekitar **30% biaya compute per percakapan** — dan, lebih penting, menghasilkan jawaban yang lebih natural karena tokenizer memahami morfologi Indonesia: awalan "me-", akhiran "-kan", dan bentukan berimbuhan lainnya disimpan sebagai token-token bermakna, bukan serpihan.
 
 **Solusi:** Tim memilih **Qwen 2.5 7B**, melakukan **fine-tuning dengan LoRA** di 10.000 percakapan Bahasa Indonesia layanan publik, lalu mengkuantisasi ke **Q4_K_M** — cukup muat di Mac Mini 16 GB yang sudah dimiliki kantor desa.
 

@@ -42,7 +42,7 @@ Setidaknya empat kategori ancaman perlu dimasukkan ke *threat model* keluarga: *
 Sistem keamanan yang baik tidak pernah mengandalkan satu garis pertahanan. Arsitektur *multi-layer* untuk LLM keluarga bekerja dalam empat lapis:
 
 - **Layer 1 (Input):** filter *prompt* — cek kata kunci berbahaya dan *prompt injection* sebelum pertanyaan mencapai model
-- **Layer 2 (Model):** pilih model *fine-tuned* yang sudah *safety-aligned*, seperti **Llama-3.1-8B** atau **Qwen-2.5** — model yang dilatih menolak permintaan berbahaya secara alami
+- **Layer 2 (Model):** pilih model *fine-tuned* yang sudah *safety-aligned*, seperti **Llama 3.1 (8B)** atau **Qwen 2.5** — model yang dilatih menolak permintaan berbahaya secara alami
 - **Layer 3 (Output):** *guardrails* — evaluasi respons model sebelum dikirim ke anak
 - **Layer 4 (Logging):** semua chat tercatat, dan orang tua bisa *review* kapan saja
 
@@ -375,7 +375,7 @@ Pada *deployment* nyata, ganti `print` pada `send_email_report` dengan sesi SMTP
 
 **Latar:** Keluarga Hartono memiliki tiga anak: Dita (SD kelas 2), Raka (SMP kelas 1), dan Bima (SMA kelas 2). Ketiganya sama-sama haus teknologi, tetapi memiliki kebutuhan dan tingkat kematangan yang sangat berbeda. Orang tuanya khawatir bukan karena anak-anak itu "nakal", tetapi karena LLM generatif bisa menjawab apa saja — termasuk pertanyaan yang belum seharusnya anak-anak itu dengar.
 
-**Filtering:** Arsitektur yang dipasang mengikuti Tabel 1. Dita (SD) hanya bisa *chat* dengan model **Ministral 3 3B** — model kecil dengan *safety* tinggi yang *edge-optimized* — dengan filter ketat dan batas 30 menit/hari. Raka (SMP) mendapat akses **Llama-3.1-8B** atau **Ministral 3 8B** yang melewati **NeMo Guardrails** (dua arah: input dan output) dengan 60 menit/hari. Bima (SMA) mendapat akses penuh ke **Qwen-2.5-14B** atau **Mistral Large 3** (via API) tetapi seluruh percakapannya tetap di-*log*, dengan batas 90 menit/hari. *Dashboard* Grafana dipasang untuk menampilkan jumlah *query* per anak, topik terpopuler, dan *attempted blocked prompts*.
+**Filtering:** Arsitektur yang dipasang mengikuti Tabel 1. Dita (SD) hanya bisa *chat* dengan model **Ministral 3 3B** — model kecil dengan *safety* tinggi yang *edge-optimized* — dengan filter ketat dan batas 30 menit/hari. Raka (SMP) mendapat akses **Llama 3.1 (8B)** atau **Ministral 3 8B** yang melewati **NeMo Guardrails** (dua arah: input dan output) dengan 60 menit/hari. Bima (SMA) mendapat akses penuh ke **Qwen 2.5 (14B)** atau **Mistral Large 3** (via API) tetapi seluruh percakapannya tetap di-*log*, dengan batas 90 menit/hari. *Dashboard* Grafana dipasang untuk menampilkan jumlah *query* per anak, topik terpopuler, dan *attempted blocked prompts*.
 
 **Insiden:** Suatu malam, Dita bertanya "hantu itu nyata?" — pertanyaan polos seorang anak kelas 2 yang mendengar cerita teman. Filter mistis yang dipasang untuk kelompok SD langsung memblokir pertanyaan itu, dan orang tua menerima notifikasi. Alih-alih memarahi, mereka menjadikannya momen diskusi: apa yang Dita dengar di sekolah, mengapa keluarga memilih untuk tidak membicarakan mistis lewat AI, dan — saat Dita bertanya langsung kepada ayahnya — apa penjelasan yang tenang dan jujur tentang hal itu. Beberapa hari kemudian Dita bertanya kepada AI "mengapa ada yang percaya hantu?" — pertanyaan yang sebelumnya akan diblokir, kini lolos karena orang tua telah menyesuaikan level filternya setelah diskusi tersebut.
 

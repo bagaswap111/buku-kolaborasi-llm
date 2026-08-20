@@ -11,7 +11,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 - Menjelaskan tantangan deployment LLM di perangkat mobile: memori terbatas, *thermal throttling*, dan daya baterai
 - Membandingkan framework inference mobile: MLC-LLM, llama.cpp, ExecuTorch, MNN, dan llm.npu
-- Mengompilasi dan men-deploy model Android dengan MLC-LLM dan OpenCL backend
+- Mengompilasi dan mendeploy model Android dengan MLC-LLM dan OpenCL backend
 - Menjalankan LLM di iOS dengan LLMFarm dan *bindings* Swift llama.cpp
 - Memahami arsitektur MobileLLM: *deep & thin*, *embedding sharing*, dan *block-wise weight sharing*
 - Memanfaatkan NPU (Qualcomm Hexagon) dengan llm.npu untuk prefill berkecepatan tinggi
@@ -99,7 +99,7 @@ Dua keputusan dalam alur tersebut yang paling menentukan pengalaman pengguna ada
 
 Keluarga model yang paling nyaman untuk MLC-LLM mobile adalah **Phi-3-mini** (3,8B), **Qwen 2.5**, dan **Llama 3.2**. Ketiganya punya varian Q4 yang muat di perangkat menengah. Untuk beban *edge* yang paling efisien, keluarga **Ministral 3** (3B/8B) patut diperhitungkan — model *dense* kompak yang memakai *Cascade Distillation* sehingga kualitasnya tinggi untuk ukurannya, cocok dipasangkan dengan footprint memori yang ketat di ponsel.
 
-### Tabel A: Framework Mobile LLM
+### Tabel 1: Framework Mobile LLM
 
 Tabel berikut memetakan framework utama beserta dukungan platform dan backend-nya.
 
@@ -125,7 +125,7 @@ Analisis: tidak ada satu framework yang menang di semua dimensi. **MLC-LLM** ada
 
 ### iOS: LLMFarm dan Swift Bindings
 
-Di sisi iOS, **LLMFarm** adalah aplikasi paling populer berbasis llama.cpp — mendukung format GGUF, multi-model, dan *metal* acceleration. Bagi developer yang ingin integrasi sendiri, llama.cpp menyediakan *Swift bindings*: model dimuat dengan `llama_load_model_from_file`, konteks dibuat dengan `llama_new_context_with_model`, lalu token di-generate satu per satu.
+Di sisi iOS, **LLMFarm** adalah aplikasi paling populer berbasis llama.cpp — mendukung format GGUF, multi-model, dan *metal* acceleration. Bagi developer yang ingin integrasi sendiri, llama.cpp menyediakan *Swift bindings*: model dimuat dengan `llama_load_model_from_file`, konteks dibuat dengan `llama_new_context_with_model`, lalu token dihasilkan satu per satu.
 
 ### GGUF: Format Universal
 
@@ -146,18 +146,18 @@ MobileLLM menambah dua teknik kunci. **Embedding sharing**: proyeksi input dan o
 
 ### 125M–350M: Kecil tapi Terampil
 
-Hasilnya adalah kelas model **sub-billion** (125M–350M) yang untuk tugas spesifik — chat sederhana, klasifikasi, intent detection — mendekati performa model yang jauh lebih besar. Angka akurasinya tercantum di Tabel C: MobileLLM-LS-350M mencapai 65,3% *zero-shot accuracy*. Ini bukan pengganti model 7B untuk penalaran kompleks, tetapi untuk tugas sempit di perangkat, ukurannya yang hanya 350 MB adalah nilai jual yang tak tertandingi.
+Hasilnya adalah kelas model **sub-billion** (125M–350M) yang untuk tugas spesifik — chat sederhana, klasifikasi, intent detection — mendekati performa model yang jauh lebih besar. Angka akurasinya tercantum di Tabel 3: MobileLLM-LS-350M mencapai 65,3% *zero-shot accuracy*. Ini bukan pengganti model 7B untuk penalaran kompleks, tetapi untuk tugas sempit di perangkat, ukurannya yang hanya 350 MB adalah nilai jual yang tak tertandingi.
 
-### Tabel B: Performa di Perangkat Mobile (Model 7B Q4)
+### Tabel 2: Performa di Perangkat Mobile (Model 7B Q4)
 
 Angka *tokens per second* berikut menggambarkan performa aktual di perangkat mainstream 2024-2025, bersumber dari benchmark paper mobile LLM [2][5].
 
 | Perangkat | Chipset | RAM | CPU (t/s) | GPU (t/s) | NPU (t/s) |
 |:---|:---|:---:|:---:|:---:|:---:|
-| **Xiaomi 14** | Snapdragon 8 Gen 3 | 12GB | 3.2 t/s | 8.5 t/s | 18.4 t/s |
-| **iPhone 15 Pro** | A17 Pro | 8GB | 4.1 t/s | 12.3 t/s | - |
-| **Samsung S24** | Exynos 2400 | 8GB | 2.8 t/s | 7.2 t/s | - |
-| **Pixel 9** | Tensor G4 | 12GB | 2.5 t/s | 6.8 t/s | - |
+| **Xiaomi 14** | Snapdragon 8 Gen 3 | 12GB | 3,2 t/s | 8,5 t/s | 18,4 t/s |
+ | **iPhone 15 Pro** | A17 Pro | 8GB | 4,1 t/s | 12,3 t/s | - |
+ | **Samsung S24** | Exynos 2400 | 8GB | 2,8 t/s | 7,2 t/s | - |
+ | **Pixel 9** | Tensor G4 | 12GB | 2,5 t/s | 6,8 t/s | - |
 
 ![Perbandingan kecepatan CPU, GPU, dan NPU antar perangkat mobile pada model 7B Q4](../../assets/images/bab-03-software/sub-bab-9/performa-unit-komputasi-mobile.png)
 
@@ -170,19 +170,19 @@ Angka *tokens per second* berikut menggambarkan performa aktual di perangkat mai
 Analisis: pola yang paling menonjol adalah lompatan besar CPU → GPU → NPU. Di Xiaomi 14, GPU 2,7× lebih cepat dari CPU, dan NPU lebih dari 2× di atas GPU — total 5,8× lompatan dari CPU ke NPU. Perlu dicatat bahwa angka GPU 8–12 t/s ini masih di bawah pengalaman desktop; pada kecepatan ini, respons panjang tetap terasa lambat. Angka NPU 18,4 t/s, bagaimanapun, mendekati pengalaman desktop — dan itulah mengapa prefill di NPU terasa "instan". Untuk aplikasi produksi, kombinasi yang disarankan: **NPU untuk prefill, GPU untuk decode**, dengan CPU sebagai jaring pengaman termal.
 
 
-### Tabel C: MobileLLM Model Sizes vs Akurasi
+### Tabel 3: MobileLLM Model Sizes vs Akurasi
 
 Tabel ini membandingkan model kecil arsitektur MobileLLM dengan model populer yang biasa dipakai di mobile (data akurasi mengacu pada paper [1]).
 
 | Model | Parameters | Quantization | Size | Zero-Shot Accuracy | Use Case |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **MobileLLM-125M** | 125M | INT8 | 125 MB | 58.2% | Simple chat, classification |
-| **MobileLLM-350M** | 350M | INT8 | 350 MB | 64.5% | Q&A, summarization |
-| **MobileLLM-LS-350M** | 350M | INT8 | 350 MB | 65.3% | API calling, intent detection |
-| **Phi-3-mini** | 3.8B | Q4 | 2.1 GB | 71.3% | General purpose |
-| **Qwen 2.5 1.5B** | 1.5B | Q4 | 0.9 GB | 66.7% | Multilingual chat |
-| **Ministral 3B** | 3B | Q4 | 1.8 GB | 68.5% | Edge inference, Cascade Distillation |
-| **Ministral 8B** | 8B | Q4 | 4.6 GB | 74.1% | General purpose mobile |
+| **MobileLLM-125M** | 125M | INT8 | 125 MB | 58,2% | Simple chat, classification |
+| **MobileLLM-350M** | 350M | INT8 | 350 MB | 64,5% | Q&A, summarization |
+| **MobileLLM-LS-350M** | 350M | INT8 | 350 MB | 65,3% | API calling, intent detection |
+| **Phi-3-mini** | 3.8B | Q4 | 2,1 GB | 71,3% | General purpose |
+| **Qwen 2.5 1.5B** | 1.5B | Q4 | 0,9 GB | 66,7% | Multilingual chat |
+| **Ministral 3B** | 3B | Q4 | 1,8 GB | 68,5% | Edge inference, Cascade Distillation |
+| **Ministral 8B** | 8B | Q4 | 4,6 GB | 74,1% | General purpose mobile |
 
 Analisis: tabel ini menunjukkan *hukum harga* model mobile: setiap kenaikan akurasi ~2–3% membutuhkan lompatan ukuran 2–3× lipat. MobileLLM-125M (58,2%) hanya 125 MB — cocok untuk klasifikasi ringan dan chat sederhana yang berjalan di perangkat paling terbatas. Di kelas menengah, **Ministral 3B** (68,5%, 1,8 GB) adalah keseimbangan terbaik antara footprint dan kemampuan. Di kelas atas, **Ministral 8B** (74,1%, 4,6 GB) mendekati akurasi Phi-3-mini dengan ukuran lebih besar — pilihan tepat hanya jika perangkat punya memori lapang. Studi kasus berikut akan menunjukkan bagaimana kelas 8B ini bisa dipakai dalam praktik nyata.
 
@@ -203,6 +203,8 @@ Angka ini mengubah ekonomi komputasi mobile. Prefill — fase memproses prompt a
 ### Catatan untuk Model Frontier 2026
 
 Perlu kejujuran di sini: model *frontier* 2026 — seperti DeepSeek V4 Flash dengan ratusan miliar parameter atau Mistral Large 3 — **tidak feasible di NPU mobile** karena footprint memorinya jauh melampaui kapasitas NPU dan memori perangkat. NPU unggul pada kelas model kecil hingga menengah (1–8B). Pemahaman batas ini justru penting agar ekspektasi realistis: NPU adalah pengungkit untuk model *on-device* kelas menengah, bukan pintu masuk ke model raksasa.
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Kapan NPU, Kapan Tidak?
 
@@ -229,10 +231,10 @@ Aliran ini menggambarkan prinsip *per fase, bukan per sesi*: NPU menangani beban
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Build Aplikasi Android dengan MLC-LLM
+### Langkah 1: Build Aplikasi Android dengan MLC-LLM
 
 Ikuti langkah berikut untuk mengompilasi model dan membangun APK sendiri.
 
@@ -267,7 +269,7 @@ adb install app/build/outputs/apk/release/app-release.apk
 
 Perhatikan `--target android` dan `--quantization q4f16_1` — dua keputusan yang menentukan performa dan ukuran. Kompilasi membutuhkan waktu (beberapa menit hingga jam tergantung perangkat), dan hasilnya adalah *native library* yang dioptimasi untuk GPU Android. Setelah APK terpasang, model dapat diunduh otomatis atau disalin manual untuk penggunaan offline penuh.
 
-### Tutorial B: LLM Inference di iOS dengan LLMFarm
+### Langkah 2: LLM Inference di iOS dengan LLMFarm
 
 Di sisi iOS, dua jalur tersedia: aplikasi siap pakai atau integrasi langsung dengan llama.cpp.
 
@@ -311,7 +313,7 @@ class LocalLLM {
 
 Kode di atas adalah inti dari semua aplikasi iOS berbasis llama.cpp: muat model, buat konteks, lalu *sample* token satu per satu hingga *end-of-sequence*. Konsepnya identik dengan llama.cpp di desktop — hanya berjalan di atas Metal dengan batasan memori perangkat.
 
-### Tutorial C: NPU Offloading dengan llm.npu (Android)
+### Langkah 3: NPU Offloading dengan llm.npu (Android)
 
 Untuk memanfaatkan NPU Qualcomm Hexagon, aktifkan flag NPU saat memuat model.
 

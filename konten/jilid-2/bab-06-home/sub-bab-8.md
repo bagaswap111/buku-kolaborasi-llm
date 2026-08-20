@@ -39,7 +39,7 @@ Pembangun server pemula hampir selalu melupakan tiga biaya "hantu": **AC ruangan
 
 ### Build Performa (Rp 40-45 juta)
 
-**RTX 4090 + Ryzen 7 7800X3D + 64 GB DDR5.** Langkah naik ini membuka kelas model **14-33B** — termasuk Qwen-2.5-14B, Llama-3.1-33B, dan sebagian besar model yang dibahas di jilid ini, cukup cepat untuk *inference* interaktif. DDR5 + X3D juga mempercepat *offload* saat konteks memanjang. Ini adalah build yang paling "tidak akan Anda sesali" dalam 3 tahun — dan studi kasus Seksi 9 memilihnya.
+**RTX 4090 + Ryzen 7 7800X3D + 64 GB DDR5.** Langkah naik ini membuka kelas model **14-33B** — termasuk Qwen 2.5 (14B), Llama 3.1 (33B), dan sebagian besar model yang dibahas di jilid ini, cukup cepat untuk *inference* interaktif. DDR5 + X3D juga mempercepat *offload* saat konteks memanjang. Ini adalah build yang paling "tidak akan Anda sesali" dalam 3 tahun — dan studi kasus Seksi 9 memilihnya.
 
 ### Build Premium (Rp 55-70 juta)
 

@@ -30,7 +30,7 @@ Teknisnya, KoboldCPP dibangun **di atas llama.cpp** — pustaka inferensi C++ ya
 
 *Open source* dan gratis, KoboldCPP mengejar satu tujuan yang tidak dimiliki pesaingnya: **pengalaman naratif interaktif yang mulus**. Kecepatan generasi, pengelolaan konteks untuk cerita panjang, dan kebebasan memuat *model roleplay* apa pun adalah tiga pilar yang dibangun sejak awal. Bagi penulis atau *roleplayer*, KoboldCPP bukan alat tulis biasa — ia adalah *meja kerja* tempat dunia fiksi dibangun dan dijaga tetap hidup.
 
-### Diagram 1: Alur Context Management KoboldCPP
+### Gambar 1: Alur Context Management KoboldCPP
 
 Diagram ini menunjukkan bagaimana berbagai sumber teks disatukan menjadi konteks untuk model:
 
@@ -59,7 +59,7 @@ Dua aspek diagram ini penting dipahami. Pertama, *Context Assembly* adalah satu 
 
 ### Single Binary C++ yang Portabel
 
-Salah satu keunggulan teknis KoboldCPP: **single binary C++**. Tidak ada *runtime* Python yang rumit, tidak ada rantai dependensi — satu file program yang dapat disalin ke mesin lain dan langsung berjalan. Bagi pengguna rumahan yang berpindah-pindah komputer, ini berarti *setup* yang sama sekali tidak merepotkan. *Binary* siap pakai tersedia di halaman *release* resmi, atau dapat dibangun dari *source* (lihat Tutorial A).
+Salah satu keunggulan teknis KoboldCPP: **single binary C++**. Tidak ada *runtime* Python yang rumit, tidak ada rantai dependensi — satu file program yang dapat disalin ke mesin lain dan langsung berjalan. Bagi pengguna rumahan yang berpindah-pindah komputer, ini berarti *setup* yang sama sekali tidak merepotkan. *Binary* siap pakai tersedia di halaman *release* resmi, atau dapat dibangun dari *source* (lihat Langkah 1).
 
 ### UI Web Bawaan: Editor Cerita dalam Satu Tempat
 
@@ -146,7 +146,7 @@ Mekanisme *keyword → inject* ini seperti kamus yang hanya dibuka model saat pe
 
 Saat percakapan panjang, **Memory** meringkas riwayat lama secara otomatis dan menjaganya tetap hadir di konteks. Penulis dapat mengatur frekuensi peringkasan (misalnya setiap 500 token) dan menulis *memory* manual ("Cerita berlatar dunia fantasi abad pertengahan") untuk memandu ringkasan berikutnya. Ini adalah penyelamat koherensi untuk *roleplay* jangka panjang — topik yang juga menjadi fokus riset pada *role-playing language models* jangka panjang [1].
 
-### Diagram 2: Alur Kerja World Info Berbasis Kata Kunci
+### Gambar 2: Alur Kerja World Info Berbasis Kata Kunci
 
 Perilaku *keyword → inject* World Info dalam satu percakapan:
 
@@ -193,7 +193,7 @@ Peta lanskap model untuk *roleplay*, dengan estimasi kecepatan pada kuantisasi Q
 | **Mythomax-L2-13B** | 13B | ***** | ***** | 3-5 t/s (GPU 24GB) |
 | **Tiefighter-13B** | 13B | **** | ***** | 3-5 t/s |
 | **Noromaid-20B** | 20B | ***** | **** | 2-3 t/s (GPU 48GB) |
-| **Llama-3-8B-Instruct** | 8B | *** | **** | 8-12 t/s |
+| **Llama 3 (8B)** | 8B | *** | **** | 8-12 t/s |
 | **Mistral-7B-RP** | 7B | **** | *** | 10-15 t/s |
 | **DeepSeek V4 Flash** | 284B/13B aktif | **** | **** | 15-25 t/s (MoE efisien) |
 
@@ -231,7 +231,7 @@ Analisis: tiga skenario ini membentuk spektrum dari paling ketat ke paling longg
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup KoboldCPP dan Mulai Menulis
+### Langkah 1: Setup KoboldCPP dan Mulai Menulis
 
 Langkah pertama, dapatkan KoboldCPP dan jalankan dengan model GGUF:
 
@@ -266,7 +266,7 @@ python koboldcpp.py ../model.gguf --threads 8 \
 
 Empat opsi baris perintah patut diperhatikan. `--threads 8` mengatur jumlah *thread* CPU untuk pembacaan token; `--contextsize 4096` menetapkan *context window* — jangan melebihi batas model; `--blasbatchsize 1024` mengatur ukuran *batch* komputasi *BLAS*; dan `--gpulayers 30` memindahkan 30 lapisan pertama model ke GPU — *offload* yang menentukan kecepatan. Jika GPU Anda lebih kecil, turunkan `--gpulayers`; model tetap berjalan, hanya lebih lambat.
 
-### Tutorial B: Setup World Info untuk Worldbuilding
+### Langkah 2: Setup World Info untuk Worldbuilding
 
 Sekarang bangun *World Info* untuk dunia Atheria — dua entri pertama:
 
@@ -295,12 +295,12 @@ Sifat: pemberani tapi impulsif. Rambut merah, mata emas.",
 ```bash
 # Di UI KoboldCPP: World Info tab
 # Import JSON → entries akan aktif
-# Saat kata "Atheria" muncul di chat, World Info akan otomatis di-inject
+# Saat kata "Atheria" muncul di chat, World Info akan otomatis disuntikkan
 ```
 
-Perhatikan struktur entri: `key` menerima **daftar pemicu** — "Pangeran Kael" dan "Kael" sama-sama memicu entri yang sama — sementara `content` adalah teks *lore* yang lengkap namun ringkas. `selective: true` berarti entri hanya aktif ketika pemicu muncul (bukan selalu di konteks). Trik praktis: sebutkan pemicu yang umum muncul di dialog karakter agar *lore* sering ter-*inject* secara natural; dan jangan menulis `content` yang lebih panjang dari 2–3 kalimat, agar tidak memboroskan *context window*.
+Perhatikan struktur entri: `key` menerima **daftar pemicu** — "Pangeran Kael" dan "Kael" sama-sama memicu entri yang sama — sementara `content` adalah teks *lore* yang lengkap namun ringkas. `selective: true` berarti entri hanya aktif ketika pemicu muncul (bukan selalu di konteks). Trik praktis: sebutkan pemicu yang umum muncul di dialog karakter agar *lore* sering *terinject* secara natural; dan jangan menulis `content` yang lebih panjang dari 2–3 kalimat, agar tidak memboroskan *context window*.
 
-### Tutorial C: Remote KoboldAI Lite ke KoboldCPP
+### Langkah 3: Remote KoboldAI Lite ke KoboldCPP
 
 Manfaatkan server PC desktop Anda dari perangkat lain:
 

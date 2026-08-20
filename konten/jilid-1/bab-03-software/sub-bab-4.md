@@ -1,6 +1,6 @@
 # Bab 3.4: Open WebUI
 
-> Di balik layar, model lokal Anda hanyalah daemon tanpa wajah di port 11434. Open WebUI-lah yang memberi wajah itu: antarmuka web bergaya ChatGPT yang menyalurkan inferensi ke mesin di belakangnya, menampung dokumen, dan memberi "tangan" bagi model untuk memanggil fungsi. Dalam sub-bab ini, Anda akan men-deploy gateway all-in-one tersebut dan menghidupkan RAG serta Tools-nya.
+> Di balik layar, model lokal Anda hanyalah daemon tanpa wajah di port 11434. Open WebUI-lah yang memberi wajah itu: antarmuka web bergaya ChatGPT yang menyalurkan inferensi ke mesin di belakangnya, menampung dokumen, dan memberi "tangan" bagi model untuk memanggil fungsi. Dalam sub-bab ini, Anda akan mendeploy gateway all-in-one tersebut dan menghidupkan RAG serta Tools-nya.
 
 ---
 
@@ -9,7 +9,7 @@
 
 Setelah membaca sub-bab ini, Anda akan mampu:
 
-- Men-deploy Open WebUI dengan Docker, termasuk opsi *image* `:main`, `:ollama`, dan `:cuda` beserta *volume* persistensi dan *GPU passthrough*
+- Mendeploy Open WebUI dengan Docker, termasuk opsi *image* `:main`, `:ollama`, dan `:cuda` beserta *volume* persistensi dan *GPU passthrough*
 - Mengonfigurasi *RAG pipeline* lengkap: *chunking*, *embedding* lokal, *vector database*, hingga *hybrid search* dengan *reranking*
 - Membuat dan menggunakan *Tools* (fungsi Python kustom) beserta *function calling* dan dukungan *Model Context Protocol* (MCP)
 - Membandingkan Open WebUI dengan *frontend* LLM lain dan memutuskan kapan Open WebUI adalah pilihan tepat
@@ -22,7 +22,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ### Dari Terminal ke Antarmuka Bergaya ChatGPT
 
-Bayangkan Anda baru saja men-download DeepSeek V4 Flash melalui Ollama. Untuk mengobrol dengannya, pilihan Anda adalah `ollama run` di terminal — cepat, tetapi kering: tidak ada riwayat percakapan yang nyaman, tidak ada tempat menyimpan dokumen, dan tidak ada cara bagi model untuk menjalankan kode. Open WebUI hadir untuk mengisi kekosongan itu. Proyek ini adalah *frontend* web *self-hosted* yang awalnya bernama "Ollama WebUI" dan kemudian berkembang menjadi platform lengkap: pengganti ChatGPT *self-hosted* yang dapat dijalankan di mesin sendiri, sepenuhnya gratis dan *open source* [6].
+Bayangkan Anda baru saja mengunduh DeepSeek V4 Flash melalui Ollama. Untuk mengobrol dengannya, pilihan Anda adalah `ollama run` di terminal — cepat, tetapi kering: tidak ada riwayat percakapan yang nyaman, tidak ada tempat menyimpan dokumen, dan tidak ada cara bagi model untuk menjalankan kode. Open WebUI hadir untuk mengisi kekosongan itu. Proyek ini adalah *frontend* web *self-hosted* yang awalnya bernama "Ollama WebUI" dan kemudian berkembang menjadi platform lengkap: pengganti ChatGPT *self-hosted* yang dapat dijalankan di mesin sendiri, sepenuhnya gratis dan *open source* [6].
 
 Yang membuat Open WebUI menarik bukan hanya tampilannya yang mirip layanan komersial, tetapi tiga lapis kemampuannya: **antarmuka percakapan** yang nyaman, **RAG pipeline** bawaan yang siap pakai, dan **sistem Tools** yang memungkinkan model memanggil fungsi. Kombinasi ini menjadikannya *gateway* yang menghubungkan pengguna, dokumen, dan mesin inferensi dalam satu antarmuka.
 
@@ -75,7 +75,7 @@ Cara termudah menjalankan Open WebUI adalah Docker, dan pemilihan *image* menent
 
 ### Volume dan GPU Passthrough
 
-Dua hal yang tidak boleh dilupakan saat men-deploy: **persistensi data** dan **akses GPU**. Persistensi dilakukan dengan *volume mount* — `-v open-webui:/app/backend/data` menyimpan database, riwayat percakapan, dan *knowledge base* Anda, sementara `-v ollama:/root/.ollama` menyimpan model-model Ollama. Tanpa volume ini, seluruh data akan hilang saat *container* dihapus.
+Dua hal yang tidak boleh dilupakan saat mendeploy: **persistensi data** dan **akses GPU**. Persistensi dilakukan dengan *volume mount* — `-v open-webui:/app/backend/data` menyimpan database, riwayat percakapan, dan *knowledge base* Anda, sementara `-v ollama:/root/.ollama` menyimpan model-model Ollama. Tanpa volume ini, seluruh data akan hilang saat *container* dihapus.
 
 Akses GPU diberikan melalui flag `--gpus=all` yang meneruskan seluruh GPU host ke dalam *container*. Tanpa flag ini, model akan berjalan di CPU — jauh lebih lambat. Kombinasi kedua flag itulah yang menjadi perintah *deployment* standar:
 
@@ -110,7 +110,7 @@ Alur RAG di Open WebUI dapat diuraikan dalam enam tahap: *document loading*, *ch
 
 Tahap pertama adalah memuat dokumen. Open WebUI menerima berbagai format: **PDF, DOCX, TXT, Markdown, hingga HTML**. Saat dokumen diunggah, *parser* internal (berbasis *library* seperti Tika dan Docling, dengan dukungan OCR untuk dokumen hasil scan) mengekstrak teks mentah dari format-format tersebut.
 
-Teks yang panjang tidak bisa langsung dimasukkan ke model — model hanya melihat sejumlah token dalam satu waktu. Karena itu teks dipecah menjadi potongan-potongan yang disebut **chunk**. Ukuran *chunk* dan *overlap* bersifat *configurable*: pada konfigurasi standar, **chunk size 1000 token** dengan **chunk overlap 200 token**. *Overlap* sengaja dipertahankan agar kalimat yang terpotong di ujung satu *chunk* tidak kehilangan konteksnya saat di-embed secara terpisah — seperti menyambung kaset yang ujungnya saling tumpang tindih agar tidak ada suku kata yang hilang.
+Teks yang panjang tidak bisa langsung dimasukkan ke model — model hanya melihat sejumlah token dalam satu waktu. Karena itu teks dipecah menjadi potongan-potongan yang disebut **chunk**. Ukuran *chunk* dan *overlap* bersifat *configurable*: pada konfigurasi standar, **chunk size 1000 token** dengan **chunk overlap 200 token**. *Overlap* sengaja dipertahankan agar kalimat yang terpotong di ujung satu *chunk* tidak kehilangan konteksnya saat diembed secara terpisah — seperti menyambung kaset yang ujungnya saling tumpang tindih agar tidak ada suku kata yang hilang.
 
 ### Embedding dan Vector Database
 
@@ -144,10 +144,10 @@ Gambar berikut memetakan kolom skalabilitas tabel ini ke skala logaritmik.
 
 *Gambar 3.4-1 — ChromaDB cukup untuk koleksi di bawah 10 ribu dokumen, sementara Milvus melayani 10 juta+ — selisih tiga orde magnitudo; label "Besar" pada Elasticsearch dan Qdrant dipetakan ke ~1 juta dokumen sesuai keterangan tabel.*
 
-Analisis: tidak ada jawaban tunggal yang benar — semuanya bergantung pada jumlah dokumen. ChromaDB adalah pilihan default yang tepat: nol *infrastruktur* tambahan karena berjalan *embedded* di dalam proses, cukup untuk perpustakaan dokumen pribadi hingga ribuan *chunk*. Ketika koleksi melewati batas 10 ribu dokumen atau mulai melayani banyak pengguna bersamaan, PGVector menawarkan jalur halus karena cukup menambahkan ekstensi pada PostgreSQL yang mungkin sudah ada. Pada skala jutaan dokumen, Qdrant dan Milvus yang berdiri sendiri (*standalone/distributed*) memberi *control* penuh atas *sharding* dan *replication* — tetapi juga berarti layanan tambahan yang harus dirawat. Aturan praktis: mulai dengan ChromaDB, dan pindah hanya ketika ada bukti pengukuran bahwa ChromaDB sudah menjadi *bottleneck*.
+Analisis: tidak ada jawaban tunggal yang benar — semuanya bergantung pada jumlah dokumen. ChromaDB adalah pilihan default yang tepat: nol *infrastruktur* tambahan karena berjalan *embedded* di dalam proses, cukup untuk perpustakaan dokumen pribadi hingga ribuan *chunk*. Ketika koleksi melewati batas 10 ribu dokumen atau mulai melayani banyak pengguna bersamaan, PGVector menawarkan jalur halus karena cukup menambahkan ekstensi pada PostgreSQL yang mungkin sudah ada. Pada skala jutaan dokumen, Qdrant dan Milvus yang berdiri sendiri (*standalone/distributed*) memberi *control* penuh atas *sharding* dan *replication*, tetapi juga berarti layanan tambahan yang harus dirawat. Aturan praktis: mulai dengan ChromaDB, dan pindah hanya ketika ada bukti pengukuran bahwa ChromaDB sudah menjadi *bottleneck*.
 
 
-### Diagram 1: Arsitektur RAG Pipeline Open WebUI
+### Gambar 1: Arsitektur RAG Pipeline Open WebUI
 
 Berikut alur lengkap dokumen dan pertanyaan dalam RAG pipeline Open WebUI — dua jalur yang bertemu di tahap penyusunan konteks:
 
@@ -180,7 +180,7 @@ Fitur **Tools** adalah yang membedakan Open WebUI dari sekadar *chat UI*: ia mem
 
 ### Custom Tools: Python di dalam Sandbox
 
-Yang lebih menarik adalah *custom tools*: Anda menulis fungsi Python, dan model akan memanggilnya saat relevan — seperti *function calling* di platform komersial, tetapi berjalan sepenuhnya lokal. Fungsi ini dieksekusi di *sandbox* sehingga kode tidak langsung menyentuh sistem host. Tutorial B pada bagian Praktikum memperlihatkan contoh lengkap sebuah *tool* kalkulator.
+Yang lebih menarik adalah *custom tools*: Anda menulis fungsi Python, dan model akan memanggilnya saat relevan — seperti *function calling* di platform komersial, tetapi berjalan sepenuhnya lokal. Fungsi ini dieksekusi di *sandbox* sehingga kode tidak langsung menyentuh sistem host. Langkah 2 pada bagian Praktikum memperlihatkan contoh lengkap sebuah *tool* kalkulator.
 
 Open WebUI mendukung dua mode: **native function calling** — model dilatih untuk mengeluarkan panggilan fungsi terstruktur — dan **default mode** yang lebih longgar. *Tools* diaktifkan dalam percakapan dengan mengetik `@nama_tool` atau membiarkan model memanggilnya otomatis.
 
@@ -240,9 +240,9 @@ Analisis: dari tabel ini terlihat mengapa Open WebUI disebut *all-in-one* — ia
 ---
 
 
-### Diagram 2: Topologi Deployment
+### Gambar 2: Topologi Deployment
 
-Diagram kedua menunjukkan bagaimana Open WebUI berdiri di tengah ekosistem backend:
+Gambar 2 menunjukkan bagaimana Open WebUI berdiri di tengah ekosistem backend:
 
 ```mermaid
 graph TB
@@ -264,7 +264,7 @@ Topologi ini menggambarkan fleksibilitas *multi-engine*: Open WebUI menjadi satu
 ## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Deployment Docker + RAG Setup
+### Langkah 1: Deployment Docker + RAG Setup
 
 Langkah pertama, deploy Open WebUI dengan Ollama yang sudah dibundel, lalu siapkan model inference dan embedding:
 
@@ -303,7 +303,7 @@ docker exec -it open-webui ollama pull nomic-embed-text
 
 Perhatikan bahwa tiga model diunduh dengan peran berbeda: `deepseek-v4-flash` dan `llama3.1:8b` untuk *generation*, `nomic-embed-text` untuk *embedding*. Model *embedding* tidak perlu sebesar model *generation* — ia hanya menerjemahkan teks ke vektor, bukan menghasilkan jawaban. Saat pengujian, tanyakan sesuatu yang hanya bisa dijawab dari dokumen yang Anda unggah — misalnya kutipan angka dari dokumen tersebut — untuk memastikan RAG benar-benar berfungsi, bukan sekadar menjawab dari pengetahuan umum model.
 
-### Tutorial B: Custom Tool — Kalkulator Python
+### Langkah 2: Custom Tool — Kalkulator Python
 
 Sekarang buat *tool* pertama: kalkulator aritmatika yang dieksekusi di *sandbox*. Di antarmuka Open WebUI, masuk ke **Workspace > Tools > Create Tool**:
 
@@ -348,7 +348,7 @@ def kalkulator(ekspresi: str) -> str:
 
 Dua detail penting dalam *tool* ini. Pertama, *whitelist* karakter — `0123456789+-*/(). ` — menyaring input sebelum diteruskan ke `eval()`, mencegah ekspresi berbahaya seperti `__import__('os').system('rm -rf /')`. Kedua, *error handling* pada pembagian dengan nol. Pola *whitelist + error handling* ini adalah *best practice* untuk semua *custom tool* yang akan Anda tulis.
 
-### Tutorial C: Web Search RAG Integration
+### Langkah 3: Web Search RAG Integration
 
 Langkah terakhir, aktifkan *web search* agar model dapat menjawab pertanyaan *real-time*:
 
@@ -382,9 +382,9 @@ Untuk privasi maksimal, *self-host* SearXNG sebagai penyedia: *search* berjalan 
 
 **Analisis pilihan.** Model di cloud mahal per-token dan mengirim data siswa ke pihak ketiga — tidak cocok untuk sekolah. Model lokal di server yang ada adalah pilihan realistis, dengan Open WebUI sebagai *frontend* karena satu alasan kunci: dukungan **multi-user RBAC**. Diperlukan pemisahan peran — 10 guru sebagai admin yang mengelola *knowledge base*, 500 siswa sebagai user terbatas tanpa akses pengaturan. Alternatif seperti Text-Generation-WebUI gugur di sini karena tidak memiliki manajemen pengguna.
 
-**Solusi.** Deployment: Open WebUI + Ollama di server sekolah. Dua model *generation* disiapkan dengan strategi berjenjang: **DeepSeek V4 Flash** untuk pertanyaan ringan (definisi, ringkasan) yang menuntut kecepatan, dan **Qwen2.5-14B Q4_K_M** untuk tugas berat seperti pemecahan soal fisika bertahap. RAG dikonfigurasi dengan ChromaDB (default) — koleksi **200+ buku pelajaran PDF** di-*chunk* (1000 token, overlap 200) dan di-*embed* dengan nomic-embed-text lokal, sehingga tidak ada data yang keluar dari server.
+**Solusi.** Deployment: Open WebUI + Ollama di server sekolah. Dua model *generation* disiapkan dengan strategi berjenjang: **DeepSeek V4 Flash** untuk pertanyaan ringan (definisi, ringkasan) yang menuntut kecepatan, dan **Qwen 2.5 (14B) Q4_K_M** untuk tugas berat seperti pemecahan soal fisika bertahap. RAG dikonfigurasi dengan ChromaDB (default) — koleksi **200+ buku pelajaran PDF** di-*chunk* (1000 token, overlap 200) dan di-*embed* dengan nomic-embed-text lokal, sehingga tidak ada data yang keluar dari server.
 
-**Hasil.** Siswa bertanya dalam bahasa alami dan mendapat jawaban dengan konteks dari buku yang sesuai; guru memantau pengguna dan *knowledge base* dari admin panel. DeepSeek V4 Flash menangani mayoritas pertanyaan ringan dengan respons cepat, sementara Qwen2.5-14B diaktifkan untuk soal yang menuntut *reasoning* — *model switching* di tengah percakapan dimanfaatkan guru untuk memilih sesuai tingkat kesulitan. Untuk pelajaran coding, *tool* Python kustom dijalankan di *sandbox* sehingga siswa bisa menguji potongan kode langsung di dalam chat.
+**Hasil.** Siswa bertanya dalam bahasa alami dan mendapat jawaban dengan konteks dari buku yang sesuai; guru memantau pengguna dan *knowledge base* dari admin panel. DeepSeek V4 Flash menangani mayoritas pertanyaan ringan dengan respons cepat, sementara Qwen 2.5 (14B) diaktifkan untuk soal yang menuntut *reasoning* — *model switching* di tengah percakapan dimanfaatkan guru untuk memilih sesuai tingkat kesulitan. Untuk pelajaran coding, *tool* Python kustom dijalankan di *sandbox* sehingga siswa bisa menguji potongan kode langsung di dalam chat.
 
 **Pelajaran.** Pertama, *budgeting* yang bijak: **biaya software Rp 0** — seluruh komponen *open source*, hardware memanfaatkan server existing. Kedua, skala model tidak harus selalu besar: kombinasi model cepat untuk 80% pertanyaan dan model kuat untuk 20% sisanya jauh lebih efisien daripada satu model besar untuk semua. Ketiga, fitur RBAC bukan kemewahan — di institusi pendidikan, pembatasan akses dan peran admin adalah kebutuhan fungsional yang menentukan kelayakan sebuah solusi.
 

@@ -51,7 +51,7 @@ Masih dalam arsitektur CPU-only, ada satu detail *threading* yang layak dipahami
 
 Sebagai penutup seksi ini, satu rangkuman yang perlu dibawa ke sesi praktikum: GPT4All adalah **sistem CPU-only yang berlapis tiga** — format GGUF memungkinkan model muat, instruksi SIMD (AVX2/NEON) mempercepat hitungan, dan *threading* OpenMP memanfaatkan semua inti. Ketiganya bekerja di atas satu sumber daya bersama: RAM. Setiap keputusan di Langkah 1-3 praktikum nanti — pilihan model, kuantisasi, jumlah *thread* — pada akhirnya adalah keputusan tentang bagaimana memakai RAM yang terbatas itu sebaik mungkin.
 
-### Tabel 2: Perbandingan GPT4All vs Alternatif CPU-Only
+### Tabel 1: Perbandingan GPT4All vs Alternatif CPU-Only
 
 | Fitur | GPT4All | Ollama (CPU) | llama.cpp | LM Studio |
 |:---|:---|:---|:---|:---|
@@ -105,7 +105,11 @@ Leaderboard ini bekerja seperti menu restoran yang sudah diberi bintang oleh jur
 
 Rentang ukuran model yang direkomendasikan adalah **500MB hingga 4GB** (semua dalam kuantisasi Q4). Pilihan utama meliputi **Mistral 7B Q4** (standar lama yang masih tangguh), **Phi-3-mini Q4** (3.8B, efisien dan cerdas), **Gemma 2 Q4**, dan — yang paling menarik untuk 2026 — **Ministral 3** (varian 3B/8B). Ministral 3, dirilis Desember 2025, adalah keluarga model *dense* 3B/8B/14B dengan lisensi **Apache 2.0** yang dibangun lewat *Cascade Distillation* — teknik menggabungkan *pruning* dan distilasi sehingga *footprint*-nya kecil tetapi kemampuannya tinggi. Bagi perangkat CPU-only, model 1-3B inilah "kuda beban" yang sebenarnya: cukup ringan untuk RAM 4GB, cukup cepat untuk dipakai menulis, dan cukup pintar untuk tugas harian.
 
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
+
 Fenomena yang patut dicatat: kualitas "cukup pintar" ini naik setiap generasi model kecil. TinyLlama 1.1B yang dua tahun lalu dianggap model pemula kini tergantikan oleh keluarga Ministral 3 dan Phi yang jauh lebih mumpuni pada ukuran yang sama. Artinya, rekomendasi model di sub-bab ini bukan harga mati — lakukan pemeriksaan *leaderboard* GPT4All secara berkala setiap beberapa bulan. Perangkat lama Anda tidak berubah, tetapi katalog model yang muat di dalamnya terus membaik: ini keuntungan unik menjadi pengguna *hardware* lawas di tahun 2026 — dulu tertinggal, kini dijemput kemajuan.
+
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 Aturan praktisnya sederhana: **mulai dari yang paling kecil yang bisa menyelesaikan tugas Anda**. Model 7B terlihat lebih mengesankan di atas kertas, tetapi 3B yang berjalan 3 kali lebih cepat akan lebih produktif di perangkat yang sama.
 
@@ -115,7 +119,7 @@ Satu pola yang bisa diprediksi dari pengalaman banyak pengguna GPT4All: **model 
 
 Tiga tabel berikut adalah peta jalan praktis untuk pengguna *hardware* lawas: Tabel 1 memetakan model ke kebutuhan perangkat, Tabel 2 membandingkan GPT4All dengan tiga alternatif, dan Tabel 3 menunjukkan angka nyata di salah satu laptop lawas paling umum di pasaran. Bacalah berurutan: pilih kelas model dari Tabel 1, konfirmasi keunggulan alat dari Tabel 2, dan temper ekspektasi dengan data nyata dari Tabel 3.
 
-### Tabel 1: Spesifikasi Hardware Minimal per Model
+### Tabel 2: Spesifikasi Hardware Minimal per Model
 
 Tabel berikut memetakan ukuran model terhadap kebutuhan CPU dan RAM, beserta estimasi kecepatan di perangkat kelas menengah.
 
@@ -206,9 +210,9 @@ Pengukuran berikut dilakukan pada laptop generasi 2017 — Intel i5-7200U dengan
 
 | Model | Q Level | Load Time | Speed (t/s) | VRAM | RAM Usage |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| Phi-3-mini-3.8B | Q4_0 | 3.2s | 8.5 t/s | 0 GB | 3.1 GB |
-| Mistral-7B | Q4_0 | 8.1s | 3.2 t/s | 0 GB | 5.8 GB |
-| TinyLlama-1.1B | Q4_0 | 1.5s | 22 t/s | 0 GB | 1.2 GB |
+| Phi-3-mini-3.8B | Q4_0 | 3,2 dtk | 8,5 t/s | 0 GB | 3,1 GB |
+| Mistral-7B | Q4_0 | 8,1 dtk | 3,2 t/s | 0 GB | 5,8 GB |
+| TinyLlama-1.1B | Q4_0 | 1,5 dtk | 22 t/s | 0 GB | 1,2 GB |
 
 Gambar berikut menampilkan dua kolom paling menentukan dari tabel ini: kecepatan dan konsumsi RAM ketiga model.
 
@@ -232,7 +236,7 @@ Tidak ada solusi tanpa kompromi, dan GPT4All jujur mengenai keterbatasannya. Per
 
 Ketiga keterbatasan ini sebenarnya satu cerita yang sama: GPT4All memilih *kesederhanaan* sebagai desain, dan kesederhanaan selalu datang dengan harga. Harga yang dibayar ada pada *throughput* (lambat), *fleksibilitas* (sedikit opsi), dan *skalabilitas* (satu pengguna, satu perangkat). Namun harga itu membuat aplikasi bisa diinstal oleh siapa pun dalam satu klik — dan bagi sebagian besar calon pengguna di segmen ini, menukar fleksibilitas demi satu klik adalah kesepakatan yang sangat menguntungkan. Justru pengguna yang butuh *fleksibilitas* itulah yang harus jujur menilai diri dan berpindah ke alat lain.
 
-Jika batas-batas ini terasa menghambat, ada jalan keluar: **Ollama** atau llama.cpp langsung memberi kendali lebih besar — pengaturan *thread*, pemilihan kuantisasi, hingga *GPU offload* jika suatu saat perangkat di-upgrade. Namun untuk pengguna yang perangkatnya memang lawas dan tujuannya sederhana — asisten menulis, RAG dokumen pribadi, belajar AI tanpa biaya — GPT4All tetap pilihan paling masuk akal: instalasi satu klik, tanpa konfigurasi, dan langsung jalan. Seperti kata pepatah, alat yang tepat adalah alat yang dipakai; bagi jutaan laptop tua di Indonesia, GPT4All adalah alat yang tepat itu.
+Jika batas-batas ini terasa menghambat, ada jalan keluar: **Ollama** atau llama.cpp langsung memberi kendali lebih besar — pengaturan *thread*, pemilihan kuantisasi, hingga *GPU offload* jika suatu saat perangkat diupgrade. Namun untuk pengguna yang perangkatnya memang lawas dan tujuannya sederhana — asisten menulis, RAG dokumen pribadi, belajar AI tanpa biaya — GPT4All tetap pilihan paling masuk akal: instalasi satu klik, tanpa konfigurasi, dan langsung jalan. Seperti kata pepatah, alat yang tepat adalah alat yang dipakai; bagi jutaan laptop tua di Indonesia, GPT4All adalah alat yang tepat itu.
 
 Ada satu skenario lagi yang menarik untuk dicatat: ketika pengguna dengan laptop lawas **meng-upgrade** perangkatnya, GPT4All tidak harus ditinggalkan. Model yang sama — file GGUF yang sama — bisa langsung dijalankan di Ollama atau LM Studio tanpa konversi apa pun. Inilah keuntungan format GGUF yang menjadi bahasa bersama (lihat sub-bab 3.1): investasi Anda dalam memilih dan mengunduh model tidak pernah hangus. Perjalanan pengguna sering kali linear: mulai dengan GPT4All di perangkat tua, lalu "lulus" ke tool yang lebih canggih ketika perangkatnya ikut naik kelas — tanpa kehilangan satu file pun.
 
@@ -268,9 +272,9 @@ wget https://gpt4all.io/models/gguf/mistral-7b-instruct-v0.2.Q4_0.gguf
 # Prompt: "Jelaskan cara kerja CPU dalam 3 kalimat"
 ```
 
-Langkah 3 menunjukkan bahwa GPT4All tetap terbuka bagi pengguna terminal: model hanyalah file GGUF biasa yang bisa diunduh dengan `wget` dan didaftarkan lewat menu *Add Local Model*. Bagi pengguna yang hanya punya laptop 4GB RAM, pertimbangkan mengganti Mistral 7B dengan Phi-3-mini Q4 yang lebih ramah memori — lihat kembali Tabel 1 sebelum memutuskan.
+Langkah 3 menunjukkan bahwa GPT4All tetap terbuka bagi pengguna terminal: model hanyalah file GGUF biasa yang bisa diunduh dengan `wget` dan didaftarkan lewat menu *Add Local Model*. Bagi pengguna yang hanya punya laptop 4GB RAM, pertimbangkan mengganti Mistral 7B dengan Phi-3-mini Q4 yang lebih ramah memori — lihat kembali Tabel 2 sebelum memutuskan.
 
-Satu hal yang perlu diperhatikan pada rute *manual* (langkah 3-4): pastikan nama file GGUF yang diunduh cocok dengan kuantisasi yang dijanjikan. Nama seperti `mistral-7b-instruct-v0.2.Q4_0.gguf` mengikuti konvensi yang konsisten — `Q4_0` adalah tingkat kuantisasi. Jika Anda mengunduh varian Q8 (lebih besar, lebih akurat), ingat bahwa ia membutuhkan RAM lebih banyak; jangan ganti varian mendadak tanpa memeriksa Tabel 1. Disiplin kecil — membaca nama file sebelum mengunduh — adalah kebiasaan yang mencegah hampir semua masalah "model tidak bisa dimuat" di GPT4All.
+Satu hal yang perlu diperhatikan pada rute *manual* (langkah 3-4): pastikan nama file GGUF yang diunduh cocok dengan kuantisasi yang dijanjikan. Nama seperti `mistral-7b-instruct-v0.2.Q4_0.gguf` mengikuti konvensi yang konsisten — `Q4_0` adalah tingkat kuantisasi. Jika Anda mengunduh varian Q8 (lebih besar, lebih akurat), ingat bahwa ia membutuhkan RAM lebih banyak; jangan ganti varian mendadak tanpa memeriksa Tabel 2. Disiplin kecil — membaca nama file sebelum mengunduh — adalah kebiasaan yang mencegah hampir semua masalah "model tidak bisa dimuat" di GPT4All.
 
 ### Langkah 2: Setup LocalDocs untuk RAG
 
@@ -339,7 +343,7 @@ Seorang staf administrasi di sebuah kantor kecamatan membawa pulang **Lenovo Thi
 
 **Analisis pilihan.** Tanpa GPU, RAM hanya 8GB, dan tidak boleh bergantung internet di ruangan tanpa sinyal stabil. Ollama dan LM Studio sebenarnya bisa berjalan, tetapi keduanya menuntut konfigurasi yang lebih rumit dan pengalaman terminal — bukan untuk profil pengguna ini. **GPT4All** adalah jawaban yang hampir dibuat khusus untuk situasi ini: satu klik, model dari katalog, dan *LocalDocs* yang menjadikan folder arsip kantor sebagai sumber jawaban. Keputusan ini juga mempertimbangkan *audiens*: laptop tersebut kadang dipakai rekan kerja lain yang tingkat teknisnya lebih rendah — antarmuka GPT4All yang sederhana berarti tanpa pelatihan tambahan.
 
-**Langkah solusi.** Model yang dipilih bukan Mistral 7B, melainkan **Phi-3-mini-3.8B Q4_0** — berdasarkan Tabel 1 dan 3, ini satu-satunya model yang memberi kecepatan layak (8,5 t/s) dengan RAM 3,1GB, menyisakan ruang untuk sistem dan dokumen. *LocalDocs* diisi dengan folder artikel referensi dan template surat, di-*chunk* 512 token dengan *Top K* 3. Sesi menulis dimulai dengan menyalakan *toggle LocalDocs* lalu bertanya dalam format permintaan surat.
+**Langkah solusi.** Model yang dipilih bukan Mistral 7B, melainkan **Phi-3-mini-3.8B Q4_0** — berdasarkan Tabel 2 dan 3, ini satu-satunya model yang memberi kecepatan layak (8,5 t/s) dengan RAM 3,1GB, menyisakan ruang untuk sistem dan dokumen. *LocalDocs* diisi dengan folder artikel referensi dan template surat, di-*chunk* 512 token dengan *Top K* 3. Sesi menulis dimulai dengan menyalakan *toggle LocalDocs* lalu bertanya dalam format permintaan surat.
 
 **Hasil & pelajaran.** Model berjalan di kisaran **6-8 t/s** — cukup cepat untuk menulis draft email dan mengedit surat tanpa rasa "menunggu". Percobaan pertama dengan model 7B langsung dibatalkan: kecepatannya sekitar **2 t/s**, terlalu lambat untuk alur kerja apa pun; pelajaran ini menegaskan aturan "mulai dari yang terkecil yang cukup". Total biaya: **Rp 0** — *software* gratis dan perangkat keras yang sudah ada. Kesimpulannya: GPT4All menghidupkan kembali laptop lawas sebagai *AI writing assistant* yang berdampak nyata — dan yang lebih penting, cerita ini bisa direplikasi di ribuan kantor lain yang komputernya dianggap "sampah" padahal masih bisa berbuat banyak.
 

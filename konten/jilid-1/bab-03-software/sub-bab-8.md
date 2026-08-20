@@ -35,7 +35,7 @@ Konsekuensi paling berharga dari komputasi di browser adalah **privasi absolut**
 
 Browser ada di mana-mana: desktop, laptop, tablet, bahkan ponsel. Tidak seperti aplikasi native yang harus dikembangkan dua kali (Android dan iOS), satu aplikasi web berbasis WebLLM langsung berjalan di seluruh perangkat yang mendukung WebGPU. Bagi developer dengan sumber daya terbatas, ini adalah cara paling murah untuk menjangkau sebanyak mungkin perangkat sekaligus.
 
-### Tabel C: Perbandingan Framework Browser LLM
+### Tabel 1: Perbandingan Framework Browser LLM
 
 Tiga pendekatan utama inference di browser dibandingkan di bawah ini.
 
@@ -66,9 +66,9 @@ Keindahan WebGPU terletak pada sifatnya yang **backend-agnostic**. Kode yang And
 
 ### Dukungan Browser
 
-Adopsi WebGPU berjalan cepat. **Chrome 113+** dan **Edge 113+** mendukung penuh dan stabil; **Opera 99+** juga lengkap. **Safari** masih parsial sejak 16.4, dan **Firefox** masih eksperimental di versi Nightly. Bagi developer, artinya: WebGPU siap digunakan di mayoritas perangkat desktop modern, tetapi tetap wajib menyediakan *fallback* — sebuah topik yang akan kita bahas di tutorial.
+Adopsi WebGPU berjalan cepat. **Chrome 113+** dan **Edge 113+** mendukung penuh dan stabil; **Opera 99+** juga lengkap. **Safari** masih parsial sejak 16.4, dan **Firefox** masih eksperimental di versi Nightly. Bagi developer, artinya: WebGPU siap digunakan di mayoritas perangkat desktop modern, tetapi tetap wajib menyediakan *fallback* — sebuah topik yang akan kita bahas di bagian Praktikum.
 
-### Tabel A: Browser Support WebGPU
+### Tabel 2: Browser Support WebGPU
 
 Tabel berikut menunjukkan status dukungan WebGPU di browser utama — informasi krusial sebelum Anda memutuskan WebLLM sebagai fondasi aplikasi.
 
@@ -96,7 +96,7 @@ Hasilnya adalah efisiensi yang sulit dicapai dengan pendekatan *from-scratch*: o
 
 ### Web Workers: Inference Tanpa Membekukan UI
 
-Salah satu masalah terbesar inference di browser adalah *blocking*: jika komputasi berat berjalan di *main thread*, halaman web membeku. WebLLM memindahkan seluruh beban kerja ke **Web Worker** — *background thread* yang berkomunikasi dengan UI via pesan. Pengguna bisa terus mengetik, men-scroll, atau mengklik tombol sementara model berpikir di balik layar. Pengalaman ini, yang dijelaskan dalam paper utama WebLLM oleh Ruan et al. (2024) [1], adalah salah satu alasan utama WebLLM terasa "native".
+Salah satu masalah terbesar inference di browser adalah *blocking*: jika komputasi berat berjalan di *main thread*, halaman web membeku. WebLLM memindahkan seluruh beban kerja ke **Web Worker** — *background thread* yang berkomunikasi dengan UI via pesan. Pengguna bisa terus mengetik, menggulir, atau mengklik tombol sementara model berpikir di balik layar. Pengalaman ini, yang dijelaskan dalam paper utama WebLLM oleh Ruan et al. (2024) [1], adalah salah satu alasan utama WebLLM terasa "native".
 
 ### OpenAI-Compatible API
 
@@ -133,22 +133,22 @@ Pesan utama diagram ini adalah pemisahan tanggung jawab: komputasi berat mengali
 
 Klaim paling kontroversial dari WebLLM adalah performanya yang mendekati native. Data benchmark dari paper Ruan et al. (2024) [1] pada **M3 Max dengan model 7B** menunjukkan *decode speed* WebGPU sebesar **42,5 token/detik** dibanding **51,2 t/s** native — rasio sekitar **83%**. Prefill 128 token hanya kehilangan 22% kecepatan, dan pada konteks 2048 token gapnya menyempit menjadi 12%. Memori 5,8 GB versus 5,2 GB.
 
-Bottleneck utamanya adalah **driver translation**: WGSL harus diterjemahkan ke *native shader* setiap kali kernel berjalan. Ini biaya tetap yang tidak dimiliki aplikasi native — tetapi dengan komputasi yang cukup besar (seperti prefill 2048 token), biaya tetap itu ter-amortisasi, dan gap justru mengecil.
+Bottleneck utamanya adalah **driver translation**: WGSL harus diterjemahkan ke *native shader* setiap kali kernel berjalan. Ini biaya tetap yang tidak dimiliki aplikasi native, tetapi dengan komputasi yang cukup besar (seperti prefill 2048 token), biaya tetap itu teramortisasi, dan gap justru mengecil.
 
 ### Model yang Realistis di Browser
 
 Konsekuensi praktisnya: model **2B–7B dengan kuantisasi Q4** adalah kisaran yang nyaman untuk browser. Di atas itu, *memory limit* perangkat menjadi pembatas — karena WebGPU dibatasi oleh *device memory* GPU yang tersedia, bukan RAM sistem. Model 3B seperti **Llama 3.2 3B** atau **Ministral 3 3B** adalah titik manis: cukup cerdas untuk tugas harian, cukup ringan untuk dimuat dalam hitungan detik.
 
-### Tabel B: Performa WebLLM vs Native (M3 Max, 7B Model)
+### Tabel 3: Performa WebLLM vs Native (M3 Max, 7B Model)
 
 Data ini bersumber dari benchmark resmi WebLLM (Ruan et al., 2024) [1] pada Apple M3 Max dengan model 7B.
 
 | Metrik | WebLLM (WebGPU) | Native (Metal) | Rasio |
 |:---|:---:|:---:|:---:|
-| **Decode Speed (t/s)** | 42.5 t/s | 51.2 t/s | ~83% |
+| **Decode Speed (t/s)** | 42,5 t/s | 51,2 t/s | ~83% |
 | **Prefill (128 tok)** | 0.82s | 0.64s | ~78% |
 | **Prefill (2048 tok)** | 4.1s | 3.6s | ~88% |
-| **Memory Usage** | 5.8 GB | 5.2 GB | ~112% |
+| **Memory Usage** | 5,8 GB | 5,2 GB | ~112% |
 
 ![Perbandingan performa WebLLM versus native pada M3 Max dengan model 7B](../../assets/images/bab-03-software/sub-bab-8/performa-browser-vs-native.png)
 
@@ -158,7 +158,7 @@ Data ini bersumber dari benchmark resmi WebLLM (Ruan et al., 2024) [1] pada Appl
 
 *Gambar 3.8-2 — WebLLM memimpin dengan akselerasi GPU penuh (WebGPU), sementara framework berbasis CPU tertinggal jauh dalam rating kecepatan.*
 
-Analisis: pola yang paling informatif adalah *decode speed* — metrik yang paling terasa oleh pengguna akhir. Kehilangan 17% kecepatan berarti 42,5 token per detik, tetap jauh di atas kecepatan membaca manusia, sehingga hampir tidak terasa dalam percakapan biasa. Yang lebih menarik: pada prefill panjang (2048 token), rasio membaik ke 88% — konfirmasi bahwa *overhead* terjemahan WGSL ter-amortisasi pada beban komputasi yang besar. Memori ekstra 12% adalah harga wajar untuk lapisan abstraksi browser.
+Analisis: pola yang paling informatif adalah *decode speed* — metrik yang paling terasa oleh pengguna akhir. Kehilangan 17% kecepatan berarti 42,5 token per detik, tetap jauh di atas kecepatan membaca manusia, sehingga hampir tidak terasa dalam percakapan biasa. Yang lebih menarik: pada prefill panjang (2048 token), rasio membaik ke 88% — konfirmasi bahwa *overhead* terjemahan WGSL teramortisasi pada beban komputasi yang besar. Memori ekstra 12% adalah harga wajar untuk lapisan abstraksi browser.
 
 
 ---
@@ -193,10 +193,10 @@ Tidak adil jika tidak menyebut keterbatasannya. Ukuran model terbatas pada sekit
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: WebLLM Chat — Hello World
+### Langkah 1: WebLLM Chat — Hello World
 
 Mulailah dengan halaman HTML tunggal yang menjalankan model di browser. Pastikan Anda menggunakan Chrome 113+ atau Edge 113+.
 
@@ -255,7 +255,7 @@ Mulailah dengan halaman HTML tunggal yang menjalankan model di browser. Pastikan
 
 Perhatikan kemiripan `engine.chat.completions.create` dengan OpenAI SDK — hanya saja *engine* berjalan sepenuhnya di browser. Saat pertama kali dibuka, model diunduh dari CDN; kunjungan berikutnya memanfaatkan *cache* sehingga prosesnya jauh lebih cepat.
 
-### Tutorial B: Setup WebGPU Check dan Fallback
+### Langkah 2: Setup WebGPU Check dan Fallback
 
 Karena tidak semua browser mendukung WebGPU, aplikasi produksi wajib memeriksa ketersediaannya dan menyiapkan rencana cadangan.
 
@@ -300,7 +300,7 @@ Karena tidak semua browser mendukung WebGPU, aplikasi produksi wajib memeriksa k
 
 Deteksi tiga lapis — dukungan API, adapter, lalu device — memastikan Anda tahu persis kemampuan mesin pengguna. Strategi *fallback* yang ditampilkan di sini (turun ke transformers.js berbasis CPU) menjaga aplikasi tetap berfungsi di semua browser, dengan pengalaman yang lebih lambat tetapi tetap berjalan.
 
-### Tutorial C: Multiple Model Switching
+### Langkah 3: Multiple Model Switching
 
 Banyak aplikasi butuh lebih dari satu model — model ringan untuk chat cepat dan model lebih besar untuk penalaran. Kelas berikut mengelola beberapa engine sekaligus.
 

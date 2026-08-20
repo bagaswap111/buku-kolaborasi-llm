@@ -19,7 +19,7 @@ Setelah membaca bab ini, Anda akan mampu:
 ## 2. Pendahuluan
 
 
-Pada awal 2017, dunia kecerdasan buatan masih didominasi oleh arsitektur RNN (Recurrent Neural Network) dan LSTM (Long Short-Term Memory) untuk pemrosesan bahasa alami. Model-model ini lambat, sulit dilatih, dan tidak bisa menangani konteks panjang. Kemudian datanglah sebuah makalah yang tidak hanya mengubah NLP — tetapi seluruh lanskap AI. Makalah "Attention Is All You Need" dari Vaswani et al. memperkenalkan arsitektur Transformer, sebuah pendekatan revolusioner yang murni berbasis mekanisme *self-attention*, tanpa RNN sama sekali.
+Pada awal 2017, dunia kecerdasan buatan masih didominasi oleh arsitektur RNN (Recurrent Neural Network) dan LSTM (Long Short-Term Memory) untuk pemrosesan bahasa alami. Model-model ini lambat, sulit dilatih, dan tidak bisa menangani konteks panjang. Kemudian datanglah sebuah makalah yang tidak hanya mengubah NLP, tetapi juga seluruh lanskap AI. Makalah "Attention Is All You Need" dari Vaswani et al. memperkenalkan arsitektur Transformer, sebuah pendekatan revolusioner yang murni berbasis mekanisme *self-attention*, tanpa RNN sama sekali.
 
 Dalam waktu kurang dari satu dekade, arsitektur ini berevolusi dari model 0.1 miliar parameter (GPT-1) menjadi model 1,6 triliun parameter (DeepSeek V4 Pro) yang bisa diunduh dan dijalankan di workstation kelas menengah. Perjalanan ini bukan sekadar cerita tentang parameter yang semakin besar — ini adalah cerita tentang demokratisasi AI, tentang bagaimana teknologi yang awalnya hanya dikuasai oleh raksasa teknologi akhirnya bisa dimiliki oleh siapa pun dengan sebuah laptop.
 
@@ -30,17 +30,17 @@ Dalam waktu kurang dari satu dekade, arsitektur ini berevolusi dari model 0.1 mi
 
 ### Transformer: Attention Is All You Need
 
- Pada bulan Juni 2017, tim peneliti Google — Ashish Vaswani, Noam Shazeer, Niki Parmar, dan rekan-rekan — mempublikasikan makalah yang menjadi fondasi semua LLM modern. Transformer memperkenalkan arsitektur *encoder-decoder* yang sepenuhnya mengandalkan mekanisme *self-attention*, di mana setiap token dalam sebuah urutan dapat "memperhatikan" token lainnya tanpa batasan jarak. Ini adalah terobosan fundamental: RNN dan LSTM memproses token secara sekuensial (token ke-5 harus menunggu token ke-1 sampai 4), sementara Transformer memproses semua token secara paralel.
+Pada bulan Juni 2017, tim peneliti Google — Ashish Vaswani, Noam Shazeer, Niki Parmar, dan rekan-rekan — mempublikasikan makalah yang menjadi fondasi semua LLM modern. Transformer memperkenalkan arsitektur *encoder-decoder* yang sepenuhnya mengandalkan mekanisme *self-attention*, di mana setiap token dalam sebuah urutan dapat "memperhatikan" token lainnya tanpa batasan jarak. Ini adalah terobosan fundamental: RNN dan LSTM memproses token secara sekuensial (token ke-5 harus menunggu token ke-1 sampai 4), sementara Transformer memproses semua token secara paralel.
 
 Keunggulan Transformer tidak hanya pada kecepatan training. Mekanisme *self-attention* memungkinkan model menangkap ketergantungan jarak jauh yang sebelumnya mustahil bagi RNN. Dalam praktiknya, ini berarti Transformer bisa memahami konteks kalimat dengan lebih baik — misalnya, menghubungkan kata ganti "dia" dengan subjek yang disebutkan lima kalimat sebelumnya.
 
 ### BERT dan GPT-1: Dua Cabang Evolusi
 
- Makalah Transformer membuka jalan bagi dua garis keturunan arsitektur yang berbeda. Pertama, **BERT** (Bidirectional Encoder Representations from Transformers) yang dirilis oleh Google pada 2018. BERT adalah *encoder-only* — ia membaca teks secara dua arah (kiri-ke-kanan dan kanan-ke-kiri) dan unggul dalam tugas pemahaman seperti klasifikasi teks, menjawab pertanyaan, dan analisis sentimen. Dengan 340 juta parameter, BERT menjadi standar baru untuk NLP pada masanya.
+Makalah Transformer membuka jalan bagi dua garis keturunan arsitektur yang berbeda. Pertama, **BERT** (Bidirectional Encoder Representations from Transformers) yang dirilis oleh Google pada 2018. BERT adalah *encoder-only* — ia membaca teks secara dua arah (kiri-ke-kanan dan kanan-ke-kiri) dan unggul dalam tugas pemahaman seperti klasifikasi teks, menjawab pertanyaan, dan analisis sentimen. Dengan 340 juta parameter, BERT menjadi standar baru untuk NLP pada masanya.
 
 Kedua, **GPT-1** (Generative Pre-trained Transformer) yang dirilis oleh OpenAI pada Juni 2018. GPT-1 adalah *decoder-only* — ia membaca teks secara searah (kiri-ke-kanan) dan unggul dalam tugas generasi seperti menulis teks, percakapan, dan kode. Dengan hanya 117 juta parameter, GPT-1 adalah model kecil, tetapi ia memperkenalkan konsep penting: *pre-training* pada data besar tanpa label, diikuti *fine-tuning* untuk tugas spesifik.
 
-Kedua arsitektur ini — encoder-only (BERT) dan decoder-only (GPT) — menjadi fondasi semua LLM modern. Pada tahun-tahun berikutnya, arsitektur decoder-only terbukti lebih skalaibel dan menjadi pilihan dominan untuk model generatif.
+Kedua arsitektur ini — encoder-only (BERT) dan decoder-only (GPT) — menjadi fondasi semua LLM modern. Pada tahun-tahun berikutnya, arsitektur decoder-only terbukti lebih skalabel dan menjadi pilihan dominan untuk model generatif.
 
 ### Tabel 1: Timeline Evolusi Model (2017-2026)
 
@@ -78,13 +78,13 @@ Kedua arsitektur ini — encoder-only (BERT) dan decoder-only (GPT) — menjadi 
 
 ### GPT-2: Kontroversi yang Mengguncang Dunia
 
- Pada 2019, OpenAI merilis GPT-2 dengan 1,5 miliar parameter — hampir 13 kali lebih besar dari GPT-1. Kualitas teks yang dihasilkan sangat meyakinkan sehingga OpenAI memutuskan untuk tidak merilis model penuh, dengan alasan "terlalu berbahaya" karena potensi penyalahgunaan untuk menghasilkan berita palsu, spam, dan konten manipulatif. Keputusan ini memicu perdebatan sengit di komunitas AI: apakah menahan model adalah tindakan bertanggung jawab atau justru kontraproduktif?
+Pada 2019, OpenAI merilis GPT-2 dengan 1,5 miliar parameter — hampir 13 kali lebih besar dari GPT-1. Kualitas teks yang dihasilkan sangat meyakinkan sehingga OpenAI memutuskan untuk tidak merilis model penuh, dengan alasan "terlalu berbahaya" karena potensi penyalahgunaan untuk menghasilkan berita palsu, spam, dan konten manipulatif. Keputusan ini memicu perdebatan sengit di komunitas AI: apakah menahan model adalah tindakan bertanggung jawab atau justru kontraproduktif?
 
 Meskipun kontroversial, GPT-2 membuktikan bahwa *scaling* — memperbesar model dan data — menghasilkan peningkatan kualitas yang dramatis. Model ini juga menunjukkan bahwa *few-shot learning* mulai muncul: GPT-2 bisa melakukan tugas yang tidak pernah dilatih secara spesifik, hanya dengan diberikan beberapa contoh dalam *prompt*.
 
 ### GPT-3: Loncatan Kuantum
 
- Puncak era model tertutup datang pada 2020 dengan GPT-3: 175 miliar parameter, dilatih pada 570 GB teks, dan mampu melakukan *few-shot learning* yang mengejutkan dunia. Tanpa *fine-tuning* khusus, GPT-3 bisa menulis esai, membuat kode Python, menjawab pertanyaan rumit, dan bahkan melakukan terjemahan bahasa — hanya dengan beberapa contoh dalam *prompt*.
+Puncak era model tertutup datang pada 2020 dengan GPT-3: 175 miliar parameter, dilatih pada 570 GB teks, dan mampu melakukan *few-shot learning* yang mengejutkan dunia. Tanpa *fine-tuning* khusus, GPT-3 bisa menulis esai, membuat kode Python, menjawab pertanyaan rumit, dan bahkan melakukan terjemahan bahasa — hanya dengan beberapa contoh dalam *prompt*.
 
 Bersamaan dengan GPT-3, makalah "Scaling Laws for Neural Language Models" (Kaplan et al., 2020) merumuskan hukum empiris: semakin besar parameter dan semakin banyak data training, semakin baik performa model. Hukum ini menjadi kredo industri selama bertahun-tahun dan mendorong perlombaan model raksasa.
 
@@ -97,7 +97,7 @@ Komersialisasi dimulai: GPT-3 tersedia hanya melalui API berbayar, ChatGPT dilun
 
 Titik balik sejarah terjadi pada Februari 2023. Meta merilis LLaMA-1 (Large Language Model Meta AI) dalam empat ukuran: 7B, 13B, 33B, dan 65B parameter. Yang membedakan LLaMA dari model sebelumnya adalah efisiensi training: LLaMA-1 7B hanya dilatih dengan 1 triliun token, sementara GPT-3 175B dilatih dengan 300 miliar token. Ini berarti model yang lebih kecil bisa mencapai kualitas kompetitif dengan biaya training yang jauh lebih rendah.
 
-Beberapa minggu setelah rilis, model LLaMA-1 "bocor" ke publik melalui forum 4chan — siapa pun bisa mengunduhnya. Bocornya LLaMA-1 memicu ledakan ekosistem lokal. Georgi Gerganov mengembangkan llama.cpp, implementasi C++ murni yang bisa menjalankan LLaMA di CPU tanpa GPU mahal. Lahirlah format GGUF (GGML Universal Format) untuk kuantisasi model, dan tools seperti Ollama serta LM Studio yang membuat instalasi model lokal semudah *drag-and-drop*.
+Beberapa minggu setelah rilis, model LLaMA-1 "bocor" ke publik melalui forum 4chan — siapa pun bisa mengunduhnya. Bocornya LLaMA-1 memicu ledakan ekosistem lokal. Georgi Gerganov mengembangkan llama.cpp, implementasi C++ murni yang bisa menjalankan LLaMA di CPU tanpa GPU mahal. Lahirlah format GGUF (GGML Universal Format) untuk kuantisasi model, dan *tools* (perangkat lunak) seperti Ollama serta LM Studio yang membuat instalasi model lokal semudah *drag-and-drop*.
 
 Dampaknya revolusioner: untuk pertama kalinya, individu dengan laptop gaming bisa menjalankan LLM berkualitas tanpa koneksi internet. Komunitas open-source mulai melakukan *fine-tuning* untuk bahasa daerah, domain medis, hukum, dan coding — sesuatu yang mustahil dilakukan dengan API tertutup.
 
@@ -403,7 +403,7 @@ plt.legend(loc='upper left')
 plt.savefig('evolusi-model-2019-2026.png', dpi=150, bbox_inches='tight')
 ```
 
-Grafik ini akan menunjukkan dua hal penting: (1) parameter total terus membesar secara eksponensial, tetapi (2) parameter aktif (untuk model MoE) jauh lebih kecil, dan (3) skor MMLU meningkat dari 32% (GPT-2) menjadi 87,2% (DeepSeek V4 Pro) — peningkatan hampir 3x dalam 7 tahun.
+Grafik ini akan menunjukkan tiga hal penting: (1) parameter total terus membesar secara eksponensial, tetapi (2) parameter aktif (untuk model MoE) jauh lebih kecil, dan (3) skor MMLU meningkat dari 32% (GPT-2) menjadi 87,2% (DeepSeek V4 Pro) — peningkatan hampir 3x dalam 7 tahun.
 
 ![Evolusi Model: Parameter vs Performa (2019-2026)](../../assets/images/bab-01/sub-bab-1/evolusi-model-2019-2026.png)
 

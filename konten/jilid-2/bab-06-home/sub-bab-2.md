@@ -23,17 +23,17 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 Sebelum membeli apa pun, hitung dulu kebutuhan **VRAM** — ini seperti mengukur tinggi pintu sebelum membeli lemari. Rumus dasarnya sederhana: **VRAM = (parameter × bit per weight) / 8 + overhead KV-cache**. Model 8 miliar parameter dalam Q4 membutuhkan kira-kira 8B × 4 bit dibagi 8 = ~4 GB untuk bobot; ditambah KV-cache maka totalnya terkendali.
 
-Contoh nyata: **Llama-3.1-8B Q4_K_M** membutuhkan ~4,5 GB untuk model plus ~2 GB *KV-cache*, total sekitar **6,5 GB** — nyaman di GPU 8-12 GB. Pola praktis yang bisa dipegang: model **7-8B nyaman di 12-16 GB**, model **13-14B membutuhkan 24 GB**, dan model **30-33B membutuhkan 32-48 GB**. Jika target Anda model kelas 70B, maka 24 GB saja tidak cukup — bahkan Q3_K_M yang terpangkas tetap menuntut skema *CPU offload*.
+Contoh nyata: **Llama 3.1 (8B) Q4_K_M** membutuhkan ~4,5 GB untuk model plus ~2 GB *KV-cache*, total sekitar **6,5 GB** — nyaman di GPU 8-12 GB. Pola praktis yang bisa dipegang: model **7-8B nyaman di 12-16 GB**, model **13-14B membutuhkan 24 GB**, dan model **30-33B membutuhkan 32-48 GB**. Jika target Anda model kelas 70B, maka 24 GB saja tidak cukup — bahkan Q3_K_M yang terpangkas tetap menuntut skema *CPU offload*.
 
 Kabar baiknya, lanskap model 2025-2026 menghadirkan tiga bintang baru yang mengubah perhitungan ini. Pertama, **Ministral 3 3B** (lisensi Apache 2.0) yang hanya ~1,8 GB dalam Q4 — cukup ringan untuk berjalan di Raspberry Pi atau NUC, bahkan *CPU-only*. Kedua, **Ministral 3 8B** dengan ~4,8 GB Q4 — *edge-optimized* dan nyaman di 8 GB VRAM, dirancang persis untuk *home server*. Ketiga, **DeepSeek V4 Flash** (284B total, **13B aktif**) yang hanya membutuhkan ~18 GB dalam INT4 — masih butuh 2x RTX 3090/4090, tetapi karena hanya 13 miliar parameter aktif per *forward pass*, *throughput*-nya luar biasa tinggi untuk ukurannya.
 
-Satu lagi hal yang sering luput: *KV-cache* pada model generasi baru sudah sangat efisien. **DeepSeek V4 Pro** misalnya memiliki *KV-cache* hanya 10% dari V3.2 — untuk konteks 32K, ia hanya butuh ~1,6 GB dibandingkan ~16 GB pada model konvensional. Artinya, efisiensi arsitektur kini sama pentingnya dengan ukuran VRAM: dua kartu yang sama secara fisik bisa berbeda jauh secara praktis.
+Satu lagi hal yang sering luput: *KV-cache* pada model generasi baru sudah sangat efisien. **DeepSeek V4 Pro** misalnya memiliki *KV-cache* hanya 10% dari V3.2 — untuk konteks 32K, ia hanya butuh ~1,6 GB dibandingkan ~16 GB pada model konvensional [Sumber?]. Artinya, efisiensi arsitektur kini sama pentingnya dengan ukuran VRAM: dua kartu yang sama secara fisik bisa berbeda jauh secara praktis.
 
 Berapa kebutuhan VRAM yang masuk akal untuk keluarga 4-8 orang? Dengan pola beban dari sub-bab 6.1 — puncak hanya 2-3 sesi paralel dengan *prompt* pendek — yang menjadi pembatas bukanlah ukuran model semata, melainkan *KV-cache* bersama dari sesi-sesi paralel itu. Model 8B Q4 dengan tiga sesi aktif membutuhkan sekitar 6,5 GB model ditambah beberapa GB *KV-cache* — masih longgar di 24 GB. Bahkan keluarga yang menginginkan *headroom* berlipat (model 14B Q4 plus sesi paralel) tetap nyaman di GPU 24 GB. Kesimpulannya: untuk skala rumah tangga, 24 GB adalah titik manis; yang menyusul hanyalah keputusan bijak memilih model.
 
 Keputusan bijak yang dimaksud dimulai dari *quantization*. Keluarga yang baru mulai sering mengambil Q4_K_M sebagai standar — dan itu keputusan yang benar untuk 95% kasus. Q5_K_M menambah beberapa persen kualitas dengan biaya VRAM lebih tinggi; Q3_K_M dipakai hanya bila model terlalu besar untuk kartu yang tersedia (misalnya 70B di 24 GB). Aturan praktisnya: pilih kuantisasi tertinggi yang masih meninggalkan ruang *KV-cache* untuk sesi paralel keluarga — karena model yang "hampir muat" selalu lebih buruk daripada model yang "muat dengan nyaman". Data perbandingan kualitas antar kuantisasi untuk berbagai arsitektur dapat dilihat di benchmark publik yang dirangkum pada [2][3].
 
-Tiga tabel berikut merangkum seluruh pembahasan teknis di atas dalam bentuk yang bisa dibawa ke toko komputer — spesifikasi, kesesuaian model, dan rupiah. Baca ketiganya sebagai satu kesatuan: Tabel 1 menjawab "seberapa cepat", Tabel 2 menjawab "model apa yang muat", dan Tabel 3 menjawab "berapa totalnya". Keputusan akhir lahir dari irisan ketiganya.
+Tiga tabel berikut merangkum seluruh pembahasan teknis di atas dalam bentuk yang bisa dibawa ke toko komputer — spesifikasi, kesesuaian model, dan rupiah. Baca ketiganya sebagai satu kesatuan: Tabel 1 menjawab "seberapa cepat", Tabel 2 menjawab "model apa yang muat", dan Tabel 4 menjawab "berapa totalnya". Keputusan akhir lahir dari irisan ketiganya.
 
 ### Tabel 1: Perbandingan GPU/Mac untuk Home LLM Server
 
@@ -58,7 +58,7 @@ Selisih kecepatan antar kandidat langsung terlihat ketika digambar — RTX 4090 
 
 Ada dua bacaan penting dari tabel ini. Pertama, RTX 3090 membuktikan diri sebagai *value king*: performa 75% dari RTX 4090, TDP lebih rendah, harga sekitar setengahnya — dan untuk SLA keluarga (TTFT <2 detik, 3 sesi paralel), 110 tok/s sudah melebihi kebutuhan. Kedua, Mac Mini M4 Pro hanya menghasilkan ~60 tok/s untuk 7B, tetapi dengan 0 dB dan 7W idle, ia adalah satu-satunya kandidat yang boleh menyala 24 jam tanpa rasa bersalah. Jawabannya bukan "yang tercepat", melainkan "yang paling cocok dengan jadwal keluarga".
 
-Ada pula dimensi berkelanjutan yang tidak muncul di lembar spesifikasi: nilai jual kembali. RTX 3090 yang dibeli bekas akan dijual kembali sebagai bekas dengan penyusutan relatif halus, sementara Mac Mini M4 Pro cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia. Faktor ini tidak mengubah keputusan teknis, tetapi ikut menentukan biaya kepemilikan nyata setelah 2-3 tahun — saat keluarga memutuskan naik kelas.
+Ada pula dimensi berkelanjutan yang tidak muncul di lembar spesifikasi: nilai jual kembali. RTX 3090 yang dibeli bekas akan dijual kembali sebagai bekas dengan penyusutan relatif halus, sementara Mac Mini M4 Pro cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia. Faktor ini tidak mengubah keputusan teknis, tetapi ikut menentukan biaya kepemilikan nyata setelah 2-3 tahun — saat keluarga memutuskan naik kelas. Mac Mini M4 Pro juga cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia [Sumber?].
 
 
 ### Tabel 2: Kesesuaian Model per Hardware
@@ -67,19 +67,19 @@ Tabel ini menjawab pertanyaan paling praktis: model mana yang "muat" di mana?
 
 | Model | Ukuran (Q4) | RTX 3090/4090 | Mac Mini M4 Pro | Mac Studio M2 Ultra |
 |:---|:---:|:---:|:---:|:---:|
-| Llama-3.2-3B | ~2 GB | Sangat Cepat | Cepat | Sangat Cepat |
-| Llama-3.1-8B | ~5 GB | Sangat Cepat | Cepat | Sangat Cepat |
-| Qwen-2.5-14B | ~8 GB | Cepat | Mampu | Cepat |
-| Llama-3.1-70B Q3 | ~27 GB | Mampu (CPU offload) | Tidak muat | Cepat |
-| DeepSeek-R1-32B | ~18 GB | Cepat | Tidak muat | Sangat Cepat |
-| **Ministral 3 3B** | ~1.8 GB | Sangat Cepat | Sangat Cepat | Sangat Cepat |
-| **Ministral 3 8B** | ~4.8 GB | Sangat Cepat | Cepat | Sangat Cepat |
-| **Ministral 3 14B** | ~8.5 GB | Cepat | Mampu | Cepat |
+| Llama 3.2 (3B) | ~2 GB | Sangat Cepat | Cepat | Sangat Cepat |
+| Llama 3.1 (8B) | ~5 GB | Sangat Cepat | Cepat | Sangat Cepat |
+| Qwen 2.5 (14B) | ~8 GB | Cepat | Mampu | Cepat |
+| Llama 3.1 (70B) Q3 | ~27 GB | Mampu (CPU offload) | Tidak muat | Cepat |
+| DeepSeek R1 (32B) | ~18 GB | Cepat | Tidak muat | Sangat Cepat |
+| **Ministral 3 3B** | ~1,8 GB | Sangat Cepat | Sangat Cepat | Sangat Cepat |
+| **Ministral 3 8B** | ~4,8 GB | Sangat Cepat | Cepat | Sangat Cepat |
+| **Ministral 3 14B** | ~8,5 GB | Cepat | Mampu | Cepat |
 | **DeepSeek V4 Flash (INT4)** | ~18 GB | Cepat (2x GPU) | Tidak muat | Cepat |
 
-Ministral 3 (Apache 2.0, Desember 2025) adalah keluarga model *edge-optimized* dari Mistral AI: varian 3B ideal untuk server rumah berdaya rendah — bahkan berjalan sangat cepat di Mac Mini M4 Pro — sementara DeepSeek V4 Flash (284B total, 13B aktif) membutuhkan 2x RTX 3090/4090 dalam INT4. Pola yang muncul: untuk skala 4-8 user, kisaran 3B-14B adalah zona nyaman; model 30B+ barulah masuk akal bila keluarga punya kebutuhan khusus (misalnya *reasoning* DeepSeek-R1-32B), dan itu pun hanya di Mac Studio atau rig GPU.
+Ministral 3 (Apache 2.0, Desember 2025) adalah keluarga model *edge-optimized* dari Mistral AI: varian 3B ideal untuk server rumah berdaya rendah — bahkan berjalan sangat cepat di Mac Mini M4 Pro — sementara DeepSeek V4 Flash (284B total, 13B aktif) membutuhkan 2x RTX 3090/4090 dalam INT4. Pola yang muncul: untuk skala 4-8 user, kisaran 3B-14B adalah zona nyaman; model 30B+ barulah masuk akal bila keluarga punya kebutuhan khusus (misalnya *reasoning* DeepSeek R1 (32B)), dan itu pun hanya di Mac Studio atau rig GPU.
 
-Jika keluarga memilih jalur Mac dan suatu hari kebutuhan naik ke kelas 30B+, Mac Mini M4 Pro menyerah pada DeepSeek-R1-32B dan Llama-3.1-70B — itulah saat Mac Studio M2 Ultra baru masuk akal. Jalur migrasi yang wajar: mulai dari Mac Mini (8-14B), lalu naik ke Mac Studio hanya jika kebutuhan *reasoning* telah membuktikan diri, bukan sekadar rasa penasaran. Migrasi ini lebih mulus daripada pindah rig GPU, karena ekosistem Ollama dan lokasi folder model identik di kedua mesin.
+Jika keluarga memilih jalur Mac dan suatu hari kebutuhan naik ke kelas 30B+, Mac Mini M4 Pro menyerah pada DeepSeek R1 (32B) dan Llama 3.1 (70B) — itulah saat Mac Studio M2 Ultra baru masuk akal. Jalur migrasi yang wajar: mulai dari Mac Mini (8-14B), lalu naik ke Mac Studio hanya jika kebutuhan *reasoning* telah membuktikan diri, bukan sekadar rasa penasaran. Migrasi ini lebih mulus daripada pindah rig GPU, karena ekosistem Ollama dan lokasi folder model identik di kedua mesin.
 
 
 ### Gambar 1: Pipeline Pemilihan Hardware
@@ -108,11 +108,11 @@ Bagi keluarga yang berniat menelusuri diagram ini lebih jauh, ada satu pertanyaa
 ## 3. RTX 3090 vs RTX 4090 untuk Server Rumah
 
 
-Jika keluarga memutuskan jalur PC, pertarungan sesungguhnya adalah antara dua kartu NVIDIA 24 GB: **RTX 3090** dan **RTX 4090**. Keduanya mampu menjalankan Llama-3.1-8B, Qwen-2.5-14B, hingga Llama-3.1-70B dalam Q3_K_M — perbedaannya ada pada kecepatan, daya, harga, dan kebisingan.
+Jika keluarga memutuskan jalur PC, pertarungan sesungguhnya adalah antara dua kartu NVIDIA 24 GB: **RTX 3090** dan **RTX 4090**. Keduanya mampu menjalankan Llama 3.1 (8B), Qwen 2.5 (14B), hingga Llama 3.1 (70B) dalam Q3_K_M — perbedaannya ada pada kecepatan, daya, harga, dan kebisingan.
 
 **RTX 3090 bekas** adalah raja *value*: 24 GB VRAM, sekitar **~250W**, dengan harga pasar Indonesia sekitar **Rp 10-14jt** untuk unit *used*. Ia menawarkan *throughput* ~110 token/detik untuk model 7B Q4 — kecepatan yang lebih dari cukup untuk 4-8 pengguna rumah tangga yang hanya memuncak 2-3 sesi bersamaan. Kelemahannya: *second-hand*, sehingga perlu uji ketat (suhu, *thermal pad*, kipas), dan konsumsi dayanya tetap butuh PSU yang jujur.
 
-Pasar *used* di Indonesia memiliki ritmenya sendiri yang perlu dipahami: kartu bekas *mining* dan bekas kantor adalah dua kategori yang sangat berbeda. Kartu bekas kantor biasanya dirawat baik dan harganya lebih tinggi sedikit; kartu bekas *mining* murah tetapi sering membawa *thermal pad* yang aus. Aturan di lapangan: minta screenshot `nvidia-smi -q` (suhu, *power limit*, *memory usage*), uji *burn-in* 15 menit dengan llama.cpp atau benchmark, dan jangan pernah membayar penuh sebelum GPU terbukti stabil di *load*.
+Pasar *used* di Indonesia memiliki ritmenya sendiri yang perlu dipahami: kartu bekas *mining* dan bekas kantor adalah dua kategori yang sangat berbeda. Kartu bekas kantor biasanya dirawat baik dan harganya lebih tinggi sedikit; kartu bekas *mining* murah, tetapi sering membawa *thermal pad* yang aus. Aturan di lapangan: minta screenshot `nvidia-smi -q` (suhu, *power limit*, *memory usage*), uji *burn-in* 15 menit dengan llama.cpp atau benchmark, dan jangan pernah membayar penuh sebelum GPU terbukti stabil di *load*.
 
 **RTX 4090** adalah pilihan performa puncak: 24 GB VRAM, ~146 token/detik untuk 7B Q4, tetapi konsumsi daya puncak **~350W** (bisa di-*undervolt* ke ~300W dengan performa 95%). Di ruang keluarga, TDP dan *noise* bukan detail kecil: kartu ini butuh *case* besar dengan *airflow* baik dan kipas yang terdengar saat beban penuh. Ia baru masuk akal jika keluarga benar-benar membutuhkan model besar (70B Q3) atau mengejar latensi paling rendah di beban puncak.
 
@@ -144,7 +144,7 @@ Bagi keluarga yang berencana menambah antarmuka suara (Whisper + Piper, dibahas 
 
 Memilih GPU hanyalah separuh cerita; separuh lainnya adalah komponen yang mengelilinginya. Empat aturan praktis: **motherboard + CPU** minimal mendukung *PCIe 4.0 x16* dengan prosesor 8+ core (Ryzen 7 atau Core i7) — inference tidak "terjebak" di jalur data; **RAM sistem 32-64 GB DDR5** untuk *KV-cache* dan OS; **storage** berupa NVMe 1-2 TB untuk model dan SATA 2-4 TB untuk data RAG keluarga; **PSU 850W Gold+** untuk RTX 4090 dan **750W** untuk RTX 3090; serta **case mid-tower** dengan *airflow* baik dan ruang untuk GPU panjang (>320mm) — kartu kelas ini panjang, dan memaksanya masuk case kecil berarti *thermal throttle*.
 
-### Tabel Komponen Pendukung
+### Tabel 3: Komponen Pendukung
 
 | Komponen | Spesifikasi Minimum | Catatan |
 |:---|:---|:---|
@@ -165,20 +165,20 @@ Server keluarga menyala lebih lama daripada server kantor rata-rata — maka set
 
 Jangan lupakan dimensi kebisingan dalam perhitungan daya. Watt yang sama terasa sangat berbeda: 350W dari kipas tiga *fan* yang menderu di ruang kerja lebih mengganggu daripada 450W yang senyap. Bagi keluarga yang meletakkan server di ruang keluarga, kurva kipas bukan pengaturan kosmetik — membatasi putaran di 30-40% sampai suhu 60°C menjaga percakapan keluarga tetap terdengar. Ketika dua pilihan sama-sama "cukup", keputusan antara RTX 4090 dan Mac Mini sering jatuh pada hal yang tidak tertulis di lembar spesifikasi: apakah dengung kipas bisa diterima di ruang tengah rumah Anda.
 
-### Tabel 3: Estimasi Biaya Build dalam IDR (Juni 2026)
+### Tabel 4: Estimasi Biaya Build dalam IDR (Juni 2026)
 
 Akhirnya, hitungan rupiah — estimasi pasar Indonesia per Juni 2026.
 
 | Komponen | Build RTX 3090 (Hemat) | Build RTX 4090 (Performa) | Mac Mini M4 Pro |
 |:---|:---:|:---:|:---:|
 | **GPU / Unit** | RTX 3090 used ~14jt | RTX 4090 ~29jt | Built-in |
-| **CPU** | Ryzen 7 5700X ~2.5jt | Ryzen 7 7800X3D ~5jt | M4 Pro |
-| **Motherboard** | B550 ~1.5jt | X670E ~3.5jt | Built-in |
+| **CPU** | Ryzen 7 5700X ~2,5jt | Ryzen 7 7800X3D ~5jt | M4 Pro |
+| **Motherboard** | B550 ~1,5jt | X670E ~3,5jt | Built-in |
 | **RAM** | 32 GB DDR4 ~1jt | 64 GB DDR5 ~3jt | 48 GB Unified |
-| **Storage** | 1 TB NVMe ~1.2jt + 2 TB HDD ~1jt | 2 TB NVMe ~2jt + 4 TB SSD ~3jt | 2 TB SSD ~3jt |
-| **PSU** | 750W Gold ~1.2jt | 1000W Gold ~2jt | Built-in |
+| **Storage** | 1 TB NVMe ~1,2jt + 2 TB HDD ~1jt | 2 TB NVMe ~2jt + 4 TB SSD ~3jt | 2 TB SSD ~3jt |
+| **PSU** | 750W Gold ~1,2jt | 1000W Gold ~2jt | Built-in |
 | **Case + Cooling** | Mid-tower ~800rb | Mid-tower + AIO ~2jt | Built-in |
-| **Total** | **~Rp 27.2jt** | **~Rp 48.5jt** | **~Rp 35jt** |
+| **Total** | **~Rp 27,2jt** | **~Rp 48,5jt** | **~Rp 35jt** |
 
 Perhatikan di mana uang mengalir: pada build RTX 3090, GPU mengambil 51% dari total; pada build 4090, GPU mengambil 60% dan baru dipasok CPU X3D kelas atas. Mac Mini M4 Pro menunjukkan daya tarik strukturalnya — semua komponen "sembunyi" dan harga total 35jt menempatkannya di tengah, dengan keunggulan 0 dB dan 7W idle yang tidak terlihat di kolom harga. Harga GPU retail dapat ditekan dengan memilih unit non-OC; begitu pula build 4090 dapat dihemat beberapa juta dengan komponen yang lebih bersahaja.
 
@@ -323,7 +323,7 @@ Dua catatan keamanan untuk praktik ini. Pertama, pastikan tidak ada proses *trai
 
 **Hardware.** PC rakitan dengan **RTX 3090 used (Rp 14jt)** + Ryzen 7 5700X + 32 GB DDR4 + 1 TB NVMe + 2 TB HDD, total sekitar **Rp 27jt** — menyisakan anggaran untuk *microphone array* dan *smart plug*.
 
-**Model.** **Llama-3.1-8B Q4_K_M** untuk percakapan harian dan PR, plus **Qwen-2.5-7B** untuk tugas coding dan resep — keduanya muat nyaman di 24 GB, bahkan menyisakan ruang untuk model cadangan.
+**Model.** **Llama 3.1 (8B) Q4_K_M** untuk percakapan harian dan PR, plus **Qwen 2.5 (7B)** untuk tugas coding dan resep — keduanya muat nyaman di 24 GB, bahkan menyisakan ruang untuk model cadangan.
 
 **Setup.** Ollama + Open WebUI + Home Assistant. GPU dijadwalkan *auto-shutdown* 23:00-06:00, dan *power limit* dipasang via systemd agar tidak pernah melampaui batas.
 
@@ -354,7 +354,7 @@ Kendala kedua muncul dari hal yang lebih membosankan: kabel. PSU 750W yang dipak
 
 [4] Lang, M., et al. (2025). *On-Device LLMs for Home Assistant: Dual Role in Intent Detection and Response Generation*. arXiv: [2502.12923](https://arxiv.org/abs/2502.12923). DOI: [10.48550/arXiv.2502.12923](https://doi.org/10.48550/arXiv.2502.12923)
 
-[5] Andreoletti, D., Rudi, A., Carpanzano, E., Lelli, F., & Leidi, T. (2026). *Privacy-Preserving LLM Inference in Practice: A Comparative Survey of Techniques, Trade-Offs, and Deployability*. Cryptology ePrint Archive, Paper 2026/105. [https://eprint.iacr.org/2026/105](https://eprint.iacr.org/2026/105)
+[5] Andreoletti, D., Rudi, A., Carpanzano, E., Lelli, F., & Leidi, T. (2026). *Privacy-Preserving LLM Inference in Practice: A Comparative Survey of Techniques, Trade-Offs, and Deployability*. Cryptology ePrint Archive, Paper 2026/105. [https://eprint.iacr.org/2026/105](https://eprint.iacr.org/2026/105) — ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 ### Referensi Pendukung
 

@@ -31,7 +31,7 @@ Yang lebih penting, terminal itu **scriptable**. Perintah yang Anda ketik hari i
 
 Bukan berarti GUI buruk — LM Studio dan Open WebUI punya tempatnya. Tetapi untuk tugas yang repetitif dan terukur — *summarize* 50 artikel setiap pagi, *review* diff sebelum commit, *translate* file konfigurasi — GUI memaksa Anda melakukan 10 klik per tugas, sedangkan CLI melakukannya dalam satu perintah yang sama setiap kali. Waktu yang dihemat bukan menit, melainkan jam per minggu, dan skrip yang sama bisa dibagikan ke tim.
 
-### Tabel A: Perbandingan CLI Tools
+### Tabel 1: Perbandingan CLI Tools
 
 Tabel berikut membandingkan lima alat berbasis terminal yang paling umum dipakai.
 
@@ -45,7 +45,7 @@ Tabel berikut membandingkan lima alat berbasis terminal yang paling umum dipakai
 
 ![Perbandingan ukuran binary lima CLI tools dalam skala logaritmik](../../assets/images/bab-03-software/sub-bab-10/ukuran-binary-cli.png)
 
-*Gambar 3.10-2 — sgpt paling ringan (2 MB) karena memanfaatkan API eksternal; ollama paling berat (~400 MB) karena membundel runtime dan model management sendiri.*
+*Gambar 3.10-1 — sgpt paling ringan (2 MB) karena memanfaatkan API eksternal; ollama paling berat (~400 MB) karena membundel runtime dan model management sendiri.*
 
 Analisis: tabel ini membagi alat menjadi dua kubu. **llama-cli** dan **llama-server** adalah *engine* murni — fleksibel dan lengkap, tetapi Anda bertanggung jawab atas model dan konfigurasi. **ollama** dan **llamafile** adalah *wrapper* yang menyederhanakan — mereka mengorbankan sebagian kontrol untuk kenyamanan. **sgpt** berdiri sendiri: bukan engine, melainkan asisten yang memanfaatkan API apa pun. Pilihan yang baik sering kali kombinasi: Ollama untuk manajemen model harian, llama-server untuk serving OpenAI-compatible, dan sgpt untuk bantuan *inline* di shell.
 
@@ -91,7 +91,7 @@ Perulangan `for` di shell mengubah perintah tunggal menjadi pabrik pemrosesan: s
 
 Editor adalah rumah kedua developer, dan ia juga bisa berbahasa terminal: `:!llama-cli ...` di Vim/Neovim mengeksekusi perintah shell dari dalam editor. Pilih blok teks, kirim ke LLM, dan hasil transformasi kembali ke buffer — alur kerja *selection → transform* yang membuat LLM terasa seperti perintah editor asli, bukan aplikasi terpisah.
 
-### Tabel B: Contoh One-Liner
+### Tabel 2: Contoh One-Liner
 
 Ide *one-liner* berikut siap disesuaikan dengan model GGUF atau Ollama Anda.
 
@@ -186,7 +186,7 @@ llama.cpp bukan satu-satunya pintu CLI:
 
 Pemilihan di antara mereka bergantung prioritas: kontrol penuh dan kecepatan (llama.cpp), kemudahan manajemen model (Ollama), portabilitas ekstrem (llamafile), atau integrasi percakapan (sgpt).
 
-### Tabel C: Perbandingan Performa Mode CLI
+### Tabel 3: Perbandingan Performa Mode CLI
 
 Keempat mode komputasi berikut menentukan pengalaman yang akan Anda rasakan (model 7B Q4).
 
@@ -199,7 +199,7 @@ Keempat mode komputasi berikut menentukan pengalaman yang akan Anda rasakan (mod
 
 ![Rentang kecepatan empat mode komputasi CLI untuk model 7B Q4](../../assets/images/bab-03-software/sub-bab-10/kecepatan-mode-cli.png)
 
-*Gambar 3.10-1 — GPU offload penuh memberi lompatan hingga 5× dibanding CPU-only; mode hybrid menjadi kompromi cerdas untuk GPU dengan VRAM terbatas.*
+*Gambar 3.10-2 — GPU offload penuh memberi lompatan hingga 5× dibanding CPU-only; mode hybrid menjadi kompromi cerdas untuk GPU dengan VRAM terbatas.*
 
 Analisis: tabel ini menunjukkan *trade-off* yang harus dipahami setiap pengguna CLI. CPU-only adalah mode paling universal (8–15 t/s) — cukup untuk *batch processing* yang tidak sensitif waktu, terlalu lambat untuk percakapan interaktif yang nyaman. GPU offload penuh memberikan lompatan 5× lipat tetapi menuntut VRAM besar. **Hybrid** — memuat sebagian lapisan ke GPU, sisanya di CPU — adalah solusi cerdas untuk GPU dengan VRAM kecil (seperti banyak kartu 6–8 GB): kecepatan dua kali lipat dari CPU murni, tanpa perlu GPU baru. **Metal** membuktikan kembali keunggulan *unified memory* Apple Silicon: 30–60 t/s tanpa VRAM terpisah.
 
@@ -208,10 +208,10 @@ Analisis: tabel ini menunjukkan *trade-off* yang harus dipahami setiap pengguna 
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Setup llama.cpp CLI dan One-Liner
+### Langkah 1: Setup llama.cpp CLI dan One-Liner
 
 Mulai dari membangun binary hingga menjalankan *one-liner* pertama.
 
@@ -244,7 +244,7 @@ cat README.md | ./llama-cli -m models/llama-3.1-8b-q4.gguf \
 
 Perhatikan tiga mode yang berbeda: *one-shot* (langsung selesai), interaktif (`-cnv` untuk percakapan multi-putaran), dan *pipeline* (`cat ... | llama-cli ... > summary.txt`). `--no-display-prompt` penting dalam mode pipeline — tanpa flag itu, prompt ikut tercetak ke file output dan merusak hasil.
 
-### Tutorial B: Batch Processing Pipeline
+### Langkah 2: Batch Processing Pipeline
 
 Ubah perintah tunggal menjadi pabrik ringkasan untuk seluruh folder.
 
@@ -275,7 +275,7 @@ echo "Selesai! Semua ringkasan ada di $OUTPUT_DIR"
 
 Dua detail perlu diperhatikan. `head -c 2000` membatasi input agar *prompt* tidak melampaui konteks dan biaya komputasi terkendali. `-n 100` membatasi panjang output — di pipeline batch, output yang tak terkendali bisa memakan waktu berjam-jam. Skrip ini adalah cetak biru: ganti prompt, jalankan, dan Anda punya *summarizer*, *translator*, atau *classifier* massal.
 
-### Tutorial C: AI Code Review dari Git Diff
+### Langkah 3: AI Code Review dari Git Diff
 
 Jadikan LLM penjaga gerbang kualitas sebelum setiap *commit*.
 
@@ -310,7 +310,7 @@ Review dalam Bahasa Indonesia:" \
 
 Dua teknik penting dalam skrip ini: `git diff --cached` membatasi review pada perubahan yang sudah di-*stage* (belum di-*commit*), dan `$(cat)` menyisipkan isi diff ke dalam *prompt* secara literal. `--temp 0.1` menekan kreativitas agar review tetap faktual. Hasilnya: setiap perubahan kode lewat *review* senior sebelum sempat merusak produksi — biaya per review hanya beberapa detik inferensi.
 
-### Tutorial D: llama-bench untuk Profiling
+### Langkah 4: llama-bench untuk Profiling
 
 Jangan menebak performa — ukurlah.
 

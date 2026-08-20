@@ -32,7 +32,7 @@ Alur kerja harian pengguna LM Studio biasanya berbentuk siklus yang sama berulan
 
 Dari sudut pandang pengalaman pengguna, ada satu detail yang sering membuat orang "ketagihan" memakai LM Studio: **tidak ada hambatan antara keinginan dan percobaan**. Di ekosistem lain, mencoba model baru bisa berarti membaca dokumentasi *command line*, menunggu unduhan dari situs pihak ketiga, lalu menyusun konfigurasi — tiga hambatan yang cukup untuk mematikan rasa ingin tahu. Di LM Studio, semua itu diringkas menjadi satu klik dari kotak pencarian. Hambatan rendah bukan berarti dangkal: di balik kemudahan itu, *engine* yang sama dengan ekosistem lain — llama.cpp dan MLX — bekerja penuh, lengkap dengan *monitoring* dan API. Inilah kombinasi langka yang membuat aplikasi ini cocok untuk pemula sekaligus *power user*.
 
-### Tabel 3: Perbandingan LM Studio vs Alternatif Desktop
+### Tabel 1: Perbandingan LM Studio vs Alternatif Desktop
 
 | Fitur | LM Studio | Ollama | GPT4All | Text-Generation-WebUI |
 |:---|:---|:---|:---|:---|
@@ -82,11 +82,11 @@ Dua cabang *UI* yang paling menarik untuk diperhatikan adalah `MON` dan `SRV`. K
 ## 3. Model Discovery & Download: Katalog di Ujung Jari
 
 
-Dulu, mendapatkan model lokal berarti mengunjungi Hugging Face, mencari file GGUF yang tepat, membaca README, lalu men-download dan meletakkan file di folder yang benar. LM Studio memangkas seluruh proses itu menjadi sebuah kotak pencarian.
+Dulu, mendapatkan model lokal berarti mengunjungi Hugging Face, mencari file GGUF yang tepat, membaca README, lalu mengunduh dan meletakkan file di folder yang benar. LM Studio memangkas seluruh proses itu menjadi sebuah kotak pencarian.
 
 ### Mencari dan Memfilter
 
-Dari *Model Browser*, Anda bisa mencari model langsung dari **Hugging Face Hub** — panggilan API dilakukan di balik layar, hasilnya ditampilkan sebagai kartu model yang bisa di-klik. Yang membuat pencarian ini efektif adalah **filter** yang bisa dikombinasikan: jenis kuantisasi (**GGUF** atau **MLX**), jumlah parameter, dan lisensi. Contoh praktis: Anda ingin model 7B berlisensi permisif untuk proyek komersial — cukup set filter parameter 5-8B dan lisensi Apache-2.0/MIT, lalu katalog menyusut dari ribuan menjadi beberapa lusin kandidat yang relevan.
+Dari *Model Browser*, Anda bisa mencari model langsung dari **Hugging Face Hub** — panggilan API dilakukan di balik layar, hasilnya ditampilkan sebagai kartu model yang bisa diklik. Yang membuat pencarian ini efektif adalah **filter** yang bisa dikombinasikan: jenis kuantisasi (**GGUF** atau **MLX**), jumlah parameter, dan lisensi. Contoh praktis: Anda ingin model 7B berlisensi permisif untuk proyek komersial — cukup set filter parameter 5-8B dan lisensi Apache-2.0/MIT, lalu katalog menyusut dari ribuan menjadi beberapa lusin kandidat yang relevan.
 
 Filter lisensi adalah fitur yang sering dianggap remeh padahal menentukan masa depan proyek. Model berlisensi *non-commercial* (misalnya beberapa varian penelitian) bebas dipakai untuk eksperimen, tetapi menjadi masalah hukum bila produk Anda dijual. Dengan menyaring lisensi sejak pencarian, LM Studio membantu Anda menghindari jebakan "model ini bagus, dan ternyata tidak boleh dipakai di produksi" — sebuah pelajaran yang biasanya harus dibayar mahal di kemudian hari. Bagi pembaca buku ini yang serius membangun aplikasi di atas model lokal, biasakan membaca lisensi setiap model yang diunduh, termasuk turunan dan *LoRA*-nya.
 
@@ -107,9 +107,9 @@ Alur yang kami sarankan untuk menjaga *Model Browser* tetap sehat: (1) baca hala
 
 Salah satu keunggulan LM Studio yang jarang dimiliki aplikasi lain adalah kemampuan memilih *engine* per model. Dua *backend* utama tersedia: **llama.cpp** untuk model **GGUF** — berjalan *hybrid* di GPU dan CPU, mendukung NVIDIA (CUDA), AMD (Vulkan/ROCm), hingga Intel; dan **Apple MLX** untuk model berformat **MLX/Safetensors** — memanfaatkan *unified memory* Mac M-series sehingga model yang lebih besar bisa muat dengan alokasi memori yang efisien.
 
-Mengapa LM Studio menyediakan dua engine sekaligus, padahal Ollama (sub-bab 3.1) menyembunyikan pilihan itu? Jawabannya adalah filosofi yang berbeda: Ollama mengutamakan kesederhanaan ("pilih model, sisanya otomatis"), sedangkan LM Studio mengutamakan kendali eksperimen ("pilih model, lalu putuskan juga mesinnya"). Kedua pendekatan valid — tetapi untuk pengguna yang sedang *mengevaluasi* model, kemampuan memilih engine berarti satu variabel lagi yang bisa diputar-putar dalam eksperimen. Perbedaan kecepatan antara dua engine untuk model yang sama adalah informasi berharga yang hanya bisa didapat jika aplikasi memberi Anda kedua opsi.
+Mengapa LM Studio menyediakan dua engine sekaligus, padahal Ollama (sub-bab 3.1) menyembunyikan pilihan itu? Jawabannya adalah filosofi yang berbeda: Ollama mengutamakan kesederhanaan ("pilih model, sisanya otomatis"), sedangkan LM Studio mengutamakan kendali eksperimen ("pilih model, lalu putuskan juga mesinnya"). Kedua pendekatan valid, tetapi untuk pengguna yang sedang *mengevaluasi* model, kemampuan memilih engine berarti satu variabel lagi yang bisa diputar-putar dalam eksperimen. Perbedaan kecepatan antara dua engine untuk model yang sama adalah informasi berharga yang hanya bisa didapat jika aplikasi memberi Anda kedua opsi.
 
-Pilihan engine ini bukan sekadar teknis — ia memengaruhi performa nyata. Pada MacBook M3 Max, model 7B yang sama bisa berjalan sekitar **80 token/detik** via llama.cpp dan **95 token/detik** via MLX (lihat Tabel 1). Perbedaan ini muncul karena MLX mengoptimalkan alokasi memori untuk arsitektur Apple, sedangkan llama.cpp adalah mesin generik yang dioptimalkan di banyak platform. Strategi terbaik: coba kedua engine untuk model favorit Anda, lihat angka *monitoring*, lalu simpan yang tercepat. LM Studio bahkan membolehkan mencampur: model GGUF dan MLX dimuat bersamaan dalam satu sesi.
+Pilihan engine ini bukan sekadar teknis — ia memengaruhi performa nyata. Pada MacBook M3 Max, model 7B yang sama bisa berjalan sekitar **80 token/detik** via llama.cpp dan **95 token/detik** via MLX (lihat Tabel 2). Perbedaan ini muncul karena MLX mengoptimalkan alokasi memori untuk arsitektur Apple, sedangkan llama.cpp adalah mesin generik yang dioptimalkan di banyak platform. Strategi terbaik: coba kedua engine untuk model favorit Anda, lihat angka *monitoring*, lalu simpan yang tercepat. LM Studio bahkan membolehkan mencampur: model GGUF dan MLX dimuat bersamaan dalam satu sesi.
 
 Selain pemilihan engine, ada dua *toggle* yang layak dikenal di pengaturan model: **FlashAttention** dan **context length**. FlashAttention — mekanisme *attention* yang hemat memori dan I/O, dibahas lebih dalam pada referensi [5] — memungkinkan *context window* lebih besar dengan penggunaan VRAM yang lebih efisien; pada beberapa GPU, mengaktifkannya membuat model yang tadinya hanya sanggup konteks 8K kini nyaman di 16K. Adapun *context length* adalah keputusan seimbang: memanjangkan konteks berarti KV cache membengkak dan *prefill* setiap *request* menjadi lebih lambat. Untuk *chat* harian, 4K-8K token biasanya sudah lebih dari cukup; perpanjang hanya saat benar-benar menempelkan dokumen panjang.
 
@@ -117,13 +117,13 @@ Satu eksperimen yang direkomendasikan bagi setiap pembaca bab ini: **uji satu mo
 
 Ringkasnya, *inference engine* bukanlah medan pilihan tunggal: dengan dua engine, dua mode kuantisasi, *FlashAttention*, dan *context length* yang bisa diatur, LM Studio memberi Anda enam *knob* yang bisa diputar untuk satu model yang sama. Kebanyakan pengguna merasa cukup memutar dua atau tiga; sisanya adalah ruang eksperimen untuk mereka yang benar-benar ingin memahami *bottleneck* perangkatnya. Pada sub-bab berikutnya, kita akan melihat pendekatan yang jauh lebih radikal: tidak ada *knob* GPU sama sekali — karena di GPT4All, komputasi seratus persen ada di CPU.
 
-Sebelum menutup seksi ini, satu peringatan kecil: angka kecepatan pada Tabel 1 (80 t/s vs 95 t/s) adalah nilai *indikatif* yang diukur pada satu perangkat tertentu, bukan jaminan universal. Di Mac dengan chip lebih kecil — atau saat model lain dimuat bersamaan — angka tersebut bisa bergeser jauh. Perlakuan yang benar terhadap angka *benchmark* apa pun di buku ini: jadikan titik awal, bukan kebenaran akhir; geser *slider*, ganti engine, dan ukur sendiri — karena perangkat Anda adalah satu-satunya *benchmark* yang benar-benar peduli pada Anda.
+Sebelum menutup seksi ini, satu peringatan kecil: angka kecepatan pada Tabel 2 (80 t/s vs 95 t/s) adalah nilai *indikatif* yang diukur pada satu perangkat tertentu, bukan jaminan universal. Di Mac dengan chip lebih kecil — atau saat model lain dimuat bersamaan — angka tersebut bisa bergeser jauh. Perlakuan yang benar terhadap angka *benchmark* apa pun di buku ini: jadikan titik awal, bukan kebenaran akhir; geser *slider*, ganti engine, dan ukur sendiri — karena perangkat Anda adalah satu-satunya *benchmark* yang benar-benar peduli pada Anda.
 
 Dan bila eksperimen Anda menghasilkan sesuatu yang menarik — misalnya satu kombinasi *engine + kuantisasi* yang jauh lebih cepat dari dugaan — luangkan waktu membagikannya ke komunitas *LM Studio Bench* [8]. *Benchmark* terbaik di ekosistem ini lahir dari pengukuran ribuan perangkat nyata, bukan dari ruang uji vendor; dengan satu laporan sederhana, Anda ikut membangun data yang bermanfaat bagi ribuan pengguna lain dengan perangkat serupa.
 
-Bagian ini merangkum tiga perbandingan inti yang menjadi fondasi pengambilan keputusan dengan LM Studio: `Tabel 1` membandingkan dua *engine* inference, `Tabel 2` memetakan fitur *monitoring* terhadap alat alternatif, dan `Tabel 3` menempatkan LM Studio di antara para pesaing desktop. Ketiga tabel ini sengaja disusun berjenjang — dari keputusan teknis paling kecil (engine mana) hingga keputusan strategis paling besar (aplikasi mana yang dipakai jangka panjang).
+Bagian ini merangkum tiga perbandingan inti yang menjadi fondasi pengambilan keputusan dengan LM Studio: `Tabel 1` menempatkan LM Studio di antara para pesaing desktop, `Tabel 2` membandingkan dua *engine* inference, dan `Tabel 3` memetakan fitur *monitoring* terhadap alat alternatif. Ketiga tabel ini sengaja disusun berjenjang — dari keputusan strategis terbesar (aplikasi mana yang dipakai jangka panjang) hingga keputusan teknis paling kecil (engine mana yang menjalankan model).
 
-### Tabel 1: Perbandingan Engine Inference LM Studio
+### Tabel 2: Perbandingan Engine Inference LM Studio
 
 Tabel ini membandingkan dua *engine* yang bisa dipilih pengguna LM Studio, dengan contoh angka kecepatan diukur pada MacBook M3 Max untuk model 7B.
 
@@ -132,7 +132,7 @@ Tabel ini membandingkan dua *engine* yang bisa dipilih pengguna LM Studio, denga
 | **Target Hardware** | Semua (CPU/GPU/NVIDIA/AMD) | Apple Silicon M-series |
 | **Format Model** | GGUF | MLX/Safetensors |
 | **Quantization** | Q2–Q8, IQ1–IQ4 | FP16/FP32, MLX quant |
-| **Vision Model** | LLaVA, llava-llama, DeepSeek V4 | LLaVA via mlx-vlm |
+| **Vision Model** | LLaVA, llava-llama, DeepSeek V4 Flash | LLaVA via mlx-vlm |
 | **Kecepatan (M3 Max)** | ~80 t/s (7B) | ~95 t/s (7B) |
 | **Multi-model** | Ya (GGUF + MLX campur) | Ya |
 
@@ -144,7 +144,7 @@ Gambar berikut memvisualisasikan selisih kecepatan kedua *engine* untuk model 7B
 
 Analisis dari tabel ini: llama.cpp unggul dalam *portabilitas* — satu mesin untuk semua hardware — sementara MLX unggul dalam *kecepatan* pada ekosistem Apple. Rentang kuantisasi juga berbeda: llama.cpp menawarkan varian ekstrem (IQ1-IQ4) untuk memeras model besar ke VRAM kecil, sedangkan MLX lebih konservatif dengan FP16/FP32 dan kuantisasi miliknya. Jika perangkat Anda Mac M-series dan model yang dipakai mendukung MLX, coba kedua engine dan simpan hasil *benchmark* — perbedaan ~19% kecepatan cukup berarti untuk percobaan harian.
 
-Kapan harus memilih yang mana? Jawaban ringkasnya: **pilih MLX bila modelnya tersedia dan perangkatnya Apple; pilih llama.cpp untuk yang lain**. Ada satu pertimbangan tambahan: dukungan *vision*. Keduanya mendukung model *vision* (LLaVA dan turunannya, termasuk varian DeepSeek V4 di sisi llama.cpp; via `mlx-vlm` di sisi MLX), tetapi kematangan dan jumlah model di ekosistem llama.cpp jauh lebih besar karena ia lebih lama beredar. Untuk pengguna yang rajin mencoba model baru yang rilis mingguan, llama.cpp hampir selalu punya dukungan lebih dulu — MLX menyusul beberapa saat kemudian.
+Kapan harus memilih yang mana? Jawaban ringkasnya: **pilih MLX bila modelnya tersedia dan perangkatnya Apple; pilih llama.cpp untuk yang lain**. Ada satu pertimbangan tambahan: dukungan *vision*. Keduanya mendukung model *vision* (LLaVA dan turunannya, termasuk varian DeepSeek V4 Flash di sisi llama.cpp; via `mlx-vlm` di sisi MLX), tetapi kematangan dan jumlah model di ekosistem llama.cpp jauh lebih besar karena ia lebih lama beredar. Untuk pengguna yang rajin mencoba model baru yang rilis mingguan, llama.cpp hampir selalu punya dukungan lebih dulu — MLX menyusul beberapa saat kemudian.
 
 
 ---
@@ -166,7 +166,7 @@ Salah satu kontrol yang paling bermanfaat adalah **GPU offload slider** dari 0% 
 
 Kebiasaan yang perlu dibangun adalah **membaca metrik secara bersamaan, bukan satu per satu**. Token/s yang rendah belum tentu berarti model buruk; bisa jadi suhu GPU sudah menyentuh batas *throttling*, atau VRAM penuh sehingga sebagian lapisan jatuh ke CPU. Sebaliknya, token/s tinggi dengan VRAM hampir kosong bisa berarti model sedang dibatasi oleh *memory bandwidth* — perhatikan, ini persoalan yang tidak akan terlihat jika Anda hanya memandang angka kecepatan. Latihan sederhana: jalankan satu model dengan offload 50%, 75%, lalu 100%, dan catat pasangan (token/s, suhu, VRAM) tiap kali. Anda akan mendapat *profil* perangkat sendiri yang lebih berharga daripada angka *benchmark* orang lain di internet.
 
-### Tabel 2: Fitur Monitoring Hardware
+### Tabel 3: Fitur Monitoring Hardware
 
 Berikut perbandingan metrik *monitoring* yang disediakan LM Studio terhadap *tool* alternatif, lengkap dengan tingkat akurasi.
 
@@ -246,7 +246,7 @@ Dua tutorial berikut menuntun Anda dari instalasi hingga *serving* multi-model. 
 
 ### Langkah 1: Setup Headless Server dan Benchmark Model
 
-Mulailah dari nol: instal LM Studio, lalu siapkan model dan ukur kecepatannya dari terminal. Tutorial ini mengasumsikan Anda menggunakan macOS atau Windows — kedua platform didukung penuh, dan semua perintah di bawah bekerja sama di keduanya.
+Mulailah dari nol: instal LM Studio, lalu siapkan model dan ukur kecepatannya dari terminal. Praktikum ini mengasumsikan Anda menggunakan macOS atau Windows — kedua platform didukung penuh, dan semua perintah di bawah bekerja sama di keduanya.
 
 ```bash
 # 1. Install LM Studio dan buka aplikasi
@@ -333,9 +333,9 @@ Seorang penulis konten teknologi di Bandung — bukan *engineer*, melainkan peng
 
 Pertimbangan lain yang ikut menentukan: **ukuran *unduhan* dan kemudahan pemutakhiran aplikasi**. Seorang penulis yang bekerja dengan kuota internet kantor tidak ingin menarik puluhan GB setiap kali mencoba satu model — LM Studio menawarkan pencarian model yang filter-nya bisa mempersempit kandidat sebelum unduhan dimulai, sehingga ia hanya mengunduh model yang benar-benar akan diuji. Detail semacam ini jarang masuk daftar fitur, tetapi justru menjadi penentu bagi pengguna dengan keterbatasan nyata.
 
-**Langkah kerja.** Ia membuka *Model Browser*, lalu mengunduh tiga kandidat sekaligus: **Mistral** (untuk konteks umum), **Llama 3.2** (kekuatan keluarga Llama), **Qwen 2.5** (kekuatan model China berbahasa banyak), serta **DeepSeek V4 Flash** untuk menguji tugas *reasoning* berat. Setiap model di-*load* dengan **GPU offload 100%**, lalu ia menjalankan prompt riset yang sama dan mencatat token/s dan VRAM dari panel *monitoring*. Karena MacBook M3 Pro hanya punya 18GB *unified memory*, model 13B+ harus dibatasi *context*-nya agar tidak menyentuh *swap* — pengaturan ini ia pelajari dengan mencoba, bukan dari dokumen.
+**Langkah kerja.** Ia membuka *Model Browser*, lalu mengunduh tiga kandidat sekaligus: **Mistral** (untuk konteks umum), **Llama 3.2** (kekuatan keluarga Llama), **Qwen 2.5** (kekuatan model China berbahasa banyak), serta **DeepSeek V4 Flash** untuk menguji tugas *reasoning* berat. Setiap model dimuat dengan **GPU offload 100%**, lalu ia menjalankan prompt riset yang sama dan mencatat token/s dan VRAM dari panel *monitoring*. Karena MacBook M3 Pro hanya punya 18GB *unified memory*, model 13B+ harus dibatasi *context*-nya agar tidak menyentuh *swap* — pengaturan ini ia pelajari dengan mencoba, bukan dari dokumen.
 
-**Hasil & pelajaran.** Dari eksperimen itu, **Qwen 2.5 7B Q4_K_M** memberikan keseimbangan terbaik — sekitar **75 t/s** dengan **5.2GB VRAM** — cukup untuk menulis draft artikel tanpa menunggu lama, sementara **DeepSeek V4 Flash** (13B aktif) unggul telak di tugas *reasoning* kompleks seperti merangkum paper penelitian berstruktur, berkat arsitektur *Mixture-of-Experts*-nya. Kesimpulan penulisnya: LM Studio memungkinkan eksperimen cepat tanpa *setup* infrastruktur — dari nol sampai artikel perbandingan berdata lengkap hanya dalam satu sore, dan semua angka di artikelnya bisa dipertanggungjawabkan karena diukur sendiri. Yang menarik, artikel itu justru populer justru karena menyertakan angka TTFT dan VRAM yang diukur di perangkat kelas menengah — data yang biasanya tidak pernah muncul di artikel *review* yang hanya mengutip *benchmark* vendor.
+**Hasil & pelajaran.** Dari eksperimen itu, **Qwen 2.5 7B Q4_K_M** memberikan keseimbangan terbaik — sekitar **75 t/s** dengan **5,2 GB VRAM** — cukup untuk menulis draft artikel tanpa menunggu lama, sementara **DeepSeek V4 Flash** (13B aktif) unggul telak di tugas *reasoning* kompleks seperti merangkum paper penelitian berstruktur, berkat arsitektur *Mixture-of-Experts*-nya. Kesimpulan penulisnya: LM Studio memungkinkan eksperimen cepat tanpa *setup* infrastruktur — dari nol sampai artikel perbandingan berdata lengkap hanya dalam satu sore, dan semua angka di artikelnya bisa dipertanggungjawabkan karena diukur sendiri. Yang menarik, artikel itu justru populer justru karena menyertakan angka TTFT dan VRAM yang diukur di perangkat kelas menengah — data yang biasanya tidak pernah muncul di artikel *review* yang hanya mengutip *benchmark* vendor.
 
 Dari kisah ini ada dua pelajaran yang berlaku umum. Pertama, **data lokal mengalahkan data vendor**: angka *benchmark* yang dipublikasikan pembuat model diukur di *hardware* kelas datacenter, bukan di MacBook milik penulis; tanpa *monitoring* terintegrasi, ia tidak akan pernah tahu bahwa kenyataan di perangkatnya berbeda drastis. Kedua, **profil pengguna menentukan pilihan *tool***: keputusan memilih LM Studio tidak didasarkan pada "aplikasi mana yang paling canggih", melainkan pada "aplikasi mana yang paling sedikit hambatannya bagi orang yang tidak ingin menyentuh terminal". Kedua pelajaran ini akan kembali berguna saat kita membandingkan GPT4All untuk perangkat lawas di sub-bab berikutnya — tepatnya, saat kita melihat bagaimana aplikasi yang jauh lebih sederhana justru menjadi jawaban untuk masalah yang sama sekali berbeda.
 

@@ -95,7 +95,7 @@ Dari sudut pandang pengguna, diagram ini bisa disederhanakan menjadi satu kalima
 ## 3. Pilar Desain Sistem
 
 
-Lima pilar berikut adalah konstitusi dari setiap Home AI Assistant yang sehat. Jika satu pilar dilanggar, sistem akan terasa "salah" — seperti resep masakan yang bahannya benar tetapi takarannya keliru.
+Lima pilar berikut adalah konstitusi dari setiap Home AI Assistant yang sehat. Jika satu pilar dilanggar, sistem akan terasa "salah" — seperti resep masakan yang bahannya benar, tetapi takarannya keliru.
 
 ### Low Power: 15-30W saat Idle
 
@@ -142,12 +142,12 @@ Setelah memahami skala, tabel berikut membantu memilih titik awal hardware berda
 
 | Skenario | Rekomendasi | Model Ideal | Total Estimasi |
 |:---|:---|:---|:---:|
-| **Keluarga kecil (4 org), budget hemat** | Mac Mini M4 24GB + Ollama | Llama-3.1-8B Q4_K_M | ~Rp 20jt |
-| **Keluarga besar (6-8 org), performa** | PC RTX 4090 24GB + vLLM | Llama-3.1-70B Q3_K_M | ~Rp 45jt |
-| **Keluarga dengan smart home** | Homelab: Mini PC + RTX 3090 used + Home Assistant | Qwen-2.5-14B Q4_K_M | ~Rp 30jt |
-| **Lowest power (24/7 on)** | Mac Mini M4 Pro 48GB + Ollama | Llama-3.1-8B Q5_K_M | ~Rp 35jt |
+| **Keluarga kecil (4 org), budget hemat** | Mac Mini M4 24GB + Ollama | Llama 3.1 (8B) Q4_K_M | ~Rp 20jt |
+| **Keluarga besar (6-8 org), performa** | PC RTX 4090 24GB + vLLM | Llama 3.1 (70B) Q3_K_M | ~Rp 45jt |
+| **Keluarga dengan smart home** | Homelab: Mini PC + RTX 3090 used + Home Assistant | Qwen 2.5 (14B) Q4_K_M | ~Rp 30jt |
+| **Lowest power (24/7 on)** | Mac Mini M4 Pro 48GB + Ollama | Llama 3.1 (8B) Q5_K_M | ~Rp 35jt |
 
-Pola yang muncul: ukuran keluarga menentukan model, dan model menentukan hardware. Empat orang dengan anggaran ketat dapat diselesaikan Mac Mini M4 24GB; enam sampai delapan orang yang ingin kualitas tertinggi butuh RTX 4090 untuk menampung Llama-3.1-70B dalam Q3_K_M. Skenario ketiga adalah jalan tengah yang paling populer di Indonesia — *homelab* dengan *used* RTX 3090 yang juga menjadi tulang punggung Home Assistant. Skenario keempat, 24/7, menyerahkan segalanya pada efisiensi Apple Silicon. Tidak ada jawaban universal; yang ada adalah jawaban yang cocok dengan keluarga Anda.
+Pola yang muncul: ukuran keluarga menentukan model, dan model menentukan hardware. Empat orang dengan anggaran ketat dapat diselesaikan Mac Mini M4 24GB; enam sampai delapan orang yang ingin kualitas tertinggi butuh RTX 4090 untuk menampung Llama 3.1 (70B) dalam Q3_K_M. Skenario ketiga adalah jalan tengah yang paling populer di Indonesia — *homelab* dengan *used* RTX 3090 yang juga menjadi tulang punggung Home Assistant. Skenario keempat, 24/7, menyerahkan segalanya pada efisiensi Apple Silicon. Tidak ada jawaban universal; yang ada adalah jawaban yang cocok dengan keluarga Anda.
 
 Praktik terbaik dari ketiga pilihan pertama: jangan membeli hardware "untuk masa depan". Keluarga yang memulai dengan Mac Mini 24GB untuk model 8B lalu berencana naik ke 70B setahun kemudian akan membayar dua kali — jauh lebih baik menetapkan ukuran keluarga dan model maksimum yang masuk akal sejak awal, lalu memilih skenario tepat di atasnya. Hardware rumah tunduk pada aturan rumah: beli sesuai kebutuhan hari ini, bukan sesuai khayalan setahun lagi.
 
@@ -165,7 +165,7 @@ Peran setiap komponen perlu dilihat relatif terhadap arsitektur modular-agent ya
 
 Bagi keluarga yang baru pindah dari asisten cloud, ada godaan untuk memasang semuanya sekaligus dalam satu akhir pekan. Resist. Urutan adopsi yang bijak adalah bertahap: mulai dari LLM server plus Open WebUI selama satu-dua minggu (keluarga terbiasa, model dipilih), lalu tambahkan RAG ketika keluarga mulai bertanya tentang dokumen pribadi, dan pasang Home Assistant hanya bila rumah sudah memiliki perangkat pintar yang benar-benar dipakai tiap hari. Setiap lapisan menambah nilai — tetapi juga menambah satu titik yang harus dipelihara, dan setiap lapisan yang dipasang terlalu dini biasanya yang pertama ditinggalkan.
 
-### Tabel Komponen Sistem Home Assistant
+### Tabel 3: Komponen Sistem Home Assistant
 
 | Komponen | Peran | Teknologi Pilihan | Kapan Dibutuhkan |
 |:---|:---|:---|:---|
@@ -185,7 +185,7 @@ Aturan emasnya satu kalimat: **tidak ada *port forwarding*** ke WAN. Jika keluar
 
 Sebuah catatan praktis untuk rumah yang baru pindah ISP: pastikan router modem ISP tidak "menabrak" subnet internal. Banyak ISP Indonesia memberi modem dengan subnet `192.168.100.0/24` yang berkonflik dengan LAN rumah — akibatnya beberapa perangkat kartu bergantian *online-offline*. Solusi yang tenang: set modem ISP ke mode *bridge*, dan biarkan router keluarga (OpenWrt/pfSense) yang mengelola seluruh subnet dan VLAN. Detail kecil ini mencegah salah satu *troubleshooting* paling membingungkan di jaringan rumahan.
 
-### Tabel 3: Service SLA Target
+### Tabel 4: Service SLA Target
 
 Terakhir, kita menetapkan kontrak kinerja — angka-angka ini adalah "janji" sistem terhadap keluarga, dan menjadi acuan verifikasi saat *stress test* pada praktikum di akhir sub-bab ini.
 
@@ -310,7 +310,7 @@ for t in threads: t.join()
 print("Selesai — semua user terlayani")
 ```
 
-Jika waktu respons semua sesi tetap di bawah 8 detik, sistem lolos SLA Tabel 3. Jika ada yang melewatinya, indikatornya jelas: model terlalu besar untuk hardware, atau *kv-cache* tidak mencukupi untuk 3-4 sesi paralel — keduanya bisa didiagnosis dari percobaan ini tanpa alat monitoring mahal.
+Jika waktu respons semua sesi tetap di bawah 8 detik, sistem lolos SLA Tabel 4. Jika ada yang melewatinya, indikatornya jelas: model terlalu besar untuk hardware, atau *kv-cache* tidak mencukupi untuk 3-4 sesi paralel — keduanya bisa didiagnosis dari percobaan ini tanpa alat monitoring mahal.
 
 ---
 
@@ -321,7 +321,7 @@ Jika waktu respons semua sesi tetap di bawah 8 detik, sistem lolos SLA Tabel 3. 
 
 **Hardware.** Mac Mini M4 Pro 48GB dengan 2TB SSD — *fanless*, 0 dB, dan muat ditaruh di rak ruang keluarga tanpa mengganggu suasana.
 
-**Software.** Ollama menjalankan **Llama-3.1-8B** (percakapan umum) dan **Qwen-2.5-7B** (tugas konkret seperti coding dan resep), dipajang lewat **Open WebUI** dengan akun per anggota keluarga; **ChromaDB** menjadi gudang dokumen; **Home Assistant** menunggu di pinggir jika nanti otomasi rumah ditambahkan.
+**Software.** Ollama menjalankan **Llama 3.1 (8B)** (percakapan umum) dan **Qwen 2.5 (7B)** (tugas konkret seperti coding dan resep), dipajang lewat **Open WebUI** dengan akun per anggota keluarga; **ChromaDB** menjadi gudang dokumen; **Home Assistant** menunggu di pinggir jika nanti otomasi rumah ditambahkan.
 
 **RAG Setup.** Setiap anggota punya "lemari" sendiri di vector store: Ayah memiliki folder `/rag/code/` berisi dokumentasi proyek; Ibu memiliki folder `/rag/medical/` berisi jurnal dan catatan pasien — **dienkripsi**; anak-anak memiliki folder `/rag/school/` berisi buku pelajaran Kurikulum Merdeka.
 

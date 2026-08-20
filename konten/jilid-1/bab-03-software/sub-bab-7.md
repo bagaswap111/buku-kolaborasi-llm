@@ -9,7 +9,7 @@
 
 Setelah membaca sub-bab ini, Anda akan mampu:
 
-- Men-deploy LocalAI dengan Docker dan mengganti endpoint API dari OpenAI ke server lokal
+- Mendeploy LocalAI dengan Docker dan mengganti endpoint API dari OpenAI ke server lokal
 - Mengonfigurasi model LLM, embedding, image generation, dan TTS melalui file YAML per model
 - Menjelaskan arsitektur backend modular LocalAI (llama.cpp, transformers, diffusers, whisper.cpp)
 - Membangun pipeline RAG dengan LangChain dan LocalAI sebagai penyedia embedding
@@ -34,7 +34,7 @@ Yang membedakan LocalAI dari kebanyakan pesaingnya adalah cakupan modalitasnya. 
 
 Dari sisi perangkat keras, LocalAI bersikap **CPU-first**: server ini dirancang untuk berjalan tanpa GPU sama sekali, dengan dukungan akselerasi GPU sebagai opsi. Artinya, sebuah Mini PC biasa pun bisa menjadi "server AI" keluarga atau kantor kecil — sangat kontras dengan framework seperti vLLM yang menuntut CUDA.
 
-### Tabel A: Fitur API OpenAI yang Didukung LocalAI
+### Tabel 1: Fitur API OpenAI yang Didukung LocalAI
 
 Tabel berikut memetakan endpoint inti OpenAI dengan dukungannya di LocalAI — perhatikan bahwa hampir semua endpoint penting telah terpenuhi.
 
@@ -57,7 +57,7 @@ Tabel berikut memetakan endpoint inti OpenAI dengan dukungannya di LocalAI — p
 
 *Gambar 3.7-2 — LocalAI adalah satu-satunya yang menangani empat modalitas sekaligus; vLLM hanya LLM, sementara LiteLLM berperan sebagai proxy ke berbagai API.*
 
-Analisis: cakupan delapan dari sembilan endpoint utama berarti sebagian besar aplikasi yang dibangun di atas OpenAI SDK dapat langsung berjalan. Satu-satunya celah yang menonjol adalah `/v1/moderations` — filter moderasi konten bawaan OpenAI. Jika aplikasi Anda mengandalkan fitur ini, penggantinya harus dibangun sendiri (misalnya dengan model classifier lokal), atau moderasi dijalankan pada lapisan aplikasi. Ini adalah *trade-off* yang wajar: kontrol penuh atas data berarti tanggung jawab moderasi juga menjadi milik Anda.
+Analisis: cakupan tujuh dari delapan endpoint utama berarti sebagian besar aplikasi yang dibangun di atas OpenAI SDK dapat langsung berjalan. Satu-satunya celah yang menonjol adalah `/v1/moderations` — filter moderasi konten bawaan OpenAI. Jika aplikasi Anda mengandalkan fitur ini, penggantinya harus dibangun sendiri (misalnya dengan model classifier lokal), atau moderasi dijalankan pada lapisan aplikasi. Ini adalah *trade-off* yang wajar: kontrol penuh atas data berarti tanggung jawab moderasi juga menjadi milik Anda.
 
 
 ### Gambar 1: Arsitektur LocalAI Multi-Model
@@ -127,7 +127,7 @@ Kelebihan pendekatan file YAML adalah **portabilitas konfigurasi**. Sebuah resep
 
 Fleksibilitas LocalAI tampak jelas dari kenyataan bahwa satu tipe model bisa punya banyak backend. Model bahasa bisa dijalankan lewat llama.cpp (cepat, ringan) atau transformers (lengkap, cocok untuk eksperimen). Embeddings bisa memakai bert.cpp (format GGUF) atau sentencetransformers (format ONNX). Pilihan backend inilah yang menentukan *trade-off* kecepatan, akurasi, dan penggunaan memori — dan semuanya bisa diatur tanpa menyentuh kode aplikasi klien.
 
-### Tabel C: Backend Model LocalAI
+### Tabel 2: Backend Model LocalAI
 
 Tabel ini merangkum peta backend — jenis model, pustaka inference, dan format file yang didukung.
 
@@ -156,7 +156,7 @@ Analisis: peta ini menjelaskan *trade-off* pemilihan backend. Backend berbasis C
 
 LocalAI mengekspos endpoint **`/v1/embeddings`** yang formatnya identik dengan OpenAI. Artinya, semua pustaka yang terbiasa memanggil API embedding OpenAI — LangChain, LlamaIndex, Open WebUI, hingga *vector database* — bisa langsung diarahkan ke server lokal. Dua backend yang tersedia adalah **bert.cpp** (cepat, ringan, format GGUF) dan **sentencetransformers** (lebih beragam pilihan model, format ONNX).
 
-Fungsi ini mengubah LocalAI menjadi **embedding server mandiri**: alih-alih mengirim dokumen ke cloud untuk di-embedding, dokumen sensitif (kontrak, catatan medis, data pelanggan) diproses sepenuhnya di lingkungan sendiri. Ini penting karena tahap embedding sering menjadi titik bocornya data dalam pipeline RAG — orang rajin merahasiakan prompt, tetapi lupa bahwa dokumen sumber juga dikirim ke penyedia embedding.
+Fungsi ini mengubah LocalAI menjadi **embedding server mandiri**: alih-alih mengirim dokumen ke cloud untuk dilakukan embedding, dokumen sensitif (kontrak, catatan medis, data pelanggan) diproses sepenuhnya di lingkungan sendiri. Ini penting karena tahap embedding sering menjadi titik bocornya data dalam pipeline RAG — orang rajin merahasiakan prompt, tetapi lupa bahwa dokumen sumber juga dikirim ke penyedia embedding.
 
 ### Integrasi LangChain & LlamaIndex
 
@@ -169,7 +169,7 @@ Karena kontrak API-nya sama, integrasi dengan ekosistem *agentic* menjadi murah.
 
 ### Image Generation dengan Stable Diffusion
 
-Lewat backend **diffusers**, LocalAI menyediakan endpoint **`/v1/images/generations`** — setara dengan DALL-E di OpenAI. Model Stable Diffusion di-load dan dijalankan di mesin yang sama dengan LLM Anda. Untuk tim kecil yang butuh ilustrasi internal, ini menghilangkan langganan image generator terpisah.
+Lewat backend **diffusers**, LocalAI menyediakan endpoint **`/v1/images/generations`** — setara dengan DALL-E di OpenAI. Model Stable Diffusion dimuat dan dijalankan di mesin yang sama dengan LLM Anda. Untuk tim kecil yang butuh ilustrasi internal, ini menghilangkan langganan image generator terpisah.
 
 ### Speech-to-Text dengan Whisper
 
@@ -179,7 +179,7 @@ Endpoint **`/v1/audio/transcriptions`** ditangani oleh **whisper.cpp** — imple
 
 Untuk arah sebaliknya, endpoint **`/v1/audio/speech`** didukung oleh **Piper** (ringan, berjalan di CPU, format ONNX) dan **Bark** (lebih natural, berbasis transformers). Dengan satu server, Anda bisa membangun asisten suara lokal penuh: dengar pertanyaan (Whisper), proses (LLM), lalu jawab dengan suara (Piper/Bark). Ekosistem *voice assistant* rumahan yang dibahas di jilid ini menjadi mungkin tanpa satu pun layanan cloud.
 
-### Tabel B: Perbandingan API Server Lokal
+### Tabel 3: Perbandingan API Server Lokal
 
 Untuk memposisikan LocalAI, berikut perbandingannya dengan tiga pesaing utama di kelas yang sama.
 
@@ -234,10 +234,10 @@ Perubahan satu baris pada `base_url` adalah satu-satunya langkah wajib; sisanya 
 
 ---
 
-## 8. Tutorial / Hands-On
+## 8. Praktikum / Hands-On
 
 
-### Tutorial A: Deploy LocalAI dengan Docker
+### Langkah 1: Deploy LocalAI dengan Docker
 
 Langkah pertama adalah menjalankan server. Docker membuat proses ini konsisten di semua sistem operasi.
 
@@ -286,7 +286,7 @@ curl http://localhost:8080/v1/chat/completions \
 
 Volume `localai-models` menyimpan file bobot dan YAML, sedangkan `localai-config` menyimpan konfigurasi server. Keduanya harus dipertahankan agar model tidak perlu diunduh ulang setiap kali kontainer dibuat ulang.
 
-### Tutorial B: Konfigurasi Model YAML Manual
+### Langkah 2: Konfigurasi Model YAML Manual
 
 Jika model favorit Anda belum ada di Model Gallery, buat konfigurasinya sendiri. Simpan file YAML di direktori models, dan server akan mengenalinya sebagai model baru.
 
@@ -330,7 +330,7 @@ for chunk in response:
 
 Perhatikan bahwa kode di atas sama persis dengan kode yang biasa digunakan untuk OpenAI — satu-satunya perbedaan adalah `base_url` dan nilai *placeholder* untuk `api_key`.
 
-### Tutorial C: Setup RAG dengan LangChain + LocalAI
+### Langkah 3: Setup RAG dengan LangChain + LocalAI
 
 LocalAI bisa menjadi tulang punggung pipeline RAG: embedding, vector store, dan LLM semuanya berjalan lokal.
 
@@ -370,7 +370,7 @@ Dengan pipeline ini, seluruh siklus hidup dokumen — *chunking*, embedding, ret
 
 **Skenario:** Sebuah startup kecil dengan lima developer selama ini memakai OpenAI API dengan tagihan sekitar **$200 per bulan** — biaya yang membengkak seiring pertumbuhan penggunaan. Tantangannya bukan teknis, melainkan strategis: bagaimana menghemat biaya tanpa menulis ulang aplikasi dan tanpa mengorbankan privasi data pelanggan.
 
-**Solusi:** Tim memutuskan men-deploy LocalAI di sebuah **Mini PC** — prosesor Ryzen 9, 64 GB RAM, dan satu RTX 4060. Perangkat ini cukup untuk menjalankan tiga beban kerja utama sekaligus: **Llama 3.1 8B** untuk chat, **BGE** untuk embeddings dokumen, dan **Whisper** untuk transkripsi — semuanya dalam satu server, persis seperti skenario "satu dapur untuk semua meja".
+**Solusi:** Tim memutuskan mendeploy LocalAI di sebuah **Mini PC** — prosesor Ryzen 9, 64 GB RAM, dan satu RTX 4060. Perangkat ini cukup untuk menjalankan tiga beban kerja utama sekaligus: **Llama 3.1 8B** untuk chat, **BGE** untuk embeddings dokumen, dan **Whisper** untuk transkripsi — semuanya dalam satu server, persis seperti skenario "satu dapur untuk semua meja".
 
 **Proses migrasi:** Langkah paling penting ternyata yang paling sepele: mengganti `base_url` dari `api.openai.com` ke `localhost:8080`. Karena LocalAI 100% kompatibel, tidak ada satu pun perubahan pada kode aplikasi. Setelah itu tim menghabiskan beberapa minggu menyetel parameter — `temperature`, `top_k`, `top_p` — agar kualitas output model lokal mendekati standar yang biasa didapat dari cloud.
 

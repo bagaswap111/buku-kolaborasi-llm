@@ -24,7 +24,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 Cara kerja LLM pada dasarnya sederhana: diberikan rangkaian token sejauh ini, model menghitung **logits** — skor mentah untuk setiap kata dalam *vocabulary* — lalu memilih token berikutnya. Proses ini diulang hingga *end-of-sequence*. Pertanyaannya adalah: *bagaimana* memilih token dari kumpulan skor itu? Pilihan strategi inilah yang disebut **sampling strategy** atau **decoding strategy**, dan ia menentukan kualitas output sama pentingnya dengan model itu sendiri [2].
 
-Strategi paling naif adalah **greedy decoding**: selalu pilih token dengan skor tertinggi. Hasilnya deterministik dan koheren — tetapi juga repetitif dan membosankan. Dalam teks terbuka (*open-ended generation*) seperti cerita atau percakapan, *greedy* akan berputar dalam lingkaran frase yang sama [2]. Di kutub lain, memilih token secara acak sepenuhnya menghasilkan teks yang liar dan tidak bermakna. Dunia nyata berada di antara keduanya: **sampling bertingkat probabilitas** yang memilih token secara acak, tetapi dengan peluang proporsional terhadap skor — sedikit keacakan untuk kreativitas, dibatasi agar tidak meledak menjadi omong kosong.
+Strategi paling naif adalah **greedy decoding**: selalu pilih token dengan skor tertinggi. Hasilnya deterministik dan koheren, tetapi juga repetitif dan membosankan. Dalam teks terbuka (*open-ended generation*) seperti cerita atau percakapan, *greedy* akan berputar dalam lingkaran frase yang sama [2]. Di kutub lain, memilih token secara acak sepenuhnya menghasilkan teks yang liar dan tidak bermakna. Dunia nyata berada di antara keduanya: **sampling bertingkat probabilitas** yang memilih token secara acak, tetapi dengan peluang proporsional terhadap skor — sedikit keacakan untuk kreativitas, dibatasi agar tidak meledak menjadi omong kosong.
 
 ### Mendesain "Karakter" Model
 
@@ -51,7 +51,7 @@ Gambar berikut memvisualisasikan kolom *Rentang* tabel ini.
 Analisis: perhatikan pola yang konsisten — hampir semua parameter memiliki wilayah "seimbang" yang menjadi *default* industri. Temperature rendah dan *penalty* polos adalah kunci tugas presisi; *ketiganya* dilonggarkan bersamaan hanya untuk tugas kreatif. Kesalahan umum pemula adalah mengubah hanya Temperature untuk "membuat model kreatif" tanpa menyentuh *truncation* — hasilnya sering persis seperti yang ditakuti: *incoherent*. Kuncinya diingat: **Temperature mengatur keberanian, truncation mengatur batas keselamatan** — keduanya harus diubah bersama.
 
 
-### Diagram 1: Pipeline Decoding Step-by-Step
+### Gambar 1: Pipeline Decoding Step-by-Step
 
 Berikut urutan operasi *decoding* pada setiap langkah generasi token:
 
@@ -90,7 +90,7 @@ Praktiknya, *Temperature* dibagi menjadi tiga wilayah penggunaan:
 
 - **T rendah (0,1–0,5)**: deterministik dan konservatif. Model hampir selalu memilih token terbaiknya. Cocok untuk coding, penulisan faktual, dan tugas di mana jawaban yang salah mahal.
 - **T sedang (0,7–1,0)**: seimbang; inilah wilayah *default* (0,7) di hampir semua aplikasi. Variasi terbuka namun tetap koheren.
-- **T tinggi (1,2–2,0)**: kreatif dan tidak terduga — tetapi berisiko *incoherent* karena model mulai memilih token berpeluang rendah yang secara semantik tidak berhubungan.
+- **T tinggi (1,2–2,0)**: kreatif dan tidak terduga, tetapi berisiko *incoherent* karena model mulai memilih token berpeluang rendah yang secara semantik tidak berhubungan.
 
 Pada T ekstrem (di atas 1,5), model cenderung "berfantasi": kata-kata tetap gramatikal tetapi makna melayang. Karena itu *Temperature* tinggi hampir tidak pernah dipakai sendirian — ia butuh pasangan berupa *truncation* (Top-K/Top-P/Min-P) untuk menjinakkannya, sebagaimana dibahas pada Sub-bab 5.
 
@@ -147,7 +147,7 @@ Temuan utama paper Min-P [1]: metode ini **unggul di temperature tinggi**. Kombi
 
 Keunggulan praktis lainnya: Min-P adalah **parameter tunggal yang intuitif**. Nilai default umumnya 0,05–0,1 untuk perilaku seimbang; dinaikkan ke 0,2 untuk lebih deterministik, diturunkan untuk lebih liar. Tidak heran Min-P kini diadopsi luas — termasuk di vLLM dan Hugging Face Transformers [8] — dan menjadi *game-changer* untuk tugas kreatif (lihat Studi Kasus).
 
-### Tabel 3: Perbandingan Metode Sampling
+### Tabel 2: Perbandingan Metode Sampling
 
 Perbandingan sifat-sifat tiap metode secara ringkas:
 
@@ -160,7 +160,7 @@ Perbandingan sifat-sifat tiap metode secara ringkas:
 | **Min-P** | Ya | Ya | **Sangat Baik** | **Terbaik** |
 | **Mirostat** | Ya | Ya | Baik | Auto-tune |
 
-Analisis: poros utama tabel ini adalah **adaptivitas**. Metode non-adaptif (Greedy, Temperature, Top-K) memerlukan tuning manual yang hati-hati setiap ganti konteks dan gagal di *temperature* tinggi. Metode adaptif — Top-P, Min-P, Mirostat — menyesuaikan ambangnya dengan bentuk distribusi sesaat. Min-P menonjol sebagai pemenang di *high temperature* karena ambangnya berbasis skala relatif (lihat Sub-bab 6), dan Mirostat menawarkan nilai unik: *zero-tuning* karena menargetkan *perplexity* secara langsung. Pilihan sinergis yang umum: gabungkan Temperature + Top-P *dan* Min-P sekaligus — keterangan Tutorial A memperlihatkan dampak kombinasi ini.
+Analisis: poros utama tabel ini adalah **adaptivitas**. Metode non-adaptif (Greedy, Temperature, Top-K) memerlukan tuning manual yang hati-hati setiap ganti konteks dan gagal di *temperature* tinggi. Metode adaptif — Top-P, Min-P, Mirostat — menyesuaikan ambangnya dengan bentuk distribusi sesaat. Min-P menonjol sebagai pemenang di *high temperature* karena ambangnya berbasis skala relatif (lihat Sub-bab 6), dan Mirostat menawarkan nilai unik: *zero-tuning* karena menargetkan *perplexity* secara langsung. Pilihan sinergis yang umum: gabungkan Temperature + Top-P *dan* Min-P sekaligus — keterangan Langkah 1 memperlihatkan dampak kombinasi ini.
 
 ---
 
@@ -180,7 +180,7 @@ Keluarga *sampling* tidak berhenti di empat parameter utama. Beberapa parameter 
 
 Di luar keluarga *sampling*, ada pendekatan *decoding* yang sama sekali berbeda: **Contrastive Decoding** membandingkan distribusi model "expert" dan "amateur"; token dipilih jika expert sangat menyukainya tetapi amateur tidak — menghasilkan teks yang lebih koheren dan informatif [3]. Sementara **Speculative Decoding** mempercepat inferensi dengan meminta model kecil "drafting" beberapa token terlebih dahulu lalu model besar memverifikasinya — mempercepat produksi tanpa mengubah distribusi hasil akhir [5].
 
-### Tabel 2: Preset Parameter per Use Case
+### Tabel 3: Preset Parameter per Use Case
 
 Rangkuman *preset* yang terbukti bekerja untuk enam *use case* umum:
 
@@ -214,13 +214,15 @@ Text-Generation-WebUI (oobabooga) adalah *frontend* yang berfokus pada **kendali
 - **Truncate the prompt up to this length**: mengontrol *context window* — berapa banyak riwayat yang benar-benar dilihat model.
 - **Seed**: nilai acak tetap untuk *reproducibility*. Seed yang sama + parameter yang sama = output identik — alat penting untuk *debugging* dan perbandingan eksperimen yang adil.
 - **Tab Character**: *persona-based preset* — definisi karakter yang disisipkan ke *prompt*, berguna untuk *roleplay* dan *creative writing* terarah.
-- **API**: server TGW membuka API OpenAI-compatible, sehingga eksperimen dapat dilakukan *programmatically* (lihat Tutorial B).
+- **API**: server TGW membuka API OpenAI-compatible, sehingga eksperimen dapat dilakukan *programmatically* (lihat Langkah 2).
 
 ### Reasoning Effort: Parameter Baru di Era Model Reasoning
 
 Perkembangan terbaru memperkenalkan dimensi kontrol baru. Model terbaru seperti **GPT-5.5** (rilis April 2026) mendukung parameter **`reasoning_effort`** dengan nilai `low`/`medium`/`high`/`xhigh` yang mengontrol seberapa lama model "berpikir" (*chain-of-thought*/CoT) sebelum menjawab — setara dengan mengatur *depth* CoT secara dinamis. Parameter ini diatur lewat API OpenAI-compatible: `low` untuk tugas cepat sehari-hari, `xhigh` untuk masalah kompleks yang menuntut penalaran panjang. Meskipun pengaturannya mirip *sampling*, penting dipahami bedanya: *sampling* mengatur *distribusi* token yang dipilih, sedangkan *reasoning_effort* mengatur *panjang proses berpikir internal* sebelum token jawaban dihasilkan.
 
-### Diagram 2: Peta Keputusan Pemilihan Preset
+> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
+
+### Gambar 2: Peta Keputusan Pemilihan Preset
 
 Untuk memilih titik awal parameter sesuai kebutuhan, gunakan peta keputusan berikut:
 
@@ -243,7 +245,7 @@ graph TD
     G --> D
 ```
 
-Peta ini menerjemahkan *preset* Tabel 2 menjadi alur keputusan: tentukan prioritas → pilih titik awal → lakukan eksperimen A/B → evaluasi koherensi → sesuaikan. Putaran umpan balik inilah yang membangun intuisi *sampling* — bukan menghafal angka.
+Peta ini menerjemahkan *preset* Tabel 3 menjadi alur keputusan: tentukan prioritas → pilih titik awal → lakukan eksperimen A/B → evaluasi koherensi → sesuaikan. Putaran umpan balik inilah yang membangun intuisi *sampling* — bukan menghafal angka.
 
 ---
 
@@ -253,7 +255,7 @@ Peta ini menerjemahkan *preset* Tabel 2 menjadi alur keputusan: tentukan priorit
 ## 9. Praktikum / Hands-On
 
 
-### Tutorial A: Eksperimen Parameter dengan Text-Generation-WebUI
+### Langkah 1: Eksperimen Parameter dengan Text-Generation-WebUI
 
 Siapkan laboratorium Anda — instalasi dan eksperimen pertama dalam lima langkah:
 
@@ -282,7 +284,7 @@ cd text-generation-webui
 
 Eksperimen ini mengajarkan tiga pelajaran nyata. Dari langkah 3: di T = 0,2 puisi akan "aman" — rima sederhana, metafora datar, karakter hanya satu pola. Dari langkah 4: di T = 1,2 tanpa *truncation* adaptif, *output* akan liar — kadang mengejutkan, kadang melompat ke ide yang tidak nyambung. Dari langkah 5: setelah Min-P = 0,1 diaktifkan dengan T tetap 1,2, kreativitas bertahan tetapi lompatan tak berhubungan hilang — bukti empiris klaim paper Min-P [1] bahwa *truncation* berbasis skala relatif menyelamatkan *temperature* tinggi.
 
-### Tutorial B: Script Python untuk Benchmark Sampling
+### Langkah 2: Script Python untuk Benchmark Sampling
 
 Karena TGW membuka API, eksperimen dapat diprogram — memungkinkan perbandingan yang adil antar konfigurasi:
 
@@ -315,7 +317,7 @@ for cfg in configs:
 
 Perhatikan variasi pada `configs`: *Greedy* sengaja dibuat ekstrem (T=0,01, Top-K=1) untuk melihat *baseline* repetitif; *Creative* melonggarkan semuanya; *MinP* meniru *Creative* tetapi dengan `top_k: 0` (nonaktif) dan `min_p: 0.1` — perbandingan langsung ini memperlihatkan dampak Min-P tanpa variabel pengganggu. Jalankan skrip yang sama 3–5 kali; *output* yang konsisten dengan cara berbeda mengajarkan lebih banyak daripada satu kali *generate*.
 
-### Tutorial C: Menemukan Preset Optimal via Eksperimen
+### Langkah 3: Menemukan Preset Optimal via Eksperimen
 
 Ketika *use case* khusus (misalnya menulis berita olahraga), lakukan pencarian parameter sistematis:
 
@@ -358,7 +360,7 @@ Ruang kombinasi `4 × 3 × 3 = 36` konfigurasi — *grid search* sederhana yang 
 
 **Hasil.** Produktivitas naik menjadi **1.200 kata per jam** dengan kualitas setara *draft* pertama penulis sendiri. Alur kerja: penulis menyetir *plot* dan motivasi karakter, model mengisi prosa deskriptif dan dialog ekspansi, penulis menyunting. Frase kunci yang diperoleh: pole valutanya bukan "model yang lebih pintar", melainkan *preset* yang tepat — model 8B yang sama menghasilkan naskah buruk di konfigurasi default dan naskah layak sunting di konfigurasi Min-P.
 
-**Kesimpulan.** Min-P *sampling* adalah *game-changer* untuk *creative writing*. Ia memecahkan dilema lama — kreativitas atau koherensi — dengan membuat ambang *truncation* adaptif terhadap keyakinan model [1]. Bagi penulis lain dengan masalah serupa: mulai dari preset Creative Writing (Tabel 2), sesuaikan Min-P di 0,1–0,15, lalu ukur hasil secara konsisten alih-alih mengubah banyak parameter sekaligus.
+**Kesimpulan.** Min-P *sampling* adalah *game-changer* untuk *creative writing*. Ia memecahkan dilema lama — kreativitas atau koherensi — dengan membuat ambang *truncation* adaptif terhadap keyakinan model [1]. Bagi penulis lain dengan masalah serupa: mulai dari preset Creative Writing (Tabel 3), sesuaikan Min-P di 0,1–0,15, lalu ukur hasil secara konsisten alih-alih mengubah banyak parameter sekaligus.
 
 ---
 
@@ -368,7 +370,7 @@ Ruang kombinasi `4 × 3 × 3 = 36` konfigurasi — *grid search* sederhana yang 
 ### Paper Jurnal/Konferensi
 
 [1] Nguyen, N. M., Baker, A., Neo, C., Roush, A. G., Kirsch, A., & Shwartz-Ziv, R. (2025). *Turning Up the Heat: Min-p Sampling for Creative and Coherent LLM Outputs*. International Conference on Learning Representations (ICLR). DOI: [10.48550/arXiv.2407.01082](https://arxiv.org/abs/2407.01082)
-- Paper utama Min-P — dasar Sub-bab 6 dan data Tabel 3.
+- Paper utama Min-P — dasar Sub-bab 6 dan data Tabel 2.
 
 [2] Holtzman, A., Buys, J., Du, L., Forbes, M., & Choi, Y. (2020). *The Curious Case of Neural Text Degeneration*. International Conference on Learning Representations (ICLR). DOI: [10.48550/arXiv.1904.09751](https://arxiv.org/abs/1904.09751)
 - Paper foundational *Nucleus Sampling* (Top-P) — dasar Sub-bab 5.

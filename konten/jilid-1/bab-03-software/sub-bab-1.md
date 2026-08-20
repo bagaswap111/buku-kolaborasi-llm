@@ -35,7 +35,7 @@ Lapisan terakhir adalah **LlamaServer subprocess** (`llama_server.go`) yang memb
 
 ### Keep-Alive: Model yang "Menunggu" di Meja
 
-Beban terbesar inference bukan pada perhitungan matematika, melainkan pada *loading*: membongkar file GGUF sebesar 5-10 GB dari disk ke memori. Untuk menghindari biaya ini berulang-ulang, Ollama menerapkan mekanisme **keep-alive** — model yang baru dipakai "menunggu" di memori selama beberapa menit (secara *default* 5 menit) sebelum di-unload. Jika ada permintaan kedua dalam jendela waktu itu, respons langsung cepat tanpa proses bongkar-muat. Ini menjelaskan fenomena yang sering dialami pengguna: prompt pertama terasa lambat, tetapi prompt berikutnya jauh lebih responsif. Parameter ini bisa disesuaikan per-request melalui *header* atau opsi API, misalnya dipanjangkan untuk aplikasi interaktif atau diperpendek agar memori cepat dibebaskan.
+Beban terbesar inference bukan pada perhitungan matematika, melainkan pada *loading*: membongkar file GGUF sebesar 5-10 GB dari disk ke memori. Untuk menghindari biaya ini berulang-ulang, Ollama menerapkan mekanisme **keep-alive** — model yang baru dipakai "menunggu" di memori selama beberapa menit (secara *default* 5 menit) sebelum diunload. Jika ada permintaan kedua dalam jendela waktu itu, respons langsung cepat tanpa proses bongkar-muat. Ini menjelaskan fenomena yang sering dialami pengguna: prompt pertama terasa lambat, tetapi prompt berikutnya jauh lebih responsif. Parameter ini bisa disesuaikan per-request melalui *header* atau opsi API, misalnya dipanjangkan untuk aplikasi interaktif atau diperpendek agar memori cepat dibebaskan.
 
 Pada lapisan paling atas, Gin juga menangani *request concurrency*: banyak klien boleh memanggil *endpoint* yang sama dalam waktu bersamaan, dan server menangani masing-masing sebagai *goroutine* terpisah — cara Go menangani ribuan tugas ringan serentak. Namun perlu dicatat: *concurrency* di level HTTP tidak berarti model diproses paralel. Jika sebuah model sedang sibuk menghasilkan token untuk permintaan pertama, permintaan kedua dengan model yang sama akan *mengantre* di scheduler (atau berbagi giliran dalam mode streaming) — inilah alasan mengapa latensi naik saat banyak pengguna memakai satu server dengan satu GPU, dan mengapa tim dengan banyak pengguna biasanya memilih model *MoE* efisien seperti DeepSeek V4 Flash yang cepat *memproses* setiap permintaan.
 
@@ -70,7 +70,7 @@ Ketika Anda menjalankan `ollama pull`, apa yang sebenarnya diunduh? Ollama menyi
 
 ### Content-Addressable Storage
 
-Setiap blob di-hash dengan **SHA256**, dan nama file di disk adalah hash itu sendiri. Sistem seperti ini disebut *content-addressable storage*: identitas sebuah blob ditentukan oleh isinya, bukan lokasinya. Keuntungannya langsung terasa: jika dua model berbagi *base model* yang sama (misalnya dua fine-tune yang dibangun dari Llama 3.1 yang sama), blob *base* itu hanya disimpan **sekali** dan dirujuk oleh kedua model. Deduplikasi terjadi otomatis tanpa campur tangan pengguna — hemat disk, hemat bandwidth.
+Setiap blob dihash dengan **SHA256**, dan nama file di disk adalah hash itu sendiri. Sistem seperti ini disebut *content-addressable storage*: identitas sebuah blob ditentukan oleh isinya, bukan lokasinya. Keuntungannya langsung terasa: jika dua model berbagi *base model* yang sama (misalnya dua fine-tune yang dibangun dari Llama 3.1 yang sama), blob *base* itu hanya disimpan **sekali** dan dirujuk oleh kedua model. Deduplikasi terjadi otomatis tanpa campur tangan pengguna — hemat disk, hemat bandwidth.
 
 ### Registri dan Perintah Manajemen
 
@@ -103,8 +103,8 @@ Tabel berikut merangkum parameter Modelfile yang paling sering digunakan, lengka
 
 | Parameter | Tipe | Default | Deskripsi | Contoh Penggunaan |
 |:---|:---:|:---:|:---|:---|
-| `temperature` | float | 0.8 | Randomness sampling | `PARAMETER temperature 0.7` |
-| `top_p` | float | 0.9 | Nucleus sampling threshold | `PARAMETER top_p 0.95` |
+| `temperature` | float | 0,8 | Randomness sampling | `PARAMETER temperature 0.7` |
+| `top_p` | float | 0,9 | Nucleus sampling threshold | `PARAMETER top_p 0.95` |
 | `num_ctx` | int | 2048 | Context window size | `PARAMETER num_ctx 8192` |
 | `stop` | string[] | [] | Stop sequences | `PARAMETER stop "<\|im_end\|>"` |
 | `num_gpu` | int | -1 | GPU layers to offload | `PARAMETER num_gpu 99` |
@@ -153,7 +153,7 @@ Pelajaran dari tabel ini: untuk pengguna Linux/Windows dengan kartu NVIDIA, llam
 
 Saat Anda pertama kali menjalankan model, Ollama melakukan *probe* perangkat keras: mendeteksi GPU NVIDIA (CUDA), AMD (ROCm), atau Apple (Metal) secara otomatis. Hasil deteksi ini menentukan dua hal: berapa lapisan model yang bisa di-*offload* ke **VRAM**, dan berapa besar memori sistem yang tersisa untuk bagian yang tidak muat. Scheduler lalu mengalokasikan **layer offload** secara dinamis — tidak harus semua lapisan masuk GPU; jika VRAM menipis, sebagian lapisan ditarik kembali ke CPU tanpa Anda perlu mengonfigurasi apa pun.
 
-Jika dua model diminta bersamaan, scheduler menilai prioritas: model yang sedang melayani *streaming* dipertahankan, model yang sudah lama tidak dipakai boleh dikeluarkan dari memori untuk memberi tempat model baru. Perilaku ini bisa dikontrol via parameter `num_gpu` (berapa lapisan maksimum yang di-offload) dan `OLLAMA_MAX_LOADED_MODELS` (berapa model boleh hidup bersamaan). Dengan kata lain, Ollama memperlakukan VRAM seperti meja kerja terbatas: ia mengatur posisi duduk setiap "pekerja" (lapisan model) agar semua tugas tetap berjalan, meski harus bergantian.
+Jika dua model diminta bersamaan, scheduler menilai prioritas: model yang sedang melayani *streaming* dipertahankan, model yang sudah lama tidak dipakai boleh dikeluarkan dari memori untuk memberi tempat model baru. Perilaku ini bisa dikontrol via parameter `num_gpu` (berapa lapisan maksimum yang dioffload) dan `OLLAMA_MAX_LOADED_MODELS` (berapa model boleh hidup bersamaan). Dengan kata lain, Ollama memperlakukan VRAM seperti meja kerja terbatas: ia mengatur posisi duduk setiap "pekerja" (lapisan model) agar semua tugas tetap berjalan, meski harus bergantian.
 
 Ada satu detail lagi yang membuat *scheduling* Ollama terasa "manusiawi": **estimasi kebutuhan memori dilakukan sebelum load**. Scheduler membaca *metadata* model (ukuran bobot, ukuran KV cache untuk konteks default) lalu memutuskan apakah model muat di VRAM yang tersisa; jika tidak, lapisan-lapisan teratas yang paling banyak dipakai ditempatkan di GPU dan sisanya di CPU. Proses ini menghasilkan pola khas: jika Anda menjalankan model yang "pas-pasan" dengan VRAM, *inference* tetap bekerja — hanya saja lebih lambat di lapisan yang jatuh ke CPU. Memahami pola ini membantu menjelaskan kenapa menggeser parameter `num_ctx` ke nilai besar bisa membuat model yang tadinya mulus menjadi tersendat: konteks yang lebih panjang berarti KV cache lebih besar, sisa VRAM menyusut, dan lapisan mulai "tumpah" ke CPU.
 
@@ -330,7 +330,7 @@ with concurrent.futures.ThreadPoolExecutor() as ex:
         print(f"{model}: {time:.2f}s")
 ```
 
-Jika total RAM/VRAM cukup, ketiga model akan dimuat bersamaan dan masing-masing mencatat waktu kecil; jika memori menipis, scheduler akan menunggu model lama *di-unload* dulu — inilah momen yang tepat mengamati kerja *keep-alive* dan prioritas *scheduling* secara langsung. Waktu yang besar pada model ketiga menandakan *thrashing* memori; solusinya kurangi model yang dimuat sekaligus atau set `OLLAMA_MAX_LOADED_MODELS`.
+Jika total RAM/VRAM cukup, ketiga model akan dimuat bersamaan dan masing-masing mencatat waktu kecil; jika memori menipis, scheduler akan menunggu model lama *diunload* dulu — inilah momen yang tepat mengamati kerja *keep-alive* dan prioritas *scheduling* secara langsung. Waktu yang besar pada model ketiga menandakan *thrashing* memori; solusinya kurangi model yang dimuat sekaligus atau set `OLLAMA_MAX_LOADED_MODELS`.
 
 ---
 
