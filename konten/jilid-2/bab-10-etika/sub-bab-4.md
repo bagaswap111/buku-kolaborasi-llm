@@ -34,7 +34,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ### Konteks Indonesia: Listrik, Bandwidth, dan Regulasi
 
-Keputusan deployment di Indonesia memiliki karakteristik khusus. Biaya listrik berada di kisaran **Rp 1.500-2.500/kWh**, cukup rendah untuk membuat server lokal ekonomis bila dimanfaatkan penuh, tetapi bandwidth internet yang bervariasi antar wilayah menambah latency cloud secara tidak merata. Regulatori menjadi penentu: **UU PDP** (Undang-Undang Pelindungan Data Pribadi, UU No. 27 Tahun 2022) — khususnya pasal-pasal terkait perlindungan data — mewajibkan pengendali data menjaga kerahasiaan dan keamanan data pribadi, sehingga data sensitif umumnya *wajib* diproses lokal atau dengan mekanisme yang terdokumentasi (misalnya *Data Processing Agreement*/DPA) bila memakai pihak ketiga.
+Keputusan deployment di Indonesia memiliki karakteristik khusus. Biaya listrik berada di kisaran **Rp 1.500-2.500/kWh** dan asumsi kanonik buku ini **Rp 1.600/kWh**, cukup rendah untuk membuat server lokal ekonomis bila dimanfaatkan penuh, tetapi bandwidth internet yang bervariasi antar wilayah menambah latency cloud secara tidak merata. Regulatori menjadi penentu: **UU PDP** (Undang-Undang Pelindungan Data Pribadi, UU No. 27 Tahun 2022) — khususnya pasal-pasal terkait perlindungan data — mewajibkan pengendali data menjaga kerahasiaan dan keamanan data pribadi, sehingga data sensitif umumnya *wajib* diproses lokal atau dengan mekanisme yang terdokumentasi (misalnya *Data Processing Agreement*/DPA) bila memakai pihak ketiga.
 
 ### Tabel 1: Model Open-Weight Terbaru untuk Deployment Lokal
 
@@ -88,11 +88,11 @@ Keandalan mengikuti pola simetris. Lokal menggantungkan diri pada hardware sendi
 
 ### Menghitung Biaya Lokal
 
-Biaya lokal bukan sekadar harga GPU. Komponen lengkapnya: **hardware** (GPU/server), **listrik** (di Indonesia sekitar Rp 1.500-2.500/kWh), **pendingin** ruangan server, **maintenance** (tim internal atau kontrak vendor), dan **depresiasi** hardware 3-5 tahun. Sebuah server mini dengan Mac Mini M4 Pro 48GB + Ollama bisa dimulai dari puluhan juta rupiah; konfigurasi 2x RTX 4090 NVLink untuk skala menengah-besar sekitar Rp 90 juta; dan klaster enterprise 4x A100 80GB bisa menyentuh miliaran rupiah. Kuncinya adalah meng-amortisasi seluruh CAPEX ke biaya bulanan, lalu membaginya dengan volume token — barulah terlihat biaya lokal per 1 juta token yang bisa sangat rendah: dari kisaran Rp 200-1.200 per juta token tergantung skala.
+Biaya lokal bukan sekadar harga GPU. Komponen lengkapnya: **hardware** (GPU/server), **listrik** (di Indonesia sekitar Rp 1.500-2.500/kWh, asumsi kanonik Rp 1.600/kWh), **pendingin** ruangan server, **maintenance** (tim internal atau kontrak vendor), dan **depresiasi** hardware 3-5 tahun. Sebuah server mini dengan Mac Mini M4 Pro 48GB + Ollama bisa dimulai dari puluhan juta rupiah; konfigurasi 2x RTX 4090 NVLink untuk skala menengah-besar sekitar Rp 90 juta; dan klaster enterprise 4x A100 80GB bisa menyentuh miliaran rupiah. Kuncinya adalah meng-amortisasi seluruh CAPEX ke biaya bulanan, lalu membaginya dengan volume token — barulah terlihat biaya lokal per 1 juta token yang bisa sangat rendah: dari kisaran Rp 200-1.200 per juta token tergantung skala.
 
 ### Menghitung Biaya Cloud
 
-Biaya cloud lebih mudah dihitung karena transparan: **harga per-token** dari API, ditambah *throughput commitment* (jika ada) dan *data transfer*. OpenAI mematok GPT-4o mini di kisaran **Rp 15.000 per juta token**, sementara model frontier seperti **GPT-5.5** dan **Claude Fable 5** berada di kisaran **Rp 60.000-75.000 per juta token** [Sumber?]. Tanpa volume yang besar, angka ini nyaman; dengan 100 juta token per bulan, tagihan cloud bisa menembus puluhan hingga ratusan juta rupiah per bulan.
+Biaya cloud lebih mudah dihitung karena transparan: **harga per-token** dari API, ditambah *throughput commitment* (jika ada) dan *data transfer*. GPT-4o mini, misalnya, dipatok OpenAI di **US$0,15 per juta token masukan dan US$0,60 per juta token keluaran** — setara **Rp 2.400-9.600 per juta token** pada kurs ±Rp 16.000/US$ tergantung rasio token [10]. Klaim kisaran harga model frontier (misalnya "GPT-5.5" dan "Claude Fable 5" di Rp 60.000-75.000 per juta token) tidak dapat diverifikasi dari sumber tersedia (klaim fiktif-2026 — lakukan pengecekan laman harga resmi sebelum terbit). Tanpa volume yang besar, angka ini nyaman; dengan 100 juta token per bulan, tagihan cloud bisa menembus puluhan hingga ratusan juta rupiah per bulan.
 
 ### Konsep Break-even
 
@@ -100,7 +100,7 @@ Biaya cloud lebih mudah dihitung karena transparan: **harga per-token** dari API
 
 ### Tabel 2: Break-even Analysis — Local vs Cloud dengan Model Terbaru
 
-Inilah inti matematis keputusan deployment. Tabel ini membandingkan biaya lokal dan cloud — dengan asumsi depresiasi 3 tahun dan harga listrik Rp 1.500/kWh — untuk lima profil organisasi.
+Inilah inti matematis keputusan deployment. Tabel ini membandingkan biaya lokal dan cloud — dengan asumsi depresiasi 3 tahun dan harga listrik Rp 1.600/kWh — untuk lima profil organisasi.
 
 | Skenario | Hardware | Model Lokal | CAPEX | Biaya/1M Token (local) | Biaya/1M Token (cloud) | Break-even (token/bulan) |
 |:---|:---|:---|:---:|:---:|:---:|:---:|
@@ -109,7 +109,7 @@ Inilah inti matematis keputusan deployment. Tabel ini membandingkan biaya lokal 
 | **Menengah (5-20 user)** | PC RTX 4090 24GB | Mistral Large 3 (41B Q4) | Rp 45jt | Rp 1.100 | Rp 60.000 (Claude Fable 5) | ~765K |
 | **Besar (20-100 user)** | 2x RTX 4090 NVLink | DS V4 Pro + V4 Flash | Rp 90jt | Rp 700 | Rp 75.000 (GPT-5.5) | ~1,2M |
 | **Enterprise (>100 user)** | 4x A100 80GB | DS V4 Pro + Mistral L3 | Rp 2,5 miliar | Rp 200 | Rp 60.000 (Claude Fable 5) | ~42K |
-| **Catatan:** | Estimasi 3 tahun depresiasi | | | Rp/kWh = 1.500 | Harga API | Semakin besar volume, semakin murah lokal |
+| **Catatan:** | Estimasi 3 tahun depresiasi | | | Rp/kWh = 1.600 | Harga API | Semakin besar volume, semakin murah lokal |
 
 ![Grafik batang horizontal berkelompok pada skala logaritmik membandingkan biaya per satu juta token antara deployment lokal dan cloud API untuk lima skenario organisasi, dengan gap hingga 300 kali lipat pada profil enterprise](../../assets/images/bab-10-etika/sub-bab-4/biaya-lokal-vs-cloud.png)
 

@@ -117,7 +117,7 @@ Pola yang langsung terlihat: **akurasi dan biaya tumbuh bersama**. Standard prom
 
 Fakta penting yang sering disalahpahami: *emergent ability* CoT ditemukan pada model >100B, tetapi model kecil juga mendapat manfaat — hanya dengan akurasi yang lebih rendah. Llama 3.1 (8B) naik dari 18,2% (standard) menjadi 52,3% (few-shot CoT); Qwen 2.5 (7B) dari 22,5% menjadi 56,8% — hampir tiga kali lipat. Kuncinya adalah **prompt engineering + format terstruktur**: model kecil lebih sensitif terhadap kualitas instruksi, sehingga format yang konsisten ("Thought:", "Answer:") dan contoh yang baik jauh lebih menentukan.
 
-Pilihan model untuk *reasoning* lokal di 2026 sangat kuat: **Llama 3.1 (8B)** (keseimbangan terbaik ukuran/kualitas), **Qwen 2.5 (7B)** (unggul di beberapa benchmark), **DeepSeek R1 Distill** (model kecil yang didistilasi dari R1, spesialis *reasoning*), hingga **DeepSeek V4 Pro** yang arsitekturnya (hybrid CSA/HCA attention) [Sumber?] dirancang khusus untuk *reasoning* mendalam dengan konteks panjang. Untuk agen di laptop, *DeepSeek V4 Flash* menjadi pilihan menarik: kualitas *reasoning* kelas atas dengan 13 miliar parameter aktif.
+Pilihan model untuk *reasoning* lokal di 2026 sangat kuat: **Llama 3.1 (8B)** (keseimbangan terbaik ukuran/kualitas), **Qwen 2.5 (7B)** (unggul di beberapa benchmark), **DeepSeek R1 Distill** (model kecil yang didistilasi dari R1, spesialis *reasoning*), hingga **DeepSeek V4 Pro** yang arsitekturnya (hybrid CSA/HCA attention) (klaim fiktif-2026 — verifikasi sebelum terbit) dirancang khusus untuk *reasoning* mendalam dengan konteks panjang. Untuk agen di laptop, *DeepSeek V4 Flash* menjadi pilihan menarik: kualitas *reasoning* kelas atas dengan 13 miliar parameter aktif.
 
 ### Kontrol Kedalaman: Reasoning Effort
 

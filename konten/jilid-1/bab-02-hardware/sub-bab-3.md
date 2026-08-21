@@ -179,7 +179,7 @@ token/detik yang jujur dari pengukuran independen.
 | Llama 3.1 (8B) Q4_K_M | M2 Ultra 192GB | MLX | ~85 t/s | ~Rp 75 jt |
 | Llama 3.1 (8B) Q4_K_M | RTX 4090 24GB | llama.cpp CUDA | ~110 t/s | ~Rp 30 jt |
 | Llama 3.1 (8B) Q4_K_M | RTX 3090 24GB | llama.cpp CUDA | ~85 t/s | ~Rp 12 jt |
-| Qwen 2.5 (14B) Q4_K_M | M4 Pro 48GB | MLX | ~40 t/s | ~Rp 32 jt |
+| Qwen 2.5 (14B) Q4_K_M | M4 Pro 48GB | MLX | ~20 t/s | ~Rp 32 jt |
 | Qwen 2.5 (14B) Q4_K_M | RTX 4090 24GB | llama.cpp CUDA | ~65 t/s | ~Rp 30 jt |
 | Llama 3.1 (70B) Q3_K_M | M2 Ultra 192GB | MLX | ~15 t/s | ~Rp 75 jt |
 | Llama 3.1 (70B) Q3_K_M | 2x RTX 3090 | vLLM TP2 | ~22 t/s | ~Rp 24 jt |

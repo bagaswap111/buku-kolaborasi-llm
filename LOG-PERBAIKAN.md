@@ -1,7 +1,7 @@
 # LOG PERBAIKAN KONTEN BUKU
 
 Repo: `buku-kolaborasi-llm`
-Periode lintas konsistensi: 2026-08-16 s.d. 2026-08-20
+Periode lintas konsistensi: 2026-08-16 s.d. 2026-08-21
 Status: SELESAI (Fase audit & perbaikan). Sub-bab kosong 15 file belum ditulis (menunggu keputusan judul).
 
 > Dokumen ini merangkum seluruh perbaikan yang diterapkan ke konten buku, termasuk
@@ -217,10 +217,10 @@ Sumber: `logs-perbaikan/bab-index.md`. Badan `mkdocs.yml` berubah → diperiksa.
 
 ### Pekerjaan tertunda (menunggu penulis)
 1. **Menulis 15 sub-bab kosong** (bab-06 s.d. bab-10) — tidak ada guideline; judul belum diputuskan. (Sementara DILEWATI.)
-2. **Seragamkan t/s M4 Pro** bab-02 sub-bab-9 (60) vs bab-02 sub-bab-1/3/5/7/10 (40).
-3. **Klaim downtime 43 menit** bab-08 sub-bab-1 — perbaiki angkanya atau beri sumber.
-4. **Rp 1.500/kWh di bab-06** masih dipakai di beberapa tabel vs kanon Rp 1.600/kWh (bab-02) — seragamkan.
-5. Evaluasi nota ⚠️ referensi 2026 (konflik arXiv ID DeepSeek-V4 & Ministral 3, LISA 2403.12345, dsb.) sebelum terbit.
+2. ~~Seragamkan t/s M4 Pro~~ → **SELESAI 2026-08-21**: gaya kanon ~40 t/s (7B Q4) & ~20 t/s (14B Q4), M4 Max ~70/73 t/s; ~45 t/s pada bab-04 sb-4 dipertahankan + catatan *tool-loop* agen (lihat SESI 2026-08-21).
+3. ~~Klaim downtime 43 menit~~ → **SELESAI**: angka dihapus dari prosa (rilis terbaru tidak menyebut 43 mnt) — rujukan prosa diturunkan ke rentang yang didukung sumber [2][4].
+4. ~~Rp 1.500/kWh~~ → **SELESAI 2026-08-21**: seluruh prosa/tabel/kode diseragamkan ke kanon Rp 1.600/kWh (lihat SESI 2026-08-21). Sisa "1.500" hanya non-tarif (Token Usage, harga pensil, clock 1500 MHz) + rentang PLN (1.444-1.700, 1.500-1.700, dsb.).
+5. Evaluasi nota ⚠️ referensi 2026 (konflik arXiv ID DeepSeek-V4 & Ministral 3, LISA 2403.12345, dsb.) sebelum terbit — sebagian klaim sudah dipilah di SESI 2026-08-21 (terverifikasi vs fiktif-2026), evaluasi formal sebelum terbit tetap terbuka.
 ---
 
 ## GELOMBANG TERAKHIR (sesi lanjutan)
@@ -245,4 +245,67 @@ Setelah push/commit sebelumnya, verifikasi menyeluruh menemukan sisa pola di fil
 - 116 gambar embed, **0 missing**.
 - `mkdocs build`: **sukses** (3.9 s).
 
-Status pekerjaan tertunda (penulis): tetap seperti daftar di atas — 15 sub-bab kosong, t/s M4 Pro, downtime 43 menit, Rp 1.500/kWh bab-06, evaluasi ⚠️ referensi 2026.
+Status pekerjaan tertunda (penulis) pasca-gelombang terakhir: 15 sub-bab kosong, evaluasi ⚠️ referensi 2026 — lihat seksi terbaru berikut.
+
+---
+
+## SESI 2026-08-21 — Konsistensi Angka & Penyelesaian Penanda [Sumber?] (47 edit di 28 file)
+
+### A. Tarif listrik kanonik Rp 1.600/kWh (lanjutan dari gelombang sebelumnya)
+
+Addendum `bab-06-home/sub-bab-8.md` (Seksi 8):
+
+- **Tabel 1** (Listrik/tahun): 1.800.000→**1.920.000**, 2.400.000→**2.560.000**; Total Tahun 1: 29.300.000→**29.420.000**, 47.900.000→**48.060.000**; Tahun 2: 31.600.000→**31.840.000**, 50.800.000→**51.120.000**; Tahun 3: 33.900.000→**34.260.000**, 53.700.000→**54.180.000**; TCO bersih ~25.800.000→**~26.160.000**, ~40.200.000→**~40.680.000**. Asumsi baris 78 & 90 1.500→1.600. Caption Gambar 6.8-1 "bertambah Rp 4,6jt"→**4,8jt**. Analisis prosa disesuaikan (29,4jt/48,1jt; 34,3jt; ~26,2jt); kalimat "Satu-satunya argumen kuat untuk cloud…" dipulihkan setelah tak sengaja terhapus.
+- **Tabel 2** semua baris: RTX 3090 ~130rb/1,56jt→**~140rb/~1,68jt**; 4090 ~144rb/1,73jt→**~156rb/~1,87jt**; Mac Mini ~25rb/300rb→**~27rb/~327rb**; Mac Studio ~43rb/516rb→**~47rb/~561rb**; NUC ~11rb/130rb→**~12rb/~140rb**; 2×4090 ~252rb/3,02jt→**~273rb/~3,27jt**. Caption 6.8-2 (140-273rb / 12-27rb) & analisis (~140-156rb) disesuaikan. Paragraf Mac Mini M4 Pro dikoreksi **idle 7W+load 65W→15W/85W** (sinkron Tabel 2). Semua kode: `"1500"`→`"1600"` (default, 3 skenario), `TARIF=1600`, template sensor `kwh * 1600`. Studi kasus Seksi 9: listrik 2,4jt→**2,56jt/thn**, 52,2jt→**52,7jt/3thn**, penghematan 37,8jt→**37,3jt**; break-even bulan ke-20 terverifikasi tetap valid (45/(2,5-0,255)≈20).
+
+Addendum `bab-07-small/sub-bab-8.md`:
+
+- **Tabel 4 Listrik (24/7)**: 1.500.000/2.000.000/3.000.000→**1.600.000/2.133.000/3.200.000**; Total Opex Bulanan 4,6/6,8/9,6→**4,7/6,9/9,8jt** (sempat salah tulis 10,3 → dikoreksi; verifikasi 3,2+0,5+0,2+1,0+0,5+4,44=9,84). Narasi "±Rp 9,6 juta"→**±Rp 9,8 juta**; komentar & prosa skrip 1.500→1.600; kode skrip `* 1500`→`* 1600` (ketidaksinkronan komentar-kode ditemukan & diperbaiki). Catatan B-3 (rentang PLN 1.500-1.700) dibiarkan; "Rp 1-3 juta/bulan" tetap valid (1,6-3,2jt).
+
+Addendum `bab-08-general/sub-bab-9.md` (Seksi 9):
+
+- Kalkulasi 4 kW: `1.600 × 24 × 365 × 4 = **Rp 56 juta/tahun**`; komentar `# Rp 1.500`→`# Rp 1.600`; `cost_per_kwh=1500`→`1600`. Skrip 2×H100 (2,38 kW) → **±Rp 33 jt/thn** (konsisten Tabel 1 Medium Rp 35jt + margin cooling). **Tabel 1 (15/35/60jt) diverifikasi tetap konsisten di 1.600** (Entry ~12,8jt ≈ 15jt dgn cooling; Premium 60,8jt ≈ 60jt).
+
+**Tambahan**: `bab-04-otomasi-agent/sub-bab-4.md` intro Tabel 2 — konsistensi M4 Max: mengukur t/s dalam *tool-loop* agen (Cline/Aider: skema alat, riwayat percakapan) lebih rendah dari *inference* murni; contoh eksplisit Llama 3.1 (8B) ~70 t/s murni (Bab 2) → ~45 t/s saat dijalankan agent. Keputusan: **~45 t/s DIPERTAHANKAN** dengan catatan, bukan diseragamkan.
+
+### B. Inventaris penanda tanpa sumber
+
+- `[Sumber?]` = **24 item di 19 file** (bab-01: 0; bab-02: 0; bab-03: 0; bab-04: 12; bab-05: 0; bab-06: 2; bab-07: 1; bab-08: 2; bab-09: 3; bab-10: 4).
+- ⚠️ = **48 item di 28 file** → kini **49 di 29 file** setelah penyeragaman anotasi ref `[4] JATIR` di bab-04 sb-9.
+  - **Kategori A (13)**: blockquote `> ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.` → **DIPERTAHANKAN** (penanda editorial).
+  - **Kategori B (4)**: "ID placeholder — ganti dengan ID asli sebelum rilis" (bab-02 sb-1/2/5/6) → **DIPERTAHANKAN**.
+  - **Kategori C (7)**: "verifikasi sebelum rilis (ID arXiv 2026)" → **DIPERTAHANKAN**.
+  - **Kategori D (24)**: anotasi inline entri daftar referensi → **DIPERTAHANKAN**.
+- Keputusan (2026-08-21): verifikasi web untuk klaim real; klaim yang merujuk model fiktif-2026 (DeepSeek V4 Flash/Pro, Claude Fable 5, Qwen3.7-Max, GPT-5.5) dikonversi ke catatan editorial `(klaim fiktif-2026 — verifikasi sebelum terbit)` — **12 penggunaan di 11 file**.
+
+### C. Hasil verifikasi web & penanganan per klaim (19 file [Sumber?] → 0 sisa)
+
+**Terverifikasi & diberi sumber/angka yang benar:**
+
+| Klaim | Hasil verifikasi | Penanganan |
+|:------|:-----------------|:-----------|
+| Whisper id 7,1% (bab-04 sb-7) | Cocok FLEURS large-v2; large-v3 sedikit lebih baik; small 11,8% | `[1]` Radford 2023 + kalimat "diukur pada benchmark FLEURS dalam rilis resmi Whisper [1]" |
+| pyannote ~85% (bab-04 sb-10) | setara DER 12-19% pada AMI/VoxConverse, pyannote 3.1 | "setara DER 12-19% … [7]" (pyannote-audio; sitasi sempat salah [2]→dikoreksi) |
+| GPT-3 ~500 tCO2 (bab-10 sb-5) | Patterson et al. 2021 (arXiv:2104.10350): 1.287 MWh, 502-552 tCO2e, ~100-123 mobil/thn | 500-550 ton + 100-123 mobil + **[14]** |
+| LLM vs search 5-10× (bab-10 sb-5) | ~2,9 Wh ChatGPT vs ~0,3 Wh Google per query (≈10×; IEA Electricity 2024) | ditimpa dengan angka IEA + **[15]** |
+| "40% GPU idle" (bab-10 sb-5) | **SALAH** — yang benar: Epoch AI (GPU ≈ 40% daya AI DC) & ACMETrace NSDI '24 (**49% waktu GPU direservasi idle di dalam job**) | rewrite framing ACMETrace + **[16] Hu et al., NSDI '24** (URL usenix.org diverifikasi) |
+| Gartner $100rb/insiden (bab-10 sb-1) | Tidak terverifikasi; riil: Gartner 25-06-2025 — **>40% proyek agentic AI dibatalkan s.d. akhir 2027** (biaya membengkak, nilai tak jelas, kontrol risiko buruk) | rewrite proyeksi tersebut + **[17]** |
+| bge-m3 1024-d/8192-token (bab-09 sb-3) | arXiv:2402.03216 | sitasi **[13]** (ref baru) |
+| NVLink TP 2-GPU 40-60% (bab-07 sb-2) | ✓ ~50% *throughput* (benchmark tensor parallelism 2-GPU) | dipatok ~50% + **[10]** (komunitas) |
+| GPT-4o mini Rp 15.000/1M (bab-10 sb-4) | Riil: **$0,15/1M input, $0,60/1M output** | prosa → USD + kesetaraan Rp 2.400-9.600 (kurs ±16k) + **[10]**; klaim harga model frontier → catatan fiktif-2026 |
+| Meta siklus rilis 3-4/12-15 bln (bab-10 sb-3) | ✓ cocok; dari grafik: minor 2-3 bln, major ±12 bln (Llama 3 Apr 24 → Llama 4 Apr 25) | prosa disesuaikan ke fakta grafik + **[1][10]** |
+
+**Klaim fiktif-2026 → catatan editorial `(klaim fiktif-2026 — verifikasi sebelum terbit)`:**
+bab-04 sb-1 (SWE-bench 95%), sb-2 (90,6% ×2), sb-3 (hybrid CSA/HCA), sb-5 (30% tiket), sb-9 (40% kualitas); bab-06 sb-2 (KV-cache DeepSeek V4 Pro 10%); bab-08 sb-5 (Claude Fable 5 Juni 2026), sb-7 (Qwen3.7-Max Mei 2026); bab-09 sb-3 (DeepSeek V4 Embedding 2048-d), sb-5 (NL2SQL 92%/78%); bab-10 sb-4 (harga frontier).
+
+**Lainnya:** bab-09 sb-1 — harga VPS "Rp 800rb" → `(harga asumsi editor — verifikasi tarif aktual antar-provider sebelum terbit)`; bab-06 sb-2 — resale value Mac → opsi DIPERTAHANKAN + catatan `(perkiraan umum pasar barang bekas — verifikasi harga pasar aktual sebelum terbit)` & penghapusan klausa duplikat.
+
+### D. Catatan gambar statis (⚠️ untuk penulis)
+
+Angka tabel biaya berubah, tetapi **PNG statis tidak dapat diregenerasi** (`scripts/` kosong, PNG tak terbaca): `sub-bab-8/{biaya-listrik-per-bulan,akumulasi-biaya-3-tahun}.png`, `sub-bab-8/tco-cloud-vs-self-hosted.png`, `sub-bab-9/{anggaran-capex-opex-tco,biaya-per-user-saas}.png`, `sub-bab-4/biaya-lokal-vs-cloud.png` — **wajib diregenerasi oleh penulis sebelum terbit**.
+
+### E. Status akhir
+
+- `grep '[Sumber?]'` = **0** di seluruh konten.
+- ⚠️ = 49 di 29 file (48 inventaris + 1 penyeragaman ref JATIR bab-04 sb-9).
+- Semua edit SESI 2026-08-21 masih di working tree (belum di-commit).

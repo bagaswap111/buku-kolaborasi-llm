@@ -80,7 +80,7 @@ Pipeline RAG di Flowise dibangun dari lima tahap yang masing-masing dapat digant
 
 **Text Splitter** — strategi *chunking* yang menentukan kualitas retrieval: *RecursiveCharacter* (berdasarkan karakter dengan urutan pemisah), *Token-based*, *Markdown*, *HTML*, hingga *Code splitter*. Pemilihan strategi adalah keputusan paling berpengaruh dalam pipeline (lihat Tabel 2).
 
-**Embedding Model** — mengubah setiap chunk menjadi vektor. Dukungannya luas: OpenAI, Ollama, HuggingFace, SentenceTransformers, dengan **dukungan embedding model terbaru hingga 8.192 token masukan** — dimensi vektor keluaran mengikuti model, misalnya DeepSeek V4 Embedding (2048 dimensi) atau bge-m3 (1024 dimensi) [Sumber?]. Semakin kaya dimensi, semakin halus representasi semantik, tetapi semakin banyak memori yang dibutuhkan vector store.
+**Embedding Model** — mengubah setiap chunk menjadi vektor. Dukungannya luas: OpenAI, Ollama, HuggingFace, SentenceTransformers, dengan **dukungan embedding model terbaru hingga 8.192 token masukan** — dimensi vektor keluaran mengikuti model, misalnya bge-m3 (1024 dimensi, konteks 8.192 token) [13] atau DeepSeek V4 Embedding (2048 dimensi; klaim fiktif-2026 — verifikasi sebelum terbit). Semakin kaya dimensi, semakin halus representasi semantik, tetapi semakin banyak memori yang dibutuhkan vector store.
 
 **Vector Store** — penyimpanan vektor dengan dukungan ChromaDB, Qdrant, Milvus, Pinecone, Weaviate, Supabase, dan PGVector. Untuk eksperimen, ChromaDB cukup; untuk produksi besar, Qdrant dengan *scalar quantization* menghemat memori hingga 4×.
 
@@ -362,3 +362,5 @@ Pelajaran studi kasus ini: keberhasilan RAG enterprise tidak ditentukan oleh mod
 [11] DeepSeek-AI. (2026). *DeepSeek-V4: A Next-Generation Open-Source Mixture-of-Experts Language Model*. arXiv. DOI: [10.48550/arXiv.2604.00001](https://arxiv.org/abs/2604.00001) — model MoE 1.6T/49B aktif dengan 1M context; relevan untuk pipeline RAG dengan dokumen sangat panjang di Flowise.
 
 [12] Mistral AI. (2025). *Ministral 3: Cascade Distillation for Efficient Edge Language Models*. [https://mistral.ai/news/ministral-3](https://mistral.ai/news/ministral-3) — model edge 3B/8B/14B dengan *Cascade Distillation*; acuan deployment Flowise pada sumber daya terbatas.
+
+[13] Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., & Liu, Z. (2024). *BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation*. arXiv: [2402.03216](https://arxiv.org/abs/2402.03216) — model embedding 1024 dimensi dengan konteks hingga 8.192 token; acuan dimensi dan konteks bge-m3.

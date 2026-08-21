@@ -160,7 +160,7 @@ Tiga wawasan dari tabel ini. Pertama, *CAPEX nol bukan berarti murah*: cloud GPU
 
 ### Matematika Sederhana Daya Server LLM
 
-Biaya listrik adalah OPEX yang paling sering diremehkan, padahal dapat diprediksi dengan tiga angka. GPU data center modern mengonsumsi **350-700 Watt per unit** (L40S di ujung bawah, H100 di ujung atas), dan satu server lengkap — CPU, motherboard, RAM, ditambah *cooling* untuk menghilangkan panas yang dihasilkan — total sekitar **3-5 kW**. Kalikan dengan jam operasi 24 jam, 365 hari: biaya listrik untuk sistem 4 kW dengan tarif industri Rp 1.500/kWh adalah 1.500 x 24 x 365 x 4 = **Rp 52 juta per tahun**. Angka ini adalah beban minimum; *cooling* AC ruangan menambahkan lagi **30-50% dari biaya listrik GPU** — sebuah server yang "murah" bisa menagihkan listrik lebih besar dari biaya *maintenance*-nya.
+Biaya listrik adalah OPEX yang paling sering diremehkan, padahal dapat diprediksi dengan tiga angka. GPU data center modern mengonsumsi **350-700 Watt per unit** (L40S di ujung bawah, H100 di ujung atas), dan satu server lengkap — CPU, motherboard, RAM, ditambah *cooling* untuk menghilangkan panas yang dihasilkan — total sekitar **3-5 kW**. Kalikan dengan jam operasi 24 jam, 365 hari: biaya listrik untuk sistem 4 kW dengan tarif industri Rp 1.600/kWh adalah 1.600 x 24 x 365 x 4 = **Rp 56 juta per tahun**. Angka ini adalah beban minimum; *cooling* AC ruangan menambahkan lagi **30-50% dari biaya listrik GPU** — sebuah server yang "murah" bisa menagihkan listrik lebih besar dari biaya *maintenance*-nya.
 
 ### Implikasi Desain: Utilisasi Menentukan Tagihan
 
@@ -262,7 +262,7 @@ def calculate_power_cost(
     server_tdp: int,     # Watt (CPU + mobo + RAM)
     hours_per_day: int,  # 24 jika 24/7
     days_per_year: int,  # 365
-    cost_per_kwh: float, # Rp 1.500
+    cost_per_kwh: float, # Rp 1.600
     cooling_factor: float = 1.4  # 40% tambahan untuk cooling
 ) -> dict:
     gpu_power_kw = (gpu_count * gpu_tdp) / 1000
@@ -285,7 +285,7 @@ def calculate_power_cost(
 result = calculate_power_cost(
     gpu_count=2, gpu_tdp=700,
     server_tdp=300, hours_per_day=24,
-    cost_per_kwh=1500
+    cost_per_kwh=1600
 )
 print(f"Total daya: {result['total_power_kw']} kW")
 print(f"Biaya listrik/bulan: Rp {result['monthly_cost']:,.0f}")
@@ -293,7 +293,7 @@ print(f"Biaya listrik/tahun: Rp {result['yearly_cost']:,.0f}")
 print(f"Biaya listrik/3 tahun: Rp {result['three_year_cost']:,.0f}")
 ```
 
-Periksa sendiri hasilnya: untuk 2× H100, `total_power_kw` menjadi (1.400 + 300) × 1.4 = 2,38 kW — dan dengan tarif Rp 1.500/kWh, biaya tahunan keluar sekitar **Rp 31 juta**, konsisten dengan baris `Listrik/tahun` pada Tabel 1 untuk skenario Medium (Rp 35 juta dengan margin *cooling* yang lebih konservatif). Ubah `cooling_factor` menjadi 1,5 (50% untuk ruangan tanpa AC presisi) dan lihat bagaimana biaya melonjak — inilah cara cepat meyakinkan manajemen bahwa investasi AC ruangan server bukan pengeluaran, melainkan penghematan.
+Periksa sendiri hasilnya: untuk 2× H100, `total_power_kw` menjadi (1.400 + 300) × 1.4 = 2,38 kW — dan dengan tarif Rp 1.600/kWh, biaya tahunan keluar sekitar **Rp 33 juta**, konsisten dengan baris `Listrik/tahun` pada Tabel 1 untuk skenario Medium (Rp 35 juta dengan margin *cooling* yang lebih konservatif). Ubah `cooling_factor` menjadi 1,5 (50% untuk ruangan tanpa AC presisi) dan lihat bagaimana biaya melonjak — inilah cara cepat meyakinkan manajemen bahwa investasi AC ruangan server bukan pengeluaran, melainkan penghematan.
 
 ### Langkah 3: Template Proposal Anggaran AI General Office
 

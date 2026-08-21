@@ -60,7 +60,7 @@ Semua dimulai dari rekaman audio. Opsi yang umum digunakan: **Otter.ai** untuk m
 
 ### Speaker Diarization: Siapa Bicara Kapan
 
-Transkrip mentah hanyalah aliran kata tanpa pemilik. **Speaker diarization** — diimplementasikan oleh **pyannote-audio** — menjawab pertanyaan "siapa bicara kapan" dengan membagi transkrip ke dalam segmen-segmen pembicara. Dengan informasi ini, rangkuman bisa menyebut nama: "Alice memutuskan bahwa Feature X akan dideploy Jumat," bukan sekadar "diputuskan bahwa...". Akurasi diarization pyannote berada di sekitar 85% pada kondisi meeting normal [Sumber?]; segmen yang salah diklasifikasikan biasanya pendek dan jarang mengubah makna keseluruhan. Perhatikan bahwa diarization memproses audio kedua (tahap terpisah dari transkripsi) sehingga waktu proses total bertambah sekitar 12 menit per jam audio — sesuai Tabel 1.
+Transkrip mentah hanyalah aliran kata tanpa pemilik. **Speaker diarization** — diimplementasikan oleh **pyannote-audio** — menjawab pertanyaan "siapa bicara kapan" dengan membagi transkrip ke dalam segmen-segmen pembicara. Dengan informasi ini, rangkuman bisa menyebut nama: "Alice memutuskan bahwa Feature X akan dideploy Jumat," bukan sekadar "diputuskan bahwa...". Akurasi diarization pyannote berada di sekitar 85% pada kondisi meeting normal — setara DER 12-19% pada benchmark AMI/VoxConverse untuk pyannote 3.1 [7]; segmen yang salah diklasifikasikan biasanya pendek dan jarang mengubah makna keseluruhan. Perhatikan bahwa diarization memproses audio kedua (tahap terpisah dari transkripsi) sehingga waktu proses total bertambah sekitar 12 menit per jam audio — sesuai Tabel 1.
 
 ### Summarization: LLM Menyusun Rangkuman
 

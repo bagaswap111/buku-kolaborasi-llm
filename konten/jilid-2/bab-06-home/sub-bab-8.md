@@ -51,7 +51,7 @@ Pembangun server pemula hampir selalu melupakan tiga biaya "hantu": **AC ruangan
 
 ### Build Home High-End (Rp 60-80 juta)
 
-**2× RTX 4090 + Ryzen 9 + 128 GB RAM.** Untuk keluarga yang serius: **DeepSeek V4 Flash** (284B total, 13B aktif) dengan kuantisasi INT4, atau **Mistral Large 3** — kualitas *frontier* di rumah. Konsekuensinya jelas di tagihan listrik: ~350W rata-rata, sekitar Rp 252rb/bulan saja untuk GPU (Tabel 2). Ini investasi untuk pengguna yang benar-benar memakai — *power user* dan programmer keluarga.
+**2× RTX 4090 + Ryzen 9 + 128 GB RAM.** Untuk keluarga yang serius: **DeepSeek V4 Flash** (284B total, 13B aktif) dengan kuantisasi INT4, atau **Mistral Large 3** — kualitas *frontier* di rumah. Konsekuensinya jelas di tagihan listrik: ~350W rata-rata, sekitar Rp 273rb/bulan saja untuk GPU (Tabel 2). Ini investasi untuk pengguna yang benar-benar memakai — *power user* dan programmer keluarga.
 
 Semua build di atas **sudah termasuk komponen pendukung** (case, PSU, storage, networking) — jadi angka yang tercantum adalah angka jadi, bukan harga GPU saja.
 
@@ -62,22 +62,22 @@ Tabel ini adalah jantung sub-bab: perbandingan kumulatif tiga opsi untuk lima an
 | Komponen Biaya | Build Hemat (RTX 3090) | Build Performa (RTX 4090) | Cloud ChatGPT Team (5 org) |
 |:---|:---:|:---:|:---:|
 | **CAPEX Hardware** | Rp 27.000.000 | Rp 45.000.000 | Rp 0 |
-| **Listrik/tahun** | Rp 1.800.000 | Rp 2.400.000 | Rp 0 |
+| **Listrik/tahun** | Rp 1.920.000 | Rp 2.560.000 | Rp 0 |
 | **Subscription/tahun** | Rp 0 | Rp 0 | Rp 24.000.000 |
 | **Maintenance/tahun** | Rp 500.000 | Rp 500.000 | Rp 0 |
-| **Total Tahun 1** | **Rp 29.300.000** | **Rp 47.900.000** | **Rp 24.000.000** |
-| **Total Tahun 2** | Rp 31.600.000 | Rp 50.800.000 | Rp 48.000.000 |
-| **Total Tahun 3** | Rp 33.900.000 | Rp 53.700.000 | Rp 72.000.000 |
+| **Total Tahun 1** | **Rp 29.420.000** | **Rp 48.060.000** | **Rp 24.000.000** |
+| **Total Tahun 2** | Rp 31.840.000 | Rp 51.120.000 | Rp 48.000.000 |
+| **Total Tahun 3** | Rp 34.260.000 | Rp 54.180.000 | Rp 72.000.000 |
 | **Nilai Jual Kembali (30%)** | -Rp 8.100.000 | -Rp 13.500.000 | Rp 0 |
-| **TCO 3 Tahun Bersih** | **~Rp 25.800.000** | **~Rp 40.200.000** | **Rp 72.000.000** |
+| **TCO 3 Tahun Bersih** | **~Rp 26.160.000** | **~Rp 40.680.000** | **Rp 72.000.000** |
 
 ![Grafik garis berikut menelusuri akumulasi biaya tiga opsi dari tahun 1 hingga 3, memperlihatkan garis cloud yang melesat pada tahun kedua dan ketiga.](../../assets/images/bab-06-home/sub-bab-8/akumulasi-biaya-3-tahun.png)
 
-*Gambar 6.8-1 — Cloud unggul di Tahun 1 (Rp 24jt) tetapi menembus Rp 72jt di Tahun 3, sementara build hemat hanya bertambah Rp 4,6jt — arah perbandingan berbalik total setelah tahun pertama.*
+*Gambar 6.8-1 — Cloud unggul di Tahun 1 (Rp 24jt) tetapi menembus Rp 72jt di Tahun 3, sementara build hemat hanya bertambah Rp 4,8jt — arah perbandingan berbalik total setelah tahun pertama.*
 
-> Asumsi: tarif listrik Rp 1.500/kWh, GPU hidup 16 jam/hari, cloud ChatGPT Team ($25/user/bulan).
+> Asumsi: tarif listrik Rp 1.600/kWh, GPU hidup 16 jam/hari, cloud ChatGPT Team ($25/user/bulan).
 
-Analisis: baca tabel ini baris per baris dan perhatikan *moral* utamanya. Cloud menang di Tahun 1 (Rp 24jt vs Rp 29,3jt vs Rp 47,9jt) — itulah umpan yang membuat banyak keluarga terjebak *subscription*: tampak murah, padahal belum memiliki apa pun. Di Tahun 3, arah berbalik total: cloud Rp 72jt, build hemat Rp 33,9jt — dan setelah *resale value* dimasukkan, build hemat hanya ~Rp 25,8jt. Artinya: **cloud tiga tahun = hampir 3× build hemat, dan 1,8× build performa**, dengan catatan penting bahwa build lokal tetap menjadi aset fisik di akhir periode. Satu-satunya argumen kuat untuk cloud adalah kebutuhan *frontier model* (yang belum bisa dijalankan lokal) — jika keluarga Anda membutuhkan itu, perlakukan cloud sebagai pelengkap, bukan pengganti.
+Analisis: baca tabel ini baris per baris dan perhatikan *moral* utamanya. Cloud menang di Tahun 1 (Rp 24jt vs Rp 29,4jt vs Rp 48,1jt) — itulah umpan yang membuat banyak keluarga terjebak *subscription*: tampak murah, padahal belum memiliki apa pun. Di Tahun 3, arah berbalik total: cloud Rp 72jt, build hemat Rp 34,3jt — dan setelah *resale value* dimasukkan, build hemat hanya ~Rp 26,2jt. Artinya: **cloud tiga tahun = hampir 3× build hemat, dan 1,8× build performa**, dengan catatan penting bahwa build lokal tetap menjadi aset fisik di akhir periode. Satu-satunya argumen kuat untuk cloud adalah kebutuhan *frontier model* (yang belum bisa dijalankan lokal) — jika keluarga Anda membutuhkan itu, perlakukan cloud sebagai pelengkap, bukan pengganti.
 
 
 ---
@@ -87,11 +87,11 @@ Analisis: baca tabel ini baris per baris dan perhatikan *moral* utamanya. Cloud 
 
 ### Tarif Indonesia dan Pola Pemakaian
 
-Tarif listrik rumah tangga Indonesia berada di kisaran **Rp 1.444 - Rp 1.700 per kWh** tergantung golongan daya. Asumsi yang dipakai seluruh perhitungan sub-bab ini: **Rp 1.500/kWh**, GPU hidup **16 jam/hari** (dimatikan 8 jam saat tidur), dan *duty cycle* pembebanan sekitar 70% idle / 30% load. Perhatikan: GPU *idle* bukan nol watt — RTX 4090 *idle* memakai ~35W, dan beban ini berjalan selama 16 jam meski tidak ada yang bertanya apa-apa.
+Tarif listrik rumah tangga Indonesia berada di kisaran **Rp 1.444 - Rp 1.700 per kWh** tergantung golongan daya. Asumsi yang dipakai seluruh perhitungan sub-bab ini: **Rp 1.600/kWh**, GPU hidup **16 jam/hari** (dimatikan 8 jam saat tidur), dan *duty cycle* pembebanan sekitar 70% idle / 30% load. Perhatikan: GPU *idle* bukan nol watt — RTX 4090 *idle* memakai ~35W, dan beban ini berjalan selama 16 jam meski tidak ada yang bertanya apa-apa.
 
 ### Effisiensi per Build
 
-Perbandingan paling jujur ada di Tabel 2, tetapi satu angka layak disebut di sini: **Mac Mini M4 Pro** dengan idle 7W + load 65W menghabiskan sekitar Rp 25rb/bulan — tagihan listrik yang lebih kecil dari satu kali makan keluarga. Sebaliknya **2× RTX 4090** untuk DeepSeek V4 Flash menghabiskan ~Rp 252rb/bulan: lebih dari setahun cloud termurah? Tidak, tetapi angka ini harus masuk kesadaran Anda sebelum membeli hardware kedua.
+Perbandingan paling jujur ada di Tabel 2, tetapi satu angka layak disebut di sini: **Mac Mini M4 Pro** dengan idle 15W + load 85W menghabiskan sekitar Rp 27rb/bulan — tagihan listrik yang lebih kecil dari satu kali makan keluarga. Sebaliknya **2× RTX 4090** untuk DeepSeek V4 Flash menghabiskan ~Rp 273rb/bulan: lebih dari setahun cloud termurah? Tidak, tetapi angka ini harus masuk kesadaran Anda sebelum membeli hardware kedua.
 
 ### Tabel 2: Perbandingan Biaya Listrik per Build
 
@@ -99,20 +99,20 @@ Kalkulasi tagihan listrik tahunan untuk setiap build — data ini paling mudah d
 
 | Build | Idle (W) | Load (W) | Rata-rata (W) | kWh/hari | Biaya/bulan | Biaya/tahun |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **RTX 3090 + Ryzen 7** | 80W | 420W | ~180W | 2.88 | ~Rp 130rb | ~Rp 1.56jt |
-| **RTX 4090 + Ryzen 7** | 85W | 520W | ~200W | 3.20 | ~Rp 144rb | ~Rp 1.73jt |
-| **Mac Mini M4 Pro** | 15W | 85W | ~35W | 0.56 | ~Rp 25rb | ~Rp 300rb |
-| **Mac Studio M2 Ultra** | 30W | 150W | ~60W | 0.96 | ~Rp 43rb | ~Rp 516rb |
-| **NUC Edge (Ministral 3)** | 8W | 35W | ~15W | 0.24 | ~Rp 11rb | ~Rp 130rb |
-| **2x RTX 4090 (DeepSeek V4 Flash)** | 100W | 800W | ~350W | 5.60 | ~Rp 252rb | ~Rp 3.02jt |
+| **RTX 3090 + Ryzen 7** | 80W | 420W | ~180W | 2.88 | ~Rp 140rb | ~Rp 1.68jt |
+| **RTX 4090 + Ryzen 7** | 85W | 520W | ~200W | 3.20 | ~Rp 156rb | ~Rp 1.87jt |
+| **Mac Mini M4 Pro** | 15W | 85W | ~35W | 0.56 | ~Rp 27rb | ~Rp 327rb |
+| **Mac Studio M2 Ultra** | 30W | 150W | ~60W | 0.96 | ~Rp 47rb | ~Rp 561rb |
+| **NUC Edge (Ministral 3)** | 8W | 35W | ~15W | 0.24 | ~Rp 12rb | ~Rp 140rb |
+| **2x RTX 4090 (DeepSeek V4 Flash)** | 100W | 800W | ~350W | 5.60 | ~Rp 273rb | ~Rp 3.27jt |
 
 ![Grafik horizontal berikut membandingkan perkiraan biaya listrik bulanan keenam build server LLM, urut dari yang termahal.](../../assets/images/bab-06-home/sub-bab-8/biaya-listrik-per-bulan.png)
 
-*Gambar 6.8-2 — Build GPU menghabiskan Rp 130-252rb/bulan, sedangkan Mac Mini M4 Pro dan NUC Edge hanya Rp 11-25rb — konsumsi idle-lah pembeda terbesar antar build.*
+*Gambar 6.8-2 — Build GPU menghabiskan Rp 140-273rb/bulan, sedangkan Mac Mini M4 Pro dan NUC Edge hanya Rp 12-27rb — konsumsi idle-lah pembeda terbesar antar build.*
 
-> Asumsi: 16 jam operasi/hari, tarif Rp 1.500/kWh. GPU dimatikan 8 jam saat tidur.
+> Asumsi: 16 jam operasi/hari, tarif Rp 1.600/kWh. GPU dimatikan 8 jam saat tidur.
 
-Analisis: tiga insight penting. *Pertama*, perbedaan *idle* antar build hampir sama besarnya dengan perbedaan *load* — RTX 4090 yang "idle" (85W) masih mengonsumsi hampir 6× Mac Mini M4 Pro yang sedang bekerja keras (85W vs 15W). *Kedua*, build GPU tidak sefantastis takutannya: ~Rp 130-144rb/bulan setara satu-dua kali belanja pasar mingguan — cukup kecil jika dibandingkan potensi penghematan Rp 4jt/bulan versus cloud di Tabel 1. *Ketiga*, *power management* adalah juru selamat tersembunyi: *auto-shutdown* malam (8 jam mati) menyumbang penghematan ~Rp 50-80rb/bulan pada build GPU — angka yang diwujudkan studi kasus Seksi 9. Konsumsi daya dan kebutuhan *resource* SLM di berbagai perangkat keras ini juga didokumentasikan luas di literatur *edge deployment* [3][5].
+Analisis: tiga insight penting. *Pertama*, perbedaan *idle* antar build hampir sama besarnya dengan perbedaan *load* — RTX 4090 yang "idle" (85W) masih mengonsumsi hampir 6× Mac Mini M4 Pro yang sedang bekerja keras (85W vs 15W). *Kedua*, build GPU tidak sefantastis takutannya: ~Rp 140-156rb/bulan setara satu-dua kali belanja pasar mingguan — cukup kecil jika dibandingkan potensi penghematan Rp 4jt/bulan versus cloud di Tabel 1. *Ketiga*, *power management* adalah juru selamat tersembunyi: *auto-shutdown* malam (8 jam mati) menyumbang penghematan ~Rp 50-80rb/bulan pada build GPU — angka yang diwujudkan studi kasus Seksi 9. Konsumsi daya dan kebutuhan *resource* SLM di berbagai perangkat keras ini juga didokumentasikan luas di literatur *edge deployment* [3][5].
 
 
 ---
@@ -233,7 +233,7 @@ def hitung_tco():
     watt_idle = float(input("Daya idle (W): ") or "80")
     watt_load = float(input("Daya load (W): ") or "400")
     jam_per_hari = float(input("Jam operasi/hari: ") or "16")
-    tarif_listrik = float(input("Tarif listrik (Rp/kWh): ") or "1500")
+    tarif_listrik = float(input("Tarif listrik (Rp/kWh): ") or "1600")
 
     # Input cloud
     user_count = int(input("Jumlah anggota keluarga: ") or "5")
@@ -283,7 +283,7 @@ if __name__ == "__main__":
     hitung_tco()
 ```
 
-Coba tiga skenario: (1) build hemat — `30000000`, `80`, `420`, `16`, `1500`; (2) build performa — `45000000`, `85`, `520`, `16`, `1500`; (3) NUC edge — `12000000`, `15`, `35`, `24`, `1500`. Dua hal yang perlu disadari saat membaca output: *pertama*, model pembebanan 70% idle / 30% load adalah asumsi — ganti dengan angka aktual dari *watt meter* (Langkah 2) setelah sebulan berjalan; *kedua*, script ini belum memasukkan *resale value* — kurangkan 30% CAPEX dari kolom lokal untuk menyamai metodologi Tabel 1. Versi *break-even* di sini juga tidak memasukkan *maintenance* Rp 500rb/tahun; jika ingin presisi penuh, tambahkan ke `listrik_per_tahun`.
+Coba tiga skenario: (1) build hemat — `30000000`, `80`, `420`, `16`, `1600`; (2) build performa — `45000000`, `85`, `520`, `16`, `1600`; (3) NUC edge — `12000000`, `15`, `35`, `24`, `1600`. Dua hal yang perlu disadari saat membaca output: *pertama*, model pembebanan 70% idle / 30% load adalah asumsi — ganti dengan angka aktual dari *watt meter* (Langkah 2) setelah sebulan berjalan; *kedua*, script ini belum memasukkan *resale value* — kurangkan 30% CAPEX dari kolom lokal untuk menyamai metodologi Tabel 1. Versi *break-even* di sini juga tidak memasukkan *maintenance* Rp 500rb/tahun; jika ingin presisi penuh, tambahkan ke `listrik_per_tahun`.
 
 ### Langkah 2: Monitoring Biaya Listrik Real-Time
 
@@ -293,7 +293,7 @@ Script yang menampilkan biaya listrik GPU secara langsung dari `nvidia-smi` — 
 #!/bin/bash
 # monitor_power.sh — monitor pemakaian listrik GPU dan hitung biaya
 
-TARIF=1500  # Rp/kWh
+TARIF=1600  # Rp/kWh
 
 while true; do
     # Ambil power draw GPU dari nvidia-smi
@@ -342,10 +342,10 @@ sensor:
         unit_of_measurement: "Rp"
         value_template: >-
           {% set kwh = states('sensor.server_llm_power_today') | float %}
-          {{ (kwh * 1500) | round(0) | int }}
+          {{ (kwh * 1600) | round(0) | int }}
 ```
 
-Keunggulan *template sensor* di atas dibanding Langkah 2: ia mengukur **seluruh server** (bukan GPU saja) dan mengakumulasikan energi sepanjang bulan, sehingga angka "Biaya Listrik Server (Bulan Ini)" di dashboard adalah tagihan rupiah sebenarnya. Nilai `1500` di baris terakhir harus disesuaikan dengan golongan tarif PLN Anda (Rp 1.444 - Rp 1.700). Kombinasi ketiga tutorial inilah yang membangun *accountability* finansial: Langkah 1 menghitung rencana, Langkah 2 mengukur GPU, Langkah 3 mengukur kenyataan. Sebulan setelah server berdiri, bandingkan ketiganya — perbedaan di antara mereka adalah pembelajaran pertama dalam *budgeting* AI keluarga.
+Keunggulan *template sensor* di atas dibanding Langkah 2: ia mengukur **seluruh server** (bukan GPU saja) dan mengakumulasikan energi sepanjang bulan, sehingga angka "Biaya Listrik Server (Bulan Ini)" di dashboard adalah tagihan rupiah sebenarnya. Nilai `1600` di baris terakhir harus disesuaikan dengan golongan tarif PLN Anda (Rp 1.444 - Rp 1.700). Kombinasi ketiga tutorial inilah yang membangun *accountability* finansial: Langkah 1 menghitung rencana, Langkah 2 mengukur GPU, Langkah 3 mengukur kenyataan. Sebulan setelah server berdiri, bandingkan ketiganya — perbedaan di antara mereka adalah pembelajaran pertama dalam *budgeting* AI keluarga.
 
 ---
 
@@ -357,9 +357,9 @@ Keunggulan *template sensor* di atas dibanding Langkah 2: ia mengukur **seluruh 
 **Pilihan yang dipertimbangkan:**
 
 - **Opsi A — Lanjut Cloud:** Rp 30jt/tahun × 3 tahun = **Rp 90jt** (dengan asumsi kenaikan harga 10%/tahun)
-- **Opsi B — Build Lokal:** Build RTX 4090 ~Rp 45jt + listrik Rp 2,4jt/tahun = **Rp 52,2jt per 3 tahun**
+- **Opsi B — Build Lokal:** Build RTX 4090 ~Rp 45jt + listrik Rp 2,56jt/tahun = **Rp 52,7jt per 3 tahun**
 
-**Keputusan:** Keluarga Firmansyah memilih **Build Lokal**, dengan perhitungan: *break-even* jatuh di bulan ke-20; setelah 3 tahun, penghematan Rp 37,8jt dibanding cloud; setelah 5 tahun, penghematan melampaui Rp 80jt — karena hardware sudah lunas dan yang tersisa hanya listrik. Bonus yang tidak masuk spreadsheet: privasi terjamin, akses *offline*, dan anak-anak belajar AI di rumah sendiri.
+**Keputusan:** Keluarga Firmansyah memilih **Build Lokal**, dengan perhitungan: *break-even* jatuh di bulan ke-20; setelah 3 tahun, penghematan Rp 37,3jt dibanding cloud; setelah 5 tahun, penghematan melampaui Rp 80jt — karena hardware sudah lunas dan yang tersisa hanya listrik. Bonus yang tidak masuk spreadsheet: privasi terjamin, akses *offline*, dan anak-anak belajar AI di rumah sendiri.
 
 **Eksekusi dan hasil:** Build RTX 4090 dibangun dengan anggaran Rp 45jt, dipasangi *smart plug* monitoring, dan dijadwalkan *auto-shutdown* malam. Biaya listrik aktual tercatat **Rp 190rb/bulan** — sedikit di atas estimasi Tabel 2 karena kebiasaan keluarga bertanya sampai larut. Empat anggota keluarga masing-masing menjalankan ~50 *query*/hari tanpa antre. Kepuasan terbesar bukan pada uang: **latensi lokal 2-3 detik vs cloud 5-8 detik** — anak-anak yang dulu bosan menunggu kini mendapat jawaban secepat mereka bisa membaca. Pelajaran kunci dari studi kasus ini: angka cloud di kalkulator mereka murni *subscription* tanpa aset tersisa, sedangkan build lokal menghasilkan aset yang terus memberi nilai setelah bulan ke-20 — dan keluarga yang sadar akan pola itu hampir selalu memilih lokal.
 

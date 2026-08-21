@@ -137,7 +137,7 @@ API *chat completion* OpenAI memperkenalkan pola yang kini menjadi standar *de f
 
 Ekosistem lokal tidak ketinggalan. **Ollama** mendukung tool melalui parameter `tools` pada endpoint `/api/chat` — format JSON Schema yang sama dengan OpenAI, sehingga kode Anda bisa portabel. **Llama 3.1** sejak Juli 2024 dilatih khusus dengan *function calling native*; **Mistral** juga menyertakan dukungan *function calling* pada model-model terbarunya. Yang menarik, **DeepSeek V4** (Pro dan Flash) mendukung format JSON Schema dengan *strict* parsial dan *parallel call* — cukup mumpuni untuk agen lokal di workstation.
 
-Bagaimana mengukur kualitas dukungan ini? Standar pengukurannya adalah **Berkeley Function Calling Leaderboard (BFCL)** [6], yang menguji model pada tiga kelas tugas: *simple function* (satu fungsi), *multiple function* (memilih di antara banyak fungsi), dan *parallel function* (beberapa panggilan sekaligus). Tabel 3 pada seksi 5 akan membandingkan skor model-model utama — dan hasilnya mengejutkan: model lokal seperti DeepSeek V4 Flash (90,6%) [Sumber?] kini berada dalam jarak dekat dengan model proprietary termahal. Dasar teknis di balik angka-angka itu adalah *multi-task learning* — teknik yang digunakan Granite-Function Calling untuk melatih model memilih dan mengisi fungsi secara presisi [4].
+Bagaimana mengukur kualitas dukungan ini? Standar pengukurannya adalah **Berkeley Function Calling Leaderboard (BFCL)** [6], yang menguji model pada tiga kelas tugas: *simple function* (satu fungsi), *multiple function* (memilih di antara banyak fungsi), dan *parallel function* (beberapa panggilan sekaligus). Tabel 3 pada seksi 5 akan membandingkan skor model-model utama — dan hasilnya mengejutkan: model lokal seperti DeepSeek V4 Flash (90,6%) (klaim fiktif-2026 — verifikasi sebelum terbit) kini berada dalam jarak dekat dengan model proprietary termahal. Dasar teknis di balik angka-angka itu adalah *multi-task learning* — teknik yang digunakan Granite-Function Calling untuk melatih model memilih dan mengisi fungsi secara presisi [4].
 
 ---
 
@@ -170,7 +170,7 @@ Seberapa baik masing-masing model *mengerti* tool definitions? BFCL memberikan a
 
 Tiga wawasan penting muncul dari angka-angka ini. Pertama, semua model menurun saat tugas beralih dari *simple* ke *multiple* ke *parallel* — memilih di antara banyak fungsi lebih sulit daripada mengisi satu fungsi, dan paralel lebih sulit lagi.
 
-Kedua, *gap* antara model proprietary termahal (Claude Fable 5, 95,6%) dan model lokal (DeepSeek V4 Flash, 90,6%) [Sumber?] hanya sekitar 5 poin persentase — margin yang kecil untuk selisih biaya per *token* yang sangat besar. Ketiga, Llama 3.1 (70B) tertinggal cukup jauh (82,7%) meskipun memiliki *function calling native* — bukti bahwa dukungan format tidak identik dengan kemampuan.
+Kedua, *gap* antara model proprietary termahal (Claude Fable 5, 95,6%) dan model lokal (DeepSeek V4 Flash, 90,6%) (klaim fiktif-2026 — verifikasi sebelum terbit) hanya sekitar 5 poin persentase — margin yang kecil untuk selisih biaya per *token* yang sangat besar. Ketiga, Llama 3.1 (70B) tertinggal cukup jauh (82,7%) meskipun memiliki *function calling native* — bukti bahwa dukungan format tidak identik dengan kemampuan.
 
 Bagi pengguna lokal, DeepSeek V4 Flash dan Mistral Large 3 adalah pilihan rasional; bagi aplikasi kritis dengan toleransi kesalahan minimum, Claude Fable 5 atau GPT-5.5 masih layak dibayar [3][6].
 

@@ -327,7 +327,7 @@ Sebelum membangun, ia mempertimbangkan alternatif: *scraper* statis ditolak kare
 4. *Search* → ekstrak harga
 5. Bandingkan dengan harga kemarin → kirim notifikasi jika turun
 
-**Hasil:** Workflow dijalankan harian melalui **cron** pada pagi hari. Ketika harga turun di bawah ambang yang ditentukan, notifikasi dikirim dan pembelian dilakukan. Dalam sebulan pemakaian, penghematan tercatat sekitar **30%** [Sumber?] dari biaya tiket karena pembelian selalu dilakukan saat harga turun — tanpa sekali pun membuka situs secara manual.
+**Hasil:** Workflow dijalankan harian melalui **cron** pada pagi hari. Ketika harga turun di bawah ambang yang ditentukan, notifikasi dikirim dan pembelian dilakukan. Dalam sebulan pemakaian, penghematan tercatat sekitar **30%** (klaim fiktif-2026 — verifikasi sebelum terbit) dari biaya tiket karena pembelian selalu dilakukan saat harga turun — tanpa sekali pun membuka situs secara manual.
 
 Sebagian eksekusi memang sesekali perlu intervensi — biasanya ketika situs menampilkan *pop-up* yang tidak terduga. Di sinilah nilai *screenshot* per langkah terasa: setiap kegagalan langsung bisa ditelusuri dan ditangani dengan menambahkan satu instruksi di *prompt*, tanpa menulis ulang seluruh workflow. Untuk tugas pemantauan, kegagalan sesekali tidak pernah berarti kehilangan kesempatan permanen — esok hari, cron menjalankannya lagi.
 

@@ -367,7 +367,7 @@ Perbedaan gaya dengan AutoGen terlihat jelas. Dalam CrewAI, setiap agen didefini
 
 **Alur kerja:** Writer menghasilkan draf → Editor mereview dan mengembalikan catatan → Writer merevisi → Fact-Checker memverifikasi setiap klaim → Editor memberikan persetujuan final. Fact-Checker ditempatkan setelah revisi — bukan sebelumnya — sehingga fakta yang diverifikasi adalah fakta pada versi final, bukan versi awal.
 
-**Hasil:** Dalam pengujian pada 20 bab, kualitas tulisan meningkat 40% menurut skor internal penerbit [Sumber?]. Yang lebih dramatis: jumlah fakta salah turun dari rata-rata 12 per bab menjadi 1 per bab — penurunan 92%. Fact-Checker adalah pahlawan tak terlihat dalam sistem ini; tanpa agen ketiga, editor yang sibuk mengoreksi struktur akan melewatkan banyak klaim yang salah.
+**Hasil:** Dalam pengujian pada 20 bab, kualitas tulisan meningkat 40% menurut skor internal penerbit (klaim fiktif-2026 — verifikasi sebelum terbit). Yang lebih dramatis: jumlah fakta salah turun dari rata-rata 12 per bab menjadi 1 per bab — penurunan 92%. Fact-Checker adalah pahlawan tak terlihat dalam sistem ini; tanpa agen ketiga, editor yang sibuk mengoreksi struktur akan melewatkan banyak klaim yang salah.
 
 **Biaya:** Sistem mengonsumsi sekitar 8.000 token per bab, dibandingkan 3.000 token jika hanya menggunakan satu agen — hampir tiga kali lipat. Namun, penerbit menghitung bahwa biaya token 8.000 hanya beberapa ribu rupiah per bab dengan model lokal, jauh lebih murah daripada dua minggu kerja editorial manusia. Trade-off ini — kualitas +40% dengan biaya token ×2,7 — adalah contoh nyata dari prinsip yang dibahas di bagian 7: investasi token menghasilkan kualitas, selama Anda mengendalikan jumlah iterasi.
 
@@ -390,7 +390,7 @@ Perbedaan gaya dengan AutoGen terlihat jelas. Dalam CrewAI, setiap agen didefini
 
 ### Referensi Pendukung
 
-[4] Ahmad, M.S.J. (2025). *Benchmarking Multi-Agent Frameworks: LangGraph vs. CrewAI vs. AutoGen*. JATIR, 3 [Sumber?] — Benchmark 80-task suite; data untuk Tabel 1 perbandingan framework.
+[4] Ahmad, M.S.J. (2025). *Benchmarking Multi-Agent Frameworks: LangGraph vs. CrewAI vs. AutoGen*. JATIR, 3 — Benchmark 80-task suite; data untuk Tabel 1 perbandingan framework. ⚠️ Tidak dapat diverifikasi dari sumber tersedia — verifikasi sebelum terbit.
 
 [6] AutoGen Documentation. [https://microsoft.github.io/autogen](https://microsoft.github.io/autogen)
 

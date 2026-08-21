@@ -51,7 +51,7 @@ gantt
     Llama 4 Scout/Maverick :2025-04, 2025-12
 ```
 
-Pola yang terlihat jelas: siklus rilis Meta kini sekitar tiga-empat bulan per versi *minor*, dengan generasi besar setiap 12-15 bulan [Sumber?]. Implikasi operasionalnya: rencanakan jendela migrasi **sebelum** rilis berikutnya diumumkan, dan jangan pernah *commit* arsitektur yang mengunci diri pada satu generasi. Tim yang menunggu "rilis sempurna" akan selamanya mengejar; tim yang menyiapkan pipeline migrasi yang berulang akan selalu dipimpin [1][6].
+Pola yang terlihat jelas dari Gambar 1: antar-*minor* rilis Meta kini terhitung 2-3 bulan (Llama 3.1 Juli 2024 → 3.2 September 2024 → 3.3 Desember 2024), dengan generasi besar berjarak sekitar 12 bulan (Llama 3 April 2024 → Llama 4 April 2025) [1][10]. Implikasi operasionalnya: rencanakan jendela migrasi **sebelum** rilis berikutnya diumumkan, dan jangan pernah *commit* arsitektur yang mengunci diri pada satu generasi. Tim yang menunggu "rilis sempurna" akan selamanya mengejar; tim yang menyiapkan pipeline migrasi yang berulang akan selalu dipimpin [1][6].
 
 
 ---

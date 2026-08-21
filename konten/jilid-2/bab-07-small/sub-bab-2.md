@@ -116,7 +116,7 @@ graph LR
     end
 ```
 
-Diagram ini menangkap perbedaan fundamental kedua topologi. Di atas: GPU 0 dan GPU 1 terhubung langsung oleh jalur NVLink 112,5 GB/s — operasi *AllReduce* tensor parallelism terjadi *peer-to-peer* tanpa perantara. Di bawah: setiap pertukaran data harus singgah di CPU — jalur PCIe 64 GB/s dua arah, latensi bertambah, dan baris *AllReduce* digambar putus-putus karena bergantung pada jalur yang sama. Itulah mengapa untuk tensor parallelism NVLink unggul 40-60% [Sumber?], sementara untuk pipeline parallelism kedua topologi hampir identik.
+Diagram ini menangkap perbedaan fundamental kedua topologi. Di atas: GPU 0 dan GPU 1 terhubung langsung oleh jalur NVLink 112,5 GB/s — operasi *AllReduce* tensor parallelism terjadi *peer-to-peer* tanpa perantara. Di bawah: setiap pertukaran data harus singgah di CPU — jalur PCIe 64 GB/s dua arah, latensi bertambah, dan baris *AllReduce* digambar putus-putus karena bergantung pada jalur yang sama. Itulah mengapa untuk tensor parallelism NVLink unggul 40-60% — konsisten dengan tolok ukur yang menunjukkan kenaikan throughput sekitar 50% pada konfigurasi 2-GPU [10], sementara untuk pipeline parallelism kedua topologi hampir identik.
 
 
 ### Gambar 2: Grafik Scaling Multi-GPU per Model

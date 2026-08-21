@@ -27,7 +27,7 @@ Contoh nyata: **Llama 3.1 (8B) Q4_K_M** membutuhkan ~4,5 GB untuk model plus ~2 
 
 Kabar baiknya, lanskap model 2025-2026 menghadirkan tiga bintang baru yang mengubah perhitungan ini. Pertama, **Ministral 3 3B** (lisensi Apache 2.0) yang hanya ~1,8 GB dalam Q4 — cukup ringan untuk berjalan di Raspberry Pi atau NUC, bahkan *CPU-only*. Kedua, **Ministral 3 8B** dengan ~4,8 GB Q4 — *edge-optimized* dan nyaman di 8 GB VRAM, dirancang persis untuk *home server*. Ketiga, **DeepSeek V4 Flash** (284B total, **13B aktif**) yang hanya membutuhkan ~18 GB dalam INT4 — masih butuh 2x RTX 3090/4090, tetapi karena hanya 13 miliar parameter aktif per *forward pass*, *throughput*-nya luar biasa tinggi untuk ukurannya.
 
-Satu lagi hal yang sering luput: *KV-cache* pada model generasi baru sudah sangat efisien. **DeepSeek V4 Pro** misalnya memiliki *KV-cache* hanya 10% dari V3.2 — untuk konteks 32K, ia hanya butuh ~1,6 GB dibandingkan ~16 GB pada model konvensional [Sumber?]. Artinya, efisiensi arsitektur kini sama pentingnya dengan ukuran VRAM: dua kartu yang sama secara fisik bisa berbeda jauh secara praktis.
+Satu lagi hal yang sering luput: *KV-cache* pada model generasi baru sudah sangat efisien. **DeepSeek V4 Pro** misalnya memiliki *KV-cache* hanya 10% dari V3.2 — untuk konteks 32K, ia hanya butuh ~1,6 GB dibandingkan ~16 GB pada model konvensional (klaim fiktif-2026 — verifikasi sebelum terbit). Artinya, efisiensi arsitektur kini sama pentingnya dengan ukuran VRAM: dua kartu yang sama secara fisik bisa berbeda jauh secara praktis.
 
 Berapa kebutuhan VRAM yang masuk akal untuk keluarga 4-8 orang? Dengan pola beban dari sub-bab 6.1 — puncak hanya 2-3 sesi paralel dengan *prompt* pendek — yang menjadi pembatas bukanlah ukuran model semata, melainkan *KV-cache* bersama dari sesi-sesi paralel itu. Model 8B Q4 dengan tiga sesi aktif membutuhkan sekitar 6,5 GB model ditambah beberapa GB *KV-cache* — masih longgar di 24 GB. Bahkan keluarga yang menginginkan *headroom* berlipat (model 14B Q4 plus sesi paralel) tetap nyaman di GPU 24 GB. Kesimpulannya: untuk skala rumah tangga, 24 GB adalah titik manis; yang menyusul hanyalah keputusan bijak memilih model.
 
@@ -43,8 +43,8 @@ Empat kandidat utama berdampingan — perhatikan bahwa 'tercepat' tidak selalu '
 |:---|:---:|:---:|:---:|:---:|
 | **VRAM / Unified Memory** | 24 GB GDDR6X | 24 GB GDDR6X | 48 GB | 192 GB |
 | **Bandwidth** | 936 GB/s | 1,008 GB/s | ~400 GB/s | ~800 GB/s |
-| **Tok/s (7B Q4)** | ~110 | ~146 | ~60 | ~90 |
-| **Tok/s (14B Q4)** | ~55 | ~73 | ~30 | ~50 |
+| **Tok/s (7B Q4)** | ~110 | ~146 | ~40 | ~90 |
+| **Tok/s (14B Q4)** | ~55 | ~73 | ~20 | ~50 |
 | **TDP Idle / Load** | 30W / 350W | 35W / 450W | 7W / 65W | 15W / 120W |
 | **Noise** | 2 fan (30 dB) | 3 fan (35 dB) | Fanless (0 dB) | Fanless (0 dB) |
 | **Harga Baru** | ~Rp 14jt (used) | ~Rp 28-30jt | ~Rp 30-35jt | ~Rp 60-70jt |
@@ -56,9 +56,9 @@ Selisih kecepatan antar kandidat langsung terlihat ketika digambar — RTX 4090 
 
 *Gambar 6.2-1 — Throughput model 7B dan 14B Q4 pada empat hardware. RTX 4090 tercepat (~146 tok/s), tetapi RTX 3090 memberi 75% performanya dengan harga sekitar setengahnya — lebih dari cukup untuk puncak 2-3 sesi paralel keluarga.*
 
-Ada dua bacaan penting dari tabel ini. Pertama, RTX 3090 membuktikan diri sebagai *value king*: performa 75% dari RTX 4090, TDP lebih rendah, harga sekitar setengahnya — dan untuk SLA keluarga (TTFT <2 detik, 3 sesi paralel), 110 tok/s sudah melebihi kebutuhan. Kedua, Mac Mini M4 Pro hanya menghasilkan ~60 tok/s untuk 7B, tetapi dengan 0 dB dan 7W idle, ia adalah satu-satunya kandidat yang boleh menyala 24 jam tanpa rasa bersalah. Jawabannya bukan "yang tercepat", melainkan "yang paling cocok dengan jadwal keluarga".
+Ada dua bacaan penting dari tabel ini. Pertama, RTX 3090 membuktikan diri sebagai *value king*: performa 75% dari RTX 4090, TDP lebih rendah, harga sekitar setengahnya — dan untuk SLA keluarga (TTFT <2 detik, 3 sesi paralel), 110 tok/s sudah melebihi kebutuhan. Kedua, Mac Mini M4 Pro hanya menghasilkan ~40 tok/s untuk 7B, tetapi dengan 0 dB dan 7W idle, ia adalah satu-satunya kandidat yang boleh menyala 24 jam tanpa rasa bersalah. Jawabannya bukan "yang tercepat", melainkan "yang paling cocok dengan jadwal keluarga".
 
-Ada pula dimensi berkelanjutan yang tidak muncul di lembar spesifikasi: nilai jual kembali. RTX 3090 yang dibeli bekas akan dijual kembali sebagai bekas dengan penyusutan relatif halus, sementara Mac Mini M4 Pro cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia. Faktor ini tidak mengubah keputusan teknis, tetapi ikut menentukan biaya kepemilikan nyata setelah 2-3 tahun — saat keluarga memutuskan naik kelas. Mac Mini M4 Pro juga cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia [Sumber?].
+Ada pula dimensi berkelanjutan yang tidak muncul di lembar spesifikasi: nilai jual kembali. RTX 3090 yang dibeli bekas akan dijual kembali sebagai bekas dengan penyusutan relatif halus, sementara Mac Mini M4 Pro cenderung mempertahankan nilainya lebih baik di pasar Apple Indonesia. Faktor ini tidak mengubah keputusan teknis, tetapi ikut menentukan biaya kepemilikan nyata setelah 2-3 tahun — saat keluarga memutuskan naik kelas (perkiraan umum pasar barang bekas — verifikasi harga pasar aktual sebelum terbit).
 
 
 ### Tabel 2: Kesesuaian Model per Hardware

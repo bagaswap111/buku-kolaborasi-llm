@@ -189,7 +189,7 @@ Alasan ketiga adalah **biaya**: tanpa API, tidak ada biaya per *token*. Setelah 
 
 Argumen klasik penentang agen lokal adalah "model lokal kualitasnya kalah". Argumen itu semakin usang di 2026. **DeepSeek V4 Pro** (*open-weight*) dan **DeepSeek V4 Flash** (284 miliar parameter, 13 miliar aktif, lisensi MIT — bisa berjalan di workstation dua GPU kelas RTX 6000) membawa kualitas mendekati *frontier* cloud ke mesin sendiri.
 
-**Mistral Large 3** (675 miliar parameter, Apache 2.0) menawarkan alternatif Eropa yang permisif untuk penggunaan komersial. Dan bila tugas membutuhkan akurasi tertinggi — misalnya *reasoning* hukum atau medis — agen lokal tetap bisa memanggil **Claude Fable 5** via API sebagai "penasihat ahli eksternal", termasuk kualitas *SWE-bench* 95% [Sumber?] yang menjadi standar industri 2026.
+**Mistral Large 3** (675 miliar parameter, Apache 2.0) menawarkan alternatif Eropa yang permisif untuk penggunaan komersial. Dan bila tugas membutuhkan akurasi tertinggi — misalnya *reasoning* hukum atau medis — agen lokal tetap bisa memanggil **Claude Fable 5** via API sebagai "penasihat ahli eksternal", termasuk kualitas *SWE-bench* 95% (klaim fiktif-2026 — verifikasi sebelum terbit) yang menjadi standar industri 2026.
 
 Kombinasi ini menjadikan agent lokal bukan sekadar mumpuni, tetapi sering kali pilihan yang lebih rasional.
 

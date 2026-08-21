@@ -400,7 +400,7 @@ Hasilnya nyata dan terukur:
 - **65% email bisa di-auto-reply tanpa review manusia** — kategori teknis dan umum umumnya bisa ditangani model sendirian
 - **Response time turun dari 4 jam → 12 menit** untuk email otomatis, dan **45 menit** untuk email yang butuh review manual
 - **Beban agen berkurang 60%** — manusia kini berfokus pada kasus kompleks dan eskalasi, bukan menjawab pertanyaan berulang
-- **Biaya: Rp 800 ribu/bulan** untuk server VPS 16GB + 1 GPU, sementara n8n dan Ollama sepenuhnya gratis (harga asumsi, sangat bervariasi antar-provider) [Sumber?]
+- **Biaya: Rp 800 ribu/bulan** untuk server VPS 16GB + 1 GPU, sementara n8n dan Ollama sepenuhnya gratis (harga asumsi editor — verifikasi tarif aktual antar-provider sebelum terbit)
 
 Pelajaran dari studi kasus ini: kunci keberhasilan bukan pada kekuatan model — Llama-3.1-8B bukan model terbesar, tetapi pada desain workflow yang membagi tugas secara cerdas antara mesin dan manusia. Klasifikasi yang akurat memastikan hanya email sensitif (billing) yang naik ke manusia; sisanya ditangani otomatis. Ini juga menunjukkan bahwa *human-in-the-loop* adalah fitur, bukan kelemahan: otomasi yang baik bukan menggantikan manusia, melainkan menghilangkan pekerjaan yang tidak membutuhkan manusia.
 

@@ -134,7 +134,7 @@ Sebagai catatan praktis, kedua backend (Ollama dan LM Studio) mengekspos API den
 
 ### Tabel 2: Performa Coding Agent dengan Model Lokal (HumanEval+ / SWE-bench)
 
-Angka *Pass@1* pada benchmark di bawah menunjukkan persentase tugas yang berhasil diselesaikan pada percobaan pertama, diukur lewat Cline dan Aider dengan model yang sama.
+Angka *Pass@1* pada benchmark di bawah menunjukkan persentase tugas yang berhasil diselesaikan pada percobaan pertama, diukur lewat Cline dan Aider dengan model yang sama. Kecepatan (t/s) diukur dalam siklus agen penuh (konteks menjalani *tool-loop*, skema alat, dan riwayat percakapan) — sehingga lebih rendah dari *inference* murni, misalnya Llama 3.1 (8B) yang ~70 t/s di inference murni (Bab 2) turun menjadi ~45 t/s saat dijalankan agent.
 
 | Model | Cline (Pass@1) | Aider (Pass@1) | SWE-bench | Kecepatan (t/s) |
 |:---|:---:|:---:|:---:|:---:|

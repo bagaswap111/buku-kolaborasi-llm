@@ -53,7 +53,7 @@ Whisper adalah *encoder-decoder Transformer* yang dilatih dengan *weak supervisi
 
 ### Peta Varian
 
-Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (74M), **small** (244M), **medium** (769M), **large-v3** (1,55B), dan **turbo** (809M). Aturan praktisnya: semakin besar model, semakin rendah *Word Error Rate* (WER), tetapi semakin besar pula RAM dan waktu komputasinya. Untuk Bahasa Indonesia [Sumber?], **large-v3** mencapai WER 7,1% (hampir setara manusia untuk transkripsi umum), sementara **small** yang jauh lebih ringan masih mencatat 11,8% — angka yang sangat layak untuk sebagian besar kebutuhan praktis.
+Whisper hadir dalam enam ukuran yang perlu dipahami: **tiny** (39M), **base** (74M), **small** (244M), **medium** (769M), **large-v3** (1,55B), dan **turbo** (809M). Aturan praktisnya: semakin besar model, semakin rendah *Word Error Rate* (WER), tetapi semakin besar pula RAM dan waktu komputasinya. Untuk Bahasa Indonesia [1], **large-v3** mencapai WER 7,1% (hampir setara manusia untuk transkripsi umum), sementara **small** yang jauh lebih ringan masih mencatat 11,8% — angka yang sangat layak untuk sebagian besar kebutuhan praktis. Kedua angka diukur pada benchmark FLEURS dalam rilis resmi Whisper [1].
 
 ### faster-whisper: Turbo untuk Transkripsi
 
@@ -339,7 +339,7 @@ Jalankan dengan Ollama aktif (`ollama pull deepseek-v4-flash` atau ganti nama mo
 
 **Pipeline yang dibangun:**
 
-- **Mic → Whisper STT** — transkripsi 5 menit cerita harian dengan model `small` (cukup untuk Bahasa Indonesia dengan WER 11,8% [Sumber?])
+- **Mic → Whisper STT** — transkripsi 5 menit cerita harian dengan model `small` (cukup untuk Bahasa Indonesia dengan WER 11,8% [1])
 - **DeepSeek V4 Flash / Llama 3.1 via Ollama** — merangkum cerita menjadi tiga-lima poin dan menambahkan refleksi
 - **Penyimpanan** — ringkasan ditulis ke file `.md` bernama `2026-08-14-jurnal.md` di folder Jurnal
 

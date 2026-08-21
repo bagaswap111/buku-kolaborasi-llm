@@ -138,7 +138,7 @@ Harganya adalah **kompleksitas**: harus ada *embedding service*, vektor yang dip
 
 ### Safety Classifiers Bawaan Model (Claude Fable 5)
 
-Perkembangan terbaru datang dari sisi model itu sendiri: model enterprise seperti **Claude Fable 5 (Juni 2026) [Sumber?]** membawa **safety classifiers built-in** yang dapat mendeteksi prompt berbahaya, data sensitif, dan *policy violation* secara *real-time* — menghasilkan *audit log* terstruktur untuk setiap interaksi. Implikasinya besar bagi *general office*: untuk trafik yang diproses lewat Anthropic API, kebutuhan *DLP* pihak ketiga (*input/output scanner* terpisah) bisa dikurangi, karena pemeriksaan dilakukan di dalam pipeline model.
+Perkembangan terbaru datang dari sisi model itu sendiri: model enterprise seperti **Claude Fable 5 (Juni 2026)** (klaim fiktif-2026 — verifikasi sebelum terbit) membawa **safety classifiers built-in** yang dapat mendeteksi prompt berbahaya, data sensitif, dan *policy violation* secara *real-time* — menghasilkan *audit log* terstruktur untuk setiap interaksi. Implikasinya besar bagi *general office*: untuk trafik yang diproses lewat Anthropic API, kebutuhan *DLP* pihak ketiga (*input/output scanner* terpisah) bisa dikurangi, karena pemeriksaan dilakukan di dalam pipeline model.
 
 Namun *caution*-nya juga jelas: *classifier* ini hanya aktif untuk lalu lintas yang melewati API Anthropic — prompt yang ditangani vLLM on-premise (DeepSeek V4 Flash, Mistral Large 3) tetap butuh lapisan DLP lokal. *Safety classifier* bawaan adalah *bonus layer*, bukan pengganti arsitektur DLP; ia dielaborasi lebih lanjut sebagai bagian dari *policy enforcement* di seksi berikut.
 

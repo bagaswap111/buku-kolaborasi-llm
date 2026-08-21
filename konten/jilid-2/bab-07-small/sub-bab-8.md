@@ -179,15 +179,15 @@ Setelah server berdiri, inilah tagihan bulanan yang akan menemani Anda terus-men
 
 | Komponen | Budget | Medium | Optimal |
 |:---|:---:|:---:|:---:|
-| **Listrik (24/7, Rp 1.500/kWh)** | Rp 1.500.000 | Rp 2.000.000 | Rp 3.000.000 |
+| **Listrik (24/7, Rp 1.600/kWh)** | Rp 1.600.000 | Rp 2.133.000 | Rp 3.200.000 |
 | **Internet (static IP/business)** | Rp 500.000 | Rp 500.000 | Rp 500.000 |
 | **VPN/Proxy** | Rp 200.000 | Rp 200.000 | Rp 200.000 |
 | **Cloud Backup** | Rp 200.000 | Rp 500.000 | Rp 1.000.000 |
 | **Maintenance (DevOps)** | Rp 500.000 | Rp 500.000 | Rp 500.000 |
 | **Penyusutan (3 tahun)** | Rp 1.670.000 | Rp 3.060.000 | Rp 4.440.000 |
-| **Total Opex Bulanan** | **~Rp 4.6jt** | **~Rp 6.8jt** | **~Rp 9.6jt** |
+| **Total Opex Bulanan** | **~Rp 4.7jt** | **~Rp 6.9jt** | **~Rp 9.8jt** |
 
-Dua baris layak ditegaskan. **Listrik** adalah biaya terbesar dan paling stabil — dihitung dengan tarif PLN Rp 1.500/kWh untuk operasi 24/7; GPU idle pun tetap menyala. **Penyusutan** membagi Capex ke 36 bulan — baris yang menormalkan beban di laporan laba-rugi, sekaligus mengingatkan bahwa aset ini "habis" seiring waktu. Total Opex bahkan di tier Optimal (±Rp 9,6 juta) masih lebih murah daripada tagihan cloud satu bulan (±Rp 10,5 juta) — kesimpulan yang terasa ironis tetapi matematis: **server termahal kantor Anda masih lebih murah daripada langganan terkecilnya**.
+Dua baris layak ditegaskan. **Listrik** adalah biaya terbesar dan paling stabil — dihitung dengan tarif PLN Rp 1.600/kWh untuk operasi 24/7; GPU idle pun tetap menyala. **Penyusutan** membagi Capex ke 36 bulan — baris yang menormalkan beban di laporan laba-rugi, sekaligus mengingatkan bahwa aset ini "habis" seiring waktu. Total Opex bahkan di tier Optimal (±Rp 9,8 juta) masih lebih murah daripada tagihan cloud satu bulan (±Rp 10,5 juta) — kesimpulan yang terasa ironis tetapi matematis: **server termahal kantor Anda masih lebih murah daripada langganan terkecilnya**.
 
 
 ---
@@ -303,9 +303,9 @@ DATE=$(date +%Y-%m)
 GPU_POWER=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits | paste -sd+ | bc)
 echo "$DATE GPU Power: $GPU_POWER W" >> $LOG_FILE
 
-# Hitung biaya listrik (Rp 1.500/kWh, 24 jam)
+# Hitung biaya listrik (Rp 1.600/kWh, 24 jam)
 KWH=$(echo "scale=2; $GPU_POWER * 24 * 30 / 1000" | bc)
-COST=$(echo "scale=0; $KWH * 1500" | bc)
+COST=$(echo "scale=0; $KWH * 1600" | bc)
 echo "$DATE Estimasi listrik GPU: Rp $COST" >> $LOG_FILE
 
 # Catat jumlah user aktif
@@ -318,7 +318,7 @@ echo "Listrik GPU bulan ini: Rp $COST"
 echo "User aktif: $USERS"
 ```
 
-Skrip ini mengubah klaim "listrik ±Rp 2 juta/bulan" menjadi fakta terukur: daya aktual GPU dibaca dari `nvidia-smi`, dikalikan 24 jam 30 hari dengan tarif Rp 1.500/kWh, lalu dicatat berbulan-bulan. Setelah tiga bulan, Anda memiliki *trend line* biaya nyata yang bisa dibandingkan dengan estimasi Opex pada Tabel 4 — sekaligus data untuk menanggapi pertanyaan "server-nya sebenarnya mahal atau tidak?" dengan jawaban, bukan perasaan.
+Skrip ini mengubah klaim "listrik ±Rp 2 juta/bulan" menjadi fakta terukur: daya aktual GPU dibaca dari `nvidia-smi`, dikalikan 24 jam 30 hari dengan tarif Rp 1.600/kWh, lalu dicatat berbulan-bulan. Setelah tiga bulan, Anda memiliki *trend line* biaya nyata yang bisa dibandingkan dengan estimasi Opex pada Tabel 4 — sekaligus data untuk menanggapi pertanyaan "server-nya sebenarnya mahal atau tidak?" dengan jawaban, bukan perasaan.
 
 ---
 

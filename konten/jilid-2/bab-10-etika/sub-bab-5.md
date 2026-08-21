@@ -21,7 +21,7 @@ Setelah membaca sub-bab ini, Anda akan mampu:
 
 ### Jejak Tak Terlihat di Setiap Query
 
-LLM adalah konsumen energi raksasa yang sering tidak terlihat oleh penggunanya. Melatih **GPT-3** (175B parameter) diperkirakan menghasilkan sekitar **500 ton CO2 [Sumber?]** — setara emisi **100 mobil yang berjalan selama satu tahun penuh**. Lebih mengejutkan lagi, *inference* (fase penggunaan sehari-hari) bisa mengonsumsi energi **10 kali lipat** dari *training* jika dihitung kumulatif, karena model yang sudah dilatih terus melayani jutaan prompt setiap hari. Setiap *query* LLM mengonsumsi energi **5-10 kali lebih besar [Sumber?]** daripada *search engine* tradisional. Di kantor yang menjalankan server LLM 24/7, tagihan listrik bulanan bisa mencapai puluhan juta rupiah — dan setiap rupiah itu juga merupakan emisi.
+LLM adalah konsumen energi raksasa yang sering tidak terlihat oleh penggunanya. Melatih **GPT-3** (175B parameter) menghasilkan sekitar **500-550 ton CO2** — setara emisi **100-123 mobil yang berjalan selama satu tahun penuh** (1.287 MWh listrik, perkiraan Patterson et al., 2021 [14]). Lebih mengejutkan lagi, *inference* (fase penggunaan sehari-hari) bisa mengonsumsi energi **10 kali lipat** dari *training* jika dihitung kumulatif, karena model yang sudah dilatih terus melayani jutaan prompt setiap hari. Setiap *query* LLM mengonsumsi energi **5-10 kali lebih besar** daripada *search engine* tradisional — satu sesi ChatGPT menghabiskan ~2,9 Wh dibanding ~0,3 Wh per pencarian Google (perkiraan IEA, 2024 [15]). Di kantor yang menjalankan server LLM 24/7, tagihan listrik bulanan bisa mencapai puluhan juta rupiah — dan setiap rupiah itu juga merupakan emisi.
 
 ### Regulasi Semakin Mengetat
 
@@ -50,7 +50,7 @@ Akhirnya, ada dimensi etis yang tidak bisa dihindari. Setiap *query* yang tidak 
 
 ### Training: Emisi Terkonsentrasi
 
-Fase *training* menghasilkan emisi yang **terkonsentrasi dalam waktu singkat**: satu siklus pelatihan model 175B saja bisa melebihi **500 ton CO2 [Sumber?]**. Besarannya tergantung ukuran model, efisiensi arsitektur, dan *grid carbon intensity* lokasi pusat data. Kabar baiknya, *training* adalah fase yang paling mudah dijadwalkan — karena tidak interaktif, ia bisa dipindah ke jam-jam dengan *carbon intensity* rendah tanpa mengganggu siapa pun. Inilah dasar dari *carbon-aware scheduling* yang dibahas di Seksi 5.
+Fase *training* menghasilkan emisi yang **terkonsentrasi dalam waktu singkat**: satu siklus pelatihan model 175B saja bisa melebihi **500 ton CO2 [14]**. Besarannya tergantung ukuran model, efisiensi arsitektur, dan *grid carbon intensity* lokasi pusat data. Kabar baiknya, *training* adalah fase yang paling mudah dijadwalkan — karena tidak interaktif, ia bisa dipindah ke jam-jam dengan *carbon intensity* rendah tanpa mengganggu siapa pun. Inilah dasar dari *carbon-aware scheduling* yang dibahas di Seksi 5.
 
 ### Inference: Emisi yang Tersebar
 
@@ -58,7 +58,7 @@ Fase *inference* berbanding terbalik: emisinya **kecil per kejadian tetapi terse
 
 ### Experimentation & Storage: Emisi yang Tersembunyi
 
-Fase terakhir yang paling jarang dihitung: **eksperimentasi dan penyimpanan**. Setiap percobaan *trial-and-error* yang gagal tetap membakar energi; setiap checkpoint yang disimpan tetap memakan daya penyimpanan dan *backup*. Estimasi yang sering dikutip: hingga 40% konsumsi listrik server AI di kantor berasal dari GPU yang menganggur di malam hari [Sumber?] — memproses apa pun atau tidak sama sekali. Menghemat fase ini tidak memerlukan teknologi baru, hanya disiplin: hapus checkpoint yang tidak dipakai, matikan GPU di luar jam kerja, dan hentikan eksperimen yang tidak terukur.
+Fase terakhir yang paling jarang dihitung: **eksperimentasi dan penyimpanan**. Setiap percobaan *trial-and-error* yang gagal tetap membakar energi; setiap checkpoint yang disimpan tetap memakan daya penyimpanan dan *backup*. Trace cluster produksi menunjukkan betapa besar pemborosan ini: hampir **49% waktu GPU yang direservasi justru idle di dalam *job* yang berjalan** [16] — GPU yang menganggur menarik daya signifikan tanpa memproses apa pun [16]. Menghemat fase ini tidak memerlukan teknologi baru, hanya disiplin: hapus checkpoint yang tidak dipakai, matikan GPU di luar jam kerja, dan hentikan eksperimen yang tidak terukur.
 
 ### Gambar 1: Siklus Hidup Emisi LLM
 
@@ -504,3 +504,9 @@ Skrip ini menambahkan satu metrik yang sering terlewat: **chars_per_wh** — kar
 [12] Greenhouse Gas Protocol. *GHG Protocol*. [https://ghgprotocol.org](https://ghgprotocol.org)
 
 [13] ISO 14001. *Environmental Management Systems*. [https://www.iso.org/iso-14001-environmental-management.html](https://www.iso.org/iso-14001-environmental-management.html)
+
+[14] Patterson, D., Gonzalez, J., Le, Q., Liang, C., Munguia, L.-M., Rothchild, D., So, D., Texier, M., & Dean, J. (2021). *Carbon Emissions and Large Neural Network Training*. arXiv:2104.10350. DOI: [10.48550/arXiv.2104.10350](https://arxiv.org/abs/2104.10350)
+
+[15] International Energy Agency. (2024). *Electricity 2024 — Analysis and Forecast to 2026*. [https://www.iea.org/reports/electricity-2024](https://www.iea.org/reports/electricity-2024)
+
+[16] Hu, Q., et al. (2024). *Characterization of Large Language Model Development in the Datacenter*. Proceedings of the 21st USENIX Symposium on Networked Systems Design and Implementation (NSDI '24). [https://www.usenix.org/conference/nsdi24/presentation/hu](https://www.usenix.org/conference/nsdi24/presentation/hu) — analisis trace cluster produksi Shanghai AI Lab (AcmeTrace): sebagian besar waktu GPU yang direservasi idle di dalam job yang berjalan.
