@@ -60,10 +60,28 @@ Setiap file `.md` di dalam sub-folder harus mengikuti struktur empat pilar:
 │   ├── bab-06-home/       # Spesifikasi setup 4-8 user
 │   ├── bab-07-small/      # Spesifikasi setup 9-20 user
 │   └── ...
-├── assets/                # Gambar, Diagram (Mermaid.js), & Screenshots
+├── konten/assets/         # Gambar, Diagram (Mermaid.js), & Screenshots
 ├── templates/             # Template Markdown agar formatting konsisten
+├── print/                 # Manifest urutan baca + output layout cetak (OpenDesign)
+├── DESIGN.md              # Design system cetak (dibaca OpenDesign)
+├── OPENDESIGN.md          # Brief layout buku cetak untuk agent
 └── CONTRIBUTING.md        # Panduan Git: Branching, Pull Requests, & Tagging
 ```
+
+---
+
+## 🖨️ Layout Buku Cetak (OpenDesign)
+
+Repo ini sudah disiapkan agar **OpenDesign** (atau coding agent apa pun) bisa membaca konten dan membuat layout buku cetak:
+
+| File | Fungsi |
+| :--- | :--- |
+| `DESIGN.md` | Kontrak desain cetak (9 section): trim UNESCO 155×230 mm, margin, tipografi, komponen, anti-pattern |
+| `OPENDESIGN.md` | Brief agent: aturan layout, penanganan mermaid/gambar, spesifikasi ekspor PDF |
+| `print/manifest.md` | Urutan baca 88 file konten (auto dari `mkdocs.yml`) — regenerate: `python print/generate_manifest.py` |
+| `print/` | Output ekspor: `local-llm-bible-jilid-{1,2}.pdf` + preview HTML |
+
+Jalankan (sekali setelah od CLI terpasang): `od mcp install opencode`, lalu minta agent: *"Baca OPENDESIGN.md dan DESIGN.md, layout konten urut print/manifest.md, ekspor PDF per jilid ke print/."*
 
 ---
 
