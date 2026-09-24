@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "print/preview/jilid-2.html",
+  "entry": "print/preview/jilid-2.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-09-24T07:19:57.162Z",
+  "updatedAt": "2026-09-24T07:19:57.162Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

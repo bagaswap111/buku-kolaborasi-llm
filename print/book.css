@@ -1,0 +1,838 @@
+/* ============================================================
+   The Local LLM Bible — Edisi Cetak
+   Kontrak visual: DESIGN.md (token, tipografi, komponen cetak)
+   Trim: UNESCO 155 × 230 mm
+   ============================================================ */
+
+@import url("assets/fonts/fonts-face.css");
+
+:root {
+  --color-ink: #1A1A2E;
+  --color-ink-muted: #4A4A5A;
+  --color-primary: #4F46E5;
+  --color-accent: #0D9488;
+  --color-surface: #F4F4F8;
+  --color-border: #D8D8E0;
+  --color-bg: #FFFFFF;
+  --color-warn-bg: #FEF3C7;
+  --color-warn-border: #D97706;
+  --color-zebra: #FAFAFC;
+
+  --font-body: "Source Serif 4", "Charter", "Georgia", serif;
+  --font-head: "Inter", "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
+
+  --space-xs: 4pt;
+  --space-sm: 8pt;
+  --space-md: 12pt;
+  --space-lg: 24pt;
+  --space-xl: 48pt;
+  --space-xxl: 72pt;
+}
+
+/* ---------- Paged media (Paged.js / print) ---------- */
+
+@page {
+  size: 155mm 230mm;
+  margin: 18mm 15mm 20mm 20mm;
+
+  @bottom-center {
+    content: counter(page);
+    font-family: var(--font-head);
+    font-size: 8pt;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    vertical-align: top;
+    padding-top: 6mm;
+  }
+}
+
+@page :left {
+  margin: 18mm 20mm 20mm 15mm;
+
+  @top-left {
+    content: string(chaptertitle);
+    font-family: var(--font-head);
+    font-size: 8pt;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    vertical-align: bottom;
+    padding-bottom: 6mm;
+    max-width: 100mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @bottom-center {
+    content: counter(page);
+    font-family: var(--font-head);
+    font-size: 8pt;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    vertical-align: top;
+    padding-top: 6mm;
+  }
+}
+
+@page :right {
+  margin: 18mm 15mm 20mm 20mm;
+
+  @top-right {
+    content: "The Local LLM Bible";
+    font-family: var(--font-head);
+    font-size: 8pt;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    vertical-align: bottom;
+    padding-bottom: 6mm;
+    white-space: nowrap;
+  }
+
+  @bottom-center {
+    content: counter(page);
+    font-family: var(--font-head);
+    font-size: 8pt;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+    vertical-align: top;
+    padding-top: 6mm;
+  }
+}
+
+@page opener {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: counter(page); }
+}
+
+@page titlepage {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: none; }
+}
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  background: var(--color-bg);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 10.5pt;
+  line-height: 1.5;
+  font-weight: 400;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  orphans: 2;
+  widows: 2;
+}
+
+p { margin: 0 0 var(--space-sm); text-indent: 0; }
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:focus-visible {
+  outline: 2pt solid var(--color-primary);
+  outline-offset: 2pt;
+}
+
+strong, b { font-weight: 700; }
+em, i { font-style: italic; }
+
+/* ---------- Headings ---------- */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-head);
+  color: var(--color-ink);
+  text-align: left;
+  text-wrap: pretty;
+  hyphens: manual;
+  -webkit-hyphens: manual;
+  break-after: avoid-page;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 24pt;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 var(--space-md);
+}
+
+h2 {
+  font-size: 15pt;
+  font-weight: 650;
+  line-height: 1.3;
+  margin: var(--space-lg) 0 var(--space-sm);
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+h4 {
+  font-size: 10.5pt;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: var(--space-md) 0 var(--space-xs);
+}
+
+/* ---------- Struktur halaman ---------- */
+
+.title-page {
+  page: titlepage;
+  break-after: page;
+  page-break-after: always;
+  min-height: 190mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.title-mark {
+  display: flex;
+  align-items: center;
+  gap: 10pt;
+}
+
+.title-mark svg { display: block; }
+
+.title-mark span {
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.title-main h1 {
+  font-size: 30pt;
+  line-height: 1.15;
+  margin: 0 0 var(--space-sm);
+}
+
+.title-sub {
+  font-family: var(--font-head);
+  font-size: 13pt;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-ink-muted);
+  margin: 0 0 var(--space-md);
+}
+
+.title-rule {
+  border: none;
+  border-top: 2pt solid var(--color-primary);
+  width: 40mm;
+  margin: 0 0 var(--space-md);
+}
+
+.title-meta {
+  font-family: var(--font-head);
+  font-size: 9.5pt;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.title-meta .slogan {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 11pt;
+  color: var(--color-ink-muted);
+  margin-top: var(--space-sm);
+}
+
+.title-foot {
+  font-family: var(--font-head);
+  font-size: 8pt;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+.frontmatter {
+  break-after: page;
+  page-break-after: always;
+}
+
+.frontmatter h1 { font-size: 24pt; }
+
+.copyright-block {
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+  text-align: left;
+}
+
+.copyright-block p { margin: 0 0 var(--space-sm); }
+
+.copyright-block a { color: var(--color-ink-muted); }
+
+/* Daftar isi */
+
+.toc { break-after: page; page-break-after: always; }
+
+.toc h1 { margin-bottom: var(--space-md); }
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-head);
+  font-size: 9.5pt;
+}
+
+.toc-list li { margin: 0; padding: 0; }
+
+.toc-list a {
+  display: flex;
+  align-items: baseline;
+  gap: 4pt;
+  color: var(--color-ink);
+  padding: 2.2pt 0;
+}
+
+.toc-list a:hover { color: var(--color-primary); }
+
+.toc-list a::after {
+  content: leader(". ") target-counter(attr(href), page);
+  flex: 1;
+  text-align: right;
+  color: var(--color-ink-muted);
+  font-weight: 500;
+}
+
+.toc-chapter > a {
+  font-weight: 700;
+  margin-top: var(--space-sm);
+}
+
+.toc-chapter > a .toc-num {
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.toc-sub { padding-left: 14pt; }
+
+.toc-sub a {
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  padding: 1.6pt 0;
+}
+
+.toc-sub a:hover { color: var(--color-primary); }
+
+.toc-jilid {
+  font-weight: 700;
+  font-size: 11pt;
+  margin-top: var(--space-md);
+}
+
+.toc-jilid:first-child { margin-top: 0; }
+
+/* Divider bab (dari manifest) */
+
+.chapter-divider {
+  page: opener;
+  break-before: page;
+  page-break-before: always;
+  break-after: page;
+  page-break-after: always;
+  min-height: 170mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+}
+
+.chapter-divider .divider-eyebrow {
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  margin: 0 0 var(--space-xs);
+}
+
+.chapter-divider .opener-num {
+  font-family: var(--font-head);
+  font-size: 48pt;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+  margin: 0 0 var(--space-xs);
+}
+
+.chapter-divider h1 { margin-bottom: var(--space-sm); }
+
+.chapter-divider .divider-rule {
+  border: none;
+  border-top: 2pt solid var(--color-primary);
+  width: 100%;
+  margin: 0 0 var(--space-md);
+}
+
+.chapter-divider h1 {
+  string-set: chaptertitle content(text);
+}
+
+.divider-toc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-head);
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: var(--color-ink-muted);
+  columns: 1;
+}
+
+.divider-toc li {
+  padding: 1.8pt 0;
+  break-inside: avoid;
+}
+
+.divider-toc .num {
+  display: inline-block;
+  min-width: 22pt;
+  font-weight: 600;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chapter opener sub-bab (isi konten) */
+
+section.subbab {
+  break-before: page;
+  page-break-before: always;
+}
+
+.subbab .opener-block {
+  page: opener;
+  margin-bottom: var(--space-md);
+}
+
+.subbab .opener-block h1 {
+  string-set: chaptertitle content(text);
+  margin-top: 0;
+}
+
+.subbab .opener-num {
+  font-family: var(--font-head);
+  font-size: 48pt;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+  margin: 0 0 var(--space-xs);
+  display: block;
+}
+
+.subbab .opener-rule {
+  border: none;
+  border-top: 2pt solid var(--color-primary);
+  width: 100%;
+  margin: var(--space-sm) 0 0;
+}
+
+/* Epigraf / pull quote */
+
+blockquote.epigraph {
+  margin: var(--space-md) 10mm var(--space-md) 10mm;
+  padding: 0;
+  border: none;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: var(--color-ink);
+  text-align: left;
+  break-inside: avoid;
+}
+
+blockquote.epigraph p {
+  margin: 0;
+  text-indent: 0;
+}
+
+/* Admonition / callout */
+
+.callout {
+  background: var(--color-warn-bg);
+  border-left: 3pt solid var(--color-warn-border);
+  padding: var(--space-sm) 10pt;
+  margin: var(--space-md) 0;
+  font-size: 10pt;
+  text-align: left;
+  break-inside: avoid;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+.callout p { margin: 0 0 var(--space-xs); }
+.callout p:last-child { margin-bottom: 0; }
+.callout strong { font-weight: 700; }
+
+/* ---------- Daftar / list ---------- */
+
+ul, ol {
+  margin: 0 0 var(--space-sm);
+  padding-left: 16pt;
+}
+
+li { margin: 0 0 3pt; break-inside: avoid; }
+li > ul, li > ol { margin-top: 3pt; margin-bottom: 0; }
+
+/* ---------- Tabel ---------- */
+
+.table-label {
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-ink);
+  margin: var(--space-sm) 0 var(--space-xs);
+  text-align: left;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.table-label::before {
+  content: "";
+  display: inline-block;
+  width: 6pt;
+  height: 6pt;
+  background: var(--color-accent);
+  margin-right: 5pt;
+  vertical-align: 1pt;
+}
+
+.table-wrap {
+  margin: 0 0 var(--space-md);
+  break-inside: auto;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+.table-wrap.wide table { font-size: 7.5pt; }
+
+thead { display: table-header-group; }
+
+th {
+  background: var(--color-surface);
+  font-weight: 700;
+  text-align: left;
+  color: var(--color-ink);
+  border-top: 1pt solid var(--color-border);
+  border-bottom: 1pt solid var(--color-border);
+  padding: 4pt 5pt;
+  vertical-align: bottom;
+}
+
+td {
+  padding: 3.5pt 5pt;
+  border-bottom: 0.5pt solid var(--color-border);
+  vertical-align: top;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+tbody tr:nth-child(even) td { background: var(--color-zebra); }
+tbody tr:last-child td { border-bottom: 1pt solid var(--color-border); }
+
+/* Penjajaran kolom dari markdown: :---: = angka → rata kanan (DESIGN §2) */
+th.align-c, td.align-c { text-align: right; }
+th.align-l, td.align-l { text-align: left; }
+
+.table-note {
+  font-size: 9pt;
+  color: var(--color-ink-muted);
+  margin: calc(var(--space-xs) * -1) 0 var(--space-md);
+  text-align: left;
+}
+
+/* ---------- Kode ---------- */
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 8.5pt;
+}
+
+p code, li code, td code, th code {
+  background: var(--color-surface);
+  padding: 0.5pt 3pt;
+  font-size: 0.92em;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+.code-block {
+  margin: 0 0 var(--space-md);
+  break-inside: auto;
+}
+
+.code-lang {
+  font-family: var(--font-head);
+  font-size: 7.5pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  background: var(--color-surface);
+  padding: 2pt 8pt;
+  display: inline-block;
+  margin-bottom: -1pt;
+}
+
+pre {
+  margin: 0;
+  background: var(--color-surface);
+  border-left: 2pt solid var(--color-accent);
+  border-radius: 0 2pt 2pt 0;
+  padding: 8pt 10pt;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  color: var(--color-ink);
+  text-align: left;
+  hyphens: none;
+  -webkit-hyphens: none;
+  tab-size: 2;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 8.5pt;
+}
+
+/* ---------- Gambar / diagram ---------- */
+
+figure {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding: 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  text-align: center;
+}
+
+figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+figcaption {
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-ink-muted);
+  text-align: left;
+  margin-top: var(--space-xs);
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+figcaption .fig-num {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.image-missing {
+  border: 1pt dashed var(--color-border);
+  background: var(--color-surface);
+  padding: 10pt;
+  font-family: var(--font-head);
+  font-size: 8.5pt;
+  color: var(--color-ink-muted);
+  text-align: left;
+}
+
+/* Mermaid */
+
+.mermaid {
+  width: 100%;
+  text-align: center;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.mermaid-fallback {
+  font-family: var(--font-mono);
+  font-size: 7.5pt;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  background: var(--color-surface);
+  border-left: 2pt solid var(--color-accent);
+  padding: 8pt;
+  text-align: left;
+  color: var(--color-ink-muted);
+  word-break: break-word;
+}
+
+/* ---------- Referensi ---------- */
+
+.referensi-block {
+  font-size: 9pt;
+  line-height: 1.4;
+  text-align: left;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+.ref-item {
+  padding-left: 16pt;
+  text-indent: -16pt;
+  margin: 0 0 4pt;
+  break-inside: avoid;
+}
+
+.ref-url {
+  display: inline;
+  font-family: var(--font-mono);
+  font-size: 7.5pt;
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Penutup ---------- */
+
+hr {
+  border: none;
+  border-top: 0.5pt solid var(--color-border);
+  margin: var(--space-lg) 0;
+  break-after: avoid;
+}
+
+.md-hr-center {
+  width: 30mm;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Section pembuka front matter */
+
+.front-section h1 { margin-top: 0; }
+
+.front-section p { text-align: justify; }
+
+/* ---------- Screen-only: loader & viewer ---------- */
+
+#od-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14pt;
+  font-family: var(--font-head);
+  transition: opacity 0.35s ease;
+}
+
+#od-loader.od-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.od-spinner {
+  width: 26pt;
+  height: 26pt;
+  border: 2.5pt solid var(--color-surface);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: od-spin 0.8s linear infinite;
+}
+
+.od-loader-title {
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.od-loader-sub {
+  font-size: 8.5pt;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  max-width: 70mm;
+  text-align: center;
+  line-height: 1.5;
+}
+
+@keyframes od-spin { to { transform: rotate(360deg); } }
+
+@media screen {
+  html { background: #E9E9EF; }
+
+  body {
+    background: #E9E9EF;
+  }
+
+  html.od-flow body {
+    padding: 24pt 0;
+  }
+
+  html.od-flow .book {
+    width: 155mm;
+    margin: 0 auto;
+    background: var(--color-bg);
+    padding: 18mm 15mm 20mm 20mm;
+    min-height: 230mm;
+    box-shadow: 0 2pt 18pt rgba(26, 26, 46, 0.18);
+  }
+
+  .pagedjs_page {
+    margin: 12pt auto;
+    box-shadow: 0 2pt 14pt rgba(26, 26, 46, 0.16);
+  }
+}
+
+@media print {
+  #od-loader { display: none !important; }
+  html, body { background: var(--color-bg); }
+  html.od-flow .book { width: auto; padding: 0; margin: 0; box-shadow: none; }
+}
