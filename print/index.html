@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Local LLM Bible — Setup Cetak</title>
+<link rel="stylesheet" href="book.css">
+<style>
+  body {
+    background: var(--color-surface);
+    text-align: left;
+    min-height: 100vh;
+  }
+
+  .hub {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 64px;
+    font-family: var(--font-head);
+  }
+
+  .hub-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .hub-brand span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .hub h1 {
+    font-size: 34px;
+    margin: 0 0 6px;
+    text-align: left;
+  }
+
+  .hub .lede {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--color-ink-muted);
+    margin: 0 0 32px;
+    text-align: left;
+  }
+
+  .jilid-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .jilid-card {
+    display: block;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 20px 22px;
+    color: var(--color-ink);
+    text-decoration: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .jilid-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 16px rgba(26, 26, 46, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .jilid-card:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .jilid-card .num {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .jilid-card .name {
+    font-size: 16px;
+    font-weight: 650;
+    margin: 0 0 6px;
+  }
+
+  .jilid-card .meta {
+    font-size: 12.5px;
+    color: var(--color-ink-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .panel {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 {
+    font-size: 15px;
+    font-weight: 650;
+    margin: 0 0 12px;
+    text-align: left;
+  }
+
+  .panel ol, .panel ul {
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--color-ink);
+    margin: 0;
+    padding-left: 20px;
+  }
+
+  .panel li { margin-bottom: 6px; }
+
+  .panel code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--color-surface);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .spec-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .spec-chip {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-ink);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 4px 12px;
+  }
+
+  .spec-chip i {
+    font-style: normal;
+    color: var(--color-accent);
+    margin-right: 5px;
+  }
+
+  .hub-foot {
+    font-size: 12px;
+    color: var(--color-ink-muted);
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  .hub-foot a { color: var(--color-primary); }
+</style>
+</head>
+<body>
+<div class="hub" data-od-id="hub-cetak">
+  <div class="hub-brand">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    <span>Setup Cetak &middot; Edisi 2026</span>
+  </div>
+  <h1>The Local LLM Bible</h1>
+  <p class="lede">
+    Layout buku cetak dari seluruh konten <code>konten/</code>, mengikuti kontrak desain
+    <code>print/DESIGN.md</code>. Buka satu jilid, tunggu diagram dan penomoran halaman selesai,
+    lalu ekspor ke PDF.
+  </p>
+
+  <div class="jilid-grid">
+    <a class="jilid-card" href="preview/jilid-1.html" data-od-id="kartu-jilid-1">
+      <span class="num">01</span>
+      <p class="name">Jilid 1 — Personal AI &amp; Intelligent Agents</p>
+      <p class="meta">Bab 01–04 · optimalisasi single-user, desktop berperforma tinggi, dan agentic automation.</p>
+    </a>
+    <a class="jilid-card" href="preview/jilid-2.html" data-od-id="kartu-jilid-2">
+      <span class="num">02</span>
+      <p class="name">Jilid 2 — Enterprise &amp; Multi-User Infrastructure</p>
+      <p class="meta">Bab 05–10 · skalabilitas, keamanan jaringan, dan implementasi berdasarkan skala organisasi.</p>
+    </a>
+  </div>
+
+  <div class="panel" data-od-id="panel-ekspor-pdf">
+    <h2>Cara ekspor PDF per jilid</h2>
+    <ol>
+      <li>Buka salah satu kartu jilid di atas, lalu tunggu label <strong>“Menyiapkan buku cetak”</strong> hilang — diagram Mermaid dan tata halaman sedang dirender.</li>
+      <li>Tekan <code>Ctrl+P</code> (macOS: <code>Cmd+P</code>) dan pilih <strong>Simpan sebagai PDF</strong>.</li>
+      <li>Setel margin ke <strong>Tidak ada / None</strong>, skala <strong>100%</strong>, dan aktifkan <strong>Grafik latar belakang</strong>.</li>
+      <li>Simpan sebagai <code>local-llm-bible-jilid-1.pdf</code> / <code>local-llm-bible-jilid-2.pdf</code>.</li>
+    </ol>
+  </div>
+
+  <div class="panel" data-od-id="panel-spesifikasi">
+    <h2>Spesifikasi cetak</h2>
+    <div class="spec-row">
+      <span class="spec-chip"><i>■</i>Trim UNESCO 155 × 230 mm</span>
+      <span class="spec-chip"><i>■</i>Margin 18/15/20/20 mm · gutter 20 mm</span>
+      <span class="spec-chip"><i>■</i>Body Source Serif 4 10,5 pt</span>
+      <span class="spec-chip"><i>■</i>Heading Inter</span>
+      <span class="spec-chip"><i>■</i>Kode JetBrains Mono 8,5 pt</span>
+      <span class="spec-chip"><i>■</i>Nomor Tabel/Gambar per bab</span>
+    </div>
+  </div>
+
+  <div class="panel" data-od-id="panel-regenerasi">
+    <h2>Regenerasi setelah konten berubah</h2>
+    <ul>
+      <li>Jalankan ulang build: <code>python print/build_book.py</code> (opsi <code>--konten PATH</code> bila folder konten tidak berada di repo ini).</li>
+      <li>Urutan baca tetap mengikuti <code>nav</code> di <code>mkdocs.yml</code> — sub-bab baru di luar nav tetap disertakan otomatis di babnya.</li>
+    </ul>
+  </div>
+
+  <p class="hub-foot">
+    Penyunting: Bagaskoro Saputro dkk. · © 2026 ·
+    <a href="https://github.com/bagaswap111/buku-kolaborasi-llm">github.com/bagaswap111/buku-kolaborasi-llm</a>
+  </p>
+</div>
+</body>
+</html>
